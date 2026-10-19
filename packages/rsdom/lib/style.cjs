@@ -11,7 +11,7 @@
 //   exported as `rt.getComputedStyle` for the window area (C) to install. It returns a read-only
 //   declaration whose core properties (display, visibility, pointer-events, opacity, position) are a
 //   snapshot of one `csCore` crossing (memoised per element against EP[STYLE], and EP[REC]/EP[FORM] when
-//   author sheets select on state: EP[13]); other properties are read live through `csStr`
+//   author sheets select on state: EP[STYLE_DEP]; lib/memo.cjs); other properties are read live through `csStr`
 //   (documented divergence: jsdom's declaration is a full snapshot). RSDOM_NO_MEMO=1 disables the memo.
 //   Pseudo-elements get a declaration with `content: none` and empty values.
 
@@ -25,8 +25,6 @@ const POINTER_EVENTS_KW = ['auto', 'none', 'visiblepainted', 'visiblefill', 'vis
   'fill', 'stroke', 'all', 'bounding-box'];
 const POSITION_KW = ['static', 'relative', 'absolute', 'fixed', 'sticky'];
 const OPACITY_ONE = 1 << 11;
-/** Area A's epoch-page slot: author sheets depend on state (src/style/mod.rs EP_STYLE_DEP). */
-const EP_STYLE_DEP = 13;
 const CUSTOM_BASE = 0x10000;
 
 /** Property table: NAMES[id] = kebab name (crates/rsdom/data/css/properties.tsv line order). */
@@ -36,10 +34,15 @@ const ID = new Map(NAMES.map((n, i) => [n, i]));
 const camel = (s) => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 
 function install(rt, dom) {
-  const { N, V, EPI, TOKEN, flags } = rt;
+  const { N, V, EPI, TOKEN } = rt;
   const { Element, HTMLElement, SVGElement, MathMLElement } = dom;
   const { installIndices } = require('./collections.cjs');
-  const MEMO = flags.MEMO;
+  const { MEMO, deps } = require('./memo.cjs');
+  /**
+   * The core snapshot depends on EP[STYLE]; while author sheets select on element state (EP[STYLE_DEP] != 0,
+   * src/style/mod.rs) also on form state and any record write. Stamps hold all three slots.
+   */
+  const CORE_DEPS = deps('STYLE', 'REC', 'FORM');
 
   const P = (n) => ID.get(n);
   const DISPLAY = P('display');
@@ -280,20 +283,16 @@ function install(rt, dom) {
   rt.define(SVGElement, styleAccessor);
   rt.define(MathMLElement, styleAccessor);
 
-  /** The core snapshot of element `el`, memoised on the wrapper (`_cs`). */
+  /** The core snapshot of element `el`, memoised on the wrapper (`_cs` = { k: CORE_DEPS stamp, c }). */
   function core(el) {
     const id = el._i;
     if (!MEMO) return N.csCore(id);
-    const EP = V.EP;
     const m = el._cs;
-    const s = EP[EPI.STYLE];
-    if (m !== null && m.s === s && (EP[EP_STYLE_DEP] === 0 || (m.r === EP[EPI.REC] && m.f === EP[EPI.FORM]))) return m.c;
+    if (m !== null && CORE_DEPS.fresh(m.k, V.EP[EPI.STYLE_DEP] === 0 ? 1 : 3)) return m.c;
     const c = N.csCore(id);
-    if (m === null) el._cs = { s, r: EP[EPI.REC], f: EP[EPI.FORM], c };
+    if (m === null) el._cs = { k: CORE_DEPS.stamp(), c };
     else {
-      m.s = s;
-      m.r = EP[EPI.REC];
-      m.f = EP[EPI.FORM];
+      CORE_DEPS.stamp(m.k);
       m.c = c;
     }
     return c;

@@ -17,6 +17,7 @@ const {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeListFromIds, ListIterator, installIndices,
   coverIndices,
 } = require('./collections.cjs');
+const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
 
 const { N, V, EPI, F, M, K, NSC, NS, W, TOKEN } = rt;
 const {
@@ -804,8 +805,8 @@ define(DocumentType, ChildNode);
  */
 function charData(n) {
   const id = n._i;
-  const ver = V.T[V.off(id) + F.DATA_VER];
-  if (n._ch === ver && MEMO) return n._at;
+  const ver = nodeVersion(id, NODE.DATA);
+  if (MEMO && n._ch === ver) return n._at;
   const s = N.dataGet(id);
   if (MEMO && id !== 0) {
     n._ch = ver;
@@ -813,7 +814,6 @@ function charData(n) {
   }
   return s;
 }
-const MEMO = rt.flags.MEMO;
 
 class CharacterData extends Node {
   get data() {
@@ -1223,8 +1223,8 @@ class NamedNodeMap {
 
   _sync() {
     const el = this.#e;
-    const ver = V.T[o_(el) + F.ATTR_VER];
-    if (ver === this.#v && el._i !== 0) return;
+    const ver = nodeVersion(el._i, NODE.ATTRS);
+    if (MEMO && ver === this.#v && el._i !== 0) return;
     this.#v = ver;
     const values = N.attrsAll(el._i);
     // OUT = [n, (qname, ns, prefix, local, start16, len16) x n]; EP[OUT_NEED] != 0 means it overflowed.
@@ -1464,7 +1464,7 @@ class Element extends Node {
     if (a === 0) return null;
     const id = this._i;
     if (!MEMO || id === 0) return N.getAttr(id, a);
-    const ver = V.T[V.off(id) + F.ATTR_VER];
+    const ver = nodeVersion(id, NODE.ATTRS);
     const st = this._at;
     if (st !== null && st.v === ver) {
       const m = st.m;
@@ -1487,7 +1487,7 @@ class Element extends Node {
     if (a === 0) return false;
     const id = this._i;
     if (!MEMO || id === 0) return N.hasAttr(id, a);
-    const ver = V.T[V.off(id) + F.ATTR_VER];
+    const ver = nodeVersion(id, NODE.ATTRS);
     const st = this._at;
     if (st !== null && st.v === ver) {
       const m = st.m;

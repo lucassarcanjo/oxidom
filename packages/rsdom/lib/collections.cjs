@@ -4,10 +4,10 @@
 //
 // LIVE lists keep NO own numeric properties: indices are getters installed on the prototype on demand
 // (`installIndices`), each calling `_get(i)`, which re-validates against the Rust-written version
-// (`child_ver` / the query key) on every read. So a list held across a mutation is always current, also
-// when indexed without touching `length` first (live-list semantics, like jsdom). Element lookup uses a
-// cursor cache (Blink's CollectionIndexCache): sequential `list[i]` / iteration and `[0]` are O(1),
-// random access walks from the nearest of first / last / cursor. `childNodes.length` is CHILD_LEN (O(1)).
+// (`child_ver` / the query's epoch slots; lib/memo.cjs) on every read. So a list held across a mutation is
+// always current, also when indexed without touching `length` first (live-list semantics, like jsdom).
+// Element lookup uses a cursor cache (Blink's CollectionIndexCache): sequential `list[i]` / iteration and
+// `[0]` are O(1), random access walks from the nearest of first / last / cursor. `childNodes.length` is CHILD_LEN (O(1)).
 // Measured: ~100 ns per indexed read through the prototype getter (jsdom ~195, happy-dom ~145), ~1 ns
 // for own properties; iteration goes through `_get` without the getter.
 //
@@ -17,6 +17,7 @@
 // `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes.
 
 const rt = require('./runtime.cjs');
+const { MEMO, NODE, nodeVersion, envGen, alive } = require('./memo.cjs');
 
 const { V, F, M, K, TOKEN, W } = rt;
 
@@ -141,7 +142,7 @@ class NodeList {
   /** live: child_ver the cursor belongs to */
   #v = -1;
   /** env generation the list was created in (a reset kills live lists) */
-  #g = V.envGen;
+  #g = envGen();
   /** cursor: index and id of the last entry returned (id 0 = none) */
   #ci = -1;
   #cid = 0;
@@ -172,9 +173,9 @@ class NodeList {
   /** Re-validates the cursor against the parent's child_ver (kept for area code that calls it). */
   _sync() {
     const p = this.#p;
-    if (p === 0 || this.#g !== V.envGen) return;
-    const v = V.T[V.off(p) + F.CHILD_VER];
-    if (v !== this.#v) {
+    if (p === 0 || !alive(this.#g)) return;
+    const v = nodeVersion(p, NODE.CHILDREN);
+    if (!MEMO || v !== this.#v) {
       this.#v = v;
       this.#cid = 0;
       this.#ci = -1;
@@ -188,13 +189,13 @@ class NodeList {
       const a = this.#a;
       return a === null ? undefined : a[i];
     }
-    if (this.#g !== V.envGen) return undefined;
-    const o = V.off(p);
-    const n = V.T[o + F.CHILD_LEN];
+    if (!alive(this.#g)) return undefined;
+    const n = V.T[V.off(p) + F.CHILD_LEN];
     if (!(i >= 0 && i < n)) return undefined;
-    const ver = V.T[o + F.CHILD_VER];
+    // The cursor is a memo of the child list at `#v` (child_ver).
+    const ver = nodeVersion(p, NODE.CHILDREN);
     let c;
-    if (ver !== this.#v) {
+    if (!MEMO || ver !== this.#v) {
       this.#v = ver;
       c = walkTo(p, i, n, false, -1, 0);
     } else {
@@ -218,7 +219,7 @@ class NodeList {
       const a = this.#a;
       return a === null ? 0 : a.length;
     }
-    if (this.#g !== V.envGen) return 0;
+    if (!alive(this.#g)) return 0;
     const n = V.T[V.off(p) + F.CHILD_LEN];
     if (n > IDX.nl) ensureNL(n);
     return n;
@@ -305,16 +306,17 @@ function staticNodeListShared(wrappers) {
 class HTMLCollection {
   /** live children: parent id (0 = query collection or dead) */
   #p = 0;
-  /** version the cached state belongs to (child_ver, or the query key) */
+  /** children: the parent's child_ver the cached count and cursor belong to */
   #v = -1;
-  #g = V.envGen;
+  #g = envGen();
   /** children: element count at #v (-1 = unknown); cursor */
   #n = -1;
   #ci = -1;
   #cid = 0;
-  /** query collection: source ({ key(), items() }) and its cached items */
+  /** query collection: source ({ deps, items() }), its cached items and their `deps` stamp */
   #src = null;
   #a = null;
+  #k = null;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -334,7 +336,7 @@ class HTMLCollection {
 
   /** Re-validates cached state against the Rust-written version (kept for area code that calls it). */
   _sync() {
-    if (this.#g !== V.envGen) {
+    if (!alive(this.#g)) {
       this.#p = 0;
       this.#src = null;
       this.#a = null;
@@ -342,17 +344,16 @@ class HTMLCollection {
     }
     const src = this.#src;
     if (src !== null) {
-      const k = src.key();
-      if (k === this.#v && this.#a !== null) return;
-      this.#v = k;
+      if (this.#a !== null && src.deps.fresh(this.#k)) return;
+      this.#k = src.deps.stamp(this.#k);
       this.#a = Array.from(src.items());
       ensureHC(this.#a.length);
       return;
     }
     const p = this.#p;
     if (p === 0) return;
-    const v = V.T[V.off(p) + F.CHILD_VER];
-    if (v !== this.#v) {
+    const v = nodeVersion(p, NODE.CHILDREN);
+    if (!MEMO || v !== this.#v) {
       this.#v = v;
       this.#n = -1;
       this.#cid = 0;
@@ -431,9 +432,9 @@ function liveChildren(id) {
 }
 
 /**
- * A live HTMLCollection over a custom query (getElementsByTagName/ClassName/Name: area A).
- * `src.key()` must return a Rust-written version (e.g. EP[TREE] ^ EP[ATTR] packed) and `src.items()` the
- * current wrappers (array or iterable).
+ * A live HTMLCollection over a custom query (getElementsByTagName/ClassName/Name: area A; form collections:
+ * area B). `src.deps` is a `memo.deps(...)` set naming the epoch slots the result depends on, and
+ * `src.items()` returns the current wrappers (array or iterable); items are re-read when a slot changed.
  */
 function liveQueryCollection(src) {
   return HTMLCollection._query(src);

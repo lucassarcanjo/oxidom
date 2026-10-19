@@ -1,0 +1,3336 @@
+{
+  "generated": "2026-10-17T18:23:02.624Z",
+  "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
+  "libs": {
+    "@radix-ui/react-dialog": {
+      "version": "1.3.1",
+      "packages": [
+        "@radix-ui/primitive@1.2.0",
+        "@radix-ui/react-compose-refs@1.1.5",
+        "@radix-ui/react-context@1.3.0",
+        "@radix-ui/react-dialog@1.3.1",
+        "@radix-ui/react-dismissable-layer@1.2.1",
+        "@radix-ui/react-focus-guards@1.2.0",
+        "@radix-ui/react-focus-scope@1.3.1",
+        "@radix-ui/react-id@1.1.4",
+        "@radix-ui/react-portal@1.2.0",
+        "@radix-ui/react-presence@1.1.11",
+        "@radix-ui/react-primitive@2.2.0",
+        "@radix-ui/react-slot@1.5.0",
+        "@radix-ui/react-use-callback-ref@1.1.5",
+        "@radix-ui/react-use-controllable-state@1.3.0",
+        "@radix-ui/react-use-effect-event@0.0.5",
+        "@radix-ui/react-use-layout-effect@1.1.4",
+        "aria-hidden@1.2.6",
+        "detect-node-es@1.1.0",
+        "get-nonce@1.0.1",
+        "react-remove-scroll@2.7.2",
+        "react-remove-scroll-bar@2.3.8",
+        "react-style-singleton@2.2.3",
+        "tslib@2.8.1",
+        "use-callback-ref@1.3.3",
+        "use-sidecar@1.1.3"
+      ],
+      "files": 161,
+      "apis": {
+        "createTreeWalker": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "NodeFilter": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "ShadowRoot (global)": [
+          "react-remove-scroll"
+        ],
+        "getSelection": [
+          "react-remove-scroll"
+        ],
+        "checkVisibility": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "MutationObserver": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "inert": [
+          "aria-hidden",
+          "react-remove-scroll"
+        ],
+        "getComputedStyle": [
+          "@radix-ui/react-focus-scope",
+          "@radix-ui/react-presence",
+          "react-remove-scroll",
+          "react-remove-scroll-bar"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@radix-ui/react-presence"
+        ]
+      }
+    },
+    "@radix-ui/react-select": {
+      "version": "2.4.1",
+      "packages": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/react-dom@2.1.9",
+        "@floating-ui/utils@0.2.12",
+        "@radix-ui/number@1.1.3",
+        "@radix-ui/primitive@1.2.0",
+        "@radix-ui/react-arrow@1.1.17",
+        "@radix-ui/react-collection@1.2.0",
+        "@radix-ui/react-compose-refs@1.1.5",
+        "@radix-ui/react-context@1.3.0",
+        "@radix-ui/react-direction@1.2.0",
+        "@radix-ui/react-dismissable-layer@1.2.1",
+        "@radix-ui/react-focus-guards@1.2.0",
+        "@radix-ui/react-focus-scope@1.3.1",
+        "@radix-ui/react-id@1.1.4",
+        "@radix-ui/react-popper@1.4.0",
+        "@radix-ui/react-portal@1.2.0",
+        "@radix-ui/react-presence@1.1.11",
+        "@radix-ui/react-primitive@2.2.0",
+        "@radix-ui/react-select@2.4.1",
+        "@radix-ui/react-slot@1.5.0",
+        "@radix-ui/react-use-callback-ref@1.1.5",
+        "@radix-ui/react-use-controllable-state@1.3.0",
+        "@radix-ui/react-use-effect-event@0.0.5",
+        "@radix-ui/react-use-layout-effect@1.1.4",
+        "@radix-ui/react-use-rect@1.1.4",
+        "@radix-ui/react-use-size@1.1.5",
+        "@radix-ui/react-visually-hidden@1.2.13",
+        "@radix-ui/rect@1.1.3",
+        "aria-hidden@1.2.6",
+        "detect-node-es@1.1.0",
+        "get-nonce@1.0.1",
+        "react-remove-scroll@2.7.2",
+        "react-remove-scroll-bar@2.3.8",
+        "react-style-singleton@2.2.3",
+        "tslib@2.8.1",
+        "use-callback-ref@1.3.3",
+        "use-sidecar@1.1.3"
+      ],
+      "files": 205,
+      "apis": {
+        "createTreeWalker": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "NodeFilter": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "ShadowRoot (global)": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "react-remove-scroll"
+        ],
+        "composedPath": [
+          "@radix-ui/react-select"
+        ],
+        "getSelection": [
+          "react-remove-scroll"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@radix-ui/react-select",
+          "@radix-ui/rect"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom"
+        ],
+        "scrollIntoView": [
+          "@radix-ui/react-select"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@radix-ui/react-select",
+          "@radix-ui/react-use-size"
+        ],
+        "checkVisibility": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/utils"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "@radix-ui/react-popper",
+          "@radix-ui/react-use-size"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom"
+        ],
+        "MutationObserver": [
+          "@radix-ui/react-collection",
+          "@radix-ui/react-focus-scope"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "@radix-ui/react-select",
+          "@radix-ui/react-use-size",
+          "@radix-ui/rect"
+        ],
+        "setPointerCapture/hasPointerCapture": [
+          "@radix-ui/react-select"
+        ],
+        "inert": [
+          "aria-hidden",
+          "react-remove-scroll"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "@radix-ui/react-focus-scope",
+          "@radix-ui/react-popper",
+          "@radix-ui/react-presence",
+          "@radix-ui/react-select",
+          "react-remove-scroll",
+          "react-remove-scroll-bar"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "@radix-ui/react-presence"
+        ]
+      }
+    },
+    "@radix-ui/react-dropdown-menu": {
+      "version": "2.2.1",
+      "packages": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/react-dom@2.1.9",
+        "@floating-ui/utils@0.2.12",
+        "@radix-ui/primitive@1.2.0",
+        "@radix-ui/react-arrow@1.1.17",
+        "@radix-ui/react-collection@1.2.0",
+        "@radix-ui/react-compose-refs@1.1.5",
+        "@radix-ui/react-context@1.3.0",
+        "@radix-ui/react-direction@1.2.0",
+        "@radix-ui/react-dismissable-layer@1.2.1",
+        "@radix-ui/react-dropdown-menu@2.2.1",
+        "@radix-ui/react-focus-guards@1.2.0",
+        "@radix-ui/react-focus-scope@1.3.1",
+        "@radix-ui/react-id@1.1.4",
+        "@radix-ui/react-menu@2.2.1",
+        "@radix-ui/react-popper@1.4.0",
+        "@radix-ui/react-portal@1.2.0",
+        "@radix-ui/react-presence@1.1.11",
+        "@radix-ui/react-primitive@2.2.0",
+        "@radix-ui/react-roving-focus@1.2.1",
+        "@radix-ui/react-slot@1.5.0",
+        "@radix-ui/react-use-callback-ref@1.1.5",
+        "@radix-ui/react-use-controllable-state@1.3.0",
+        "@radix-ui/react-use-effect-event@0.0.5",
+        "@radix-ui/react-use-is-hydrated@0.1.3",
+        "@radix-ui/react-use-layout-effect@1.1.4",
+        "@radix-ui/react-use-rect@1.1.4",
+        "@radix-ui/react-use-size@1.1.5",
+        "@radix-ui/rect@1.1.3",
+        "aria-hidden@1.2.6",
+        "detect-node-es@1.1.0",
+        "get-nonce@1.0.1",
+        "react-remove-scroll@2.7.2",
+        "react-remove-scroll-bar@2.3.8",
+        "react-style-singleton@2.2.3",
+        "tslib@2.8.1",
+        "use-callback-ref@1.3.3",
+        "use-sidecar@1.1.3"
+      ],
+      "files": 207,
+      "apis": {
+        "createTreeWalker": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "NodeFilter": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "ShadowRoot (global)": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "react-remove-scroll"
+        ],
+        "getSelection": [
+          "react-remove-scroll"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@radix-ui/react-menu",
+          "@radix-ui/rect"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@radix-ui/react-use-size"
+        ],
+        "checkVisibility": [
+          "@radix-ui/react-focus-scope"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/utils"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "@radix-ui/react-popper",
+          "@radix-ui/react-use-size"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom"
+        ],
+        "MutationObserver": [
+          "@radix-ui/react-collection",
+          "@radix-ui/react-focus-scope"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "@radix-ui/react-use-size",
+          "@radix-ui/rect"
+        ],
+        "inert": [
+          "aria-hidden",
+          "react-remove-scroll"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "@radix-ui/react-focus-scope",
+          "@radix-ui/react-popper",
+          "@radix-ui/react-presence",
+          "react-remove-scroll",
+          "react-remove-scroll-bar"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "@radix-ui/react-presence"
+        ]
+      }
+    },
+    "@radix-ui/react-tabs": {
+      "version": "1.2.1",
+      "packages": [
+        "@radix-ui/primitive@1.2.0",
+        "@radix-ui/react-collection@1.2.0",
+        "@radix-ui/react-compose-refs@1.1.5",
+        "@radix-ui/react-context@1.3.0",
+        "@radix-ui/react-direction@1.2.0",
+        "@radix-ui/react-id@1.1.4",
+        "@radix-ui/react-presence@1.1.11",
+        "@radix-ui/react-primitive@2.2.0",
+        "@radix-ui/react-roving-focus@1.2.1",
+        "@radix-ui/react-slot@1.5.0",
+        "@radix-ui/react-tabs@1.2.1",
+        "@radix-ui/react-use-callback-ref@1.1.5",
+        "@radix-ui/react-use-controllable-state@1.3.0",
+        "@radix-ui/react-use-effect-event@0.0.5",
+        "@radix-ui/react-use-is-hydrated@0.1.3",
+        "@radix-ui/react-use-layout-effect@1.1.4"
+      ],
+      "files": 36,
+      "apis": {
+        "MutationObserver": [
+          "@radix-ui/react-collection"
+        ],
+        "requestAnimationFrame": [
+          "@radix-ui/react-tabs"
+        ],
+        "getComputedStyle": [
+          "@radix-ui/react-presence"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@radix-ui/react-presence"
+        ]
+      }
+    },
+    "@headlessui/react": {
+      "version": "2.2.10",
+      "packages": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/react@0.27.20",
+        "@floating-ui/react-dom@2.1.9",
+        "@floating-ui/utils@0.2.12",
+        "@headlessui/react@2.2.10",
+        "@internationalized/date@3.12.4",
+        "@internationalized/number@3.6.9",
+        "@internationalized/string@3.2.10",
+        "@react-aria/focus@3.22.1",
+        "@react-aria/interactions@3.28.1",
+        "@react-types/shared@3.37.0",
+        "@swc/helpers@0.5.23",
+        "@tanstack/react-virtual@3.14.21",
+        "@tanstack/virtual-core@3.19.6",
+        "aria-hidden@1.2.6",
+        "clsx@2.1.1",
+        "react-aria@3.53.1",
+        "react-stately@3.51.0",
+        "tabbable@6.5.0",
+        "tslib@2.8.1",
+        "use-sync-external-store@1.7.0"
+      ],
+      "files": 4682,
+      "apis": {
+        "createTreeWalker": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "NodeFilter": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "ShadowRoot (global)": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@headlessui/react",
+          "react-aria",
+          "tabbable"
+        ],
+        "composedPath": [
+          "@floating-ui/react",
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "assignedNodes/assignedElements": [
+          "@floating-ui/react",
+          "react-aria",
+          "tabbable"
+        ],
+        "getSelection": [
+          "react-aria"
+        ],
+        "createRange": [
+          "react-aria"
+        ],
+        "Selection collapse()/setBaseAndExtent() creates a Range": [
+          "react-aria"
+        ],
+        "isContentEditable": [
+          "@floating-ui/react",
+          "@headlessui/react",
+          "react-aria",
+          "tabbable"
+        ],
+        "InputEvent#getTargetRanges": [
+          "react-aria"
+        ],
+        "caretRangeFromPoint/caretPositionFromPoint": [
+          "react-aria"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@headlessui/react",
+          "react-aria",
+          "tabbable"
+        ],
+        "Range#getBoundingClientRect": [
+          "react-aria"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@headlessui/react",
+          "tabbable"
+        ],
+        "elementFromPoint": [
+          "react-aria"
+        ],
+        "scrollIntoView": [
+          "@floating-ui/react",
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "Element#scrollTo": [
+          "@floating-ui/react",
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@headlessui/react",
+          "@tanstack/virtual-core",
+          "react-aria"
+        ],
+        "checkVisibility": [
+          "react-aria",
+          "tabbable"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@headlessui/react",
+          "@tanstack/virtual-core",
+          "react-aria"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom",
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "MutationObserver": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "matchMedia": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@headlessui/react",
+          "@tanstack/virtual-core",
+          "react-aria"
+        ],
+        "getAnimations": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "setPointerCapture/hasPointerCapture": [
+          "react-aria"
+        ],
+        "PointerEvent": [
+          "@headlessui/react",
+          "react-aria"
+        ],
+        "CompositionEvent": [
+          "@floating-ui/react",
+          "react-aria"
+        ],
+        "DataTransfer": [
+          "react-aria"
+        ],
+        "inert": [
+          "@floating-ui/react",
+          "@headlessui/react",
+          "aria-hidden",
+          "react-aria",
+          "tabbable"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@headlessui/react",
+          "react-aria",
+          "tabbable"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@headlessui/react",
+          "@tanstack/virtual-core",
+          "react-aria",
+          "tabbable"
+        ]
+      }
+    },
+    "react-aria-components": {
+      "version": "1.22.1",
+      "packages": [
+        "@internationalized/date@3.12.4",
+        "@internationalized/number@3.6.9",
+        "@internationalized/string@3.2.10",
+        "@react-types/shared@3.37.0",
+        "@swc/helpers@0.5.23",
+        "aria-hidden@1.2.6",
+        "client-only@0.0.1",
+        "clsx@2.1.1",
+        "react-aria@3.53.1",
+        "react-aria-components@1.22.1",
+        "react-stately@3.51.0",
+        "tslib@2.8.1",
+        "use-sync-external-store@1.7.0"
+      ],
+      "files": 5096,
+      "apis": {
+        "createTreeWalker": [
+          "react-aria"
+        ],
+        "NodeFilter": [
+          "react-aria"
+        ],
+        "ShadowRoot (global)": [
+          "react-aria"
+        ],
+        "composedPath": [
+          "react-aria"
+        ],
+        "assignedNodes/assignedElements": [
+          "react-aria"
+        ],
+        "getSelection": [
+          "react-aria"
+        ],
+        "createRange": [
+          "react-aria"
+        ],
+        "Selection collapse()/setBaseAndExtent() creates a Range": [
+          "react-aria"
+        ],
+        "isContentEditable": [
+          "react-aria"
+        ],
+        "InputEvent#getTargetRanges": [
+          "react-aria"
+        ],
+        "caretRangeFromPoint/caretPositionFromPoint": [
+          "react-aria"
+        ],
+        "Element#getBoundingClientRect": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "Range#getBoundingClientRect": [
+          "react-aria"
+        ],
+        "elementFromPoint": [
+          "react-aria"
+        ],
+        "scrollIntoView": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "Element#scrollTo": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "checkVisibility": [
+          "react-aria"
+        ],
+        "visualViewport": [
+          "react-aria"
+        ],
+        "ResizeObserver": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "IntersectionObserver": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "MutationObserver": [
+          "react-aria"
+        ],
+        "matchMedia": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "requestAnimationFrame": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "getAnimations": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "setPointerCapture/hasPointerCapture": [
+          "react-aria"
+        ],
+        "PointerEvent": [
+          "react-aria"
+        ],
+        "CompositionEvent": [
+          "react-aria"
+        ],
+        "DataTransfer": [
+          "react-aria"
+        ],
+        "inert": [
+          "aria-hidden",
+          "react-aria",
+          "react-aria-components"
+        ],
+        "getComputedStyle": [
+          "react-aria",
+          "react-aria-components"
+        ],
+        "adoptedStyleSheets": [
+          "react-aria-components"
+        ],
+        "CSS.supports/CSS.escape": [
+          "react-aria",
+          "react-aria-components"
+        ]
+      }
+    },
+    "@mui/material": {
+      "version": "9.5.0",
+      "packages": [
+        "@babel/code-frame@7.29.7",
+        "@babel/generator@7.29.8",
+        "@babel/helper-globals@7.29.7",
+        "@babel/helper-module-imports@7.29.7",
+        "@babel/helper-string-parser@7.29.7",
+        "@babel/helper-validator-identifier@7.29.7",
+        "@babel/parser@7.29.9",
+        "@babel/runtime@7.29.10",
+        "@babel/template@7.29.7",
+        "@babel/traverse@7.29.10",
+        "@babel/types@7.29.8",
+        "@emotion/babel-plugin@11.13.5",
+        "@emotion/cache@11.14.0",
+        "@emotion/hash@0.9.2",
+        "@emotion/is-prop-valid@1.4.0",
+        "@emotion/memoize@0.9.0",
+        "@emotion/react@11.14.0",
+        "@emotion/serialize@1.3.3",
+        "@emotion/sheet@1.4.0",
+        "@emotion/styled@11.14.1",
+        "@emotion/unitless@0.10.0",
+        "@emotion/use-insertion-effect-with-fallbacks@1.2.0",
+        "@emotion/utils@1.4.2",
+        "@emotion/weak-memoize@0.4.0",
+        "@jridgewell/gen-mapping@0.3.13",
+        "@jridgewell/resolve-uri@3.1.2",
+        "@jridgewell/sourcemap-codec@1.6.0",
+        "@jridgewell/trace-mapping@0.3.31",
+        "@mui/core-downloads-tracker@9.5.0",
+        "@mui/material@9.5.0",
+        "@mui/private-theming@9.5.0",
+        "@mui/styled-engine@9.5.0",
+        "@mui/system@9.5.0",
+        "@mui/types@9.5.0",
+        "@mui/utils@9.5.0",
+        "@popperjs/core@2.11.8",
+        "babel-plugin-macros@3.1.0",
+        "callsites@3.1.0",
+        "clsx@2.1.1",
+        "convert-source-map@1.9.0",
+        "cosmiconfig@7.1.0",
+        "debug@4.4.3",
+        "dom-helpers@5.2.1",
+        "error-ex@1.3.4",
+        "es-errors@1.3.0",
+        "escape-string-regexp@4.0.0",
+        "find-root@1.1.0",
+        "function-bind@1.1.2",
+        "hasown@2.0.4",
+        "hoist-non-react-statics@3.3.2",
+        "import-fresh@3.3.1",
+        "is-arrayish@0.2.1",
+        "is-core-module@2.17.0",
+        "js-tokens@4.0.0",
+        "jsesc@3.1.0",
+        "json-parse-even-better-errors@2.3.1",
+        "lines-and-columns@1.2.4",
+        "loose-envify@1.4.0",
+        "ms@2.1.3",
+        "object-assign@4.1.1",
+        "parent-module@1.0.1",
+        "parse-json@5.2.0",
+        "path-parse@1.0.7",
+        "path-type@4.0.0",
+        "picocolors@1.1.1",
+        "prop-types@15.8.1",
+        "react-is@19.3.1",
+        "react-transition-group@4.4.5",
+        "resolve@1.22.13",
+        "resolve-from@4.0.0",
+        "source-map@0.5.7",
+        "stylis@4.2.0",
+        "supports-preserve-symlinks-flag@1.0.0",
+        "yaml@2.9.1"
+      ],
+      "files": 3013,
+      "apis": {
+        "ShadowRoot (global)": [
+          "@emotion/sheet",
+          "@mui/utils",
+          "@popperjs/core"
+        ],
+        "composedPath": [
+          "@mui/material",
+          "@mui/utils"
+        ],
+        "getSelection": [
+          "@mui/material"
+        ],
+        "isContentEditable": [
+          "@emotion/is-prop-valid",
+          "@emotion/styled",
+          "@mui/material",
+          "@mui/utils"
+        ],
+        "Element#getBoundingClientRect": [
+          "@mui/material",
+          "@popperjs/core",
+          "dom-helpers"
+        ],
+        "Element#getClientRects": [
+          "dom-helpers"
+        ],
+        "scrollIntoView": [
+          "@mui/material"
+        ],
+        "Element#scrollTo": [
+          "dom-helpers"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@mui/material",
+          "@popperjs/core",
+          "dom-helpers"
+        ],
+        "visualViewport": [
+          "@popperjs/core"
+        ],
+        "ResizeObserver": [
+          "@mui/material"
+        ],
+        "IntersectionObserver": [
+          "@mui/material"
+        ],
+        "MutationObserver": [
+          "@mui/material"
+        ],
+        "matchMedia": [
+          "@mui/material",
+          "@mui/system"
+        ],
+        "requestAnimationFrame": [
+          "@mui/material",
+          "dom-helpers"
+        ],
+        "setPointerCapture/hasPointerCapture": [
+          "@mui/material"
+        ],
+        "PointerEvent": [
+          "@mui/material"
+        ],
+        "TouchEvent": [
+          "@mui/material"
+        ],
+        "inert": [
+          "@emotion/is-prop-valid",
+          "@emotion/styled"
+        ],
+        "getComputedStyle": [
+          "@mui/material",
+          "@mui/system",
+          "@popperjs/core",
+          "dom-helpers"
+        ],
+        "CSSStyleSheet#insertRule": [
+          "@emotion/react",
+          "@emotion/sheet"
+        ]
+      }
+    },
+    "focus-trap + tabbable": {
+      "version": "8.2.3",
+      "packages": [
+        "focus-trap@8.2.3",
+        "tabbable@6.5.0"
+      ],
+      "files": 14,
+      "apis": {
+        "ShadowRoot (global)": [
+          "focus-trap",
+          "tabbable"
+        ],
+        "composedPath": [
+          "focus-trap"
+        ],
+        "assignedNodes/assignedElements": [
+          "tabbable"
+        ],
+        "isContentEditable": [
+          "tabbable"
+        ],
+        "Element#getBoundingClientRect": [
+          "tabbable"
+        ],
+        "Element#getClientRects": [
+          "tabbable"
+        ],
+        "checkVisibility": [
+          "tabbable"
+        ],
+        "MutationObserver": [
+          "focus-trap"
+        ],
+        "inert": [
+          "focus-trap",
+          "tabbable"
+        ],
+        "getComputedStyle": [
+          "tabbable"
+        ],
+        "CSS.supports/CSS.escape": [
+          "tabbable"
+        ]
+      }
+    },
+    "@floating-ui/react": {
+      "version": "0.27.20",
+      "packages": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/react@0.27.20",
+        "@floating-ui/react-dom@2.1.9",
+        "@floating-ui/utils@0.2.12",
+        "tabbable@6.5.0"
+      ],
+      "files": 43,
+      "apis": {
+        "ShadowRoot (global)": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "tabbable"
+        ],
+        "composedPath": [
+          "@floating-ui/react"
+        ],
+        "assignedNodes/assignedElements": [
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "isContentEditable": [
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "scrollIntoView": [
+          "@floating-ui/react"
+        ],
+        "Element#scrollTo": [
+          "@floating-ui/react"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react"
+        ],
+        "checkVisibility": [
+          "tabbable"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "@floating-ui/react"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "@floating-ui/react"
+        ],
+        "CompositionEvent": [
+          "@floating-ui/react"
+        ],
+        "inert": [
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "tabbable"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "tabbable"
+        ]
+      }
+    },
+    "@tanstack/react-table": {
+      "version": "9.3.1",
+      "packages": [
+        "@tanstack/react-store@0.11.2",
+        "@tanstack/react-table@9.3.1",
+        "@tanstack/store@0.11.2",
+        "@tanstack/table-core@9.3.1",
+        "use-sync-external-store@1.7.0"
+      ],
+      "files": 142,
+      "apis": {
+        "requestAnimationFrame": [
+          "@tanstack/table-core"
+        ]
+      }
+    },
+    "react-hook-form": {
+      "version": "7.90.0",
+      "packages": [
+        "react-hook-form@7.90.0"
+      ],
+      "files": 4,
+      "apis": {
+        "fetch": [
+          "react-hook-form"
+        ]
+      }
+    },
+    "downshift": {
+      "version": "9.4.0",
+      "packages": [
+        "@babel/runtime@7.29.10",
+        "compute-scroll-into-view@3.1.1",
+        "downshift@9.4.0",
+        "js-tokens@4.0.0",
+        "loose-envify@1.4.0",
+        "object-assign@4.1.1",
+        "prop-types@15.8.1",
+        "react-is@19.3.1",
+        "tslib@2.8.1"
+      ],
+      "files": 280,
+      "apis": {
+        "Element#getBoundingClientRect": [
+          "compute-scroll-into-view",
+          "downshift"
+        ],
+        "scrollIntoView": [
+          "downshift"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "compute-scroll-into-view",
+          "downshift"
+        ],
+        "visualViewport": [
+          "compute-scroll-into-view",
+          "downshift"
+        ],
+        "getComputedStyle": [
+          "compute-scroll-into-view",
+          "downshift"
+        ]
+      }
+    },
+    "react-select": {
+      "version": "5.10.2",
+      "packages": [
+        "@babel/code-frame@7.29.7",
+        "@babel/generator@7.29.8",
+        "@babel/helper-globals@7.29.7",
+        "@babel/helper-module-imports@7.29.7",
+        "@babel/helper-string-parser@7.29.7",
+        "@babel/helper-validator-identifier@7.29.7",
+        "@babel/parser@7.29.9",
+        "@babel/runtime@7.29.10",
+        "@babel/template@7.29.7",
+        "@babel/traverse@7.29.10",
+        "@babel/types@7.29.8",
+        "@emotion/babel-plugin@11.13.5",
+        "@emotion/cache@11.14.0",
+        "@emotion/hash@0.9.2",
+        "@emotion/memoize@0.9.0",
+        "@emotion/react@11.14.0",
+        "@emotion/serialize@1.3.3",
+        "@emotion/sheet@1.4.0",
+        "@emotion/unitless@0.10.0",
+        "@emotion/use-insertion-effect-with-fallbacks@1.2.0",
+        "@emotion/utils@1.4.2",
+        "@emotion/weak-memoize@0.4.0",
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/utils@0.2.12",
+        "@jridgewell/gen-mapping@0.3.13",
+        "@jridgewell/resolve-uri@3.1.2",
+        "@jridgewell/sourcemap-codec@1.6.0",
+        "@jridgewell/trace-mapping@0.3.31",
+        "babel-plugin-macros@3.1.0",
+        "callsites@3.1.0",
+        "convert-source-map@1.9.0",
+        "cosmiconfig@7.1.0",
+        "debug@4.4.3",
+        "dom-helpers@5.2.1",
+        "error-ex@1.3.4",
+        "es-errors@1.3.0",
+        "escape-string-regexp@4.0.0",
+        "find-root@1.1.0",
+        "function-bind@1.1.2",
+        "hasown@2.0.4",
+        "hoist-non-react-statics@3.3.2",
+        "import-fresh@3.3.1",
+        "is-arrayish@0.2.1",
+        "is-core-module@2.17.0",
+        "js-tokens@4.0.0",
+        "jsesc@3.1.0",
+        "json-parse-even-better-errors@2.3.1",
+        "lines-and-columns@1.2.4",
+        "loose-envify@1.4.0",
+        "memoize-one@6.0.0",
+        "ms@2.1.3",
+        "object-assign@4.1.1",
+        "parent-module@1.0.1",
+        "parse-json@5.2.0",
+        "path-parse@1.0.7",
+        "path-type@4.0.0",
+        "picocolors@1.1.1",
+        "prop-types@15.8.1",
+        "react-is@19.3.1",
+        "react-select@5.10.2",
+        "react-transition-group@4.4.5",
+        "resolve@1.22.13",
+        "resolve-from@4.0.0",
+        "source-map@0.5.7",
+        "stylis@4.2.0",
+        "supports-preserve-symlinks-flag@1.0.0",
+        "use-isomorphic-layout-effect@1.2.1",
+        "yaml@2.9.1"
+      ],
+      "files": 1083,
+      "apis": {
+        "ShadowRoot (global)": [
+          "@emotion/sheet",
+          "@floating-ui/dom",
+          "@floating-ui/utils"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "dom-helpers",
+          "react-select"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "dom-helpers"
+        ],
+        "scrollIntoView": [
+          "react-select"
+        ],
+        "Element#scrollTo": [
+          "dom-helpers",
+          "react-select"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "dom-helpers",
+          "react-select"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/utils"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "react-select"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "dom-helpers",
+          "react-select"
+        ],
+        "TouchEvent": [
+          "react-select"
+        ],
+        "CompositionEvent": [
+          "react-select"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/utils",
+          "dom-helpers",
+          "react-select"
+        ],
+        "CSSStyleSheet#insertRule": [
+          "@emotion/react",
+          "@emotion/sheet"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/utils"
+        ]
+      }
+    },
+    "framer-motion": {
+      "version": "14.3.0",
+      "packages": [
+        "framer-motion@14.3.0",
+        "motion-dom@14.3.0",
+        "motion-utils@14.1.1",
+        "tslib@2.8.1"
+      ],
+      "files": 461,
+      "apis": {
+        "isContentEditable": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "Element#getBoundingClientRect": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "Element#scrollTo": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "ResizeObserver": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "IntersectionObserver": [
+          "framer-motion"
+        ],
+        "matchMedia": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "requestAnimationFrame": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "Element#animate (WAAPI)": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "getAnimations": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "PointerEvent": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "getComputedStyle": [
+          "framer-motion",
+          "motion-dom"
+        ],
+        "CSSStyleSheet#insertRule": [
+          "framer-motion"
+        ]
+      }
+    },
+    "react-router": {
+      "version": "8.4.0",
+      "packages": [
+        "@remix-run/route-pattern@0.22.1",
+        "cookie-es@3.1.1",
+        "react-router@8.4.0"
+      ],
+      "files": 165,
+      "apis": {
+        "scrollIntoView": [
+          "react-router"
+        ],
+        "Element#scrollTo": [
+          "react-router"
+        ],
+        "IntersectionObserver": [
+          "react-router"
+        ],
+        "MutationObserver": [
+          "react-router"
+        ],
+        "matchMedia": [
+          "react-router"
+        ],
+        "history.pushState": [
+          "react-router"
+        ],
+        "history traversal fires popstate": [
+          "react-router"
+        ],
+        "fetch": [
+          "react-router"
+        ]
+      }
+    },
+    "@tiptap/react": {
+      "version": "3.32.0",
+      "packages": [
+        "@tiptap/core@3.32.0",
+        "@tiptap/extension-blockquote@3.32.0",
+        "@tiptap/extension-bold@3.32.0",
+        "@tiptap/extension-bullet-list@3.32.0",
+        "@tiptap/extension-code@3.32.0",
+        "@tiptap/extension-code-block@3.32.0",
+        "@tiptap/extension-document@3.32.0",
+        "@tiptap/extension-dropcursor@3.32.0",
+        "@tiptap/extension-gapcursor@3.32.0",
+        "@tiptap/extension-hard-break@3.32.0",
+        "@tiptap/extension-heading@3.32.0",
+        "@tiptap/extension-horizontal-rule@3.32.0",
+        "@tiptap/extension-italic@3.32.0",
+        "@tiptap/extension-link@3.32.0",
+        "@tiptap/extension-list@3.32.0",
+        "@tiptap/extension-list-item@3.32.0",
+        "@tiptap/extension-list-keymap@3.32.0",
+        "@tiptap/extension-ordered-list@3.32.0",
+        "@tiptap/extension-paragraph@3.32.0",
+        "@tiptap/extension-strike@3.32.0",
+        "@tiptap/extension-text@3.32.0",
+        "@tiptap/extension-underline@3.32.0",
+        "@tiptap/extensions@3.32.0",
+        "@tiptap/pm@3.32.0",
+        "@tiptap/react@3.32.0",
+        "@tiptap/starter-kit@3.32.0",
+        "fast-equals@5.4.5",
+        "linkifyjs@4.3.3",
+        "orderedmap@2.1.1",
+        "prosemirror-changeset@2.4.4",
+        "prosemirror-commands@1.7.2",
+        "prosemirror-dropcursor@1.8.4",
+        "prosemirror-gapcursor@1.4.1",
+        "prosemirror-history@1.5.1",
+        "prosemirror-inputrules@1.5.1",
+        "prosemirror-keymap@1.2.3",
+        "prosemirror-model@1.25.12",
+        "prosemirror-schema-list@1.5.1",
+        "prosemirror-state@1.4.4",
+        "prosemirror-tables@1.8.5",
+        "prosemirror-transform@1.12.2",
+        "prosemirror-view@1.42.6",
+        "rope-sequence@1.3.4",
+        "use-sync-external-store@1.7.0",
+        "w3c-keyname@2.2.8"
+      ],
+      "files": 173,
+      "apis": {
+        "getSelection": [
+          "@tiptap/core",
+          "@tiptap/extensions",
+          "@tiptap/react",
+          "prosemirror-view"
+        ],
+        "createRange": [
+          "prosemirror-view"
+        ],
+        "Selection collapse()/setBaseAndExtent() creates a Range": [
+          "@tiptap/react",
+          "prosemirror-view"
+        ],
+        "execCommand": [
+          "prosemirror-view"
+        ],
+        "isContentEditable": [
+          "@tiptap/core",
+          "@tiptap/extension-list",
+          "@tiptap/react",
+          "prosemirror-view"
+        ],
+        "InputEvent#getTargetRanges": [
+          "prosemirror-view"
+        ],
+        "caretRangeFromPoint/caretPositionFromPoint": [
+          "prosemirror-view"
+        ],
+        "Element#getBoundingClientRect": [
+          "@tiptap/core",
+          "prosemirror-dropcursor",
+          "prosemirror-tables",
+          "prosemirror-view"
+        ],
+        "Range#getBoundingClientRect": [
+          "prosemirror-view"
+        ],
+        "Element#getClientRects": [
+          "prosemirror-view"
+        ],
+        "Range#getClientRects": [
+          "prosemirror-view"
+        ],
+        "elementFromPoint": [
+          "prosemirror-view"
+        ],
+        "scrollIntoView": [
+          "@tiptap/core",
+          "@tiptap/extension-blockquote",
+          "@tiptap/extension-hard-break",
+          "@tiptap/extension-horizontal-rule",
+          "@tiptap/extension-list",
+          "prosemirror-commands",
+          "prosemirror-history",
+          "prosemirror-schema-list",
+          "prosemirror-state",
+          "prosemirror-tables",
+          "prosemirror-view"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@tiptap/core",
+          "prosemirror-dropcursor",
+          "prosemirror-tables",
+          "prosemirror-view"
+        ],
+        "visualViewport": [
+          "prosemirror-view"
+        ],
+        "MutationObserver": [
+          "@tiptap/core",
+          "prosemirror-view"
+        ],
+        "requestAnimationFrame": [
+          "@tiptap/core",
+          "@tiptap/extensions",
+          "@tiptap/react"
+        ],
+        "CompositionEvent": [
+          "prosemirror-view"
+        ],
+        "DataTransfer": [
+          "@tiptap/core"
+        ],
+        "getComputedStyle": [
+          "prosemirror-dropcursor",
+          "prosemirror-view"
+        ],
+        "DOMParser": [
+          "@tiptap/core",
+          "prosemirror-model",
+          "prosemirror-view"
+        ]
+      }
+    },
+    "lexical": {
+      "version": "0.52.0",
+      "packages": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/dom@1.8.0",
+        "@floating-ui/react@0.27.20",
+        "@floating-ui/react-dom@2.1.9",
+        "@floating-ui/utils@0.2.12",
+        "@lexical/a11y@0.52.0",
+        "@lexical/clipboard@0.52.0",
+        "@lexical/code-core@0.52.0",
+        "@lexical/devtools-core@0.52.0",
+        "@lexical/dragon@0.52.0",
+        "@lexical/extension@0.52.0",
+        "@lexical/hashtag@0.52.0",
+        "@lexical/history@0.52.0",
+        "@lexical/html@0.52.0",
+        "@lexical/internal@0.52.0",
+        "@lexical/link@0.52.0",
+        "@lexical/list@0.52.0",
+        "@lexical/mark@0.52.0",
+        "@lexical/markdown@0.52.0",
+        "@lexical/overflow@0.52.0",
+        "@lexical/plain-text@0.52.0",
+        "@lexical/react@0.52.0",
+        "@lexical/rich-text@0.52.0",
+        "@lexical/selection@0.52.0",
+        "@lexical/table@0.52.0",
+        "@lexical/text@0.52.0",
+        "@lexical/utils@0.52.0",
+        "@lexical/yjs@0.52.0",
+        "@preact/signals-core@1.14.4",
+        "lexical@0.52.0",
+        "tabbable@6.5.0"
+      ],
+      "files": 413,
+      "apis": {
+        "createTreeWalker": [
+          "@lexical/clipboard",
+          "lexical"
+        ],
+        "NodeFilter": [
+          "@lexical/clipboard",
+          "lexical"
+        ],
+        "ShadowRoot (global)": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@lexical/utils",
+          "lexical",
+          "tabbable"
+        ],
+        "composedPath": [
+          "@floating-ui/react",
+          "lexical"
+        ],
+        "assignedNodes/assignedElements": [
+          "@floating-ui/react",
+          "tabbable"
+        ],
+        "getSelection": [
+          "@lexical/clipboard",
+          "@lexical/code-core",
+          "@lexical/devtools-core",
+          "@lexical/dragon",
+          "@lexical/extension",
+          "@lexical/link",
+          "@lexical/list",
+          "@lexical/markdown",
+          "@lexical/plain-text",
+          "@lexical/react",
+          "@lexical/rich-text",
+          "@lexical/selection",
+          "@lexical/table",
+          "@lexical/utils",
+          "@lexical/yjs",
+          "lexical"
+        ],
+        "createRange": [
+          "@lexical/clipboard",
+          "@lexical/react",
+          "@lexical/rich-text",
+          "@lexical/selection",
+          "@lexical/utils",
+          "lexical"
+        ],
+        "Selection collapse()/setBaseAndExtent() creates a Range": [
+          "@lexical/clipboard",
+          "@lexical/rich-text",
+          "lexical"
+        ],
+        "execCommand": [
+          "@lexical/clipboard",
+          "@lexical/dragon",
+          "lexical"
+        ],
+        "isContentEditable": [
+          "@floating-ui/react",
+          "@lexical/a11y",
+          "@lexical/react",
+          "@lexical/table",
+          "lexical",
+          "tabbable"
+        ],
+        "InputEvent#getTargetRanges": [
+          "lexical"
+        ],
+        "caretRangeFromPoint/caretPositionFromPoint": [
+          "@lexical/clipboard"
+        ],
+        "Element#getBoundingClientRect": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@lexical/clipboard",
+          "@lexical/extension",
+          "@lexical/list",
+          "@lexical/react",
+          "@lexical/rich-text",
+          "@lexical/selection",
+          "@lexical/table",
+          "@lexical/utils",
+          "@lexical/yjs",
+          "lexical",
+          "tabbable"
+        ],
+        "Range#getBoundingClientRect": [
+          "@lexical/clipboard",
+          "@lexical/react",
+          "@lexical/rich-text",
+          "@lexical/selection",
+          "@lexical/table",
+          "@lexical/utils",
+          "lexical"
+        ],
+        "Element#getClientRects": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@lexical/clipboard",
+          "@lexical/selection",
+          "@lexical/utils",
+          "tabbable"
+        ],
+        "Range#getClientRects": [
+          "@lexical/clipboard",
+          "@lexical/selection",
+          "@lexical/utils"
+        ],
+        "elementFromPoint": [
+          "@lexical/clipboard"
+        ],
+        "elementsFromPoint": [
+          "@lexical/table"
+        ],
+        "scrollIntoView": [
+          "@floating-ui/react",
+          "@lexical/react"
+        ],
+        "Element#scrollTo": [
+          "@floating-ui/react"
+        ],
+        "offsetWidth/offsetHeight/offsetParent": [
+          "@floating-ui/core",
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@lexical/react",
+          "@lexical/table",
+          "@lexical/yjs",
+          "lexical"
+        ],
+        "checkVisibility": [
+          "tabbable"
+        ],
+        "visualViewport": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "lexical"
+        ],
+        "ResizeObserver": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@lexical/react",
+          "@lexical/table"
+        ],
+        "IntersectionObserver": [
+          "@floating-ui/dom"
+        ],
+        "MutationObserver": [
+          "@lexical/table",
+          "@lexical/utils",
+          "lexical"
+        ],
+        "requestAnimationFrame": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@lexical/react",
+          "@lexical/table",
+          "lexical"
+        ],
+        "PointerEvent": [
+          "@lexical/list"
+        ],
+        "TouchEvent": [
+          "@lexical/list"
+        ],
+        "CompositionEvent": [
+          "@floating-ui/react",
+          "lexical"
+        ],
+        "DataTransfer": [
+          "@lexical/clipboard",
+          "@lexical/html"
+        ],
+        "inert": [
+          "@floating-ui/react",
+          "@lexical/yjs",
+          "lexical",
+          "tabbable"
+        ],
+        "getComputedStyle": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@lexical/list",
+          "@lexical/react",
+          "@lexical/rich-text",
+          "@lexical/selection",
+          "@lexical/table",
+          "@lexical/utils",
+          "lexical",
+          "tabbable"
+        ],
+        "CSSStyleSheet#insertRule": [
+          "@lexical/yjs"
+        ],
+        "adoptedStyleSheets": [
+          "@lexical/yjs"
+        ],
+        "CSS.supports/CSS.escape": [
+          "@floating-ui/dom",
+          "@floating-ui/react",
+          "@floating-ui/utils",
+          "@lexical/yjs",
+          "tabbable"
+        ],
+        "DOMParser": [
+          "@lexical/clipboard",
+          "@lexical/html"
+        ]
+      }
+    },
+    "lit": {
+      "version": "3.3.3",
+      "packages": [
+        "@lit-labs/ssr-dom-shim@1.6.0",
+        "@lit/reactive-element@2.1.2",
+        "lit@3.3.3",
+        "lit-element@4.2.2",
+        "lit-html@3.3.3"
+      ],
+      "files": 290,
+      "apis": {
+        "createTreeWalker": [
+          "@lit-labs/ssr-dom-shim",
+          "lit-html"
+        ],
+        "NodeFilter": [
+          "lit-html"
+        ],
+        "attachShadow": [
+          "@lit-labs/ssr-dom-shim",
+          "@lit/reactive-element",
+          "lit",
+          "lit-element"
+        ],
+        "ShadowRoot (global)": [
+          "@lit-labs/ssr-dom-shim",
+          "@lit/reactive-element",
+          "lit",
+          "lit-element",
+          "lit-html"
+        ],
+        "customElements": [
+          "@lit-labs/ssr-dom-shim",
+          "@lit/reactive-element",
+          "lit-element"
+        ],
+        "composedPath": [
+          "@lit-labs/ssr-dom-shim"
+        ],
+        "assignedNodes/assignedElements": [
+          "@lit/reactive-element"
+        ],
+        "ResizeObserver": [
+          "@lit-labs/ssr-dom-shim"
+        ],
+        "IntersectionObserver": [
+          "@lit-labs/ssr-dom-shim"
+        ],
+        "MutationObserver": [
+          "@lit-labs/ssr-dom-shim"
+        ],
+        "requestAnimationFrame": [
+          "@lit/reactive-element"
+        ],
+        "CSSStyleSheet#insertRule": [
+          "@lit-labs/ssr-dom-shim"
+        ],
+        "adoptedStyleSheets": [
+          "@lit-labs/ssr-dom-shim",
+          "@lit/reactive-element",
+          "lit-element"
+        ],
+        "fetch": [
+          "lit-html"
+        ]
+      }
+    },
+    "axios": {
+      "version": "1.20.0",
+      "packages": [
+        "agent-base@6.0.2",
+        "asynckit@0.4.0",
+        "axios@1.20.0",
+        "call-bind-apply-helpers@1.0.2",
+        "combined-stream@1.0.8",
+        "debug@4.4.3",
+        "delayed-stream@1.0.0",
+        "dunder-proto@1.0.1",
+        "es-define-property@1.0.1",
+        "es-errors@1.3.0",
+        "es-object-atoms@1.1.2",
+        "es-set-tostringtag@2.1.0",
+        "follow-redirects@1.16.1",
+        "form-data@4.0.6",
+        "function-bind@1.1.2",
+        "get-intrinsic@1.3.0",
+        "get-proto@1.0.1",
+        "gopd@1.2.0",
+        "has-symbols@1.1.0",
+        "has-tostringtag@1.0.2",
+        "hasown@2.0.4",
+        "https-proxy-agent@5.0.1",
+        "math-intrinsics@1.1.0",
+        "mime-db@1.52.0",
+        "mime-types@2.1.35",
+        "ms@2.1.3",
+        "proxy-from-env@2.1.0"
+      ],
+      "files": 166,
+      "apis": {
+        "XMLHttpRequest": [
+          "axios"
+        ]
+      }
+    },
+    "msw": {
+      "version": "3.0.3",
+      "packages": [
+        "@inquirer/ansi@2.0.9",
+        "@inquirer/confirm@6.3.3",
+        "@inquirer/core@12.0.4",
+        "@inquirer/figures@2.0.9",
+        "@inquirer/type@4.2.0",
+        "@msw/url@0.1.2",
+        "@mswjs/interceptors@0.45.8",
+        "@open-draft/until@3.0.1",
+        "ansi-regex@5.0.1",
+        "ansi-styles@5.2.0",
+        "cli-width@4.1.0",
+        "cliui@9.0.1",
+        "cookie@2.0.1",
+        "debug@4.4.3",
+        "escalade@3.2.0",
+        "fast-string-truncated-width@3.0.3",
+        "fast-string-width@3.0.2",
+        "fast-wrap-ansi@0.2.2",
+        "get-caller-file@2.0.5",
+        "get-east-asian-width@1.7.0",
+        "headers-polyfill@5.0.1",
+        "is-node-process@1.2.0",
+        "ms@2.1.3",
+        "msw@3.0.3",
+        "mute-stream@3.0.0",
+        "outvariant@1.4.3",
+        "rettime@0.11.12",
+        "set-cookie-parser@3.1.4",
+        "signal-exit@4.1.0",
+        "string-width@8.3.0",
+        "strip-ansi@7.2.0",
+        "tagged-tag@1.0.0",
+        "tldts@7.4.18",
+        "tldts-core@7.4.18",
+        "tough-cookie@6.0.2",
+        "type-fest@5.10.0",
+        "until-async@3.0.2",
+        "wrap-ansi@9.0.2",
+        "y18n@5.0.8",
+        "yargs@18.2.0",
+        "yargs-parser@22.0.0"
+      ],
+      "files": 219,
+      "apis": {
+        "composedPath": [
+          "@mswjs/interceptors",
+          "msw"
+        ],
+        "inert": [
+          "@mswjs/interceptors"
+        ],
+        "XMLHttpRequest": [
+          "@mswjs/interceptors",
+          "headers-polyfill",
+          "msw"
+        ],
+        "fetch": [
+          "@mswjs/interceptors",
+          "msw"
+        ],
+        "DOMParser": [
+          "@mswjs/interceptors",
+          "msw"
+        ]
+      }
+    }
+  },
+  "apis": [
+    {
+      "id": "createTreeWalker",
+      "area": "traversal",
+      "pattern": "\\bcreateTreeWalker\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "NodeFilter",
+      "area": "traversal",
+      "pattern": "\\bNodeFilter\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "createNodeIterator",
+      "area": "traversal",
+      "pattern": "\\bcreateNodeIterator\\b",
+      "usedBy": [],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "attachShadow",
+      "area": "shadow-dom",
+      "pattern": "\\battachShadow\\b",
+      "usedBy": [
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "ShadowRoot (global)",
+      "area": "shadow-dom",
+      "pattern": "\\bShadowRoot\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "react-select",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "customElements",
+      "area": "shadow-dom",
+      "pattern": "\\bcustomElements\\b",
+      "usedBy": [
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "composedPath",
+      "area": "shadow-dom",
+      "pattern": "\\bcomposedPath\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "lexical",
+        "lit",
+        "msw"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "assignedNodes/assignedElements",
+      "area": "shadow-dom",
+      "pattern": "\\bassigned(Nodes|Elements)\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "getSelection",
+      "area": "editing",
+      "pattern": "\\bgetSelection\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "createRange",
+      "area": "editing",
+      "pattern": "\\bcreateRange\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "Selection collapse()/setBaseAndExtent() creates a Range",
+      "area": "editing",
+      "pattern": "\\bsetBaseAndExtent\\b|\\.collapse\\(  AND (same file) \\bgetSelection\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "execCommand",
+      "area": "editing",
+      "pattern": "\\bexecCommand\\b",
+      "usedBy": [
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "isContentEditable",
+      "area": "editing",
+      "pattern": "\\b(isContentEditable|contentEditable)\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "framer-motion",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "InputEvent#getTargetRanges",
+      "area": "editing",
+      "pattern": "\\bgetTargetRanges\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "caretRangeFromPoint/caretPositionFromPoint",
+      "area": "editing",
+      "pattern": "\\bcaret(Range|Position)FromPoint\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "Element#getBoundingClientRect",
+      "area": "geometry",
+      "pattern": "\\bgetBoundingClientRect\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "downshift",
+        "react-select",
+        "framer-motion",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "Range#getBoundingClientRect",
+      "area": "geometry",
+      "pattern": "\\bgetBoundingClientRect\\b  AND (same file) \\b(createRange|getRangeAt)\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "Element#getClientRects",
+      "area": "geometry",
+      "pattern": "\\bgetClientRects\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "react-select",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "Range#getClientRects",
+      "area": "geometry",
+      "pattern": "\\bgetClientRects\\b  AND (same file) \\b(createRange|getRangeAt)\\b",
+      "usedBy": [
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "elementFromPoint",
+      "area": "geometry",
+      "pattern": "\\belementFromPoint\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "elementsFromPoint",
+      "area": "geometry",
+      "pattern": "\\belementsFromPoint\\b",
+      "usedBy": [
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "scrollIntoView",
+      "area": "geometry",
+      "pattern": "\\bscrollIntoView\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "downshift",
+        "react-select",
+        "react-router",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "Element#scrollTo",
+      "area": "geometry",
+      "pattern": "\\.scrollTo\\(",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "react-select",
+        "framer-motion",
+        "react-router",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "offsetWidth/offsetHeight/offsetParent",
+      "area": "geometry",
+      "pattern": "\\boffset(Width|Height|Parent)\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "downshift",
+        "react-select",
+        "framer-motion",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "checkVisibility",
+      "area": "geometry",
+      "pattern": "\\bcheckVisibility\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "visualViewport",
+      "area": "geometry",
+      "pattern": "\\bvisualViewport\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "downshift",
+        "react-select",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "ResizeObserver",
+      "area": "observers",
+      "pattern": "\\bResizeObserver\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "react-select",
+        "framer-motion",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "IntersectionObserver",
+      "area": "observers",
+      "pattern": "\\bIntersectionObserver\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "react-select",
+        "framer-motion",
+        "react-router",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "MutationObserver",
+      "area": "observers",
+      "pattern": "\\bMutationObserver\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-tabs",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "react-router",
+        "@tiptap/react",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "matchMedia",
+      "area": "observers",
+      "pattern": "\\bmatchMedia\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "framer-motion",
+        "react-router"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "requestAnimationFrame",
+      "area": "observers",
+      "pattern": "\\brequestAnimationFrame\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-tabs",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "@floating-ui/react",
+        "@tanstack/react-table",
+        "react-select",
+        "framer-motion",
+        "@tiptap/react",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "Element#animate (WAAPI)",
+      "area": "animation",
+      "pattern": "\\.animate\\(",
+      "usedBy": [
+        "framer-motion"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "getAnimations",
+      "area": "animation",
+      "pattern": "\\bgetAnimations\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "framer-motion"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "setPointerCapture/hasPointerCapture",
+      "area": "events",
+      "pattern": "\\b(set|has|release)PointerCapture\\b",
+      "usedBy": [
+        "@radix-ui/react-select",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "PointerEvent",
+      "area": "events",
+      "pattern": "\\bPointerEvent\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "framer-motion",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "TouchEvent",
+      "area": "events",
+      "pattern": "\\bTouchEvent\\b",
+      "usedBy": [
+        "@mui/material",
+        "react-select",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "CompositionEvent",
+      "area": "events",
+      "pattern": "\\bCompositionEvent\\b|compositionstart",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@floating-ui/react",
+        "react-select",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "DataTransfer",
+      "area": "events",
+      "pattern": "\\bDataTransfer\\b",
+      "usedBy": [
+        "@headlessui/react",
+        "react-aria-components",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "inert",
+      "area": "html",
+      "pattern": "\\binert\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "lexical",
+        "msw"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "dialog.showModal",
+      "area": "html",
+      "pattern": "\\bshowModal\\b",
+      "usedBy": [],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "popover API",
+      "area": "html",
+      "pattern": "\\b(showPopover|togglePopover|hidePopover)\\b",
+      "usedBy": [],
+      "available": {
+        "jsdom": false,
+        "happy-dom": false,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "history.pushState",
+      "area": "html",
+      "pattern": "\\bpushState\\b",
+      "usedBy": [
+        "react-router"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "history traversal fires popstate",
+      "area": "html",
+      "pattern": "\\bpopstate\\b",
+      "usedBy": [
+        "react-router"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "getComputedStyle",
+      "area": "css",
+      "pattern": "\\bgetComputedStyle\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-tabs",
+        "@headlessui/react",
+        "react-aria-components",
+        "@mui/material",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "downshift",
+        "react-select",
+        "framer-motion",
+        "@tiptap/react",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "CSSStyleSheet#insertRule",
+      "area": "css",
+      "pattern": "\\binsertRule\\b",
+      "usedBy": [
+        "@mui/material",
+        "react-select",
+        "framer-motion",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "adoptedStyleSheets",
+      "area": "css",
+      "pattern": "\\badoptedStyleSheets\\b",
+      "usedBy": [
+        "react-aria-components",
+        "lexical",
+        "lit"
+      ],
+      "available": {
+        "jsdom": false,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "CSS.supports/CSS.escape",
+      "area": "css",
+      "pattern": "\\bCSS\\.(supports|escape)\\b",
+      "usedBy": [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-select",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-tabs",
+        "@headlessui/react",
+        "react-aria-components",
+        "focus-trap + tabbable",
+        "@floating-ui/react",
+        "react-select",
+        "lexical"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "XMLHttpRequest",
+      "area": "network",
+      "pattern": "\\bXMLHttpRequest\\b",
+      "usedBy": [
+        "axios",
+        "msw"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": false
+      }
+    },
+    {
+      "id": "fetch",
+      "area": "network",
+      "pattern": "\\bfetch\\(",
+      "usedBy": [
+        "react-hook-form",
+        "react-router",
+        "lit",
+        "msw"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    },
+    {
+      "id": "DOMParser",
+      "area": "misc",
+      "pattern": "\\bDOMParser\\b",
+      "usedBy": [
+        "@tiptap/react",
+        "lexical",
+        "msw"
+      ],
+      "available": {
+        "jsdom": true,
+        "happy-dom": true,
+        "rsdom": true
+      }
+    }
+  ],
+  "missingApisReferenced": {
+    "jsdom": [
+      {
+        "api": "IntersectionObserver",
+        "libs": 11,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "react-router",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "scrollIntoView",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "downshift",
+          "react-select",
+          "react-router",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "visualViewport",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "downshift",
+          "react-select",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "ResizeObserver",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "inert",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "lexical",
+          "msw"
+        ]
+      },
+      {
+        "api": "isContentEditable",
+        "libs": 8,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "framer-motion",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "Element#scrollTo",
+        "libs": 8,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "react-router",
+          "lexical"
+        ]
+      },
+      {
+        "api": "checkVisibility",
+        "libs": 8,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "matchMedia",
+        "libs": 5,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "framer-motion",
+          "react-router"
+        ]
+      },
+      {
+        "api": "InputEvent#getTargetRanges",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "caretRangeFromPoint/caretPositionFromPoint",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "Range#getBoundingClientRect",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "elementFromPoint",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "setPointerCapture/hasPointerCapture",
+        "libs": 4,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material"
+        ]
+      },
+      {
+        "api": "DataTransfer",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "getAnimations",
+        "libs": 3,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "framer-motion"
+        ]
+      },
+      {
+        "api": "adoptedStyleSheets",
+        "libs": 3,
+        "usedBy": [
+          "react-aria-components",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "execCommand",
+        "libs": 2,
+        "usedBy": [
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "Range#getClientRects",
+        "libs": 2,
+        "usedBy": [
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "elementsFromPoint",
+        "libs": 1,
+        "usedBy": [
+          "lexical"
+        ]
+      },
+      {
+        "api": "Element#animate (WAAPI)",
+        "libs": 1,
+        "usedBy": [
+          "framer-motion"
+        ]
+      }
+    ],
+    "happy-dom": [
+      {
+        "api": "visualViewport",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "downshift",
+          "react-select",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "InputEvent#getTargetRanges",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "caretRangeFromPoint/caretPositionFromPoint",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "execCommand",
+        "libs": 2,
+        "usedBy": [
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "elementsFromPoint",
+        "libs": 1,
+        "usedBy": [
+          "lexical"
+        ]
+      }
+    ],
+    "rsdom": [
+      {
+        "api": "ShadowRoot (global)",
+        "libs": 11,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "react-select",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "IntersectionObserver",
+        "libs": 11,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "react-router",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "scrollIntoView",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "downshift",
+          "react-select",
+          "react-router",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "visualViewport",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "downshift",
+          "react-select",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "ResizeObserver",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "inert",
+        "libs": 10,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "lexical",
+          "msw"
+        ]
+      },
+      {
+        "api": "Element#scrollTo",
+        "libs": 8,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material",
+          "@floating-ui/react",
+          "react-select",
+          "framer-motion",
+          "react-router",
+          "lexical"
+        ]
+      },
+      {
+        "api": "checkVisibility",
+        "libs": 8,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "createTreeWalker",
+        "libs": 7,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "NodeFilter",
+        "libs": 7,
+        "usedBy": [
+          "@radix-ui/react-dialog",
+          "@radix-ui/react-select",
+          "@radix-ui/react-dropdown-menu",
+          "@headlessui/react",
+          "react-aria-components",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "assignedNodes/assignedElements",
+        "libs": 6,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "focus-trap + tabbable",
+          "@floating-ui/react",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "CSSStyleSheet#insertRule",
+        "libs": 5,
+        "usedBy": [
+          "@mui/material",
+          "react-select",
+          "framer-motion",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "Selection collapse()/setBaseAndExtent() creates a Range",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "caretRangeFromPoint/caretPositionFromPoint",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "elementFromPoint",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "setPointerCapture/hasPointerCapture",
+        "libs": 4,
+        "usedBy": [
+          "@radix-ui/react-select",
+          "@headlessui/react",
+          "react-aria-components",
+          "@mui/material"
+        ]
+      },
+      {
+        "api": "DataTransfer",
+        "libs": 4,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "getAnimations",
+        "libs": 3,
+        "usedBy": [
+          "@headlessui/react",
+          "react-aria-components",
+          "framer-motion"
+        ]
+      },
+      {
+        "api": "adoptedStyleSheets",
+        "libs": 3,
+        "usedBy": [
+          "react-aria-components",
+          "lexical",
+          "lit"
+        ]
+      },
+      {
+        "api": "execCommand",
+        "libs": 2,
+        "usedBy": [
+          "@tiptap/react",
+          "lexical"
+        ]
+      },
+      {
+        "api": "XMLHttpRequest",
+        "libs": 2,
+        "usedBy": [
+          "axios",
+          "msw"
+        ]
+      },
+      {
+        "api": "attachShadow",
+        "libs": 1,
+        "usedBy": [
+          "lit"
+        ]
+      },
+      {
+        "api": "customElements",
+        "libs": 1,
+        "usedBy": [
+          "lit"
+        ]
+      },
+      {
+        "api": "elementsFromPoint",
+        "libs": 1,
+        "usedBy": [
+          "lexical"
+        ]
+      },
+      {
+        "api": "Element#animate (WAAPI)",
+        "libs": 1,
+        "usedBy": [
+          "framer-motion"
+        ]
+      },
+      {
+        "api": "history traversal fires popstate",
+        "libs": 1,
+        "usedBy": [
+          "react-router"
+        ]
+      }
+    ]
+  }
+}

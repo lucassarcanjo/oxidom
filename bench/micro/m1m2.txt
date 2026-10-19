@@ -1,0 +1,15 @@
+# rsdom M1/M2 micro (2026-10-16T19:53:42.458Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=1; median of 7 runs, one process per DOM
+operation                                                                    jsdom  happy-dom     rsdom
+createElement+appendChild+removeChild (ns)                                    4635       2094       817
+setAttribute (ns)                                                              575       1757       111
+getAttribute (ns)                                                              218       25.0      61.2
+getAttribute interleaved with setAttribute (ns/pair)                           972       1594       163
+hasAttribute (ns)                                                              222       26.8      39.7
+bottom-up detached build 1001 nodes depth 200 + attach (us)                  89405       8055       442
+DFS walk firstChild/nextSibling, 4096 nodes, +1 mutation/walk (ns/node)        224       49.4      17.7
+innerHTML set, 300-row table (~3.6k nodes) (us)                              52889      48163      3577
+  (elements in the table)                                                     2702       2702      2702
+outerHTML get, same table (us)                                                2471       4489       129
+textContent get, same table (us)                                               302        831      24.0
+textContent set (replace-all) (ns)                                            4093       2860       202

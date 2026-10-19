@@ -1,0 +1,99 @@
+// The rsdom Vitest environment (lib/vitest-environment.mjs, ROADMAP M6): setup/teardown on a stand-in global
+// in-process, then the real thing in child `vitest run`s over test/fixtures/vitest-env under several pools.
+import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
+import env from '../../lib/vitest-environment.mjs';
+
+const require = createRequire(import.meta.url);
+const { pkgDir } = require('../contract/adapter.cjs');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+function descriptors(o) {
+  const m = new Map();
+  for (const k of Reflect.ownKeys(o)) m.set(k, Object.getOwnPropertyDescriptor(o, k));
+  return m;
+}
+
+describe('vitest-environment module', () => {
+  it('has the Vitest 5 Environment shape', () => {
+    expect(env.name).toBe('rsdom');
+    expect(env.viteEnvironment).toBe('client');
+    expect(typeof env.setup).toBe('function');
+    expect(env.setupVM).toBe(undefined);
+  });
+
+  it('setup installs own data globals; teardown restores every descriptor and drops the DOM', async () => {
+    const fake = {
+      navigator: { userAgent: 'node' },
+      FormData: class NodeLike {},
+      keep: 1,
+    };
+    Object.defineProperty(fake, 'localStorage', { get: () => { throw new Error('must not be read'); }, configurable: true });
+    const before = descriptors(fake);
+    const { teardown } = await env.setup(fake, { rsdom: { url: 'http://localhost:3000/a' } });
+    expect(fake.window).toBe(fake);
+    expect(fake.document.defaultView).toBe(fake);
+    expect(fake.location.pathname).toBe('/a');
+    expect(fake.navigator.userAgent).toMatch(/rsdom/);
+    expect(typeof fake.localStorage.getItem).toBe('function');
+    expect('value' in Object.getOwnPropertyDescriptor(fake, 'HTMLDivElement')).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(fake, 'HTMLDivElement').enumerable).toBe(false);
+    const div = fake.document.createElement('div');
+    fake.document.body.appendChild(div);
+    await teardown(fake);
+    const after = descriptors(fake);
+    expect([...after.keys()].sort()).toEqual([...before.keys()].sort());
+    for (const [k, d] of before) expect(after.get(k), String(k)).toEqual(d);
+    // every wrapper of the old env is neutered (DESIGN §11 teardown)
+    expect(div._i).toBe(0);
+    expect(div.parentNode).toBe(null);
+    const { rt } = require('../../lib/index.cjs');
+    expect(rt.N.moRegistrations()).toBe(0);
+  });
+});
+
+describe('environment startup cost', () => {
+  it('installing the window on globalThis does not load undici (Node lazy FormData & co)', () => {
+    const facade = path.join(root, 'lib/index.cjs');
+    const code = `
+      const { createWindow } = require(${JSON.stringify(facade)});
+      createWindow({ global: globalThis });
+      const fd = new FormData();
+      fd.append('a', '1');
+      const loaded = process.moduleLoadList.some((m) => m.includes('undici'));
+      process.stdout.write(JSON.stringify({ loaded, a: fd.get('a'), own: Object.prototype.hasOwnProperty.call(globalThis, 'FormData') }));`;
+    const r = spawnSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 60_000 });
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout)).toEqual({ loaded: false, a: '1', own: true });
+  });
+});
+
+const cli = path.join(pkgDir('vitest'), 'vitest.mjs');
+const fixture = path.join(root, 'test/fixtures/vitest-env');
+
+function run(args, extraEnv = {}) {
+  return spawnSync(process.execPath, [cli, 'run', '--config', 'vitest.config.mjs', ...args], {
+    cwd: fixture,
+    encoding: 'utf8',
+    timeout: 120_000,
+    env: { ...process.env, CI: '1', NO_COLOR: '1', ...extraEnv },
+  });
+}
+
+describe.each([
+  ['forks (default, isolate)', []],
+  ['threads (isolate)', ['--pool=threads']],
+  ['threads, isolate: false, 1 worker (3 leak files share one DOM)', ['--pool=threads', '--no-isolate', '--maxWorkers=1']],
+  ['forks, isolate: false, RSDOM_SHARED=0', ['--no-isolate', '--maxWorkers=2'], { RSDOM_SHARED: '0' }],
+])('fixture suite in the rsdom environment: %s', (_name, args, extraEnv) => {
+  it('passes', () => {
+    const r = run(args, extraEnv);
+    expect(r.signal, r.stderr).toBe(null);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/Tests\s+\d+ passed/);
+    expect(r.stdout + r.stderr).not.toMatch(/Unhandled/);
+  }, 120_000);
+});

@@ -1,0 +1,21 @@
+# rsdom area A micro: selectors / style (2026-10-16T21:29:46.484Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=- RSDOM_NO_MEMO=- RSDOM_NO_PREFILTER=-; median of 7 runs, one process per DOM
+# NOTE: 4 shared CPUs with two other agents building/testing: numbers are noisy (sanity only).
+operation                                                                    jsdom  happy-dom     rsdom
+matches(): 108 DTL role selectors x every element (ns/call)                   5082        405      28.6
+matches() prefilter miss: td.matches(input[...]) (ns)                         2256        135       7.8
+matches() hit through Rust: input:not([list])[type=email] (ns)                2617        134       117
+closest(form) from a nested element (ns)                                      3018        678       112
+  (elements in the table)                                                     2702       2702      2702
+qSA cold 'td button' after a mutation (us)                                     971       2591      44.3
+qSA cold '[data-row="150"]' after a mutation (us)                             5700       1480      45.8
+qSA cold '.row.odd a[href]' after a mutation (us)                             2341       7565      62.7
+qSA warm 'td button', no mutation (us)                                         207        0.2       5.6
+getElementsByClassName(odd).length after a mutation (us)                      1180       7130      24.1
+style.color = ... (ns)                                                       52059       8316       700
+style.setProperty('--x', ...) (ns)                                            3238       9235       499
+style.marginLeft read (ns)                                                     631       4799      98.5
+getComputedStyle(el).display cold after a mutation (ns)                     504958    2776806      1527
+getComputedStyle(el).display warm (ns)                                        2856        432      46.6
+getComputedStyle(el).visibility, 100 siblings after a mutation (ns/el)      198176     253941       499
+getComputedStyle(el).color (non-core, inherited) (ns)                         2902        263       519

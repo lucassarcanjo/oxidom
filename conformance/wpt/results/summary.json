@@ -1,0 +1,3577 @@
+{
+  "wptCommit": "2971340498805350babb6c167e0df98eaa380f98",
+  "generated": "2026-10-17T18:55:52.944Z",
+  "doms": [
+    "jsdom",
+    "happy-dom",
+    "rsdom"
+  ],
+  "versions": {
+    "jsdom": "30.1.3",
+    "happy-dom": "21.0.3",
+    "vitest": "5.0.5",
+    "node": "22.22.0"
+  },
+  "filesSelected": 2389,
+  "filesWithResultsForAllDoms": 2389,
+  "filesNotYetRun": 0,
+  "totals": {
+    "files": 2389,
+    "subtests": 187113,
+    "pass": {
+      "jsdom": 162751,
+      "happy-dom": 55756,
+      "rsdom": 86991
+    },
+    "fileScore": {
+      "jsdom": 66.3,
+      "happy-dom": 38.1,
+      "rsdom": 40.4
+    },
+    "filesAllPass": {
+      "jsdom": 1420,
+      "happy-dom": 607,
+      "rsdom": 779
+    },
+    "crash": {
+      "jsdom": 3,
+      "happy-dom": 8,
+      "rsdom": 0
+    },
+    "harnessError": {
+      "jsdom": 91,
+      "happy-dom": 122,
+      "rsdom": 156
+    },
+    "harnessTimeout": {
+      "jsdom": 87,
+      "happy-dom": 105,
+      "rsdom": 124
+    }
+  },
+  "totalsExcludingNodeProvidedAreas": {
+    "excluded": [
+      "encoding"
+    ],
+    "files": 2343,
+    "subtests": 175767,
+    "pass": {
+      "jsdom": 151706,
+      "happy-dom": 44722,
+      "rsdom": 75972
+    },
+    "fileScore": {
+      "jsdom": 65.9,
+      "happy-dom": 37.1,
+      "rsdom": 39.5
+    }
+  },
+  "globals": {
+    "jsdom": {
+      "TextEncoder": "node",
+      "TextDecoder": "node",
+      "AbortController": "node",
+      "AbortSignal": "node",
+      "Blob": "dom",
+      "File": "dom",
+      "FileReader": "dom",
+      "FormData": "dom",
+      "URL": "dom",
+      "URLSearchParams": "node",
+      "DOMException": "dom",
+      "EventTarget": "dom",
+      "Event": "dom",
+      "CustomEvent": "dom",
+      "structuredClone": "node",
+      "setTimeout": "node",
+      "queueMicrotask": "node",
+      "MessageChannel": "node",
+      "fetch": "node",
+      "Headers": "node",
+      "XMLHttpRequest": "dom",
+      "localStorage": "dom",
+      "sessionStorage": "dom",
+      "NodeFilter": "dom",
+      "NodeIterator": "dom",
+      "TreeWalker": "dom",
+      "customElements": "dom",
+      "ShadowRoot": "dom",
+      "XPathEvaluator": "dom",
+      "Range": "dom",
+      "StaticRange": "dom",
+      "Selection": "dom",
+      "CSSStyleSheet": "dom",
+      "DOMParser": "dom",
+      "XMLSerializer": "dom",
+      "MutationObserver": "dom"
+    },
+    "happy-dom": {
+      "TextEncoder": "node",
+      "TextDecoder": "node",
+      "AbortController": "dom",
+      "AbortSignal": "dom",
+      "Blob": "dom",
+      "File": "dom",
+      "FileReader": "dom",
+      "FormData": "dom",
+      "URL": "dom",
+      "URLSearchParams": "node",
+      "DOMException": "dom",
+      "EventTarget": "dom",
+      "Event": "dom",
+      "CustomEvent": "dom",
+      "structuredClone": "node",
+      "setTimeout": "node",
+      "queueMicrotask": "node",
+      "MessageChannel": "node",
+      "fetch": "dom",
+      "Headers": "dom",
+      "XMLHttpRequest": "dom",
+      "localStorage": "dom",
+      "sessionStorage": "dom",
+      "NodeFilter": "dom",
+      "NodeIterator": "dom",
+      "TreeWalker": "dom",
+      "customElements": "dom",
+      "ShadowRoot": "dom",
+      "XPathEvaluator": "absent",
+      "Range": "dom",
+      "StaticRange": "absent",
+      "Selection": "dom",
+      "CSSStyleSheet": "dom",
+      "DOMParser": "dom",
+      "XMLSerializer": "dom",
+      "MutationObserver": "dom"
+    },
+    "rsdom": {
+      "TextEncoder": "node",
+      "TextDecoder": "node",
+      "AbortController": "node",
+      "AbortSignal": "node",
+      "Blob": "node",
+      "File": "node",
+      "FileReader": "absent",
+      "FormData": "dom",
+      "URL": "node",
+      "URLSearchParams": "node",
+      "DOMException": "node",
+      "EventTarget": "dom",
+      "Event": "dom",
+      "CustomEvent": "dom",
+      "structuredClone": "node",
+      "setTimeout": "node",
+      "queueMicrotask": "node",
+      "MessageChannel": "node",
+      "fetch": "node",
+      "Headers": "node",
+      "XMLHttpRequest": "absent",
+      "localStorage": "dom",
+      "sessionStorage": "dom",
+      "NodeFilter": "absent",
+      "NodeIterator": "absent",
+      "TreeWalker": "absent",
+      "customElements": "absent",
+      "ShadowRoot": "absent",
+      "XPathEvaluator": "absent",
+      "Range": "dom",
+      "StaticRange": "absent",
+      "Selection": "dom",
+      "CSSStyleSheet": "absent",
+      "DOMParser": "dom",
+      "XMLSerializer": "absent",
+      "MutationObserver": "dom"
+    }
+  },
+  "areas": {
+    "FileAPI": {
+      "files": 37,
+      "subtests": 491,
+      "pass": {
+        "jsdom": 454,
+        "happy-dom": 356,
+        "rsdom": 332
+      },
+      "fileScore": {
+        "jsdom": 80.9,
+        "happy-dom": 52.6,
+        "rsdom": 40.8
+      },
+      "filesAllPass": {
+        "jsdom": 26,
+        "happy-dom": 10,
+        "rsdom": 12
+      },
+      "dirs": [
+        "FileAPI"
+      ]
+    },
+    "css/cssom": {
+      "files": 228,
+      "subtests": 1947,
+      "pass": {
+        "jsdom": 1517,
+        "happy-dom": 1020,
+        "rsdom": 977
+      },
+      "fileScore": {
+        "jsdom": 66.7,
+        "happy-dom": 32.8,
+        "rsdom": 31.1
+      },
+      "filesAllPass": {
+        "jsdom": 129,
+        "happy-dom": 42,
+        "rsdom": 54
+      },
+      "dirs": [
+        "css/cssom"
+      ]
+    },
+    "css/selectors": {
+      "files": 203,
+      "subtests": 3996,
+      "pass": {
+        "jsdom": 3406,
+        "happy-dom": 531,
+        "rsdom": 387
+      },
+      "fileScore": {
+        "jsdom": 56.1,
+        "happy-dom": 18.7,
+        "rsdom": 22.7
+      },
+      "filesAllPass": {
+        "jsdom": 101,
+        "happy-dom": 16,
+        "rsdom": 42
+      },
+      "dirs": [
+        "css/selectors"
+      ]
+    },
+    "custom-elements": {
+      "files": 146,
+      "subtests": 3557,
+      "pass": {
+        "jsdom": 2999,
+        "happy-dom": 612,
+        "rsdom": 6
+      },
+      "fileScore": {
+        "jsdom": 59.8,
+        "happy-dom": 20.4,
+        "rsdom": 1.5
+      },
+      "filesAllPass": {
+        "jsdom": 70,
+        "happy-dom": 17,
+        "rsdom": 1
+      },
+      "dirs": [
+        "custom-elements"
+      ]
+    },
+    "dom/abort": {
+      "files": 4,
+      "subtests": 35,
+      "pass": {
+        "jsdom": 23,
+        "happy-dom": 33,
+        "rsdom": 35
+      },
+      "fileScore": {
+        "jsdom": 73.4,
+        "happy-dom": 96.7,
+        "rsdom": 100
+      },
+      "filesAllPass": {
+        "jsdom": 1,
+        "happy-dom": 2,
+        "rsdom": 4
+      },
+      "dirs": [
+        "dom/abort"
+      ]
+    },
+    "dom/collections": {
+      "files": 11,
+      "subtests": 55,
+      "pass": {
+        "jsdom": 55,
+        "happy-dom": 25,
+        "rsdom": 35
+      },
+      "fileScore": {
+        "jsdom": 100,
+        "happy-dom": 45.9,
+        "rsdom": 61.4
+      },
+      "filesAllPass": {
+        "jsdom": 11,
+        "happy-dom": 2,
+        "rsdom": 4
+      },
+      "dirs": [
+        "dom/collections"
+      ]
+    },
+    "dom/events": {
+      "files": 86,
+      "subtests": 704,
+      "pass": {
+        "jsdom": 466,
+        "happy-dom": 243,
+        "rsdom": 340
+      },
+      "fileScore": {
+        "jsdom": 73,
+        "happy-dom": 36.7,
+        "rsdom": 47.6
+      },
+      "filesAllPass": {
+        "jsdom": 53,
+        "happy-dom": 19,
+        "rsdom": 32
+      },
+      "dirs": [
+        "dom/events"
+      ]
+    },
+    "dom/lists": {
+      "files": 5,
+      "subtests": 224,
+      "pass": {
+        "jsdom": 184,
+        "happy-dom": 143,
+        "rsdom": 184
+      },
+      "fileScore": {
+        "jsdom": 93,
+        "happy-dom": 49.2,
+        "rsdom": 93
+      },
+      "filesAllPass": {
+        "jsdom": 3,
+        "happy-dom": 1,
+        "rsdom": 3
+      },
+      "dirs": [
+        "dom/lists"
+      ]
+    },
+    "dom/nodes": {
+      "files": 284,
+      "subtests": 7896,
+      "pass": {
+        "jsdom": 6409,
+        "happy-dom": 2214,
+        "rsdom": 7410
+      },
+      "fileScore": {
+        "jsdom": 76.1,
+        "happy-dom": 50.5,
+        "rsdom": 62.2
+      },
+      "filesAllPass": {
+        "jsdom": 212,
+        "happy-dom": 105,
+        "rsdom": 146
+      },
+      "dirs": [
+        "dom/nodes"
+      ]
+    },
+    "dom/ranges": {
+      "files": 40,
+      "subtests": 40318,
+      "pass": {
+        "jsdom": 40317,
+        "happy-dom": 139,
+        "rsdom": 3395
+      },
+      "fileScore": {
+        "jsdom": 99.4,
+        "happy-dom": 36.6,
+        "rsdom": 39
+      },
+      "filesAllPass": {
+        "jsdom": 39,
+        "happy-dom": 11,
+        "rsdom": 9
+      },
+      "dirs": [
+        "dom/ranges"
+      ]
+    },
+    "dom/traversal": {
+      "files": 15,
+      "subtests": 1600,
+      "pass": {
+        "jsdom": 1581,
+        "happy-dom": 35,
+        "rsdom": 1
+      },
+      "fileScore": {
+        "jsdom": 94.9,
+        "happy-dom": 55.6,
+        "rsdom": 1.1
+      },
+      "filesAllPass": {
+        "jsdom": 14,
+        "happy-dom": 7,
+        "rsdom": 0
+      },
+      "dirs": [
+        "dom/traversal"
+      ]
+    },
+    "domparsing": {
+      "files": 31,
+      "subtests": 258,
+      "pass": {
+        "jsdom": 236,
+        "happy-dom": 125,
+        "rsdom": 120
+      },
+      "fileScore": {
+        "jsdom": 90.4,
+        "happy-dom": 54.9,
+        "rsdom": 55
+      },
+      "filesAllPass": {
+        "jsdom": 24,
+        "happy-dom": 10,
+        "rsdom": 15
+      },
+      "dirs": [
+        "domparsing"
+      ]
+    },
+    "domxpath": {
+      "files": 27,
+      "subtests": 119,
+      "pass": {
+        "jsdom": 63,
+        "happy-dom": 1,
+        "rsdom": 1
+      },
+      "fileScore": {
+        "jsdom": 63.2,
+        "happy-dom": 1.9,
+        "rsdom": 1.9
+      },
+      "filesAllPass": {
+        "jsdom": 15,
+        "happy-dom": 0,
+        "rsdom": 0
+      },
+      "dirs": [
+        "domxpath"
+      ]
+    },
+    "encoding": {
+      "files": 46,
+      "subtests": 11346,
+      "pass": {
+        "jsdom": 11045,
+        "happy-dom": 11034,
+        "rsdom": 11019
+      },
+      "fileScore": {
+        "jsdom": 90.8,
+        "happy-dom": 86.9,
+        "rsdom": 86.4
+      },
+      "filesAllPass": {
+        "jsdom": 34,
+        "happy-dom": 31,
+        "rsdom": 32
+      },
+      "dirs": [
+        "encoding"
+      ]
+    },
+    "html/dom": {
+      "files": 128,
+      "subtests": 58508,
+      "pass": {
+        "jsdom": 49666,
+        "happy-dom": 30850,
+        "rsdom": 41448
+      },
+      "fileScore": {
+        "jsdom": 66.9,
+        "happy-dom": 31.7,
+        "rsdom": 56.6
+      },
+      "filesAllPass": {
+        "jsdom": 67,
+        "happy-dom": 18,
+        "rsdom": 48
+      },
+      "dirs": [
+        "html/dom",
+        "html/infrastructure/common-dom-interfaces/collections"
+      ]
+    },
+    "html focus & activation": {
+      "files": 21,
+      "subtests": 36,
+      "pass": {
+        "jsdom": 25,
+        "happy-dom": 20,
+        "rsdom": 23
+      },
+      "fileScore": {
+        "jsdom": 81.5,
+        "happy-dom": 69.6,
+        "rsdom": 72
+      },
+      "filesAllPass": {
+        "jsdom": 17,
+        "happy-dom": 14,
+        "rsdom": 15
+      },
+      "dirs": [
+        "html/editing/activation",
+        "html/editing/focus/focus-management",
+        "html/interaction/focus"
+      ]
+    },
+    "html/semantics/other (tables, links, details, grouping, text-level, selectors)": {
+      "files": 91,
+      "subtests": 772,
+      "pass": {
+        "jsdom": 702,
+        "happy-dom": 475,
+        "rsdom": 545
+      },
+      "fileScore": {
+        "jsdom": 90.8,
+        "happy-dom": 45.7,
+        "rsdom": 44.4
+      },
+      "filesAllPass": {
+        "jsdom": 79,
+        "happy-dom": 31,
+        "rsdom": 37
+      },
+      "dirs": [
+        "html/semantics/disabled-elements",
+        "html/semantics/grouping-content",
+        "html/semantics/interactive-elements/the-details-element",
+        "html/semantics/interactive-elements/the-summary-element",
+        "html/semantics/links",
+        "html/semantics/selectors",
+        "html/semantics/tabular-data",
+        "html/semantics/text-level-semantics"
+      ]
+    },
+    "html/semantics/document-metadata": {
+      "files": 40,
+      "subtests": 75,
+      "pass": {
+        "jsdom": 45,
+        "happy-dom": 38,
+        "rsdom": 16
+      },
+      "fileScore": {
+        "jsdom": 47.1,
+        "happy-dom": 44.1,
+        "rsdom": 20.9
+      },
+      "filesAllPass": {
+        "jsdom": 18,
+        "happy-dom": 15,
+        "rsdom": 7
+      },
+      "dirs": [
+        "html/semantics/document-metadata/the-base-element",
+        "html/semantics/document-metadata/the-link-element",
+        "html/semantics/document-metadata/the-style-element",
+        "html/semantics/document-metadata/the-title-element"
+      ]
+    },
+    "html/semantics/embedded-content (img, media)": {
+      "files": 167,
+      "subtests": 1299,
+      "pass": {
+        "jsdom": 445,
+        "happy-dom": 291,
+        "rsdom": 149
+      },
+      "fileScore": {
+        "jsdom": 24.1,
+        "happy-dom": 25.9,
+        "rsdom": 19.4
+      },
+      "filesAllPass": {
+        "jsdom": 33,
+        "happy-dom": 29,
+        "rsdom": 25
+      },
+      "dirs": [
+        "html/semantics/embedded-content/media-elements",
+        "html/semantics/embedded-content/the-img-element"
+      ]
+    },
+    "html/semantics/forms": {
+      "files": 267,
+      "subtests": 3987,
+      "pass": {
+        "jsdom": 3451,
+        "happy-dom": 2071,
+        "rsdom": 3133
+      },
+      "fileScore": {
+        "jsdom": 85.7,
+        "happy-dom": 56,
+        "rsdom": 71.9
+      },
+      "filesAllPass": {
+        "jsdom": 208,
+        "happy-dom": 87,
+        "rsdom": 157
+      },
+      "dirs": [
+        "html/semantics/forms/attributes-common-to-form-controls",
+        "html/semantics/forms/constraints",
+        "html/semantics/forms/form-control-infrastructure",
+        "html/semantics/forms/form-submission-0",
+        "html/semantics/forms/resetting-a-form",
+        "html/semantics/forms/textfieldselection",
+        "html/semantics/forms/the-button-element",
+        "html/semantics/forms/the-datalist-element",
+        "html/semantics/forms/the-fieldset-element",
+        "html/semantics/forms/the-form-element",
+        "html/semantics/forms/the-input-element",
+        "html/semantics/forms/the-label-element",
+        "html/semantics/forms/the-legend-element",
+        "html/semantics/forms/the-meter-element",
+        "html/semantics/forms/the-option-element",
+        "html/semantics/forms/the-output-element",
+        "html/semantics/forms/the-progress-element",
+        "html/semantics/forms/the-select-element",
+        "html/semantics/forms/the-textarea-element"
+      ]
+    },
+    "html/semantics/scripting (script, template, noscript)": {
+      "files": 158,
+      "subtests": 1281,
+      "pass": {
+        "jsdom": 834,
+        "happy-dom": 726,
+        "rsdom": 829
+      },
+      "fileScore": {
+        "jsdom": 29.5,
+        "happy-dom": 30.3,
+        "rsdom": 30.8
+      },
+      "filesAllPass": {
+        "jsdom": 43,
+        "happy-dom": 42,
+        "rsdom": 45
+      },
+      "dirs": [
+        "html/semantics/scripting-1/the-noscript-element",
+        "html/semantics/scripting-1/the-script-element",
+        "html/semantics/scripting-1/the-template-element"
+      ]
+    },
+    "html/syntax": {
+      "files": 50,
+      "subtests": 2671,
+      "pass": {
+        "jsdom": 2627,
+        "happy-dom": 2408,
+        "rsdom": 2483
+      },
+      "fileScore": {
+        "jsdom": 57.5,
+        "happy-dom": 32.1,
+        "rsdom": 48.9
+      },
+      "filesAllPass": {
+        "jsdom": 27,
+        "happy-dom": 12,
+        "rsdom": 23
+      },
+      "dirs": [
+        "html/syntax"
+      ]
+    },
+    "html/webappapis (event handlers, timers, atob, microtasks)": {
+      "files": 42,
+      "subtests": 387,
+      "pass": {
+        "jsdom": 348,
+        "happy-dom": 325,
+        "rsdom": 348
+      },
+      "fileScore": {
+        "jsdom": 72.2,
+        "happy-dom": 56.7,
+        "rsdom": 67.7
+      },
+      "filesAllPass": {
+        "jsdom": 27,
+        "happy-dom": 21,
+        "rsdom": 25
+      },
+      "dirs": [
+        "html/webappapis/atob",
+        "html/webappapis/events",
+        "html/webappapis/microtask-queuing",
+        "html/webappapis/scripting/events",
+        "html/webappapis/timers"
+      ]
+    },
+    "selection": {
+      "files": 64,
+      "subtests": 35417,
+      "pass": {
+        "jsdom": 33505,
+        "happy-dom": 82,
+        "rsdom": 13560
+      },
+      "fileScore": {
+        "jsdom": 65.3,
+        "happy-dom": 13.9,
+        "rsdom": 37.6
+      },
+      "filesAllPass": {
+        "jsdom": 33,
+        "happy-dom": 7,
+        "rsdom": 13
+      },
+      "dirs": [
+        "selection"
+      ]
+    },
+    "shadow-dom": {
+      "files": 128,
+      "subtests": 8608,
+      "pass": {
+        "jsdom": 841,
+        "happy-dom": 658,
+        "rsdom": 31
+      },
+      "fileScore": {
+        "jsdom": 62.6,
+        "happy-dom": 34.4,
+        "rsdom": 5.5
+      },
+      "filesAllPass": {
+        "jsdom": 74,
+        "happy-dom": 31,
+        "rsdom": 3
+      },
+      "dirs": [
+        "shadow-dom"
+      ]
+    },
+    "uievents": {
+      "files": 14,
+      "subtests": 53,
+      "pass": {
+        "jsdom": 38,
+        "happy-dom": 16,
+        "rsdom": 34
+      },
+      "fileScore": {
+        "jsdom": 57.1,
+        "happy-dom": 28.3,
+        "rsdom": 50
+      },
+      "filesAllPass": {
+        "jsdom": 8,
+        "happy-dom": 3,
+        "rsdom": 7
+      },
+      "dirs": [
+        "uievents"
+      ]
+    },
+    "webstorage": {
+      "files": 25,
+      "subtests": 1275,
+      "pass": {
+        "jsdom": 1275,
+        "happy-dom": 1218,
+        "rsdom": 70
+      },
+      "fileScore": {
+        "jsdom": 100,
+        "happy-dom": 62.1,
+        "rsdom": 37
+      },
+      "filesAllPass": {
+        "jsdom": 25,
+        "happy-dom": 14,
+        "rsdom": 6
+      },
+      "dirs": [
+        "webstorage"
+      ]
+    },
+    "xhr": {
+      "files": 31,
+      "subtests": 198,
+      "pass": {
+        "jsdom": 194,
+        "happy-dom": 67,
+        "rsdom": 80
+      },
+      "fileScore": {
+        "jsdom": 95.8,
+        "happy-dom": 45.4,
+        "rsdom": 49.3
+      },
+      "filesAllPass": {
+        "jsdom": 29,
+        "happy-dom": 10,
+        "rsdom": 14
+      },
+      "dirs": [
+        "xhr"
+      ]
+    }
+  },
+  "topCauses": {
+    "jsdom": [
+      {
+        "cause": "assert_equals: got undefined (missing attribute/API)",
+        "subtests": 7965,
+        "files": 78,
+        "example": "css/cssom/cssom-fontfacerule.html"
+      },
+      {
+        "cause": "assert_equals: wrong value",
+        "subtests": 7363,
+        "files": 367,
+        "example": "FileAPI/reading-data-section/FileReader-multiple-reads.any.html"
+      },
+      {
+        "cause": "missing method: .setHTMLUnsafe()",
+        "subtests": 3955,
+        "files": 12,
+        "example": "css/cssom/caretPositionFromPoint-audioVideo.html"
+      },
+      {
+        "cause": "file aborted: subtest not defined",
+        "subtests": 1812,
+        "files": 16,
+        "example": "dom/events/passive-by-default.html"
+      },
+      {
+        "cause": "missing method: .getHTML()",
+        "subtests": 382,
+        "files": 2,
+        "example": "shadow-dom/declarative/declarative-shadow-dom-serialization.html"
+      },
+      {
+        "cause": "The … encoding is not supported",
+        "subtests": 260,
+        "files": 3,
+        "example": "encoding/textdecoder-fatal-single-byte.any.html?3001-4000"
+      },
+      {
+        "cause": "promise_test: Unhandled rejection with value: object …",
+        "subtests": 241,
+        "files": 9,
+        "example": "custom-elements/custom-element-reaction-queue.html"
+      },
+      {
+        "cause": "assert_array_equals: wrong value",
+        "subtests": 238,
+        "files": 78,
+        "example": "FileAPI/reading-data-section/FileReader-multiple-reads.any.html"
+      },
+      {
+        "cause": "assert_unreached: wrong value",
+        "subtests": 151,
+        "files": 21,
+        "example": "dom/nodes/MutationObserver-document.html"
+      },
+      {
+        "cause": "assert_true: wrong value",
+        "subtests": 138,
+        "files": 77,
+        "example": "FileAPI/blob/Blob-array-buffer.any.html"
+      },
+      {
+        "cause": "subtest NOTRUN",
+        "subtests": 133,
+        "files": 33,
+        "example": "css/cssom/CSSImportRule-layer-false-positive.html"
+      },
+      {
+        "cause": "subtest TIMEOUT",
+        "subtests": 120,
+        "files": 84,
+        "example": "css/cssom/CSSImportRule-layer-false-positive.html"
+      },
+      {
+        "cause": "assert_in_array: wrong value",
+        "subtests": 110,
+        "files": 3,
+        "example": "css/cssom/flex-serialization.html"
+      },
+      {
+        "cause": "missing method: .setAttribute()",
+        "subtests": 105,
+        "files": 1,
+        "example": "dom/nodes/processing-instruction-attributes.html"
+      },
+      {
+        "cause": "assert_not_equals: wrong value",
+        "subtests": 101,
+        "files": 12,
+        "example": "css/cssom/css-style-attr-decl-block.html"
+      },
+      {
+        "cause": "assert_throws_dom: did not throw",
+        "subtests": 84,
+        "files": 21,
+        "example": "css/cssom/CSSStyleSheet-constructable-baseURL.html"
+      },
+      {
+        "cause": "missing method: .modify()",
+        "subtests": 80,
+        "files": 3,
+        "example": "selection/bidi/modify-extend-by-character.html"
+      },
+      {
+        "cause": "Illegal constructor",
+        "subtests": 70,
+        "files": 16,
+        "example": "custom-elements/registries/Construct.html"
+      },
+      {
+        "cause": "Colors do not match. Actual: #… Expected: color(srgb … … …). Error: assert_array_approx_eq…",
+        "subtests": 66,
+        "files": 1,
+        "example": "html/semantics/forms/the-input-element/color.window.html"
+      },
+      {
+        "cause": "missing method: .moveBefore()",
+        "subtests": 48,
+        "files": 26,
+        "example": "dom/nodes/moveBefore/fieldset-child-blur-event.html"
+      },
+      {
+        "cause": "file aborted: … duplicate test names: ……px…ref……/images/green-…x….png?img… …w, /images/green-…x….png?img…",
+        "subtests": 37,
+        "files": 1,
+        "example": "html/semantics/embedded-content/the-img-element/sizes/sizes-auto.html"
+      },
+      {
+        "cause": "assert_false: wrong value",
+        "subtests": 36,
+        "files": 18,
+        "example": "css/selectors/dir-selector-auto.html"
+      },
+      {
+        "cause": "missing method: .decode()",
+        "subtests": 36,
+        "files": 4,
+        "example": "html/semantics/embedded-content/the-img-element/decode/image-decode-path-changes.html"
+      },
+      {
+        "cause": "missing method: .elementFromPoint()",
+        "subtests": 35,
+        "files": 4,
+        "example": "html/semantics/embedded-content/the-img-element/usemap-casing.html"
+      },
+      {
+        "cause": "promise_test: Unhandled rejection with value: …",
+        "subtests": 29,
+        "files": 7,
+        "example": "custom-elements/Document-createElement.html"
+      },
+      {
+        "cause": "missing method: .assign()",
+        "subtests": 29,
+        "files": 5,
+        "example": "shadow-dom/imperative-slot-api-cross-shadow-root.html"
+      },
+      {
+        "cause": "Colors do not match. Actual: #… Expected: color(display-p… … … …). Error: assert_array_app…",
+        "subtests": 22,
+        "files": 1,
+        "example": "html/semantics/forms/the-input-element/color.window.html"
+      },
+      {
+        "cause": "assert_throws_dom: wrong exception",
+        "subtests": 21,
+        "files": 6,
+        "example": "css/selectors/parsing/parse-has.html"
+      },
+      {
+        "cause": "getSelection(...).modify is not a function",
+        "subtests": 18,
+        "files": 2,
+        "example": "selection/contenteditable/modify-around-non-editable-span.html"
+      },
+      {
+        "cause": "assert_true: got undefined (missing attribute/API)",
+        "subtests": 17,
+        "files": 10,
+        "example": "css/cssom/HTMLLinkElement-disabled-001.html"
+      },
+      {
+        "cause": "Document.createNodeIterator() throws: parameter … is not of type ….",
+        "subtests": 17,
+        "files": 1,
+        "example": "dom/traversal/NodeIterator-removal.html"
+      },
+      {
+        "cause": "missing method: .elementsFromPoint()",
+        "subtests": 17,
+        "files": 1,
+        "example": "shadow-dom/DocumentOrShadowRoot-prototype-elementFromPoint.html"
+      },
+      {
+        "cause": "read of undefined (.add)",
+        "subtests": 16,
+        "files": 5,
+        "example": "css/selectors/invalidation/state-in-has.html"
+      },
+      {
+        "cause": "file aborted: not a function: log",
+        "subtests": 16,
+        "files": 16,
+        "example": "html/semantics/scripting-1/the-script-element/execution-timing/013.html"
+      },
+      {
+        "cause": "write to undefined (.mode)",
+        "subtests": 14,
+        "files": 11,
+        "example": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/addCue.html"
+      },
+      {
+        "cause": "missing global: VTTCue",
+        "subtests": 13,
+        "files": 10,
+        "example": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/addCue.html"
+      },
+      {
+        "cause": "read of undefined (.cues)",
+        "subtests": 13,
+        "files": 4,
+        "example": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/cues.html"
+      },
+      {
+        "cause": "read of undefined (.length)",
+        "subtests": 12,
+        "files": 8,
+        "example": "css/cssom/StyleSheetList-constructable-shadow-with-style-recalc.html"
+      },
+      {
+        "cause": "…",
+        "subtests": 12,
+        "files": 5,
+        "example": "domxpath/fn-normalize-space.html"
+      },
+      {
+        "cause": "read of undefined (.kind)",
+        "subtests": 12,
+        "files": 2,
+        "example": "html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLMediaElement/addTextTrack.html"
+      }
+    ],
+    "happy-dom": [
+      {
+        "cause": "file aborted: missing method: .createCDATASection()",
+        "subtests": 45339,
+        "files": 25,
+        "example": "dom/nodes/Node-compareDocumentPosition.html"
+      },
+      {
+        "cause": "file aborted: Document.createProcessingInstruction() throws: The target provided … is not a valid name.",
+        "subtests": 35151,
+        "files": 31,
+        "example": "html/semantics/scripting-1/the-script-element/script-text.html"
+      },
+      {
+        "cause": "assert_equals: wrong value",
+        "subtests": 29436,
+        "files": 749,
+        "example": "FileAPI/blob/Blob-constructor-endings.html"
+      },
+      {
+        "cause": "assert_equals: got undefined (missing attribute/API)",
+        "subtests": 7119,
+        "files": 137,
+        "example": "FileAPI/fileReader.any.html"
+      },
+      {
+        "cause": "missing method: .setHTMLUnsafe()",
+        "subtests": 2323,
+        "files": 12,
+        "example": "css/cssom/caretPositionFromPoint-audioVideo.html"
+      },
+      {
+        "cause": "missing method: .getHTML()",
+        "subtests": 1822,
+        "files": 1,
+        "example": "shadow-dom/declarative/gethtml.html"
+      },
+      {
+        "cause": "CustomElementRegistry.define() throws: … is not a valid custom element name…code\" is equal to undefined, expe",
+        "subtests": 1740,
+        "files": 1,
+        "example": "custom-elements/registries/valid-custom-element-names.html"
+      },
+      {
+        "cause": "assert_throws_dom: did not throw",
+        "subtests": 1034,
+        "files": 65,
+        "example": "css/cssom/CSSStyleSheet-constructable-baseURL.html"
+      },
+      {
+        "cause": "file aborted: assert_equals: wrong value",
+        "subtests": 936,
+        "files": 2,
+        "example": "css/selectors/invalidation/is-pseudo-containing-complex-in-has.html"
+      },
+      {
+        "cause": "assert_array_equals: wrong value",
+        "subtests": 758,
+        "files": 177,
+        "example": "css/selectors/focus-within-009.html"
+      },
+      {
+        "cause": "assert_true: wrong value",
+        "subtests": 662,
+        "files": 196,
+        "example": "FileAPI/blob/Blob-constructor-endings.any.html"
+      },
+      {
+        "cause": "assert_false: wrong value",
+        "subtests": 343,
+        "files": 61,
+        "example": "css/cssom/CSS-supports.html"
+      },
+      {
+        "cause": "file aborted: Array.prototype.forEach called on null or undefined",
+        "subtests": 273,
+        "files": 5,
+        "example": "html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html"
+      },
+      {
+        "cause": "The … encoding is not supported",
+        "subtests": 260,
+        "files": 3,
+        "example": "encoding/textdecoder-fatal-single-byte.any.html?3001-4000"
+      },
+      {
+        "cause": "file aborted: undefined is not iterable (cannot read property Symbol(Symbol.iterator))",
+        "subtests": 258,
+        "files": 1,
+        "example": "html/semantics/embedded-content/the-img-element/naturalWidth-naturalHeight-width-height.html"
+      },
+      {
+        "cause": "assert_throws_dom: wrong exception",
+        "subtests": 216,
+        "files": 30,
+        "example": "css/selectors/parsing/parse-has.html"
+      },
+      {
+        "cause": "assert_unreached: wrong value",
+        "subtests": 196,
+        "files": 44,
+        "example": "css/cssom/HTMLLinkElement-load-event-002.html"
+      },
+      {
+        "cause": "file aborted: subtest not defined",
+        "subtests": 183,
+        "files": 6,
+        "example": "dom/events/passive-by-default.html"
+      },
+      {
+        "cause": "subtest TIMEOUT",
+        "subtests": 153,
+        "files": 97,
+        "example": "FileAPI/reading-data-section/FileReader-multiple-reads.any.html"
+      },
+      {
+        "cause": "subtest NOTRUN",
+        "subtests": 148,
+        "files": 35,
+        "example": "FileAPI/reading-data-section/FileReader-multiple-reads.any.html"
+      },
+      {
+        "cause": "read of undefined (.apply)",
+        "subtests": 136,
+        "files": 1,
+        "example": "dom/nodes/DOMImplementation-hasFeature.html"
+      },
+      {
+        "cause": "file aborted: missing method: .attachInternals()",
+        "subtests": 134,
+        "files": 14,
+        "example": "css/selectors/invalidation/part-dir.html"
+      },
+      {
+        "cause": "assert_in_array: wrong value",
+        "subtests": 123,
+        "files": 4,
+        "example": "css/cssom/flex-serialization.html"
+      },
+      {
+        "cause": "missing method: .setAttribute()",
+        "subtests": 120,
+        "files": 1,
+        "example": "dom/nodes/processing-instruction-attributes.html"
+      },
+      {
+        "cause": "process killed (no result after 40000 ms)",
+        "subtests": 116,
+        "files": 8,
+        "example": "custom-elements/reactions/Element.html"
+      },
+      {
+        "cause": "CustomElementRegistry.define() throws: … is not a valid custom element name\"",
+        "subtests": 108,
+        "files": 1,
+        "example": "custom-elements/registries/valid-custom-element-names.html"
+      },
+      {
+        "cause": "Element.querySelectorAll() throws: … is not a valid selector.",
+        "subtests": 90,
+        "files": 20,
+        "example": "css/selectors/dir-selector-querySelector.html"
+      },
+      {
+        "cause": "assert_not_equals: wrong value",
+        "subtests": 89,
+        "files": 24,
+        "example": "css/cssom/css-style-attr-decl-block.html"
+      },
+      {
+        "cause": "assert_true: got undefined (missing attribute/API)",
+        "subtests": 87,
+        "files": 21,
+        "example": "css/cssom/HTMLLinkElement-disabled-001.html"
+      },
+      {
+        "cause": "read of undefined (.selectorText)",
+        "subtests": 82,
+        "files": 5,
+        "example": "css/cssom/CSSStyleRule-set-selectorText-namespace.html"
+      },
+      {
+        "cause": "missing method: .modify()",
+        "subtests": 80,
+        "files": 3,
+        "example": "selection/bidi/modify-extend-by-character.html"
+      },
+      {
+        "cause": "missing global: XPathResult",
+        "subtests": 78,
+        "files": 18,
+        "example": "domxpath/booleans.html"
+      },
+      {
+        "cause": "Illegal constructor",
+        "subtests": 77,
+        "files": 18,
+        "example": "custom-elements/htmlconstructor/newtarget-customized-builtins.html"
+      },
+      {
+        "cause": "promise_test: Unhandled rejection with value: …",
+        "subtests": 59,
+        "files": 7,
+        "example": "custom-elements/Document-createElement.html"
+      },
+      {
+        "cause": "assert_class_string: wrong value",
+        "subtests": 55,
+        "files": 6,
+        "example": "FileAPI/blob/Blob-constructor-endings.any.html"
+      },
+      {
+        "cause": "Colors do not match. Actual: #… Expected: color(srgb … … …). Error: assert_array_approx_eq…",
+        "subtests": 52,
+        "files": 1,
+        "example": "html/semantics/forms/the-input-element/color.window.html"
+      },
+      {
+        "cause": "Document.createProcessingInstruction() throws: The target provided … is not a valid name.",
+        "subtests": 46,
+        "files": 3,
+        "example": "dom/nodes/Document-createProcessingInstruction.html"
+      },
+      {
+        "cause": "missing method: .attachInternals()",
+        "subtests": 45,
+        "files": 11,
+        "example": "css/selectors/invalidation/state-in-has.html"
+      },
+      {
+        "cause": "read of null (.document)",
+        "subtests": 45,
+        "files": 29,
+        "example": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-002.html"
+      },
+      {
+        "cause": "file aborted: instanceof against a missing interface",
+        "subtests": 43,
+        "files": 1,
+        "example": "dom/events/Body-FrameSet-Event-Handlers.html"
+      }
+    ],
+    "rsdom": [
+      {
+        "cause": "assert_equals: wrong value",
+        "subtests": 35129,
+        "files": 436,
+        "example": "FileAPI/blob/Blob-slice.any.html"
+      },
+      {
+        "cause": "missing method: .compareBoundaryPoints()",
+        "subtests": 9315,
+        "files": 2,
+        "example": "dom/ranges/Range-attribute-nodes.html"
+      },
+      {
+        "cause": "assert_equals: got undefined (missing attribute/API)",
+        "subtests": 8713,
+        "files": 93,
+        "example": "custom-elements/registries/CustomElementRegistry-initialize.html"
+      },
+      {
+        "cause": "missing method: .comparePoint()",
+        "subtests": 7264,
+        "files": 4,
+        "example": "dom/ranges/Range-attribute-nodes.html"
+      },
+      {
+        "cause": "assert_throws_dom: did not throw",
+        "subtests": 7057,
+        "files": 16,
+        "example": "dom/nodes/name-validation.html"
+      },
+      {
+        "cause": "missing method: .attachShadow()",
+        "subtests": 5994,
+        "files": 108,
+        "example": "css/cssom/CSSStyleSheet-constructable-baseURL.html"
+      },
+      {
+        "cause": "missing method: .isPointInRange()",
+        "subtests": 5672,
+        "files": 2,
+        "example": "dom/ranges/Range-attribute-nodes.html"
+      },
+      {
+        "cause": "missing global: customElements",
+        "subtests": 2618,
+        "files": 73,
+        "example": "css/selectors/invalidation/state-in-has.html"
+      },
+      {
+        "cause": "missing method: .intersectsNode()",
+        "subtests": 2359,
+        "files": 3,
+        "example": "dom/ranges/Range-attribute-nodes.html"
+      },
+      {
+        "cause": "missing method: .setHTMLUnsafe()",
+        "subtests": 2321,
+        "files": 12,
+        "example": "css/cssom/caretPositionFromPoint-audioVideo.html"
+      },
+      {
+        "cause": "read of null (.ownerDocument)",
+        "subtests": 2080,
+        "files": 1,
+        "example": "dom/ranges/Range-set.html"
+      },
+      {
+        "cause": "Selection.getRangeAt() throws: … is not a valid index.",
+        "subtests": 1638,
+        "files": 4,
+        "example": "html/interaction/focus/focus-selection.html"
+      },
+      {
+        "cause": "file aborted: assert_equals: wrong value",
+        "subtests": 936,
+        "files": 2,
+        "example": "css/selectors/invalidation/is-pseudo-containing-complex-in-has.html"
+      },
+      {
+        "cause": "assert_not_equals: wrong value",
+        "subtests": 776,
+        "files": 14,
+        "example": "css/cssom/css-style-attr-decl-block.html"
+      },
+      {
+        "cause": "file aborted: missing global: NodeFilter",
+        "subtests": 765,
+        "files": 3,
+        "example": "dom/traversal/NodeFilter-constants.html"
+      },
+      {
+        "cause": "file aborted: subtest not defined",
+        "subtests": 527,
+        "files": 18,
+        "example": "css/cssom/shorthand-values.html"
+      },
+      {
+        "cause": "missing global: NodeFilter",
+        "subtests": 499,
+        "files": 13,
+        "example": "dom/nodes/moveBefore/moveBefore-nodeiterator.html"
+      },
+      {
+        "cause": "file aborted: missing global: customElements",
+        "subtests": 440,
+        "files": 43,
+        "example": "css/selectors/invalidation/part-dir.html"
+      },
+      {
+        "cause": "assert_array_equals: wrong value",
+        "subtests": 383,
+        "files": 120,
+        "example": "FileAPI/blob/Blob-constructor.any.html"
+      },
+      {
+        "cause": "missing method: .createNodeIterator()",
+        "subtests": 333,
+        "files": 2,
+        "example": "dom/traversal/NodeIterator-removal.html"
+      },
+      {
+        "cause": "read of undefined (.cssRules)",
+        "subtests": 299,
+        "files": 23,
+        "example": "css/cssom/CSSGroupingRule-insertRule-computed.html"
+      },
+      {
+        "cause": "assert_true: wrong value",
+        "subtests": 279,
+        "files": 130,
+        "example": "FileAPI/blob/Blob-constructor.any.html"
+      },
+      {
+        "cause": "file aborted: Array.prototype.forEach called on null or undefined",
+        "subtests": 273,
+        "files": 5,
+        "example": "html/semantics/embedded-content/the-img-element/current-pixel-density/basic.html"
+      },
+      {
+        "cause": "The … encoding is not supported",
+        "subtests": 260,
+        "files": 3,
+        "example": "encoding/textdecoder-fatal-single-byte.any.html?3001-4000"
+      },
+      {
+        "cause": "file aborted: undefined is not iterable (cannot read property Symbol(Symbol.iterator))",
+        "subtests": 258,
+        "files": 1,
+        "example": "html/semantics/embedded-content/the-img-element/naturalWidth-naturalHeight-width-height.html"
+      },
+      {
+        "cause": "… is not a valid selector",
+        "subtests": 200,
+        "files": 4,
+        "example": "css/selectors/heading-prefixed.html"
+      },
+      {
+        "cause": "file aborted: read of undefined (.0)",
+        "subtests": 198,
+        "files": 19,
+        "example": "css/cssom/CSSKeyframeRule-keyText-edge-cases.html"
+      },
+      {
+        "cause": "missing method: .getHTML()",
+        "subtests": 192,
+        "files": 2,
+        "example": "shadow-dom/declarative/declarative-shadow-dom-serialization.html"
+      },
+      {
+        "cause": "Cannot destructure property … of … as it is undefined.",
+        "subtests": 188,
+        "files": 22,
+        "example": "css/selectors/focus-visible-017-2.html"
+      },
+      {
+        "cause": "subtest NOTRUN",
+        "subtests": 178,
+        "files": 49,
+        "example": "css/cssom/CSSImportRule-layer-false-positive.html"
+      },
+      {
+        "cause": "assert_unreached: wrong value",
+        "subtests": 167,
+        "files": 23,
+        "example": "FileAPI/blob/Blob-constructor.any.html"
+      },
+      {
+        "cause": "rsdom: DOMParser type … is not supported (XML parsing is out of scope)",
+        "subtests": 163,
+        "files": 23,
+        "example": "dom/nodes/Element-tagName.html"
+      },
+      {
+        "cause": "subtest TIMEOUT",
+        "subtests": 142,
+        "files": 114,
+        "example": "css/cssom/CSSImportRule-layer-false-positive.html"
+      },
+      {
+        "cause": "read of undefined (.insertRule)",
+        "subtests": 141,
+        "files": 15,
+        "example": "css/cssom/CSSImportRule-insertRule-styleSheet-parentStyleSheet.html"
+      },
+      {
+        "cause": "missing global: XMLHttpRequest",
+        "subtests": 139,
+        "files": 18,
+        "example": "dom/events/event-global.html"
+      },
+      {
+        "cause": "missing global: FileReader",
+        "subtests": 129,
+        "files": 20,
+        "example": "FileAPI/FileReader/progress_event_bubbles_cancelable.html"
+      },
+      {
+        "cause": "file aborted: read of undefined (.cssRules)",
+        "subtests": 118,
+        "files": 9,
+        "example": "css/cssom/CSSKeyframeRule.html"
+      },
+      {
+        "cause": "read of undefined (.length)",
+        "subtests": 93,
+        "files": 38,
+        "example": "css/cssom/HTMLLinkElement-disabled-001.html"
+      },
+      {
+        "cause": "missing method: .createEvent()",
+        "subtests": 90,
+        "files": 31,
+        "example": "dom/events/CustomEvent.html"
+      },
+      {
+        "cause": "missing method: .setAttribute()",
+        "subtests": 90,
+        "files": 1,
+        "example": "dom/nodes/processing-instruction-attributes.html"
+      }
+    ]
+  },
+  "fidelity": {
+    "filesCompared": 2123,
+    "filesAgree": 1954,
+    "filesSkippedByJsdom": 266,
+    "expectPass": {
+      "files": 1541,
+      "agree": 1393
+    },
+    "expectFail": {
+      "files": 534,
+      "agree": 520
+    },
+    "expectPartial": {
+      "files": 48,
+      "agree": 41
+    },
+    "subtestsCompared": 110077,
+    "subtestsAgree": 109238,
+    "unexpectedFail": 832,
+    "unexpectedPass": 7,
+    "disagreements": [
+      {
+        "id": "FileAPI/blob/Blob-array-buffer.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_true: Expect input ArrayBuffers to contain field `buffer` expected true got false"
+      },
+      {
+        "id": "FileAPI/blob/Blob-bytes.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_true: Expect input ArrayBuffers to contain field `buffer` expected true got false"
+      },
+      {
+        "id": "FileAPI/blob/Blob-constructor.any.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "FileAPI/filelist-section/filelist.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "css/cssom/CSSImportRule-layer-false-positive.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "css/cssom/CSSImportRule-layer-media.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "css/cssom/HTMLLinkElement-disabled-007.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "css/cssom/StyleSheet-properties.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "Cannot read properties of null (reading 'type')"
+      },
+      {
+        "id": "css/cssom/cssimportrule-sheet-identity.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_not_equals: got disallowed value undefined"
+      },
+      {
+        "id": "css/cssom/insertRule-charset-no-index.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "Cannot read properties of null (reading 'cssRules')"
+      },
+      {
+        "id": "css/cssom/style-sheet-interfaces-001.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_true: expected true got false"
+      },
+      {
+        "id": "css/selectors/focus-within-removal.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "Cannot read properties of null (reading 'focus')"
+      },
+      {
+        "id": "css/selectors/invalidation/attribute-or-elemental-selectors-in-has.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "named access (window[id]) is not mirrored onto globalThis",
+        "message": "div_descendant is not defined"
+      },
+      {
+        "id": "css/selectors/invalidation/has-invalidation-for-wiping-an-element.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "named access (window[id]) is not mirrored onto globalThis",
+        "message": "child is not defined"
+      },
+      {
+        "id": "custom-elements/Document-createElement.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "network/resource loading (no server)",
+        "message": "promise_test: Unhandled rejection with value: \"Failed to fetch the document\""
+      },
+      {
+        "id": "custom-elements/adopted-callback.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "network/resource loading (no server)",
+        "message": "promise_test: Unhandled rejection with value: \"Failed to fetch the document\""
+      },
+      {
+        "id": "custom-elements/builtin-coverage.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: expected function \"class extends HTMLHtmlElement {}\" but got function \"class HTMLHtmlElement extends globalObject.HTMLElement { constructor() { r…"
+      },
+      {
+        "id": "custom-elements/connected-callbacks.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "network/resource loading (no server)",
+        "message": "promise_test: Unhandled rejection with value: \"Failed to fetch the document\""
+      },
+      {
+        "id": "custom-elements/disconnected-callbacks.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "network/resource loading (no server)",
+        "message": "promise_test: Unhandled rejection with value: \"Failed to fetch the document\""
+      },
+      {
+        "id": "custom-elements/upgrading.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "network/resource loading (no server)",
+        "message": "promise_test: Unhandled rejection with value: \"Failed to fetch the document\""
+      },
+      {
+        "id": "dom/abort/abort-signal-any.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects",
+        "message": "assert_true: signal.reason is a DOMException expected true got false"
+      },
+      {
+        "id": "dom/abort/event.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects",
+        "message": "assert_true: signal.reason is DOMException expected true got false"
+      },
+      {
+        "id": "dom/abort/timeout.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects",
+        "message": "assert_true: signal.reason is a DOMException expected true got false"
+      },
+      {
+        "id": "dom/events/Body-FrameSet-Event-Handlers.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: Convert to function expected \"function\" but got \"object\""
+      },
+      {
+        "id": "dom/events/Event-dispatch-bubbles-false.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\", Docu…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-bubbles-true.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\", Docu…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-click.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "hrefComplete is not defined"
+      },
+      {
+        "id": "dom/events/Event-dispatch-handlers-changed.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: actual_targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-multiple-cancelBubble.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: expected property 1 to be object \"[object global]\" but got object \"[object Window]\" (expected array [Document node with 2 children, object …"
+      },
+      {
+        "id": "dom/events/Event-dispatch-multiple-stopPropagation.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: expected property 1 to be object \"[object global]\" but got object \"[object Window]\" (expected array [Document node with 2 children, object …"
+      },
+      {
+        "id": "dom/events/Event-dispatch-omitted-capture.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: targets expected property 7 to be object \"[object global]\" but got object \"[object Window]\" (expected array [Element node <td id=\"target\">O…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-reenter.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: actual_targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-target-moved.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\", Docu…"
+      },
+      {
+        "id": "dom/events/Event-dispatch-target-removed.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: targets expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\", Docu…"
+      },
+      {
+        "id": "dom/events/Event-init-while-dispatching.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "Failed to execute 'initUIEvent' on 'UIEvent': parameter 4 is not of type 'Window'."
+      },
+      {
+        "id": "dom/events/Event-subclasses-constructors.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "Failed to construct 'UIEvent': member view is not of type Window."
+      },
+      {
+        "id": "dom/events/event-global-event-targets.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects",
+        "message": "The \"event\" argument must be an instance of Event. Received an instance of Event"
+      },
+      {
+        "id": "dom/events/passive-by-default-non-node.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects",
+        "message": "The \"event\" argument must be an instance of Event. Received an instance of Event"
+      },
+      {
+        "id": "dom/events/window-composed-path.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\"] got [object \"[object Window]\"])"
+      },
+      {
+        "id": "dom/lists/DOMTokenList-iteration.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: [Symbol.iterator] expected function \"function values() { [native code] }\" but got function \"function values() { [native code] }\""
+      },
+      {
+        "id": "dom/nodes/Document-doctype.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected Element node <html><head><meta charset=\"utf-8\"> <title>Document.doctyp... but got DocumentType node"
+      },
+      {
+        "id": "dom/nodes/DocumentType-literal.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"STAFF\" but got \"\""
+      },
+      {
+        "id": "dom/nodes/Node-appendChild-cereactions-vs-script.window.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "results is not defined"
+      },
+      {
+        "id": "dom/nodes/Node-childNodes.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: expected function \"function values() { [native code] }\" but got function \"function values() { [native code] }\""
+      },
+      {
+        "id": "dom/nodes/getElementsByClassName-14.htm",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_array_equals: lengths differ, expected array [Element node <html class=\"a A\"><head> <title>document.getElementsByC..., Element node <body class=\"a a\"> <d…"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-append-form-and-script-from-fragment.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected (object) Element node <form id=\"someForm\"></form> but got (undefined) undefined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-script-and-button-from-div.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "button is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-script-and-custom-from-fragment.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "CustomElement is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-script-and-div-from-fragment.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "div is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-script-in-script.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "happened is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-script-with-mutation-observer-takeRecords.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "Cannot read properties of undefined (reading 'takeRecords')"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-text-and-script-in-style.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "happened is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-text-in-script.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"t1\", \"t2\"] length 2, got [] length 0"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-three-scripts-from-fragment.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "happened is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/Node-appendChild-three-scripts.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "happened is not defined"
+      },
+      {
+        "id": "dom/nodes/insertion-removing-steps/later-script-removed-by-earlier-script.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_true is not defined"
+      },
+      {
+        "id": "dom/nodes/post-connection-steps-shadow-tree.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: script runs when its shadow-including tree becomes connected expected 1 but got 0"
+      },
+      {
+        "id": "dom/nodes/remove-unscopable.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "append is not defined"
+      },
+      {
+        "id": "domparsing/DOMParser-parseFromString-encoding.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "Error: assert_equals: the meta charset must be in effect, making the main document windows-1252 expected \"windows-1252\" but got \"UTF-8\""
+      },
+      {
+        "id": "encoding/big5-encoder.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_equals: expected \"X%26%2340614%3BX\" but got \"X%E9%BA%A6X\""
+      },
+      {
+        "id": "encoding/encodeInto.any.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/iso-2022-jp-decoder.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_equals: expected \"\\ufffd$\" but got \"\\ufffd\""
+      },
+      {
+        "id": "encoding/iso-2022-jp-encoder.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_equals: expected \"%1B(J\\\\~s%1B(B\\\\%1B$B%_PP%1B(B\" but got \"%C2%A5%E2%80%BEs\\\\%EF%BE%90%E4%BD%A9\""
+      },
+      {
+        "id": "encoding/sniffing.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_equals: expected \"Â€Â€ Hello World! Â€Â€\" but got \" Hello World! \""
+      },
+      {
+        "id": "encoding/streams/backpressure.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-attributes.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-bad-chunks.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-ignore-bom.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-incomplete-input.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-non-utf8.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-split-character.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/decode-utf8.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/encode-bad-chunks.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/encode-utf8.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/streams/readable-writable-properties.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/textdecoder-arguments.any.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "encoding/textdecoder-eof.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_equals: expected \"\\ufffd@\" but got \"\""
+      },
+      {
+        "id": "encoding/textdecoder-fatal-single-byte.any.html?3001-4000",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "The \"iso-8859-16\" encoding is not supported"
+      },
+      {
+        "id": "encoding/textdecoder-fatal-single-byte.any.html?4001-5000",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_true: assert_throws_js: undefined: function() { new TextDecoder(t.encoding, {fatal: true}).decode(new Uint8Array([i])); } did not throw expected true got…"
+      },
+      {
+        "id": "encoding/textdecoder-fatal-single-byte.any.html?5001-6000",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "assert_true: assert_throws_js: undefined: function() { new TextDecoder(t.encoding, {fatal: true}).decode(new Uint8Array([i])); } did not throw expected true got…"
+      },
+      {
+        "id": "encoding/textdecoder-fatal-single-byte.any.html?6001-7000",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "The encoded data was not valid for encoding windows-1255"
+      },
+      {
+        "id": "encoding/textdecoder-labels.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "The \"iso-8859-16\" encoding is not supported"
+      },
+      {
+        "id": "encoding/textencoder-constructor-non-utf.any.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)",
+        "message": "The \"iso-8859-16\" encoding is not supported"
+      },
+      {
+        "id": "html/dom/documents/resource-metadata-management/document-compatmode-03.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"BackCompat\" but got \"CSS1Compat\""
+      },
+      {
+        "id": "html/dom/documents/resource-metadata-management/document-readyState.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"complete\" but got \"interactive\""
+      },
+      {
+        "id": "html/dom/elements/global-attributes/dataset-prototype.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "html/interaction/focus/processing-model/legend-focusable.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "t is not defined"
+      },
+      {
+        "id": "html/semantics/document-metadata/the-link-element/link-error-fired-before-scripting-unblocked.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_true: The pending parsing-blocking script should only run after the last element that contributes a script-blocking style sheet's error event is fired if…"
+      },
+      {
+        "id": "html/semantics/document-metadata/the-link-element/link-load-event-alt-001.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/document-metadata/the-link-element/stylesheet-appropriate-time-to-obtain.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/document-metadata/the-link-element/stylesheet-non-OK-status.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/mime-types/canPlayType.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "audio/mp4"
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/non-active-document.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no parser-interleaved script execution (scripts run after the whole page is in the DOM)",
+        "message": "3 duplicate test names: \"DOMParser\", \"createHTMLDocument\", \"<template>\""
+      },
+      {
+        "id": "html/semantics/forms/textfieldselection/setSelectionRange.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: expected 1 but got 0"
+      },
+      {
+        "id": "html/semantics/forms/the-input-element/input-valueasdate.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: expected object \"Tue Dec 10 2019 00:00:00 GMT+0000 (Coordinated Universal Time)\" but got object \"Tue Dec 10 2019 00:00:00 GMT+0000 (Coordinated U…"
+      },
+      {
+        "id": "html/semantics/links/links-created-by-a-and-area-elements/a-href-javascript-url-carriage-return.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_equals: expected \"javascript:alert\\r(1)\" but got \"javascript:alert\\n(1)\""
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/change-src-attr-prepare-a-script.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/changing-src.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/dynamically-created-defer-script.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/emptyish-script-elements.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_true: expected true got undefined"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/013.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/015.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/016.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/017.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/019.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\", \"external #1 load\", \"inline script #2\"] length 5…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/020.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"data URL script\", \"inline script #2\"] length 4, got [\"inline script #…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/022.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\", \"inline script #2\"] length 4, got [\"inline scrip…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/023.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/024.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\", \"inline script #2\"] length 4, got [\"inline scrip…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/025.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/030.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/031.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/036.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/037.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/038.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\", \"inline script #2\"] length 4, got [\"inline scrip…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/046.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\"] length 3, got [\"inline script #1\", \"end script #…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/047.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\"] length 3, got [\"inline script #1\", \"end script #…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/048.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/049.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\"] length 3, got [\"inline script #1\", \"end script #…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/051.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"script tags in DOM: 5\", \"inline script #2\"] length 4, got [\"inline sc…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/053.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"end script #1\", \"external script #1\", \"removed script\", \"external script #2\", \"inline …"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/056.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"injected script code\", \"end script #1\", \"inline script #2\"] length 4, got [\"inline scr…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/061.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/062.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/063.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/066.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/076.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/079.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "log is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/104.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_true: expected true got false"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/110.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: expected property 0 to be \"external script #1\" but got \"external script #2\" (expected array [\"external script #1\", \"external script #2\"] go…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/116.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/124.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #2\", \"inline script #1\", \"end inline script #2\"] length 3, got [\"inline script #2\", \"end inl…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/127.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_array_equals: lengths differ, expected array [\"inline script #1\", \"inline script #2\", \"end inline script #2\", \"end inline script #1\"] length 4, got [\"inl…"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/129.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "t is not defined"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/131.html",
+        "expected": "expectFail",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/137.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_unreached: Reached unreachable code"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/147.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "t is not defined"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/execution-timing/148.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "t is not defined"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/fetch-src/alpha/base.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"beta\" but got \"alpha\""
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "window.getSomeString is not a function"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-defer.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: the script run status expected \"deferred\" but got \"inline\""
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-for-event.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: script for=\"wİndow\" event=\"onload\" expected false but got true"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-type-and-language-js.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected true but got false"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-type-whitespace.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_false: expected false got true"
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/svg-script-fragment-parsed-not-executed-on-clone.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "html/syntax/parsing/meta-inhead-insertion-mode.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"ISO-8859-15\" but got \"UTF-8\""
+      },
+      {
+        "id": "html/syntax/parsing/quotes-in-meta.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"windows-1250\" but got \"UTF-8\""
+      },
+      {
+        "id": "html/syntax/parsing/the-end.html",
+        "expected": "expectPass",
+        "harness": "TIMEOUT",
+        "cause": "timeout (no real page load / resource events, or 10 s cap)",
+        "message": "TIMEOUT"
+      },
+      {
+        "id": "html/syntax/parsing-xml-fragments/innerHTML-already-started.html",
+        "expected": "expectPartial",
+        "harness": "OK",
+        "cause": "unexpected pass (jsdom expects a failure)",
+        "message": "unexpected pass"
+      },
+      {
+        "id": "html/syntax/serializing-html-fragments/initial-linefeed-pre.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)",
+        "message": "assert_equals: expected \"\\n<div id=\\\"inner\\\">\\n<pre id=\\\"pre1\\\">x</pre>\\n<pre id=\\\"pre2\\\">\\nx</pre>\\n<textarea id=\\\"textarea1\\\">x</textarea>\\n<textarea id=\\\"tex…"
+      },
+      {
+        "id": "html/webappapis/events/event-handler-object-environment-instantiation.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "assert_equals is not defined"
+      },
+      {
+        "id": "html/webappapis/scripting/events/body-onload.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_equals: The event should be fired at the window. expected object \"[object global]\" but got object \"[object Window]\""
+      },
+      {
+        "id": "html/webappapis/scripting/events/compile-event-handler-lexical-scopes-form-owner.html",
+        "expected": "expectPartial",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "elements is not defined"
+      },
+      {
+        "id": "html/webappapis/scripting/events/compile-event-handler-symbol-unscopables.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "testVariable is not defined"
+      },
+      {
+        "id": "html/webappapis/scripting/events/event-handler-javascript.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "t is not defined"
+      },
+      {
+        "id": "html/webappapis/scripting/events/event-handler-onresize.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_equals: The event should be fired at the window. expected object \"[object global]\" but got object \"[object Window]\""
+      },
+      {
+        "id": "html/webappapis/timers/errors.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "Node timers instead of window timers (string callbacks, return values)",
+        "message": "promise_test: Unhandled rejection with value: object \"TypeError [ERR_INVALID_ARG_TYPE]: The \"callback\" argument must be of type function. Received type string (…"
+      },
+      {
+        "id": "html/webappapis/timers/evil-spec-example.any.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "Node timers instead of window timers (string callbacks, return values)",
+        "message": "The \"callback\" argument must be of type function. Received an instance of Object"
+      },
+      {
+        "id": "html/webappapis/timers/settimeout-setinterval-handles.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_true: expected true got false"
+      },
+      {
+        "id": "shadow-dom/Document-prototype-currentScript.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals",
+        "message": "assert_equals is not defined"
+      },
+      {
+        "id": "shadow-dom/declarative/declarative-parser-interaction.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "other",
+        "message": "1 duplicate test name: \"Declarative Shadow DOM: Test for crashes and improper parsing\""
+      },
+      {
+        "id": "shadow-dom/slotchange-customelements.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "other",
+        "message": "assert_true: expected true got false"
+      },
+      {
+        "id": "shadow-dom/untriaged/events/event-dispatch/test-002.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "Failed to execute 'initUIEvent' on 'MouseEvent': parameter 4 is not of type 'Window'."
+      },
+      {
+        "id": "shadow-dom/untriaged/events/retargeting-relatedtarget/test-001.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "Failed to execute 'initUIEvent' on 'MouseEvent': parameter 4 is not of type 'Window'."
+      },
+      {
+        "id": "shadow-dom/untriaged/events/retargeting-relatedtarget/test-002.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "Failed to execute 'initUIEvent' on 'MouseEvent': parameter 4 is not of type 'Window'."
+      },
+      {
+        "id": "uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html",
+        "expected": "expectPass",
+        "harness": "ERROR",
+        "cause": "other",
+        "message": "Tried to dispatch an uninitialized event"
+      },
+      {
+        "id": "uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: ActualResult expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\",…"
+      },
+      {
+        "id": "uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: ActualResult expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\",…"
+      },
+      {
+        "id": "uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html",
+        "expected": "expectPass",
+        "harness": "OK",
+        "cause": "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)",
+        "message": "assert_array_equals: ActualResult expected property 0 to be object \"[object global]\" but got object \"[object Window]\" (expected array [object \"[object global]\",…"
+      }
+    ],
+    "disagreementCauses": {
+      "no real page load (parser-interleaved scripts, doctype/quirks, charset, readyState)": 66,
+      "window !== globalThis (event path / defaultView shows the jsdom Window object, test expects `window`)": 20,
+      "other": 19,
+      "unexpected pass (jsdom expects a failure)": 19,
+      "Node's TextEncoder/TextDecoder (Vitest keeps Node's; jsdom's own runner uses jsdom's)": 11,
+      "timeout (no real page load / resource events, or 10 s cap)": 10,
+      "code jsdom evaluates in its own realm (event-handler attributes, injected <script>) cannot see the Node-realm test globals": 9,
+      "network/resource loading (no server)": 5,
+      "Node-provided globals the environment keeps (AbortController/AbortSignal, Node EventTarget, DOMException) mixed with DOM objects": 5,
+      "named access (window[id]) is not mirrored onto globalThis": 2,
+      "Node timers instead of window timers (string callbacks, return values)": 2,
+      "no parser-interleaved script execution (scripts run after the whole page is in the DOM)": 1
+    }
+  },
+  "beats": [
+    {
+      "area": "dom/abort",
+      "dom": "happy-dom",
+      "pass": 33,
+      "jsdom": 23,
+      "subtests": 35,
+      "note": "happy-dom installs its own AbortController/AbortSignal, consistent with its DOMException; jsdom's environment keeps Node's AbortSignal next to jsdom's DOMException (global-install effect)"
+    },
+    {
+      "area": "dom/abort",
+      "dom": "rsdom",
+      "pass": 35,
+      "jsdom": 23,
+      "subtests": 35,
+      "note": "caveat: AbortController/AbortSignal are Node's in the jsdom and rsdom environments (results/globals.json); jsdom loses subtests because its DOMException is not the one Node's AbortSignal uses, rsdom passes because it leaves Node's DOMException in place too — a global-install effect, not rsdom code"
+    },
+    {
+      "area": "dom/nodes",
+      "dom": "rsdom",
+      "pass": 7410,
+      "jsdom": 6409,
+      "subtests": 7896,
+      "note": "mostly Node-compareDocumentPosition.html (1,444 subtests), where jsdom has a known failure (to-run.yaml: disconnected-node ordering not antisymmetric)"
+    }
+  ],
+  "fileScoreBeats": [
+    {
+      "area": "dom/abort",
+      "dom": "happy-dom",
+      "fileScore": 96.7,
+      "jsdom": 73.4
+    },
+    {
+      "area": "dom/abort",
+      "dom": "rsdom",
+      "fileScore": 100,
+      "jsdom": 73.4
+    },
+    {
+      "area": "html/semantics/embedded-content (img, media)",
+      "dom": "happy-dom",
+      "fileScore": 25.9,
+      "jsdom": 24.1
+    },
+    {
+      "area": "html/semantics/scripting (script, template, noscript)",
+      "dom": "happy-dom",
+      "fileScore": 30.3,
+      "jsdom": 29.5
+    },
+    {
+      "area": "html/semantics/scripting (script, template, noscript)",
+      "dom": "rsdom",
+      "fileScore": 30.8,
+      "jsdom": 29.5
+    }
+  ],
+  "fileBeats": {
+    "happy-dom": [
+      {
+        "id": "shadow-dom/declarative/gethtml.html",
+        "happy-dom": 326,
+        "jsdom": 0,
+        "subtests": 6908
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-setter.html",
+        "happy-dom": 100,
+        "jsdom": 8,
+        "subtests": 126
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/update-the-source-set.html",
+        "happy-dom": 55,
+        "jsdom": 5,
+        "subtests": 91
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/outertext-setter.html",
+        "happy-dom": 30,
+        "jsdom": 2,
+        "subtests": 43
+      },
+      {
+        "id": "css/selectors/parsing/parse-has.html",
+        "happy-dom": 20,
+        "jsdom": 0,
+        "subtests": 29
+      },
+      {
+        "id": "css/selectors/parsing/parse-not.html",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 26
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=plaintext-only",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=true",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=plaintext-only",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=true",
+        "happy-dom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "css/selectors/parsing/parse-heading.html",
+        "happy-dom": 10,
+        "jsdom": 1,
+        "subtests": 28
+      },
+      {
+        "id": "css/selectors/parsing/parse-state.html",
+        "happy-dom": 9,
+        "jsdom": 0,
+        "subtests": 24
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal",
+        "happy-dom": 8,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal&contenteditable=plaintext-only",
+        "happy-dom": 8,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal&contenteditable=true",
+        "happy-dom": 8,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode.html",
+        "happy-dom": 8,
+        "jsdom": 0,
+        "subtests": 15
+      },
+      {
+        "id": "css/selectors/parsing/parse-is-where.html",
+        "happy-dom": 20,
+        "jsdom": 13,
+        "subtests": 45
+      },
+      {
+        "id": "html/semantics/forms/attributes-common-to-form-controls/formaction.html",
+        "happy-dom": 8,
+        "jsdom": 1,
+        "subtests": 8
+      },
+      {
+        "id": "html/semantics/forms/the-input-element/input-valueasdate.html",
+        "happy-dom": 30,
+        "jsdom": 23,
+        "subtests": 30
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/dynamic-getter.html",
+        "happy-dom": 6,
+        "jsdom": 0,
+        "subtests": 7
+      },
+      {
+        "id": "FileAPI/blob/Blob-stream.any.html",
+        "happy-dom": 5,
+        "jsdom": 0,
+        "subtests": 6
+      },
+      {
+        "id": "css/cssom/serialize-custom-props.html",
+        "happy-dom": 20,
+        "jsdom": 15,
+        "subtests": 20
+      },
+      {
+        "id": "css/selectors/parsing/parse-attribute.html",
+        "happy-dom": 5,
+        "jsdom": 0,
+        "subtests": 16
+      },
+      {
+        "id": "dom/abort/event.any.html",
+        "happy-dom": 15,
+        "jsdom": 10,
+        "subtests": 16
+      },
+      {
+        "id": "domparsing/DOMParser-parseFromString-stylesheets.html",
+        "happy-dom": 6,
+        "jsdom": 1,
+        "subtests": 6
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLTrackElement/kind.html",
+        "happy-dom": 15,
+        "jsdom": 10,
+        "subtests": 20
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode-picture.html",
+        "happy-dom": 5,
+        "jsdom": 0,
+        "subtests": 8
+      },
+      {
+        "id": "html/semantics/scripting-1/the-script-element/script-supports.html",
+        "happy-dom": 5,
+        "jsdom": 0,
+        "subtests": 5
+      },
+      {
+        "id": "html/syntax/serializing-html-fragments/initial-linefeed-pre.html",
+        "happy-dom": 8,
+        "jsdom": 3,
+        "subtests": 8
+      },
+      {
+        "id": "FileAPI/blob/Blob-array-buffer.any.html",
+        "happy-dom": 5,
+        "jsdom": 1,
+        "subtests": 5
+      },
+      {
+        "id": "css/selectors/parsing/parse-class.html",
+        "happy-dom": 4,
+        "jsdom": 0,
+        "subtests": 4
+      },
+      {
+        "id": "css/selectors/parsing/parse-is.html",
+        "happy-dom": 4,
+        "jsdom": 0,
+        "subtests": 6
+      },
+      {
+        "id": "css/selectors/parsing/parse-where.html",
+        "happy-dom": 4,
+        "jsdom": 0,
+        "subtests": 6
+      },
+      {
+        "id": "dom/abort/abort-signal-any.any.html",
+        "happy-dom": 13,
+        "jsdom": 9,
+        "subtests": 14
+      },
+      {
+        "id": "dom/events/Event-timestamp-high-resolution.html",
+        "happy-dom": 4,
+        "jsdom": 0,
+        "subtests": 4
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode-with-quick-attach.html",
+        "happy-dom": 4,
+        "jsdom": 0,
+        "subtests": 9
+      },
+      {
+        "id": "html/semantics/forms/form-submission-0/newline-normalization.html",
+        "happy-dom": 12,
+        "jsdom": 8,
+        "subtests": 12
+      },
+      {
+        "id": "css/selectors/parsing/parse-descendant.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "css/selectors/parsing/parse-focus-visible.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "css/selectors/parsing/parse-id.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "css/selectors/parsing/parse-universal.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/addCue.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 5
+      },
+      {
+        "id": "html/webappapis/scripting/events/event-handler-processing-algorithm-error/script-element.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "shadow-dom/imperative-slot-api-slotchange.html",
+        "happy-dom": 3,
+        "jsdom": 0,
+        "subtests": 13
+      },
+      {
+        "id": "css/cssom/CSSStyleSheet-constructable-duplicate.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 4
+      },
+      {
+        "id": "css/cssom/mediaquery-sort-dedup.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/document-metadata/the-link-element/stylesheet-bad-mime-type.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/kind.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrack/oncuechange.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/constructor.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrackList/onaddtrack.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/embedded-content/media-elements/interfaces/TextTrackList/onremovetrack.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/interactive-elements/the-summary-element/anchor-without-link.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "html/semantics/links/links-created-by-a-and-area-elements/a-href-javascript-url-carriage-return.html",
+        "happy-dom": 4,
+        "jsdom": 2,
+        "subtests": 4
+      },
+      {
+        "id": "html/semantics/selectors/pseudo-classes/autofill.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "shadow-dom/declarative/declarative-shadow-dom-serialization.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "shadow-dom/focus/ShadowRoot-delegatesFocus.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 3
+      },
+      {
+        "id": "shadow-dom/imperative-slot-fallback-clear.html",
+        "happy-dom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      }
+    ],
+    "rsdom": [
+      {
+        "id": "dom/nodes/Node-compareDocumentPosition.html",
+        "rsdom": 1444,
+        "jsdom": 202,
+        "subtests": 1444
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-setter.html",
+        "rsdom": 92,
+        "jsdom": 8,
+        "subtests": 126
+      },
+      {
+        "id": "html/semantics/selectors/case-sensitivity/values.window.html",
+        "rsdom": 276,
+        "jsdom": 230,
+        "subtests": 276
+      },
+      {
+        "id": "html/dom/reflection-forms-weekmonth.html",
+        "rsdom": 1433,
+        "jsdom": 1390,
+        "subtests": 1579
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=plaintext-only",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=true",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=plaintext-only",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=true",
+        "rsdom": 34,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "css/cssom/getComputedStyle-pseudo-with-argument.html",
+        "rsdom": 17,
+        "jsdom": 0,
+        "subtests": 22
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal",
+        "rsdom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal&contenteditable=plaintext-only",
+        "rsdom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal&contenteditable=true",
+        "rsdom": 16,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-line",
+        "rsdom": 14,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-line&contenteditable=plaintext-only",
+        "rsdom": 14,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-line&contenteditable=true",
+        "rsdom": 14,
+        "jsdom": 0,
+        "subtests": 79
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/outertext-setter.html",
+        "rsdom": 15,
+        "jsdom": 2,
+        "subtests": 43
+      },
+      {
+        "id": "html/syntax/parsing/cdata-in-integration-point-fragment.html",
+        "rsdom": 15,
+        "jsdom": 5,
+        "subtests": 15
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode.html",
+        "rsdom": 8,
+        "jsdom": 0,
+        "subtests": 15
+      },
+      {
+        "id": "css/cssom/font-variant-shorthand-serialization.html",
+        "rsdom": 7,
+        "jsdom": 0,
+        "subtests": 7
+      },
+      {
+        "id": "html/webappapis/atob/base64.any.html",
+        "rsdom": 285,
+        "jsdom": 278,
+        "subtests": 286
+      },
+      {
+        "id": "FileAPI/blob/Blob-stream.any.html",
+        "rsdom": 6,
+        "jsdom": 0,
+        "subtests": 6
+      },
+      {
+        "id": "css/cssom/cssom-getPropertyValue-common-checks.html",
+        "rsdom": 11,
+        "jsdom": 5,
+        "subtests": 11
+      },
+      {
+        "id": "dom/abort/event.any.html",
+        "rsdom": 16,
+        "jsdom": 10,
+        "subtests": 16
+      },
+      {
+        "id": "html/semantics/forms/attributes-common-to-form-controls/formaction.html",
+        "rsdom": 7,
+        "jsdom": 1,
+        "subtests": 8
+      },
+      {
+        "id": "css/cssom/getComputedStyle-pseudo-picker.html",
+        "rsdom": 6,
+        "jsdom": 1,
+        "subtests": 9
+      },
+      {
+        "id": "css/selectors/dir-selector-auto.html",
+        "rsdom": 22,
+        "jsdom": 17,
+        "subtests": 22
+      },
+      {
+        "id": "dom/abort/abort-signal-any.any.html",
+        "rsdom": 14,
+        "jsdom": 9,
+        "subtests": 14
+      },
+      {
+        "id": "dom/events/Event-subclasses-constructors.html",
+        "rsdom": 48,
+        "jsdom": 43,
+        "subtests": 49
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode-picture.html",
+        "rsdom": 5,
+        "jsdom": 0,
+        "subtests": 8
+      },
+      {
+        "id": "FileAPI/blob/Blob-array-buffer.any.html",
+        "rsdom": 5,
+        "jsdom": 1,
+        "subtests": 5
+      },
+      {
+        "id": "FileAPI/blob/Blob-bytes.any.html",
+        "rsdom": 5,
+        "jsdom": 1,
+        "subtests": 5
+      },
+      {
+        "id": "css/cssom/font-family-serialization-001.html",
+        "rsdom": 22,
+        "jsdom": 18,
+        "subtests": 27
+      },
+      {
+        "id": "html/semantics/embedded-content/the-img-element/decode/image-decode-with-quick-attach.html",
+        "rsdom": 4,
+        "jsdom": 0,
+        "subtests": 9
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/dynamic-getter.html",
+        "rsdom": 3,
+        "jsdom": 0,
+        "subtests": 7
+      },
+      {
+        "id": "css/cssom/cssstyledeclaration-setter-declarations.html",
+        "rsdom": 4,
+        "jsdom": 2,
+        "subtests": 4
+      },
+      {
+        "id": "css/cssom/getComputedStyle-pseudo-shadow.html",
+        "rsdom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "css/cssom/getComputedStyle-pseudo.html",
+        "rsdom": 3,
+        "jsdom": 1,
+        "subtests": 28
+      },
+      {
+        "id": "css/cssom/mediaquery-sort-dedup.html",
+        "rsdom": 2,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "css/cssom/variable-names.html",
+        "rsdom": 4,
+        "jsdom": 2,
+        "subtests": 6
+      },
+      {
+        "id": "html/dom/elements/global-attributes/dir-assorted.window.html",
+        "rsdom": 40,
+        "jsdom": 38,
+        "subtests": 41
+      },
+      {
+        "id": "html/semantics/forms/the-select-element/customizable-select/select-value-selectedOption.html",
+        "rsdom": 9,
+        "jsdom": 7,
+        "subtests": 11
+      },
+      {
+        "id": "html/webappapis/scripting/events/event-handler-removal.window.html",
+        "rsdom": 3,
+        "jsdom": 1,
+        "subtests": 5
+      },
+      {
+        "id": "FileAPI/blob/Blob-newobject.any.html",
+        "rsdom": 4,
+        "jsdom": 3,
+        "subtests": 4
+      },
+      {
+        "id": "css/cssom/computed-style-001.html",
+        "rsdom": 3,
+        "jsdom": 2,
+        "subtests": 4
+      },
+      {
+        "id": "css/cssom/computed-style-set-property.html",
+        "rsdom": 5,
+        "jsdom": 4,
+        "subtests": 5
+      },
+      {
+        "id": "css/cssom/getComputedStyle-resolved-min-max-clamping.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "css/selectors/parsing/parse-has-disallow-nesting-has-inside-has.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 2
+      },
+      {
+        "id": "dom/abort/timeout.any.html",
+        "rsdom": 3,
+        "jsdom": 2,
+        "subtests": 3
+      },
+      {
+        "id": "dom/events/Event-init-while-dispatching.html",
+        "rsdom": 5,
+        "jsdom": 4,
+        "subtests": 5
+      },
+      {
+        "id": "dom/nodes/NodeList-static-length-getter-tampered-indexOf-1.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "dom/nodes/NodeList-static-length-getter-tampered-indexOf-2.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "dom/nodes/NodeList-static-length-getter-tampered-indexOf-3.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "dom/nodes/querySelector-mixed-case.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "html/dom/documents/dom-tree-accessors/document.getElementsByName/document.getElementsByName-namespace.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "html/dom/documents/resource-metadata-management/load-event-after-readystatechange-starts-load.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "html/dom/elements/global-attributes/dataset.html",
+        "rsdom": 8,
+        "jsdom": 7,
+        "subtests": 8
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/getter-first-letter-marker-multicol.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      },
+      {
+        "id": "html/dom/elements/the-innertext-and-outertext-properties/multiple-text-nodes.window.html",
+        "rsdom": 1,
+        "jsdom": 0,
+        "subtests": 1
+      }
+    ],
+    "counts": {
+      "happy-dom": 116,
+      "rsdom": 74
+    }
+  }
+}

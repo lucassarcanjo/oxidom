@@ -1,0 +1,7 @@
+{
+  "name": "rsdom-compare-surface",
+  "private": true,
+  "type": "module",
+  "description": "API surface census: jsdom WebIDL vs runtime globals of jsdom / happy-dom / rsdom",
+  "dependencies": { "webidl2": "24.5.0" }
+}

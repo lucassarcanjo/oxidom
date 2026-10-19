@@ -1,0 +1,4080 @@
+{
+ "meta": {
+  "date": "2026-10-17T03:53:11.561Z",
+  "node": "v22.22.0",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz x4",
+  "n": 7,
+  "warmup": 1,
+  "workers": 3,
+  "maxLoad": 2,
+  "rusage": true,
+  "provenance": {
+   "gitRev": "c4e213de0028ff8898d1da799951a20f3df7278c",
+   "gitDirty": true,
+   "addon": {
+    "path": "native/rsdom.linux-x64-gnu.node",
+    "sha256": "325866fa4f24cc5eb956b1142607278eb9cf225d95181b30ce839845241a202f",
+    "bytes": 2343184,
+    "mtime": "2026-10-17T02:55:23.397Z",
+    "build": "release"
+   },
+   "versions": {
+    "node": "v22.22.0",
+    "jsdom": "30.1.3",
+    "happy-dom": "21.0.3",
+    "vitest": "5.0.5",
+    "vitest (app)": "5.0.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8"
+   },
+   "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz x4",
+   "loadavg": [
+    0.89,
+    1.15,
+    1.15
+   ]
+  }
+ },
+ "matrix": {
+  "forks": {
+   "label": "forks + isolate (default), 3 workers",
+   "commonPassingFiles": [
+    "src/__tests__/Accordion.test.tsx",
+    "src/__tests__/AsyncUserList.test.tsx",
+    "src/__tests__/Counter.test.tsx",
+    "src/__tests__/Dashboard.test.tsx",
+    "src/__tests__/DataTable.heavy.test.tsx",
+    "src/__tests__/DataTable.test.tsx",
+    "src/__tests__/Modal.test.tsx",
+    "src/__tests__/SignupForm.test.tsx",
+    "src/__tests__/Tabs.test.tsx",
+    "src/__tests__/Theme.test.tsx",
+    "src/__tests__/TodoApp.test.tsx"
+   ],
+   "doms": {
+    "jsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 12455,
+      "min": 11911,
+      "max": 12849,
+      "spread": 0.075
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 11992,
+      "min": 11466,
+      "max": 12361,
+      "spread": 0.075
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 514,
+      "min": 480,
+      "max": 521,
+      "spread": 0.08
+     },
+     "environment": {
+      "n": 7,
+      "median": 9684,
+      "min": 9195,
+      "max": 9953,
+      "spread": 0.078
+     },
+     "worker": {
+      "n": 7,
+      "median": 89,
+      "min": 81,
+      "max": 100,
+      "spread": 0.216
+     },
+     "transform": {
+      "n": 7,
+      "median": 150,
+      "min": 118,
+      "max": 168,
+      "spread": 0.339
+     },
+     "setup": {
+      "n": 7,
+      "median": 1568,
+      "min": 1473,
+      "max": 1697,
+      "spread": 0.143
+     },
+     "import": {
+      "n": 7,
+      "median": 273,
+      "min": 228,
+      "max": 287,
+      "spread": 0.215
+     },
+     "tests": {
+      "n": 7,
+      "median": 21884,
+      "min": 21036,
+      "max": 22774,
+      "spread": 0.079
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 21884,
+      "min": 21036,
+      "max": 22774,
+      "spread": 0.079
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 11133,
+      "min": 10796,
+      "max": 11721,
+      "spread": 0.083
+     },
+     "criticalFile": 11686.800000000001,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "happy-dom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 10741,
+      "min": 9887,
+      "max": 12004,
+      "spread": 0.197
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 10149,
+      "min": 9331,
+      "max": 11358,
+      "spread": 0.2
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 1197,
+      "min": 1189,
+      "max": 1203,
+      "spread": 0.012
+     },
+     "environment": {
+      "n": 7,
+      "median": 4804,
+      "min": 4265,
+      "max": 5191,
+      "spread": 0.193
+     },
+     "worker": {
+      "n": 7,
+      "median": 87,
+      "min": 74,
+      "max": 118,
+      "spread": 0.504
+     },
+     "transform": {
+      "n": 7,
+      "median": 120,
+      "min": 98,
+      "max": 165,
+      "spread": 0.553
+     },
+     "setup": {
+      "n": 7,
+      "median": 1712,
+      "min": 1625,
+      "max": 1824,
+      "spread": 0.116
+     },
+     "import": {
+      "n": 7,
+      "median": 251,
+      "min": 220,
+      "max": 331,
+      "spread": 0.443
+     },
+     "tests": {
+      "n": 7,
+      "median": 15914,
+      "min": 14600,
+      "max": 17418,
+      "spread": 0.177
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 15914,
+      "min": 14600,
+      "max": 17418,
+      "spread": 0.177
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 6392,
+      "min": 5816,
+      "max": 6958,
+      "spread": 0.179
+     },
+     "criticalFile": 9973.1,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "rsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 4267,
+      "min": 4249,
+      "max": 4535,
+      "spread": 0.067
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 3815,
+      "min": 3738,
+      "max": 4106,
+      "spread": 0.096
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 281,
+      "min": 276,
+      "max": 293,
+      "spread": 0.06
+     },
+     "environment": {
+      "n": 7,
+      "median": 619,
+      "min": 590,
+      "max": 681,
+      "spread": 0.147
+     },
+     "worker": {
+      "n": 7,
+      "median": 108,
+      "min": 98,
+      "max": 136,
+      "spread": 0.351
+     },
+     "transform": {
+      "n": 7,
+      "median": 131,
+      "min": 84,
+      "max": 172,
+      "spread": 0.671
+     },
+     "setup": {
+      "n": 7,
+      "median": 1871,
+      "min": 1849,
+      "max": 2019,
+      "spread": 0.091
+     },
+     "import": {
+      "n": 7,
+      "median": 320,
+      "min": 278,
+      "max": 415,
+      "spread": 0.426
+     },
+     "tests": {
+      "n": 7,
+      "median": 6223,
+      "min": 6141,
+      "max": 7162,
+      "spread": 0.164
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 6223,
+      "min": 6141,
+      "max": 7162,
+      "spread": 0.164
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 3509,
+      "min": 3401,
+      "max": 4050,
+      "spread": 0.185
+     },
+     "criticalFile": 2999.3,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    }
+   },
+   "perFileMedianRatio": {
+    "jsdom": 4.16,
+    "happy-dom": 1.48
+   }
+  },
+  "forks-1": {
+   "label": "forks + isolate, maxWorkers=1 (phase attribution: no contention between workers)",
+   "commonPassingFiles": [
+    "src/__tests__/Accordion.test.tsx",
+    "src/__tests__/AsyncUserList.test.tsx",
+    "src/__tests__/Counter.test.tsx",
+    "src/__tests__/Dashboard.test.tsx",
+    "src/__tests__/DataTable.heavy.test.tsx",
+    "src/__tests__/DataTable.test.tsx",
+    "src/__tests__/Modal.test.tsx",
+    "src/__tests__/SignupForm.test.tsx",
+    "src/__tests__/Tabs.test.tsx",
+    "src/__tests__/Theme.test.tsx",
+    "src/__tests__/TodoApp.test.tsx"
+   ],
+   "doms": {
+    "jsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 29207,
+      "min": 28039,
+      "max": 30686,
+      "spread": 0.091
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 28653,
+      "min": 27645,
+      "max": 30184,
+      "spread": 0.089
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 482,
+      "min": 473,
+      "max": 491,
+      "spread": 0.037
+     },
+     "environment": {
+      "n": 7,
+      "median": 7865,
+      "min": 7627,
+      "max": 8337,
+      "spread": 0.09
+     },
+     "worker": {
+      "n": 7,
+      "median": 85,
+      "min": 79,
+      "max": 90,
+      "spread": 0.129
+     },
+     "transform": {
+      "n": 7,
+      "median": 86,
+      "min": 80,
+      "max": 95,
+      "spread": 0.165
+     },
+     "setup": {
+      "n": 7,
+      "median": 1345,
+      "min": 1222,
+      "max": 1386,
+      "spread": 0.122
+     },
+     "import": {
+      "n": 7,
+      "median": 236,
+      "min": 205,
+      "max": 261,
+      "spread": 0.238
+     },
+     "tests": {
+      "n": 7,
+      "median": 17381,
+      "min": 16673,
+      "max": 18321,
+      "spread": 0.095
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 17381,
+      "min": 16673,
+      "max": 18321,
+      "spread": 0.095
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 8580,
+      "min": 8211,
+      "max": 9191,
+      "spread": 0.114
+     },
+     "criticalFile": 9768.300000000001,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "happy-dom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 6,
+     "wall": {
+      "n": 7,
+      "median": 19877,
+      "min": 19512,
+      "max": 20583,
+      "spread": 0.054
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 19374,
+      "min": 19084,
+      "max": 20028,
+      "spread": 0.049
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 1184,
+      "min": 1178,
+      "max": 1191,
+      "spread": 0.011
+     },
+     "environment": {
+      "n": 7,
+      "median": 3413,
+      "min": 3252,
+      "max": 3632,
+      "spread": 0.111
+     },
+     "worker": {
+      "n": 7,
+      "median": 83,
+      "min": 72,
+      "max": 86,
+      "spread": 0.162
+     },
+     "transform": {
+      "n": 7,
+      "median": 79,
+      "min": 70,
+      "max": 85,
+      "spread": 0.187
+     },
+     "setup": {
+      "n": 7,
+      "median": 1420,
+      "min": 1336,
+      "max": 1516,
+      "spread": 0.127
+     },
+     "import": {
+      "n": 7,
+      "median": 200,
+      "min": 190,
+      "max": 226,
+      "spread": 0.181
+     },
+     "tests": {
+      "n": 7,
+      "median": 12539,
+      "min": 12456,
+      "max": 13144,
+      "spread": 0.055
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 12539,
+      "min": 12456,
+      "max": 13144,
+      "spread": 0.055
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 4913,
+      "min": 4705,
+      "max": 5085,
+      "spread": 0.078
+     },
+     "criticalFile": 8254.1,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "rsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 6,
+     "wall": {
+      "n": 7,
+      "median": 9427,
+      "min": 9122,
+      "max": 10045,
+      "spread": 0.098
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 8970,
+      "min": 8670,
+      "max": 9596,
+      "spread": 0.103
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 280,
+      "min": 276,
+      "max": 282,
+      "spread": 0.021
+     },
+     "environment": {
+      "n": 7,
+      "median": 508,
+      "min": 471,
+      "max": 558,
+      "spread": 0.171
+     },
+     "worker": {
+      "n": 7,
+      "median": 89,
+      "min": 85,
+      "max": 100,
+      "spread": 0.16
+     },
+     "transform": {
+      "n": 7,
+      "median": 86,
+      "min": 70,
+      "max": 102,
+      "spread": 0.377
+     },
+     "setup": {
+      "n": 7,
+      "median": 1417,
+      "min": 1355,
+      "max": 1495,
+      "spread": 0.098
+     },
+     "import": {
+      "n": 7,
+      "median": 234,
+      "min": 224,
+      "max": 284,
+      "spread": 0.254
+     },
+     "tests": {
+      "n": 7,
+      "median": 4977,
+      "min": 4783,
+      "max": 5339,
+      "spread": 0.112
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 4977,
+      "min": 4783,
+      "max": 5339,
+      "spread": 0.112
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 2724,
+      "min": 2650,
+      "max": 2999,
+      "spread": 0.128
+     },
+     "criticalFile": 2447.2000000000003,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    }
+   },
+   "perFileMedianRatio": {
+    "jsdom": 3.83,
+    "happy-dom": 1.53
+   }
+  },
+  "threads": {
+   "label": "threads + isolate, 3 workers",
+   "commonPassingFiles": [
+    "src/__tests__/Accordion.test.tsx",
+    "src/__tests__/AsyncUserList.test.tsx",
+    "src/__tests__/Counter.test.tsx",
+    "src/__tests__/Dashboard.test.tsx",
+    "src/__tests__/DataTable.heavy.test.tsx",
+    "src/__tests__/DataTable.test.tsx",
+    "src/__tests__/Modal.test.tsx",
+    "src/__tests__/SignupForm.test.tsx",
+    "src/__tests__/Tabs.test.tsx",
+    "src/__tests__/Theme.test.tsx",
+    "src/__tests__/TodoApp.test.tsx"
+   ],
+   "doms": {
+    "jsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 12066,
+      "min": 11861,
+      "max": 13667,
+      "spread": 0.15
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 11611,
+      "min": 11321,
+      "max": 13174,
+      "spread": 0.16
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 749,
+      "min": 705,
+      "max": 779,
+      "spread": 0.099
+     },
+     "environment": {
+      "n": 7,
+      "median": 8871,
+      "min": 8751,
+      "max": 9498,
+      "spread": 0.084
+     },
+     "worker": {
+      "n": 7,
+      "median": 94,
+      "min": 85,
+      "max": 104,
+      "spread": 0.207
+     },
+     "transform": {
+      "n": 7,
+      "median": 165,
+      "min": 112,
+      "max": 238,
+      "spread": 0.764
+     },
+     "setup": {
+      "n": 7,
+      "median": 1667,
+      "min": 1467,
+      "max": 1748,
+      "spread": 0.168
+     },
+     "import": {
+      "n": 7,
+      "median": 290,
+      "min": 213,
+      "max": 356,
+      "spread": 0.492
+     },
+     "tests": {
+      "n": 7,
+      "median": 21098,
+      "min": 20238,
+      "max": 23578,
+      "spread": 0.158
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 21098,
+      "min": 20238,
+      "max": 23578,
+      "spread": 0.158
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 10686,
+      "min": 10169,
+      "max": 11547,
+      "spread": 0.129
+     },
+     "criticalFile": 11380.800000000001,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "happy-dom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 10714,
+      "min": 10128,
+      "max": 11389,
+      "spread": 0.118
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 10102,
+      "min": 9518,
+      "max": 10746,
+      "spread": 0.122
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 1295,
+      "min": 1285,
+      "max": 1319,
+      "spread": 0.026
+     },
+     "environment": {
+      "n": 7,
+      "median": 4156,
+      "min": 3831,
+      "max": 4313,
+      "spread": 0.116
+     },
+     "worker": {
+      "n": 7,
+      "median": 94,
+      "min": 83,
+      "max": 103,
+      "spread": 0.212
+     },
+     "transform": {
+      "n": 7,
+      "median": 133,
+      "min": 126,
+      "max": 226,
+      "spread": 0.752
+     },
+     "setup": {
+      "n": 7,
+      "median": 1604,
+      "min": 1472,
+      "max": 1717,
+      "spread": 0.152
+     },
+     "import": {
+      "n": 7,
+      "median": 260,
+      "min": 231,
+      "max": 293,
+      "spread": 0.239
+     },
+     "tests": {
+      "n": 7,
+      "median": 15416,
+      "min": 14211,
+      "max": 16735,
+      "spread": 0.164
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 15416,
+      "min": 14211,
+      "max": 16735,
+      "spread": 0.164
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 6039,
+      "min": 5466,
+      "max": 6691,
+      "spread": 0.203
+     },
+     "criticalFile": 9885.9,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    },
+    "rsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 4378,
+      "min": 4188,
+      "max": 4969,
+      "spread": 0.178
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 3897,
+      "min": 3755,
+      "max": 4427,
+      "spread": 0.173
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 491,
+      "min": 474,
+      "max": 515,
+      "spread": 0.084
+     },
+     "environment": {
+      "n": 7,
+      "median": 653,
+      "min": 633,
+      "max": 793,
+      "spread": 0.244
+     },
+     "worker": {
+      "n": 7,
+      "median": 109,
+      "min": 91,
+      "max": 140,
+      "spread": 0.45
+     },
+     "transform": {
+      "n": 7,
+      "median": 148,
+      "min": 114,
+      "max": 191,
+      "spread": 0.522
+     },
+     "setup": {
+      "n": 7,
+      "median": 1833,
+      "min": 1674,
+      "max": 2176,
+      "spread": 0.274
+     },
+     "import": {
+      "n": 7,
+      "median": 317,
+      "min": 281,
+      "max": 370,
+      "spread": 0.281
+     },
+     "tests": {
+      "n": 7,
+      "median": 6283,
+      "min": 6140,
+      "max": 6959,
+      "spread": 0.13
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 6283,
+      "min": 6140,
+      "max": 6959,
+      "spread": 0.13
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 3473,
+      "min": 3322,
+      "max": 3946,
+      "spread": 0.179
+     },
+     "criticalFile": 3071.2,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 11
+    }
+   },
+   "perFileMedianRatio": {
+    "jsdom": 4.1,
+    "happy-dom": 1.56
+   }
+  },
+  "threads-noiso": {
+   "label": "threads, isolate: false, 3 workers",
+   "commonPassingFiles": [
+    "src/__tests__/Accordion.test.tsx",
+    "src/__tests__/AsyncUserList.test.tsx",
+    "src/__tests__/Counter.test.tsx",
+    "src/__tests__/Dashboard.test.tsx",
+    "src/__tests__/DataTable.heavy.test.tsx",
+    "src/__tests__/DataTable.test.tsx",
+    "src/__tests__/Modal.test.tsx",
+    "src/__tests__/SignupForm.test.tsx",
+    "src/__tests__/Tabs.test.tsx",
+    "src/__tests__/Theme.test.tsx",
+    "src/__tests__/TodoApp.test.tsx"
+   ],
+   "doms": {
+    "jsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 11400,
+      "min": 10487,
+      "max": 12411,
+      "spread": 0.169
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 10865,
+      "min": 9984,
+      "max": 11746,
+      "spread": 0.162
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 705,
+      "min": 695,
+      "max": 757,
+      "spread": 0.088
+     },
+     "environment": {
+      "n": 7,
+      "median": 8773,
+      "min": 8452,
+      "max": 10612,
+      "spread": 0.246
+     },
+     "worker": {
+      "n": 7,
+      "median": 26,
+      "min": 20,
+      "max": 31,
+      "spread": 0.408
+     },
+     "transform": {
+      "n": 7,
+      "median": 125,
+      "min": 100,
+      "max": 157,
+      "spread": 0.452
+     },
+     "setup": {
+      "n": 7,
+      "median": 470,
+      "min": 378,
+      "max": 599,
+      "spread": 0.471
+     },
+     "import": {
+      "n": 7,
+      "median": 146,
+      "min": 110,
+      "max": 199,
+      "spread": 0.61
+     },
+     "tests": {
+      "n": 7,
+      "median": 18359,
+      "min": 16167,
+      "max": 20792,
+      "spread": 0.252
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 18359,
+      "min": 16167,
+      "max": 20792,
+      "spread": 0.252
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 8620,
+      "min": 7490,
+      "max": 10268,
+      "spread": 0.322
+     },
+     "criticalFile": 10687,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 3
+    },
+    "happy-dom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 9922,
+      "min": 9335,
+      "max": 10446,
+      "spread": 0.112
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 9327,
+      "min": 8773,
+      "max": 9850,
+      "spread": 0.115
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 1278,
+      "min": 1271,
+      "max": 1284,
+      "spread": 0.01
+     },
+     "environment": {
+      "n": 7,
+      "median": 4155,
+      "min": 3599,
+      "max": 4741,
+      "spread": 0.275
+     },
+     "worker": {
+      "n": 7,
+      "median": 27,
+      "min": 21,
+      "max": 32,
+      "spread": 0.399
+     },
+     "transform": {
+      "n": 7,
+      "median": 105,
+      "min": 82,
+      "max": 123,
+      "spread": 0.384
+     },
+     "setup": {
+      "n": 7,
+      "median": 525,
+      "min": 394,
+      "max": 594,
+      "spread": 0.382
+     },
+     "import": {
+      "n": 7,
+      "median": 186,
+      "min": 150,
+      "max": 209,
+      "spread": 0.316
+     },
+     "tests": {
+      "n": 7,
+      "median": 13770,
+      "min": 12805,
+      "max": 14604,
+      "spread": 0.131
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 13770,
+      "min": 12805,
+      "max": 14604,
+      "spread": 0.131
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 5289,
+      "min": 4818,
+      "max": 5765,
+      "spread": 0.179
+     },
+     "criticalFile": 9140.8,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 3
+    },
+    "rsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 3648,
+      "min": 3270,
+      "max": 3826,
+      "spread": 0.152
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 3078,
+      "min": 2784,
+      "max": 3234,
+      "spread": 0.146
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 456,
+      "min": 441,
+      "max": 482,
+      "spread": 0.09
+     },
+     "environment": {
+      "n": 7,
+      "median": 837,
+      "min": 581,
+      "max": 926,
+      "spread": 0.411
+     },
+     "worker": {
+      "n": 7,
+      "median": 27,
+      "min": 25,
+      "max": 28,
+      "spread": 0.093
+     },
+     "transform": {
+      "n": 7,
+      "median": 141,
+      "min": 94,
+      "max": 176,
+      "spread": 0.584
+     },
+     "setup": {
+      "n": 7,
+      "median": 530,
+      "min": 509,
+      "max": 656,
+      "spread": 0.277
+     },
+     "import": {
+      "n": 7,
+      "median": 181,
+      "min": 158,
+      "max": 209,
+      "spread": 0.282
+     },
+     "tests": {
+      "n": 7,
+      "median": 5260,
+      "min": 5139,
+      "max": 5693,
+      "spread": 0.105
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 5260,
+      "min": 5139,
+      "max": 5693,
+      "spread": 0.105
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 2806,
+      "min": 2624,
+      "max": 2990,
+      "spread": 0.13
+     },
+     "criticalFile": 2879.7,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 3
+    }
+   },
+   "perFileMedianRatio": {
+    "jsdom": 3.84,
+    "happy-dom": 1.88
+   }
+  },
+  "serial": {
+   "label": "threads, isolate: false, maxWorkers=1",
+   "commonPassingFiles": [
+    "src/__tests__/Accordion.test.tsx",
+    "src/__tests__/AsyncUserList.test.tsx",
+    "src/__tests__/Counter.test.tsx",
+    "src/__tests__/Dashboard.test.tsx",
+    "src/__tests__/DataTable.heavy.test.tsx",
+    "src/__tests__/DataTable.test.tsx",
+    "src/__tests__/Modal.test.tsx",
+    "src/__tests__/SignupForm.test.tsx",
+    "src/__tests__/Tabs.test.tsx",
+    "src/__tests__/Theme.test.tsx",
+    "src/__tests__/TodoApp.test.tsx"
+   ],
+   "doms": {
+    "jsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 16260,
+      "min": 15133,
+      "max": 18091,
+      "spread": 0.182
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 15711,
+      "min": 14683,
+      "max": 17466,
+      "spread": 0.177
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 516,
+      "min": 495,
+      "max": 562,
+      "spread": 0.13
+     },
+     "environment": {
+      "n": 7,
+      "median": 690,
+      "min": 638,
+      "max": 778,
+      "spread": 0.203
+     },
+     "worker": {
+      "n": 7,
+      "median": 7,
+      "min": 6,
+      "max": 9,
+      "spread": 0.297
+     },
+     "transform": {
+      "n": 7,
+      "median": 68,
+      "min": 55,
+      "max": 72,
+      "spread": 0.249
+     },
+     "setup": {
+      "n": 7,
+      "median": 159,
+      "min": 122,
+      "max": 185,
+      "spread": 0.398
+     },
+     "import": {
+      "n": 7,
+      "median": 83,
+      "min": 77,
+      "max": 94,
+      "spread": 0.205
+     },
+     "tests": {
+      "n": 7,
+      "median": 14468,
+      "min": 13534,
+      "max": 16083,
+      "spread": 0.176
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 14468,
+      "min": 13534,
+      "max": 16083,
+      "spread": 0.176
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 5662,
+      "min": 5227,
+      "max": 6266,
+      "spread": 0.183
+     },
+     "criticalFile": 9707.7,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 1
+    },
+    "happy-dom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 13188,
+      "min": 12551,
+      "max": 15160,
+      "spread": 0.198
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 12517,
+      "min": 11894,
+      "max": 14486,
+      "spread": 0.207
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 1520,
+      "min": 1513,
+      "max": 1530,
+      "spread": 0.011
+     },
+     "environment": {
+      "n": 7,
+      "median": 289,
+      "min": 255,
+      "max": 355,
+      "spread": 0.347
+     },
+     "worker": {
+      "n": 7,
+      "median": 7,
+      "min": 7,
+      "max": 10,
+      "spread": 0.522
+     },
+     "transform": {
+      "n": 7,
+      "median": 71,
+      "min": 64,
+      "max": 80,
+      "spread": 0.213
+     },
+     "setup": {
+      "n": 7,
+      "median": 139,
+      "min": 130,
+      "max": 164,
+      "spread": 0.24
+     },
+     "import": {
+      "n": 7,
+      "median": 78,
+      "min": 76,
+      "max": 114,
+      "spread": 0.488
+     },
+     "tests": {
+      "n": 7,
+      "median": 11679,
+      "min": 11075,
+      "max": 13632,
+      "spread": 0.219
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 11679,
+      "min": 11075,
+      "max": 13632,
+      "spread": 0.219
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 3988,
+      "min": 3582,
+      "max": 5603,
+      "spread": 0.507
+     },
+     "criticalFile": 8173.2,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 1
+    },
+    "rsdom": {
+     "runs": 7,
+     "valid": 7,
+     "excluded": 0,
+     "invalid": false,
+     "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedTests": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "failedFiles": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "loaded": 7,
+     "wall": {
+      "n": 7,
+      "median": 5314,
+      "min": 5000,
+      "max": 5604,
+      "spread": 0.114
+     },
+     "vitestWall": {
+      "n": 7,
+      "median": 4785,
+      "min": 4496,
+      "max": 5057,
+      "spread": 0.117
+     },
+     "maxRssMiB": {
+      "n": 7,
+      "median": 407,
+      "min": 397,
+      "max": 417,
+      "spread": 0.049
+     },
+     "environment": {
+      "n": 7,
+      "median": 49,
+      "min": 46,
+      "max": 83,
+      "spread": 0.761
+     },
+     "worker": {
+      "n": 7,
+      "median": 9,
+      "min": 7,
+      "max": 11,
+      "spread": 0.462
+     },
+     "transform": {
+      "n": 7,
+      "median": 73,
+      "min": 63,
+      "max": 88,
+      "spread": 0.347
+     },
+     "setup": {
+      "n": 7,
+      "median": 152,
+      "min": 148,
+      "max": 183,
+      "spread": 0.231
+     },
+     "import": {
+      "n": 7,
+      "median": 90,
+      "min": 79,
+      "max": 102,
+      "spread": 0.247
+     },
+     "tests": {
+      "n": 7,
+      "median": 4108,
+      "min": 3919,
+      "max": 4473,
+      "spread": 0.135
+     },
+     "testsCommon": {
+      "n": 7,
+      "median": 4108,
+      "min": 3919,
+      "max": 4473,
+      "spread": 0.135
+     },
+     "testsNoHeavy": {
+      "n": 7,
+      "median": 1913,
+      "min": 1841,
+      "max": 2201,
+      "spread": 0.188
+     },
+     "criticalFile": 2419.2000000000003,
+     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+     "envSetups": 1
+    }
+   },
+   "perFileMedianRatio": {
+    "jsdom": 3.82,
+    "happy-dom": 2.45
+   }
+  }
+ },
+ "ablations": {
+  "forks": {
+   "RSDOM_SHARED=0": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 4492,
+     "min": 4269,
+     "max": 4897,
+     "spread": 0.14
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4063,
+     "min": 3838,
+     "max": 4412,
+     "spread": 0.141
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 345,
+     "min": 340,
+     "max": 349,
+     "spread": 0.026
+    },
+    "environment": {
+     "n": 7,
+     "median": 542,
+     "min": 469,
+     "max": 601,
+     "spread": 0.243
+    },
+    "worker": {
+     "n": 7,
+     "median": 128,
+     "min": 114,
+     "max": 145,
+     "spread": 0.237
+    },
+    "transform": {
+     "n": 7,
+     "median": 237,
+     "min": 211,
+     "max": 307,
+     "spread": 0.403
+    },
+    "setup": {
+     "n": 7,
+     "median": 1890,
+     "min": 1752,
+     "max": 2054,
+     "spread": 0.16
+    },
+    "import": {
+     "n": 7,
+     "median": 412,
+     "min": 360,
+     "max": 452,
+     "spread": 0.222
+    },
+    "tests": {
+     "n": 7,
+     "median": 6826,
+     "min": 6471,
+     "max": 7657,
+     "spread": 0.174
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 6826,
+     "min": 6471,
+     "max": 7657,
+     "spread": 0.174
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 3797,
+     "min": 3597,
+     "max": 4241,
+     "spread": 0.17
+    },
+    "criticalFile": 3316.7999999999997,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 11
+   },
+   "RSDOM_NO_MEMO=1": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 4468,
+     "min": 4182,
+     "max": 4730,
+     "spread": 0.123
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4007,
+     "min": 3702,
+     "max": 4240,
+     "spread": 0.134
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 282,
+     "min": 276,
+     "max": 285,
+     "spread": 0.032
+    },
+    "environment": {
+     "n": 7,
+     "median": 674,
+     "min": 575,
+     "max": 699,
+     "spread": 0.183
+    },
+    "worker": {
+     "n": 7,
+     "median": 123,
+     "min": 101,
+     "max": 133,
+     "spread": 0.263
+    },
+    "transform": {
+     "n": 7,
+     "median": 157,
+     "min": 112,
+     "max": 228,
+     "spread": 0.737
+    },
+    "setup": {
+     "n": 7,
+     "median": 1894,
+     "min": 1758,
+     "max": 2070,
+     "spread": 0.165
+    },
+    "import": {
+     "n": 7,
+     "median": 337,
+     "min": 293,
+     "max": 451,
+     "spread": 0.469
+    },
+    "tests": {
+     "n": 7,
+     "median": 6643,
+     "min": 6070,
+     "max": 7012,
+     "spread": 0.142
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 6643,
+     "min": 6070,
+     "max": 7012,
+     "spread": 0.142
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 3725,
+     "min": 3510,
+     "max": 3883,
+     "spread": 0.1
+    },
+    "criticalFile": 3202.9,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 11
+   },
+   "RSDOM_NO_PREFILTER=1": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 4538,
+     "min": 4293,
+     "max": 4872,
+     "spread": 0.127
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4048,
+     "min": 3851,
+     "max": 4409,
+     "spread": 0.138
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 282,
+     "min": 278,
+     "max": 306,
+     "spread": 0.099
+    },
+    "environment": {
+     "n": 7,
+     "median": 625,
+     "min": 585,
+     "max": 733,
+     "spread": 0.237
+    },
+    "worker": {
+     "n": 7,
+     "median": 111,
+     "min": 98,
+     "max": 136,
+     "spread": 0.347
+    },
+    "transform": {
+     "n": 7,
+     "median": 150,
+     "min": 124,
+     "max": 211,
+     "spread": 0.576
+    },
+    "setup": {
+     "n": 7,
+     "median": 1890,
+     "min": 1775,
+     "max": 2155,
+     "spread": 0.201
+    },
+    "import": {
+     "n": 7,
+     "median": 366,
+     "min": 310,
+     "max": 377,
+     "spread": 0.183
+    },
+    "tests": {
+     "n": 7,
+     "median": 6593,
+     "min": 6211,
+     "max": 7452,
+     "spread": 0.188
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 6593,
+     "min": 6211,
+     "max": 7452,
+     "spread": 0.188
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 3770,
+     "min": 3682,
+     "max": 4165,
+     "spread": 0.128
+    },
+    "criticalFile": 3081.2000000000003,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 11
+   },
+   "all off": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 4584,
+     "min": 4215,
+     "max": 5005,
+     "spread": 0.172
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4078,
+     "min": 3782,
+     "max": 4477,
+     "spread": 0.17
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 319,
+     "min": 303,
+     "max": 333,
+     "spread": 0.094
+    },
+    "environment": {
+     "n": 7,
+     "median": 563,
+     "min": 513,
+     "max": 613,
+     "spread": 0.177
+    },
+    "worker": {
+     "n": 7,
+     "median": 134,
+     "min": 110,
+     "max": 140,
+     "spread": 0.225
+    },
+    "transform": {
+     "n": 7,
+     "median": 224,
+     "min": 202,
+     "max": 288,
+     "spread": 0.383
+    },
+    "setup": {
+     "n": 7,
+     "median": 1880,
+     "min": 1744,
+     "max": 1970,
+     "spread": 0.12
+    },
+    "import": {
+     "n": 7,
+     "median": 413,
+     "min": 372,
+     "max": 494,
+     "spread": 0.295
+    },
+    "tests": {
+     "n": 7,
+     "median": 6698,
+     "min": 6182,
+     "max": 7759,
+     "spread": 0.236
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 6698,
+     "min": 6182,
+     "max": 7759,
+     "spread": 0.236
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 3743,
+     "min": 3573,
+     "max": 4441,
+     "spread": 0.232
+    },
+    "criticalFile": 3328.5,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 11
+   }
+  },
+  "serial": {
+   "RSDOM_SHARED=0": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 5494,
+     "min": 5139,
+     "max": 6007,
+     "spread": 0.158
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4961,
+     "min": 4661,
+     "max": 5332,
+     "spread": 0.135
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 411,
+     "min": 408,
+     "max": 419,
+     "spread": 0.027
+    },
+    "environment": {
+     "n": 7,
+     "median": 50,
+     "min": 42,
+     "max": 66,
+     "spread": 0.476
+    },
+    "worker": {
+     "n": 7,
+     "median": 9,
+     "min": 8,
+     "max": 11,
+     "spread": 0.365
+    },
+    "transform": {
+     "n": 7,
+     "median": 68,
+     "min": 60,
+     "max": 87,
+     "spread": 0.389
+    },
+    "setup": {
+     "n": 7,
+     "median": 154,
+     "min": 147,
+     "max": 182,
+     "spread": 0.225
+    },
+    "import": {
+     "n": 7,
+     "median": 91,
+     "min": 83,
+     "max": 100,
+     "spread": 0.18
+    },
+    "tests": {
+     "n": 7,
+     "median": 4367,
+     "min": 4119,
+     "max": 4683,
+     "spread": 0.129
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 4367,
+     "min": 4119,
+     "max": 4683,
+     "spread": 0.129
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 1942,
+     "min": 1773,
+     "max": 2054,
+     "spread": 0.145
+    },
+    "criticalFile": 2579.8999999999996,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 1
+   },
+   "RSDOM_NO_MEMO=1": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 5275,
+     "min": 4962,
+     "max": 5570,
+     "spread": 0.115
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4750,
+     "min": 4496,
+     "max": 4974,
+     "spread": 0.101
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 399,
+     "min": 390,
+     "max": 407,
+     "spread": 0.043
+    },
+    "environment": {
+     "n": 7,
+     "median": 50,
+     "min": 43,
+     "max": 67,
+     "spread": 0.503
+    },
+    "worker": {
+     "n": 7,
+     "median": 8,
+     "min": 7,
+     "max": 9,
+     "spread": 0.208
+    },
+    "transform": {
+     "n": 7,
+     "median": 79,
+     "min": 56,
+     "max": 84,
+     "spread": 0.351
+    },
+    "setup": {
+     "n": 7,
+     "median": 163,
+     "min": 149,
+     "max": 184,
+     "spread": 0.219
+    },
+    "import": {
+     "n": 7,
+     "median": 89,
+     "min": 79,
+     "max": 100,
+     "spread": 0.243
+    },
+    "tests": {
+     "n": 7,
+     "median": 4099,
+     "min": 3892,
+     "max": 4367,
+     "spread": 0.116
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 4099,
+     "min": 3892,
+     "max": 4367,
+     "spread": 0.116
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 1860,
+     "min": 1798,
+     "max": 2107,
+     "spread": 0.166
+    },
+    "criticalFile": 2449,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 1
+   },
+   "RSDOM_NO_PREFILTER=1": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 5430,
+     "min": 4998,
+     "max": 5697,
+     "spread": 0.129
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4940,
+     "min": 4400,
+     "max": 5175,
+     "spread": 0.157
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 400,
+     "min": 397,
+     "max": 410,
+     "spread": 0.033
+    },
+    "environment": {
+     "n": 7,
+     "median": 50,
+     "min": 44,
+     "max": 67,
+     "spread": 0.478
+    },
+    "worker": {
+     "n": 7,
+     "median": 10,
+     "min": 7,
+     "max": 12,
+     "spread": 0.433
+    },
+    "transform": {
+     "n": 7,
+     "median": 76,
+     "min": 52,
+     "max": 88,
+     "spread": 0.476
+    },
+    "setup": {
+     "n": 7,
+     "median": 150,
+     "min": 137,
+     "max": 176,
+     "spread": 0.26
+    },
+    "import": {
+     "n": 7,
+     "median": 88,
+     "min": 78,
+     "max": 110,
+     "spread": 0.372
+    },
+    "tests": {
+     "n": 7,
+     "median": 4311,
+     "min": 3842,
+     "max": 4535,
+     "spread": 0.161
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 4311,
+     "min": 3842,
+     "max": 4535,
+     "spread": 0.161
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 1953,
+     "min": 1712,
+     "max": 2067,
+     "spread": 0.182
+    },
+    "criticalFile": 2568.4,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 1
+   },
+   "all off": {
+    "runs": 7,
+    "valid": 7,
+    "excluded": 0,
+    "invalid": false,
+    "exitCodes": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedTests": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "failedFiles": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "loaded": 7,
+    "wall": {
+     "n": 7,
+     "median": 5546,
+     "min": 4902,
+     "max": 6023,
+     "spread": 0.202
+    },
+    "vitestWall": {
+     "n": 7,
+     "median": 4949,
+     "min": 4463,
+     "max": 5554,
+     "spread": 0.22
+    },
+    "maxRssMiB": {
+     "n": 7,
+     "median": 409,
+     "min": 401,
+     "max": 415,
+     "spread": 0.034
+    },
+    "environment": {
+     "n": 7,
+     "median": 44,
+     "min": 39,
+     "max": 52,
+     "spread": 0.31
+    },
+    "worker": {
+     "n": 7,
+     "median": 8,
+     "min": 7,
+     "max": 11,
+     "spread": 0.462
+    },
+    "transform": {
+     "n": 7,
+     "median": 74,
+     "min": 68,
+     "max": 81,
+     "spread": 0.177
+    },
+    "setup": {
+     "n": 7,
+     "median": 145,
+     "min": 126,
+     "max": 175,
+     "spread": 0.343
+    },
+    "import": {
+     "n": 7,
+     "median": 89,
+     "min": 82,
+     "max": 105,
+     "spread": 0.253
+    },
+    "tests": {
+     "n": 7,
+     "median": 4349,
+     "min": 3919,
+     "max": 4973,
+     "spread": 0.242
+    },
+    "testsCommon": {
+     "n": 7,
+     "median": 4349,
+     "min": 3919,
+     "max": 4973,
+     "spread": 0.242
+    },
+    "testsNoHeavy": {
+     "n": 7,
+     "median": 2004,
+     "min": 1900,
+     "max": 2324,
+     "spread": 0.211
+    },
+    "criticalFile": 2599.3,
+    "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
+    "envSetups": 1
+   }
+  }
+ },
+ "perFile": {
+  "forks": {
+   "src/__tests__/Accordion.test.tsx": {
+    "jsdom": {
+     "tests": 398,
+     "import": 15,
+     "environment": 865,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 182,
+     "import": 18,
+     "environment": 390,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 70,
+     "import": 17,
+     "environment": 57,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/AsyncUserList.test.tsx": {
+    "jsdom": {
+     "tests": 506,
+     "import": 15,
+     "environment": 879,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 214,
+     "import": 13,
+     "environment": 440,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 181,
+     "import": 19,
+     "environment": 53,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Counter.test.tsx": {
+    "jsdom": {
+     "tests": 313,
+     "import": 14,
+     "environment": 815,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 93,
+     "import": 11,
+     "environment": 411,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 63,
+     "import": 13,
+     "environment": 60,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Dashboard.test.tsx": {
+    "jsdom": {
+     "tests": 895,
+     "import": 32,
+     "environment": 922,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 506,
+     "import": 29,
+     "environment": 413,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 214,
+     "import": 45,
+     "environment": 59,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.heavy.test.tsx": {
+    "jsdom": {
+     "tests": 10649,
+     "import": 16,
+     "environment": 875,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 9372,
+     "import": 18,
+     "environment": 424,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 2672,
+     "import": 28,
+     "environment": 64,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.test.tsx": {
+    "jsdom": {
+     "tests": 3282,
+     "import": 17,
+     "environment": 873,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 2157,
+     "import": 12,
+     "environment": 404,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 753,
+     "import": 22,
+     "environment": 53,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Modal.test.tsx": {
+    "jsdom": {
+     "tests": 690,
+     "import": 46,
+     "environment": 857,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 351,
+     "import": 55,
+     "environment": 478,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 324,
+     "import": 64,
+     "environment": 55,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/SignupForm.test.tsx": {
+    "jsdom": {
+     "tests": 2453,
+     "import": 51,
+     "environment": 902,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1692,
+     "import": 47,
+     "environment": 435,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 1316,
+     "import": 71,
+     "environment": 58,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Tabs.test.tsx": {
+    "jsdom": {
+     "tests": 396,
+     "import": 16,
+     "environment": 930,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 116,
+     "import": 14,
+     "environment": 408,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 84,
+     "import": 21,
+     "environment": 56,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Theme.test.tsx": {
+    "jsdom": {
+     "tests": 275,
+     "import": 21,
+     "environment": 842,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 94,
+     "import": 14,
+     "environment": 449,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 84,
+     "import": 22,
+     "environment": 51,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/TodoApp.test.tsx": {
+    "jsdom": {
+     "tests": 1891,
+     "import": 12,
+     "environment": 830,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 949,
+     "import": 14,
+     "environment": 389,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 455,
+     "import": 21,
+     "environment": 54,
+     "state": "passed"
+    }
+   }
+  },
+  "forks-1": {
+   "src/__tests__/Accordion.test.tsx": {
+    "jsdom": {
+     "tests": 349,
+     "import": 13,
+     "environment": 721,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 129,
+     "import": 9,
+     "environment": 312,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 68,
+     "import": 13,
+     "environment": 44,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/AsyncUserList.test.tsx": {
+    "jsdom": {
+     "tests": 453,
+     "import": 13,
+     "environment": 697,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 204,
+     "import": 10,
+     "environment": 315,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 156,
+     "import": 14,
+     "environment": 42,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Counter.test.tsx": {
+    "jsdom": {
+     "tests": 260,
+     "import": 15,
+     "environment": 701,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 89,
+     "import": 9,
+     "environment": 297,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 69,
+     "import": 13,
+     "environment": 47,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Dashboard.test.tsx": {
+    "jsdom": {
+     "tests": 736,
+     "import": 27,
+     "environment": 735,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 380,
+     "import": 19,
+     "environment": 329,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 208,
+     "import": 26,
+     "environment": 42,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.heavy.test.tsx": {
+    "jsdom": {
+     "tests": 8864,
+     "import": 16,
+     "environment": 703,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 7751,
+     "import": 14,
+     "environment": 307,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 2253,
+     "import": 17,
+     "environment": 51,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.test.tsx": {
+    "jsdom": {
+     "tests": 2669,
+     "import": 16,
+     "environment": 722,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1554,
+     "import": 13,
+     "environment": 311,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 503,
+     "import": 16,
+     "environment": 42,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Modal.test.tsx": {
+    "jsdom": {
+     "tests": 559,
+     "import": 42,
+     "environment": 695,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 323,
+     "import": 40,
+     "environment": 307,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 260,
+     "import": 50,
+     "environment": 45,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/SignupForm.test.tsx": {
+    "jsdom": {
+     "tests": 1714,
+     "import": 42,
+     "environment": 697,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1238,
+     "import": 42,
+     "environment": 319,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 978,
+     "import": 43,
+     "environment": 57,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Tabs.test.tsx": {
+    "jsdom": {
+     "tests": 316,
+     "import": 13,
+     "environment": 745,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 113,
+     "import": 10,
+     "environment": 288,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 74,
+     "import": 13,
+     "environment": 43,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Theme.test.tsx": {
+    "jsdom": {
+     "tests": 253,
+     "import": 13,
+     "environment": 710,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 100,
+     "import": 9,
+     "environment": 299,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 66,
+     "import": 13,
+     "environment": 42,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/TodoApp.test.tsx": {
+    "jsdom": {
+     "tests": 1364,
+     "import": 13,
+     "environment": 714,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 706,
+     "import": 10,
+     "environment": 295,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 349,
+     "import": 13,
+     "environment": 47,
+     "state": "passed"
+    }
+   }
+  },
+  "threads": {
+   "src/__tests__/Accordion.test.tsx": {
+    "jsdom": {
+     "tests": 424,
+     "import": 15,
+     "environment": 830,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 142,
+     "import": 10,
+     "environment": 337,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 91,
+     "import": 12,
+     "environment": 75,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/AsyncUserList.test.tsx": {
+    "jsdom": {
+     "tests": 515,
+     "import": 10,
+     "environment": 785,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 235,
+     "import": 14,
+     "environment": 359,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 190,
+     "import": 18,
+     "environment": 59,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Counter.test.tsx": {
+    "jsdom": {
+     "tests": 344,
+     "import": 13,
+     "environment": 796,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 94,
+     "import": 10,
+     "environment": 361,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 84,
+     "import": 17,
+     "environment": 56,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Dashboard.test.tsx": {
+    "jsdom": {
+     "tests": 811,
+     "import": 35,
+     "environment": 836,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 470,
+     "import": 30,
+     "environment": 359,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 188,
+     "import": 29,
+     "environment": 55,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.heavy.test.tsx": {
+    "jsdom": {
+     "tests": 10412,
+     "import": 17,
+     "environment": 831,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 9377,
+     "import": 16,
+     "environment": 340,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 2806,
+     "import": 20,
+     "environment": 63,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.test.tsx": {
+    "jsdom": {
+     "tests": 3160,
+     "import": 15,
+     "environment": 775,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 2038,
+     "import": 25,
+     "environment": 405,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 644,
+     "import": 16,
+     "environment": 67,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Modal.test.tsx": {
+    "jsdom": {
+     "tests": 709,
+     "import": 76,
+     "environment": 812,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 353,
+     "import": 63,
+     "environment": 374,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 300,
+     "import": 70,
+     "environment": 57,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/SignupForm.test.tsx": {
+    "jsdom": {
+     "tests": 2265,
+     "import": 54,
+     "environment": 819,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1587,
+     "import": 50,
+     "environment": 409,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 1341,
+     "import": 63,
+     "environment": 65,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Tabs.test.tsx": {
+    "jsdom": {
+     "tests": 453,
+     "import": 12,
+     "environment": 782,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 128,
+     "import": 12,
+     "environment": 338,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 81,
+     "import": 20,
+     "environment": 63,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Theme.test.tsx": {
+    "jsdom": {
+     "tests": 265,
+     "import": 15,
+     "environment": 755,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 105,
+     "import": 11,
+     "environment": 375,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 92,
+     "import": 16,
+     "environment": 60,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/TodoApp.test.tsx": {
+    "jsdom": {
+     "tests": 1818,
+     "import": 14,
+     "environment": 826,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 882,
+     "import": 10,
+     "environment": 375,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 420,
+     "import": 21,
+     "environment": 50,
+     "state": "passed"
+    }
+   }
+  },
+  "threads-noiso": {
+   "src/__tests__/Accordion.test.tsx": {
+    "jsdom": {
+     "tests": 128,
+     "import": 3,
+     "environment": 811,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 58,
+     "import": 3,
+     "environment": 367,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 27,
+     "import": 2,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/AsyncUserList.test.tsx": {
+    "jsdom": {
+     "tests": 227,
+     "import": 4,
+     "environment": 819,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 153,
+     "import": 7,
+     "environment": 367,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 120,
+     "import": 4,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Counter.test.tsx": {
+    "jsdom": {
+     "tests": 96,
+     "import": 2,
+     "environment": 819,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 39,
+     "import": 3,
+     "environment": 405,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 25,
+     "import": 3,
+     "environment": 78,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Dashboard.test.tsx": {
+    "jsdom": {
+     "tests": 460,
+     "import": 15,
+     "environment": 811,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 356,
+     "import": 16,
+     "environment": 405,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 126,
+     "import": 10,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.heavy.test.tsx": {
+    "jsdom": {
+     "tests": 9732,
+     "import": 19,
+     "environment": 836,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 8528,
+     "import": 16,
+     "environment": 388,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 2537,
+     "import": 22,
+     "environment": 59,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.test.tsx": {
+    "jsdom": {
+     "tests": 3312,
+     "import": 16,
+     "environment": 823,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1976,
+     "import": 17,
+     "environment": 405,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 652,
+     "import": 20,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Modal.test.tsx": {
+    "jsdom": {
+     "tests": 439,
+     "import": 33,
+     "environment": 834,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 293,
+     "import": 50,
+     "environment": 405,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 226,
+     "import": 40,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/SignupForm.test.tsx": {
+    "jsdom": {
+     "tests": 2280,
+     "import": 41,
+     "environment": 819,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1626,
+     "import": 54,
+     "environment": 367,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 1320,
+     "import": 61,
+     "environment": 66,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Tabs.test.tsx": {
+    "jsdom": {
+     "tests": 123,
+     "import": 4,
+     "environment": 834,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 60,
+     "import": 3,
+     "environment": 394,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 32,
+     "import": 3,
+     "environment": 78,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Theme.test.tsx": {
+    "jsdom": {
+     "tests": 77,
+     "import": 3,
+     "environment": 823,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 54,
+     "import": 3,
+     "environment": 362,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 32,
+     "import": 3,
+     "environment": 78,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/TodoApp.test.tsx": {
+    "jsdom": {
+     "tests": 1392,
+     "import": 4,
+     "environment": 819,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 664,
+     "import": 4,
+     "environment": 367,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 199,
+     "import": 5,
+     "environment": 66,
+     "state": "passed"
+    }
+   }
+  },
+  "serial": {
+   "src/__tests__/Accordion.test.tsx": {
+    "jsdom": {
+     "tests": 117,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 72,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 17,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/AsyncUserList.test.tsx": {
+    "jsdom": {
+     "tests": 177,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 134,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 103,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Counter.test.tsx": {
+    "jsdom": {
+     "tests": 55,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 29,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 18,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Dashboard.test.tsx": {
+    "jsdom": {
+     "tests": 358,
+     "import": 12,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 281,
+     "import": 10,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 83,
+     "import": 8,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.heavy.test.tsx": {
+    "jsdom": {
+     "tests": 8807,
+     "import": 16,
+     "environment": 690,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 7692,
+     "import": 14,
+     "environment": 289,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 2190,
+     "import": 17,
+     "environment": 49,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/DataTable.test.tsx": {
+    "jsdom": {
+     "tests": 2017,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1382,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 381,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Modal.test.tsx": {
+    "jsdom": {
+     "tests": 292,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 226,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 181,
+     "import": 6,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/SignupForm.test.tsx": {
+    "jsdom": {
+     "tests": 1404,
+     "import": 33,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 1251,
+     "import": 34,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 903,
+     "import": 32,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Tabs.test.tsx": {
+    "jsdom": {
+     "tests": 84,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 54,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 22,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/Theme.test.tsx": {
+    "jsdom": {
+     "tests": 49,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 32,
+     "import": 2,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 21,
+     "import": 3,
+     "environment": 0,
+     "state": "passed"
+    }
+   },
+   "src/__tests__/TodoApp.test.tsx": {
+    "jsdom": {
+     "tests": 1034,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    },
+    "happy-dom": {
+     "tests": 632,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    },
+    "rsdom": {
+     "tests": 198,
+     "import": 4,
+     "environment": 0,
+     "state": "passed"
+    }
+   }
+  }
+ },
+ "counters": {
+  "status": 0,
+  "enabled": true,
+  "files": [
+   {
+    "file": "src/__tests__/DataTable.test.tsx",
+    "calls": 72888,
+    "ms": 18.95
+   },
+   {
+    "file": "src/__tests__/SignupForm.test.tsx",
+    "calls": 20528,
+    "ms": 20.02
+   },
+   {
+    "file": "src/__tests__/TodoApp.test.tsx",
+    "calls": 32837,
+    "ms": 8.23
+   },
+   {
+    "file": "src/__tests__/Dashboard.test.tsx",
+    "calls": 8948,
+    "ms": 5.18
+   },
+   {
+    "file": "src/__tests__/Modal.test.tsx",
+    "calls": 1703,
+    "ms": 2.34
+   },
+   {
+    "file": "src/__tests__/Tabs.test.tsx",
+    "calls": 1645,
+    "ms": 1.63
+   },
+   {
+    "file": "src/__tests__/DataTable.heavy.test.tsx",
+    "calls": 461586,
+    "ms": 136.33
+   },
+   {
+    "file": "src/__tests__/AsyncUserList.test.tsx",
+    "calls": 1961,
+    "ms": 3.09
+   },
+   {
+    "file": "src/__tests__/Theme.test.tsx",
+    "calls": 594,
+    "ms": 1.71
+   },
+   {
+    "file": "src/__tests__/Counter.test.tsx",
+    "calls": 756,
+    "ms": 1.34
+   },
+   {
+    "file": "src/__tests__/Accordion.test.tsx",
+    "calls": 1667,
+    "ms": 1.6
+   }
+  ],
+  "totalCalls": 605113,
+  "totalMs": 200.4,
+  "top": [
+   {
+    "fn": "setAttr",
+    "calls": 103495,
+    "ms": 54.15,
+    "nsPerCall": 523
+   },
+   {
+    "fn": "qsa",
+    "calls": 5424,
+    "ms": 26.96,
+    "nsPerCall": 4971
+   },
+   {
+    "fn": "createElement",
+    "calls": 98621,
+    "ms": 23.85,
+    "nsPerCall": 242
+   },
+   {
+    "fn": "textContentSet",
+    "calls": 53637,
+    "ms": 22.82,
+    "nsPerCall": 425
+   },
+   {
+    "fn": "appendChild",
+    "calls": 101351,
+    "ms": 15.36,
+    "nsPerCall": 152
+   },
+   {
+    "fn": "csCore",
+    "calls": 8966,
+    "ms": 14.23,
+    "nsPerCall": 1587
+   },
+   {
+    "fn": "matches",
+    "calls": 91043,
+    "ms": 9.27,
+    "nsPerCall": 102
+   },
+   {
+    "fn": "hasAttr",
+    "calls": 56187,
+    "ms": 6.66,
+    "nsPerCall": 118
+   },
+   {
+    "fn": "removeChild",
+    "calls": 4074,
+    "ms": 4.12,
+    "nsPerCall": 1010
+   },
+   {
+    "fn": "compileSel",
+    "calls": 1017,
+    "ms": 3.8,
+    "nsPerCall": 3740
+   },
+   {
+    "fn": "labels",
+    "calls": 11577,
+    "ms": 3.68,
+    "nsPerCall": 318
+   },
+   {
+    "fn": "getAttr",
+    "calls": 18482,
+    "ms": 2.2,
+    "nsPerCall": 119
+   },
+   {
+    "fn": "styleSet",
+    "calls": 218,
+    "ms": 1.91,
+    "nsPerCall": 8763
+   },
+   {
+    "fn": "removeAttr",
+    "calls": 18894,
+    "ms": 1.69,
+    "nsPerCall": 90
+   },
+   {
+    "fn": "setChecked",
+    "calls": 19767,
+    "ms": 1.55,
+    "nsPerCall": 79
+   }
+  ]
+ },
+ "best": {
+  "jsdom": {
+   "matrix": "threads-noiso",
+   "wall": {
+    "n": 7,
+    "median": 11400,
+    "min": 10487,
+    "max": 12411,
+    "spread": 0.169
+   }
+  },
+  "happy-dom": {
+   "matrix": "threads-noiso",
+   "wall": {
+    "n": 7,
+    "median": 9922,
+    "min": 9335,
+    "max": 10446,
+    "spread": 0.112
+   }
+  },
+  "rsdom": {
+   "matrix": "threads-noiso",
+   "wall": {
+    "n": 7,
+    "median": 3648,
+    "min": 3270,
+    "max": 3826,
+    "spread": 0.152
+   }
+  }
+ }
+}

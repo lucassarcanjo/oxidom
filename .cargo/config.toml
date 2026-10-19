@@ -1,0 +1,2 @@
+# Intentionally no `target-cpu=native` (docs/architecture.md §11): the addon must stay portable.
+[build]

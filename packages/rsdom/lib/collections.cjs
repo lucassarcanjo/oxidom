@@ -1,0 +1,449 @@
+'use strict';
+// NodeList (live childNodes + static), HTMLCollection (live children + live queries). No Proxies
+// (DESIGN §4.3).
+//
+// LIVE lists keep NO own numeric properties: indices are getters installed on the prototype on demand
+// (`installIndices`), each calling `_get(i)`, which re-validates against the Rust-written version
+// (`child_ver` / the query key) on every read. So a list held across a mutation is always current, also
+// when indexed without touching `length` first (live-list semantics, like jsdom). Element lookup uses a
+// cursor cache (Blink's CollectionIndexCache): sequential `list[i]` / iteration and `[0]` are O(1),
+// random access walks from the nearest of first / last / cursor. `childNodes.length` is CHILD_LEN (O(1)).
+// Measured: ~100 ns per indexed read through the prototype getter (jsdom ~195, happy-dom ~145), ~1 ns
+// for own properties; iteration goes through `_get` without the getter.
+//
+// STATIC lists (querySelectorAll results) are snapshots: own numeric data properties (fast).
+//
+// Internal state is in #private fields, so Object.keys/entries, JSON.stringify and Vitest's
+// `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes.
+
+const rt = require('./runtime.cjs');
+
+const { V, F, M, K, TOKEN, W } = rt;
+
+function wrapSlow(id) {
+  return rt.wrap(id);
+}
+
+/** Local id -> wrapper with an out-of-line slow path (see dom.cjs `wrap`). */
+function wrap(id) {
+  if (id === 0) return null;
+  const w = W[id];
+  return w !== undefined ? w : wrapSlow(id);
+}
+
+function illegal() {
+  throw new TypeError('Illegal constructor');
+}
+
+/** Number of index getters installed on NodeList.prototype / HTMLCollection.prototype (grown on demand). */
+const IDX = { nl: 0, hc: 0 };
+
+/** Makes `proto[have..]` getters calling `this._get(i)` (non-enumerable; no setter: writes are ignored). */
+function installIndices(proto, have, n) {
+  const target = Math.max(n, have * 2, 16);
+  for (let i = have; i < target; i++) {
+    Object.defineProperty(proto, i, {
+      get() {
+        return this._get(i);
+      },
+      enumerable: false,
+      configurable: true,
+    });
+  }
+  return target;
+}
+
+function ensureNL(n) {
+  // eslint-disable-next-line no-use-before-define
+  if (n > IDX.nl) IDX.nl = installIndices(LiveNodeList.prototype, IDX.nl, n);
+}
+
+function ensureHC(n) {
+  if (n > IDX.hc) IDX.hc = installIndices(HTMLCollection.prototype, IDX.hc, n);
+}
+
+const ITER_VALUES = 0;
+const ITER_KEYS = 1;
+const ITER_ENTRIES = 2;
+
+/** Iterator over a NodeList / HTMLCollection / NamedNodeMap: live (re-validates on every step). */
+class ListIterator {
+  constructor(list, kind) {
+    this._l = list;
+    this._k = kind;
+    this._i = 0;
+  }
+
+  next() {
+    const l = this._l;
+    if (l === null) return { value: undefined, done: true };
+    const i = this._i;
+    const v = l._get(i);
+    if (v === undefined) {
+      this._l = null;
+      return { value: undefined, done: true };
+    }
+    this._i = i + 1;
+    const k = this._k;
+    return { value: k === ITER_VALUES ? v : k === ITER_KEYS ? i : [i, v], done: false };
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+}
+Object.setPrototypeOf(ListIterator.prototype, Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]())));
+Object.defineProperty(ListIterator.prototype, Symbol.toStringTag, { value: 'Array Iterator', configurable: true });
+
+function isElem(c) {
+  return (V.T[V.off(c) + F.META] & M.KIND) === K.ELEMENT;
+}
+
+/**
+ * Id of the `i`-th entry of the live child list of `p` (`elems`: elements only), walking from the closest
+ * of the first child, the last child (when `count` >= 0 is known) and the cursor (`ci`, `cid`; cid 0 =
+ * none). Returns 0 when out of range. Loops test `c > 0` so a stale view can never spin.
+ */
+function walkTo(p, i, count, elems, ci, cid) {
+  const dFirst = i;
+  const dLast = count >= 0 ? count - 1 - i : Infinity;
+  const dCur = cid !== 0 ? (i >= ci ? i - ci : ci - i) : Infinity;
+  let idx;
+  let c;
+  if (dCur <= dFirst && dCur <= dLast) {
+    idx = ci;
+    c = cid;
+  } else if (dLast < dFirst) {
+    idx = count - 1;
+    c = V.T[V.off(p) + F.LAST];
+    if (elems) while (c > 0 && !isElem(c)) c = V.T[V.off(c) + F.PREV];
+  } else {
+    idx = 0;
+    c = V.T[V.off(p) + F.FIRST];
+    if (elems) while (c > 0 && !isElem(c)) c = V.T[V.off(c) + F.NEXT];
+  }
+  while (c > 0 && idx < i) {
+    c = V.T[V.off(c) + F.NEXT];
+    if (elems) while (c > 0 && !isElem(c)) c = V.T[V.off(c) + F.NEXT];
+    idx++;
+  }
+  while (c > 0 && idx > i) {
+    c = V.T[V.off(c) + F.PREV];
+    if (elems) while (c > 0 && !isElem(c)) c = V.T[V.off(c) + F.PREV];
+    idx--;
+  }
+  return c > 0 ? c : 0;
+}
+
+class NodeList {
+  /** live: parent id (0 = static list) */
+  #p = 0;
+  /** live: child_ver the cursor belongs to */
+  #v = -1;
+  /** env generation the list was created in (a reset kills live lists) */
+  #g = V.envGen;
+  /** cursor: index and id of the last entry returned (id 0 = none) */
+  #ci = -1;
+  #cid = 0;
+  /** static: the entries */
+  #a = null;
+
+  constructor(t = undefined) {
+    if (t !== TOKEN) illegal();
+  }
+
+  static _live(id) {
+    // eslint-disable-next-line no-use-before-define
+    const l = new LiveNodeList(TOKEN);
+    l.#p = id;
+    return l;
+  }
+
+  /** A static list over `wrappers` (never mutated afterwards: memos may share one array between lists). */
+  static _static(wrappers) {
+    const l = new NodeList(TOKEN);
+    l.#a = wrappers;
+    // Highest index first: the elements store is sized once instead of grown entry by entry (~25%
+    // faster for hundreds of entries; the object keeps fast elements).
+    for (let i = wrappers.length - 1; i >= 0; i--) l[i] = wrappers[i];
+    return l;
+  }
+
+  /** Re-validates the cursor against the parent's child_ver (kept for area code that calls it). */
+  _sync() {
+    const p = this.#p;
+    if (p === 0 || this.#g !== V.envGen) return;
+    const v = V.T[V.off(p) + F.CHILD_VER];
+    if (v !== this.#v) {
+      this.#v = v;
+      this.#cid = 0;
+      this.#ci = -1;
+    }
+  }
+
+  /** Entry `i` or undefined (the indexed-property getter and the iterator use this). */
+  _get(i) {
+    const p = this.#p;
+    if (p === 0) {
+      const a = this.#a;
+      return a === null ? undefined : a[i];
+    }
+    if (this.#g !== V.envGen) return undefined;
+    const o = V.off(p);
+    const n = V.T[o + F.CHILD_LEN];
+    if (!(i >= 0 && i < n)) return undefined;
+    const ver = V.T[o + F.CHILD_VER];
+    let c;
+    if (ver !== this.#v) {
+      this.#v = ver;
+      c = walkTo(p, i, n, false, -1, 0);
+    } else {
+      const ci = this.#ci;
+      const cid = this.#cid;
+      if (i === ci) c = cid;
+      else if (i === ci + 1 && cid !== 0) c = V.T[V.off(cid) + F.NEXT];
+      else c = walkTo(p, i, n, false, ci, cid);
+    }
+    if (c <= 0) return undefined;
+    this.#ci = i;
+    this.#cid = c;
+    if (i >= IDX.nl) ensureNL(i + 1);
+    const w = W[c];
+    return w !== undefined ? w : wrapSlow(c);
+  }
+
+  get length() {
+    const p = this.#p;
+    if (p === 0) {
+      const a = this.#a;
+      return a === null ? 0 : a.length;
+    }
+    if (this.#g !== V.envGen) return 0;
+    const n = V.T[V.off(p) + F.CHILD_LEN];
+    if (n > IDX.nl) ensureNL(n);
+    return n;
+  }
+
+  item(index) {
+    return this._get(index >>> 0) ?? null;
+  }
+
+  forEach(callback, thisArg = undefined) {
+    if (typeof callback !== 'function') throw new TypeError('NodeList.forEach: callback is not a function');
+    for (let i = 0; ; i++) {
+      const v = this._get(i);
+      if (v === undefined) return;
+      callback.call(thisArg, v, i, this);
+    }
+  }
+
+  keys() {
+    return new ListIterator(this, ITER_KEYS);
+  }
+
+  values() {
+    return new ListIterator(this, ITER_VALUES);
+  }
+
+  entries() {
+    return new ListIterator(this, ITER_ENTRIES);
+  }
+}
+NodeList.prototype[Symbol.iterator] = NodeList.prototype.values;
+Object.defineProperty(NodeList.prototype, Symbol.toStringTag, { value: 'NodeList', configurable: true });
+
+/**
+ * Live NodeLists get the index getters from this intermediate prototype (static lists, which hold own
+ * index properties, must not inherit getters: an inherited getter without a setter blocks assignment).
+ * `constructor` is NodeList, so `constructor.name`, `instanceof` and the toStringTag are NodeList's.
+ */
+class LiveNodeList extends NodeList {}
+Object.defineProperty(LiveNodeList.prototype, 'constructor', { value: NodeList, writable: true, configurable: true });
+
+/**
+ * Index getters exist up to max(INITIAL_INDICES, the largest length any list access has seen); accesses
+ * (`childNodes` / `children` getters, `length`, `item`, iteration) grow them. Only a list held across a
+ * mutation that grows it past that bound and then indexed past it WITHOUT any of those accesses misses
+ * (documented; 256 getters cost ~0.2 ms at load).
+ */
+const INITIAL_INDICES = 256;
+ensureNL(INITIAL_INDICES);
+
+/** Live `childNodes` of node `id`. */
+function liveChildNodes(id) {
+  return NodeList._live(id);
+}
+
+/** Called by the `childNodes` / `children` getters: makes sure `list[i]` getters cover `n` entries. */
+function coverIndices(n) {
+  if (n > IDX.nl) ensureNL(n);
+  if (n > IDX.hc) ensureHC(n);
+}
+
+/** Static NodeList over wrappers (querySelectorAll, ...). */
+function staticNodeList(nodes) {
+  return NodeList._static(Array.from(nodes));
+}
+
+/** Wrappers of `ids` (a fresh array). */
+function wrapAll(ids) {
+  const a = new Array(ids.length);
+  for (let i = 0; i < ids.length; i++) a[i] = wrap(ids[i]);
+  return a;
+}
+
+/** Static NodeList over ids copied out of OUT. */
+function staticNodeListFromIds(ids) {
+  return NodeList._static(wrapAll(ids));
+}
+
+/** Static NodeList over an array of wrappers that the caller never mutates (shared between lists). */
+function staticNodeListShared(wrappers) {
+  return NodeList._static(wrappers);
+}
+
+class HTMLCollection {
+  /** live children: parent id (0 = query collection or dead) */
+  #p = 0;
+  /** version the cached state belongs to (child_ver, or the query key) */
+  #v = -1;
+  #g = V.envGen;
+  /** children: element count at #v (-1 = unknown); cursor */
+  #n = -1;
+  #ci = -1;
+  #cid = 0;
+  /** query collection: source ({ key(), items() }) and its cached items */
+  #src = null;
+  #a = null;
+
+  constructor(t = undefined) {
+    if (t !== TOKEN) illegal();
+  }
+
+  static _children(id) {
+    const c = new HTMLCollection(TOKEN);
+    c.#p = id;
+    return c;
+  }
+
+  static _query(src) {
+    const c = new HTMLCollection(TOKEN);
+    c.#src = src;
+    return c;
+  }
+
+  /** Re-validates cached state against the Rust-written version (kept for area code that calls it). */
+  _sync() {
+    if (this.#g !== V.envGen) {
+      this.#p = 0;
+      this.#src = null;
+      this.#a = null;
+      return;
+    }
+    const src = this.#src;
+    if (src !== null) {
+      const k = src.key();
+      if (k === this.#v && this.#a !== null) return;
+      this.#v = k;
+      this.#a = Array.from(src.items());
+      ensureHC(this.#a.length);
+      return;
+    }
+    const p = this.#p;
+    if (p === 0) return;
+    const v = V.T[V.off(p) + F.CHILD_VER];
+    if (v !== this.#v) {
+      this.#v = v;
+      this.#n = -1;
+      this.#cid = 0;
+      this.#ci = -1;
+    }
+  }
+
+  #count() {
+    if (this.#n < 0) {
+      let n = 0;
+      for (let c = V.T[V.off(this.#p) + F.FIRST]; c > 0; ) {
+        const o = V.off(c);
+        if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) n++;
+        c = V.T[o + F.NEXT];
+      }
+      this.#n = n;
+      ensureHC(n);
+    }
+    return this.#n;
+  }
+
+  /** Entry `i` or undefined (the indexed-property getter and the iterator use this). */
+  _get(i) {
+    this._sync();
+    if (this.#src !== null) return this.#a[i];
+    const p = this.#p;
+    if (p === 0 || !(i >= 0)) return undefined;
+    const ci = this.#ci;
+    const cid = this.#cid;
+    let c;
+    if (cid !== 0 && i === ci) c = cid;
+    else if (cid !== 0 && i === ci + 1) {
+      c = V.T[V.off(cid) + F.NEXT];
+      while (c > 0 && !isElem(c)) c = V.T[V.off(c) + F.NEXT];
+    } else c = walkTo(p, i, this.#n, true, ci, cid);
+    if (c <= 0) return undefined;
+    this.#ci = i;
+    this.#cid = c;
+    if (i >= IDX.hc) ensureHC(i + 1);
+    const w = W[c];
+    return w !== undefined ? w : wrapSlow(c);
+  }
+
+  get length() {
+    this._sync();
+    if (this.#src !== null) return this.#a.length;
+    return this.#p === 0 ? 0 : this.#count();
+  }
+
+  item(index) {
+    return this._get(index >>> 0) ?? null;
+  }
+
+  namedItem(name) {
+    name = String(name);
+    if (name === '') return null;
+    for (let i = 0; ; i++) {
+      const el = this._get(i);
+      if (el === undefined) return null;
+      if (el.getAttribute('id') === name) return el;
+      if (el.namespaceURI === rt.NS.HTML && el.getAttribute('name') === name) return el;
+    }
+  }
+
+  [Symbol.iterator]() {
+    return new ListIterator(this, ITER_VALUES);
+  }
+}
+Object.defineProperty(HTMLCollection.prototype, Symbol.toStringTag, { value: 'HTMLCollection', configurable: true });
+
+ensureHC(INITIAL_INDICES);
+
+/** Live `children` of node `id`. */
+function liveChildren(id) {
+  return HTMLCollection._children(id);
+}
+
+/**
+ * A live HTMLCollection over a custom query (getElementsByTagName/ClassName/Name: area A).
+ * `src.key()` must return a Rust-written version (e.g. EP[TREE] ^ EP[ATTR] packed) and `src.items()` the
+ * current wrappers (array or iterable).
+ */
+function liveQueryCollection(src) {
+  return HTMLCollection._query(src);
+}
+
+rt.classes.NodeList = NodeList;
+rt.classes.HTMLCollection = HTMLCollection;
+
+module.exports = {
+  NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeList, staticNodeListFromIds, staticNodeListShared, wrapAll,
+  liveQueryCollection,
+  ListIterator, installIndices, coverIndices,
+};

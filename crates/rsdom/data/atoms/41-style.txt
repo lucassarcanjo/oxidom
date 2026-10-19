@@ -1,0 +1,2 @@
+# Area A (selectors / style): names used by the UA stylesheet and the cascade.
+rules

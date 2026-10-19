@@ -1431,6 +1431,7 @@ function install(_rt, dom) {
     },
     set value(v) {
       setValue(this, strNullEmpty(v));
+      rt.mutated();
     },
     get defaultValue() {
       return N.childText(this._i);
@@ -1466,7 +1467,8 @@ function install(_rt, dom) {
       return N.valueGet(this._i);
     },
     set value(v) {
-      N.valueSet(this._i, strNullEmpty(v));
+      rt.check(N.valueSet(this._i, strNullEmpty(v)));
+      rt.mutated();
     },
     get options() {
       return optionsOf(this);

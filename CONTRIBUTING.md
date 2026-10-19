@@ -59,6 +59,7 @@ allocations below still hold.
 | `src/select/**`, `src/style/**`, `lib/select.cjs`, `lib/style.cjs` | **A** selectors, inline style, getComputedStyle | |
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** window, globals, Vitest environment, MutationObserver, bench harness | |
+| `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
 
@@ -161,7 +162,7 @@ Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.childre
 ## 5. JS facade conventions
 
 Each area file exports `install(rt, dom)`; `lib/index.cjs` calls them once in the order
-select -> style -> forms -> events -> mo -> window, after the core classes exist.
+select -> style -> forms -> events -> mo -> window -> xhr, after the core classes exist.
 
 - `rt` (`lib/runtime.cjs`): `N` (natives), `V` (hot holder: `V.T` table view, `V.EP`, `V.OUT`, `V.off(id)`),
   `F`/`M`/`S`/`K`/`EPI`/`NSC`/`NS` constants, `W` (id -> wrapper), `wrap(id)`, `field(id, F.X)`, `afterAlloc()`,
@@ -221,7 +222,8 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
   invariants can extend `tests/prop_tree.rs`.
 - Known, asserted divergences: MathML elements are `MathMLElement` (spec) where jsdom/happy-dom use `Element`;
   html5ever implements the 2025 customizable-`<select>` parser rules (see `DIVERGENCES` in
-  `test/contract/parse-serialize.test.mjs`).
+  `test/contract/parse-serialize.test.mjs`); XMLHttpRequest fixes some jsdom bugs and inherits a few Node fetch
+  behaviours ("spec-correct divergences" in `test/contract/xhr.test.mjs`, DESIGN §21).
 
 ## 7. Invariants (do not break)
 
@@ -270,7 +272,9 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
   objects only) would leave Rust writing into a backing store it no longer pins. `bindOut` pins whatever it
   is given.
 - **WebIDL brand checks.** Prototype getters do not brand-check `this` (`Node.prototype.firstChild` on a
-  non-node returns null instead of throwing TypeError); a hot-path cost not worth paying.
+  non-node returns null instead of throwing TypeError); a hot-path cost not worth paying. Cold paths do: the
+  getters of the simple event classes (ProgressEvent, ...) and the XMLHttpRequest methods and attributes (not the
+  shared `on*` handlers) throw TypeError.
 
 ## 9. Adding a DOM feature, end to end
 

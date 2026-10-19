@@ -3,7 +3,8 @@
 // window-like object WITHOUT installing globals (plain Node / contract tests). The Vitest environment
 // (lib/vitest-environment.mjs, area C) builds on the same pieces.
 //
-// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window.
+// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
+// -> xhr.
 
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
@@ -15,6 +16,7 @@ const areas = [
   require('./events.cjs'),
   require('./mo.cjs'),
   require('./window.cjs'),
+  require('./xhr.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);
 // WebIDL: interface members are enumerable (class syntax made them non-enumerable).

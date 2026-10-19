@@ -29,22 +29,23 @@ const DOMS = (process.env.RSDOM_CONTRACT_DOMS ?? 'jsdom,happy-dom,rsdom').split(
 
 const URL = 'http://localhost:3000/';
 
-function makeWindow(kind) {
+/** @param {{ url?: string }} [options] the document URL (default http://localhost:3000/) */
+function makeWindow(kind, { url = URL } = {}) {
   switch (kind) {
     case 'jsdom': {
       const { JSDOM } = load('jsdom');
-      const dom = new JSDOM('<!DOCTYPE html>', { url: URL, pretendToBeVisual: true, runScripts: 'dangerously' });
+      const dom = new JSDOM('<!DOCTYPE html>', { url, pretendToBeVisual: true, runScripts: 'dangerously' });
       return dom.window;
     }
     case 'happy-dom': {
       const { Window } = load('happy-dom');
-      const w = new Window({ url: URL });
+      const w = new Window({ url });
       w.document.write('<!DOCTYPE html><html><head></head><body></body></html>');
       return w;
     }
     case 'rsdom': {
       const { createWindow } = require('../../lib/index.cjs');
-      return createWindow({ url: URL }).window;
+      return createWindow({ url }).window;
     }
     default:
       throw new Error(`unknown DOM ${kind}`);

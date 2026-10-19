@@ -95,6 +95,20 @@ test('window plumbing', async () => {
   expect(document.cookie).toBe('b=2');
 });
 
+test('XMLHttpRequest globals (axios picks its xhr adapter, msw 3 patches the configurable global)', () => {
+  for (const k of ['XMLHttpRequest', 'XMLHttpRequestUpload', 'XMLHttpRequestEventTarget']) {
+    const d = own(k);
+    expect(d, k).toBeDefined();
+    expect({ value: 'value' in d, w: d.writable, e: d.enumerable, c: d.configurable }, k).toEqual({ value: true, w: true, e: false, c: true });
+  }
+  const x = new XMLHttpRequest();
+  expect(x.upload).toBeInstanceOf(XMLHttpRequestUpload);
+  expect(x).toBeInstanceOf(EventTarget);
+  expect('onloadend' in x).toBe(true);
+  x.open('GET', '/x');
+  expect(x.readyState).toBe(XMLHttpRequest.OPENED);
+});
+
 test('React feature-detection prerequisites', () => {
   expect(window.event).toBe(undefined);
   expect('documentMode' in document).toBe(false);

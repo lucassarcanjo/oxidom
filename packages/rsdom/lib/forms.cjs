@@ -1921,4 +1921,5 @@ function install(_rt, dom) {
 
 module.exports = {
   install, INPUT_TYPES, DOMTokenList, ValidityState, focusingSteps, unfocusingSteps, currentFocus, formEntries,
+  baseURL,
 };

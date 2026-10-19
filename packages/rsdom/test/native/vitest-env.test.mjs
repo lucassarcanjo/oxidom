@@ -58,16 +58,23 @@ describe('vitest-environment module', () => {
 describe('environment startup cost', () => {
   it('installing the window on globalThis does not load undici (Node lazy FormData & co)', () => {
     const facade = path.join(root, 'lib/index.cjs');
+    // XMLHttpRequest up to send() (what axios and msw touch at import / request setup) loads nothing either:
+    // undici and lib/xhr-fetch.cjs come with the first send()
     const code = `
       const { createWindow } = require(${JSON.stringify(facade)});
       createWindow({ global: globalThis });
       const fd = new FormData();
       fd.append('a', '1');
-      const loaded = process.moduleLoadList.some((m) => m.includes('undici'));
-      process.stdout.write(JSON.stringify({ loaded, a: fd.get('a'), own: Object.prototype.hasOwnProperty.call(globalThis, 'FormData') }));`;
+      const x = new XMLHttpRequest();
+      x.open('POST', '/x');
+      x.setRequestHeader('X-A', '1');
+      void ['onloadend' in x, x.upload, x.responseText];
+      const loaded = process.moduleLoadList.some((m) => m.includes('undici') || m === 'NativeModule http');
+      const xhrFetch = Object.keys(require.cache).some((k) => k.endsWith('xhr-fetch.cjs'));
+      process.stdout.write(JSON.stringify({ loaded, xhrFetch, a: fd.get('a'), own: Object.prototype.hasOwnProperty.call(globalThis, 'FormData') }));`;
     const r = spawnSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 60_000 });
     expect(r.status, r.stderr).toBe(0);
-    expect(JSON.parse(r.stdout)).toEqual({ loaded: false, a: '1', own: true });
+    expect(JSON.parse(r.stdout)).toEqual({ loaded: false, xhrFetch: false, a: '1', own: true });
   });
 });
 

@@ -1013,7 +1013,9 @@ function simpleEvent(name, Base, members) {
     Object.defineProperty(C.prototype, keys[i], {
       get() {
         const v = STATE.get(this);
-        return v === undefined ? members[i][1] : v[i];
+        // WebIDL brand check (jsdom throws too): only instances have member values
+        if (v === undefined) throw new TypeError('Illegal invocation');
+        return v[i];
       },
       enumerable: false,
       configurable: true,
@@ -1570,4 +1572,5 @@ module.exports = {
   Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, DragEvent, KeyboardEvent, FocusEvent, InputEvent,
   CompositionEvent, TouchEvent, ErrorEvent, SubmitEvent, AnimationEvent, TransitionEvent, ProgressEvent,
   PopStateEvent, PageTransitionEvent, HashChangeEvent, ClipboardEvent, StorageEvent, GLOBAL_EVENTS, WINDOW_EVENTS,
+  defineHandlers,
 };

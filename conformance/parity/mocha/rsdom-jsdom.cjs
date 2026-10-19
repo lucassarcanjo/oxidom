@@ -4,9 +4,9 @@
 // ROADMAP Stage 2, and this file is the smallest surface the suites need, not a design for it.
 //
 // What it maps:
-// - `new JSDOM(input, { url, contentType, beforeParse, ... })`: a full-document parse (rsdom's parseDocument
-//   native, the same one DOMParser uses), wrapped in a window built by window.cjs's makeWindow. Each instance
-//   becomes rsdom's main document, like `createWindow()` does. jsdom's default URL is about:blank.
+// - `new JSDOM(input, { url, contentType, beforeParse, ... })`: a browsing context (lib/context.cjs, DESIGN
+//   §18) opened on a full-document parse of `input` (`source`, the parseDocument native DOMParser uses too).
+//   Each instance becomes the current context, like `createWindow()` does. jsdom's default URL is about:blank.
 // - XML content types throw (rsdom has no XML parser yet: ROADMAP Stage 3); options rsdom has no equivalent
 //   for (runScripts, resources, cookieJar, pretendToBeVisual, storageQuota) are accepted and ignored, so the
 //   tests that depend on them fail on their own assertions.
@@ -20,8 +20,7 @@ const { pathToFileURL } = require('node:url');
 
 const PKG = path.resolve(__dirname, '../../../packages/rsdom/lib');
 const facade = require(path.join(PKG, 'index.cjs'));
-const { makeWindow } = require(path.join(PKG, 'window.cjs'));
-const events = require(path.join(PKG, 'events.cjs'));
+const context = require(path.join(PKG, 'context.cjs'));
 const { rt } = facade;
 
 const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|image\/svg\+xml|[^/]+\/[^;]*\+xml)$/;
@@ -58,7 +57,7 @@ try {
 }
 
 class JSDOM {
-  #window;
+  #ctx;
   #virtualConsole;
 
   constructor(input = undefined, options = {}) {
@@ -80,20 +79,12 @@ class JSDOM {
     }
     this.#virtualConsole = options.virtualConsole ?? new VirtualConsole();
 
-    const id = rt.checkId(rt.N.parseDocument(decode(input)));
-    rt.afterAlloc();
-    const document = rt.wrap(id);
-    document._url = url;
-    rt.N.setMainDocument(id);
-    rt.defaultDocument = document;
-    const window = makeWindow(rt, facade.dom, document, { url });
-    events.installWindow(window, document);
-    if (typeof options.beforeParse === 'function') options.beforeParse(window);
-    this.#window = window;
+    this.#ctx = context.open({ url, source: decode(input) });
+    if (typeof options.beforeParse === 'function') options.beforeParse(this.#ctx.window);
   }
 
   get window() {
-    return this.#window;
+    return this.#ctx.window;
   }
 
   get virtualConsole() {
@@ -106,7 +97,7 @@ class JSDOM {
 
   serialize() {
     let out = '';
-    for (const n of this.#window.document.childNodes) {
+    for (const n of this.#ctx.document.childNodes) {
       if (n.nodeType === 10) out += `<!DOCTYPE ${n.name}>`;
       else if (n.nodeType === 8) out += `<!--${n.data}-->`;
       else if (n.nodeType === 7) out += `<?${n.target} ${n.data}>`;
@@ -131,10 +122,10 @@ class JSDOM {
       } catch {
         throw new TypeError(`Could not parse url argument "${settings.url}" to reconfigure as an absolute URL`);
       }
-      this.#window.document._url = href;
+      this.#ctx.setURL(new URL(href));
     }
     if ('windowTop' in settings) {
-      Object.defineProperty(this.#window, 'top', { value: settings.windowTop, configurable: true, writable: true });
+      Object.defineProperty(this.#ctx.window, 'top', { value: settings.windowTop, configurable: true, writable: true });
     }
   }
 

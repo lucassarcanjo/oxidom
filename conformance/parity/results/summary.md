@@ -11,8 +11,8 @@ passes. **Files at parity** = files where rsdom passes everything jsdom passes. 
 | web-platform-tests (the DIRs jsdom runs) | 2389 | 1571 | 162751 | 86673 | 53.3% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 129 | 2578 | 2178 | 84.5% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 744 | 41.8% |
-| jsdom's API tests (test/api) | 18 | 2 | 623 | 178 | 28.6% |
-| **all** | **2616** | **1706** | **167733** | **89773** | **53.5%** |
+| jsdom's API tests (test/api) | 18 | 2 | 623 | 179 | 28.7% |
+| **all** | **2616** | **1706** | **167733** | **89774** | **53.5%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -25,7 +25,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no suite coverage |  |
 | 1 | XMLHttpRequest | 31 | 16 | 114 | 41.2% | missing global: XMLHttpRequest (111); assert_true: wrong value (3) |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no suite coverage |  |
-| 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 18 | 2 | 445 | 28.6% | rsdom adapter: XML documents are not supported (contentType …) (177); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (42) |
+| 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 18 | 2 | 444 | 28.7% | rsdom adapter: XML documents are not supported (contentType …) (177); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (42) |
 | 3 | Selection backed by real Ranges | 64 | 41 | 19946 | 40.5% | assert_equals: wrong value (17706); Selection.getRangeAt() throws: … is not a valid index. (2226); missing method: .attachShadow() (11) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 131 | 710 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 205 | 3150 | 19.4% | assert_equals: wrong value (1897); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |

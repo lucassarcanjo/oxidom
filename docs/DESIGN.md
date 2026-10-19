@@ -562,7 +562,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 - Option selectedness and dirtiness, select single-selection exclusivity, `selectedIndex` of -1 when nothing matches.
 - Radio groups keyed by (name, form owner, tree).
 - Selection offsets in UTF-16, moving to the end when the value changes.
-- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern, minlength/maxlength and number range, which fires a cancelable `invalid` event from JS.
+- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern and number range, which fires a cancelable `invalid` event from JS. minlength/maxlength only affect `:valid` / `:invalid`, as in jsdom (§16).
 
 **Internal reads never go through `element.value`.** React redefines `value` on each instance. Rust reads its own `FormState`.
 
@@ -967,3 +967,37 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   epoch on child-list changes (needs a per-node validity key in Rust and JS), the property table / UA sheet
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
+
+## 16. Element state: one home for the HTML control predicates (2026-10)
+
+The questions "is this control disabled", "what is its type", "is it a submit button", "is this the summary of
+its details", "is it valid" were answered in several places: selector matching (`select/adapter.rs`), the
+forms algorithms, focusability (`focus.rs`) and the facade (`forms.cjs`, `events.cjs`). The copies had drifted
+(two fieldset walks, four input-type tables, a `<summary>` test that counted non-HTML summaries, two
+non-negative-integer parsers that disagreed with jsdom on `-0` and on overflow). They now live in
+`src/forms/element_state.rs`, one implementation each, as free functions over `&Env`:
+
+- `input_type` / `input_type_name` (the state bits, never the attribute string), `button_type`;
+- `is_disabled` (jsdom `isDisabled`: focus, `click()`, activation, validation, the entry list) and
+  `matches_disabled` / `is_disableable` (dom-selector's `:disabled` / `:enabled`), sharing one fieldset /
+  legend walk;
+- `is_button`, `is_submit_button` (normalized type) and `is_default_button_candidate` (dom-selector's
+  `:default`, raw case-sensitive `type`);
+- `is_summary_for_parent_details` (HTML-only, like jsdom's `firstChildWithLocalName`);
+- `parse_non_negative_integer` (jsdom's `parseNonNegativeInteger`: `-0` is 0, overflow saturates);
+- `validity_bits` (the `ValidityState` bits; the ECMAScript parts stay `CHECK_*` flags for the facade, §7) and
+  `matches_valid` / `subtree_matches_valid` (dom-selector's `:valid` / `:invalid`, which replace the answer
+  with a `maxlength` / `minlength` length check: jsdom's `validity` never reports tooLong / tooShort, so the
+  two disagree there in jsdom too);
+- `has_datalist_ancestor`.
+
+Where jsdom answers one question two ways (its selector engine and its element implementations), both answers
+are named functions in this module, each citing its source; consumers pick one by name instead of carrying a
+private copy. The adapter keeps only the selector-engine rules nothing else asks (`:read-only`, `:required`,
+`:placeholder-shown`, `:indeterminate` for radios, `:dir`, `:lang`).
+
+The facade reads the input type codes and names from `lib/generated/input-types.cjs`, which build.rs writes
+from `types.rs` after checking that the `ty` constants and `TYPE_NAMES` agree. FormData's control filter
+(datalist, disabled, other buttons, unchecked checkboxes / radios, `<object>`) is one native,
+`formEntryControls(form, submitter)`; the facade only turns the controls into entries (it owns the FileList).
+Natives: `isDisabled`, `validity`, `buttonType`, `isSubmitButton`, `isSummaryForDetails`.

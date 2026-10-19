@@ -24,9 +24,15 @@ npm test                  # all of the above except the fallback run
 npm run test:parity       # jsdom's own test suite on rsdom, against conformance/parity/expectations (~4 min;
                           # needs scripts/fetch-refs.sh --wpt)
 npm run lint              # cargo clippy --all-targets -D warnings && cargo fmt --check
+npm run check             # lint, npm test, test:fallback, test:parity, scoreboard freshness: run it before merging
 npm run bench:m0          # M0 gates; bench/README.md lists every harness
 ```
 
+- GitHub Actions is disabled for this repository, so nothing runs these checks automatically. Before merging, run
+  `npm run check` (after `npm run build` and `scripts/fetch-refs.sh --wpt`). `.github/workflows/ci.yml` defines the
+  same checks for when Actions is turned back on. It also checks that `conformance/parity/results/summary.md` is
+  current: `--update` regenerates it, but after editing `conformance/parity/expectations/` by hand, run
+  `node conformance/parity/report.mjs` and commit the result.
 - The facade loads whatever addon is in `packages/rsdom/native/` (last build wins). `RSDOM_NATIVE=/abs/path.node`
   overrides.
 - `RSDOM_CONTRACT_DOMS=rsdom,jsdom npm run test:js` restricts the DOMs; `PROPTEST_CASES=100000 cargo test --release
@@ -220,12 +226,13 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - rsdom-only checks (protocols, wrappers, epochs) go to `test/native/`. `test/native/workers.test.mjs` also
   runs `test/fixtures/pool-threads` (Vitest `pool: 'threads'`, one fresh worker thread per file) in a child
   process: loading the addon on a new thread after another exited must keep working.
-- The parity suite (`conformance/parity`, `npm run test:parity`) runs jsdom's own test suite against rsdom: the
-  WPT files jsdom runs, jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests, about 2,600
-  files. `conformance/parity/expectations/*.yaml` lists what rsdom fails; anything else must pass, and a run
+- The parity suite (`conformance/parity`, `npm run test:parity`) runs jsdom's own test suite against rsdom: WPT
+  files from the 67 of jsdom's 127 `to-run.yaml` DIRs relevant to a DOM environment (`INCLUDE` in
+  `conformance/wpt/select.mjs`), jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests, about
+  2,600 files. `conformance/parity/expectations/*.yaml` lists what rsdom fails; anything else must pass, and a run
   also fails when a listed failure starts passing, so progress gets locked in. `--update` rewrites the
-  expectations for the files that ran; commit that diff with the change that caused it. CI runs the whole
-  suite on every PR. Its README has the workflow.
+  expectations for the files that ran; commit that diff with the change that caused it. Nothing runs the suite
+  automatically (§1): run it before merging. Its README has the workflow.
 - Everything must pass with `RSDOM_SHARED=0` too. Rust logic gets unit tests next to the code; tree-shaped
   invariants can extend `tests/prop_tree.rs`.
 - Known, asserted divergences: MathML elements are `MathMLElement` (spec) where jsdom/happy-dom use `Element`;
@@ -286,7 +293,9 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
 1. Pick the item in [`docs/ROADMAP.md`](docs/ROADMAP.md) (the measured need behind each one is in
    [`docs/PARITY.md`](docs/PARITY.md) §3). Read jsdom's implementation in `refs/jsdom` and the WPT files for the area.
    `npm run test:parity -- --item <id>` runs the item's scope in the parity suite (`conformance/parity/roadmap.yaml`);
-   its entries in `conformance/parity/expectations/` are the failing upstream tests you are about to fix.
+   its entries in `conformance/parity/expectations/` are the failing upstream tests you are about to fix. An item
+   with `tests: []` has no tests in the suite's selection (`--item` reports `no test matches`); its contract tests
+   carry it.
 2. Write the contract test first (`test/contract/`): every assertion runs on jsdom, happy-dom and rsdom, and jsdom is
    the oracle. A case where jsdom itself is wrong against the spec gets a comment and an explicit divergence.
 3. Decide where the state lives. State that must survive or react to tree mutations goes to Rust (a new
@@ -295,7 +304,7 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
 4. Run `npm test` and `npm run test:fallback`; for anything on a hot path also `npm run bench:micro` and compare with
    `bench/results/micro.md`.
 5. `npm run test:parity -- --update --item <id>` locks in what now passes and regenerates the scoreboard
-   (`conformance/parity/results/summary.md`); then `npm run test:parity` over everything, since a fix in one area can
-   move another.
+   (`conformance/parity/results/summary.md`); then `npm run check`, which runs the whole parity suite with the other
+   checks, since a fix in one area can move another.
 6. Tick the roadmap item, and record architecture decisions in `docs/DESIGN.md` (append sections; code cites the
    section numbers).

@@ -480,6 +480,10 @@ impl Env {
                 n = self.next_in_subtree(n, root);
             }
         }
+        if !self.traversal.is_empty() {
+            // NodeIterators rooted in the moved nodes now belong to their new document (crate::traversal)
+            self.node_iterators_rebucket();
+        }
     }
 
     /// `document.adoptNode`.

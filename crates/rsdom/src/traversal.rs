@@ -13,9 +13,12 @@
 //! (DOM §4.2.3 "remove" step 4). jsdom instead keeps iterators on the document `createNodeIterator()` was
 //! called on (`Document._workingNodeIterators`, refs/jsdom/lib/jsdom/living/nodes/Node-impl.js L1239) and fails
 //! WPT dom/traversal/NodeIterator-removal.html for iterators over another document's nodes; rsdom follows the
-//! spec and passes it. The facade frees an iterator once JS no longer holds it (a FinalizationRegistry); until
-//! then a removal pays one owner-document comparison per live iterator, and with none alive one emptiness
-//! check.
+//! spec and passes it. Iterators are bucketed by their root's node document, so a removal looks only at its own
+//! document's iterators, and a cross-document adoption re-buckets the ones whose root moved (template contents
+//! included). The facade frees an iterator once JS no longer holds it (a FinalizationRegistry); until then it
+//! stays in its document's bucket. With no iterator alive, a removal pays one emptiness check.
+
+use rustc_hash::FxHashMap;
 
 use crate::env::Env;
 use crate::table::NodeId;
@@ -23,11 +26,14 @@ use crate::table::NodeId;
 /// Words per iterator slot in `Env.iter_words`: [reference, candidate].
 pub const SLOT_WORDS: usize = 2;
 
-/// Env-wide NodeIterator registry (`Env.traversal`): the root of each live iterator by slot (`None` = free).
-/// Handles are slot index + 1 (0 is never a handle). Root 0 is an Attr root, which no removal moves.
+/// Env-wide NodeIterator registry (`Env.traversal`). Handles are slot index + 1 (0 is never a handle). Root 0 is
+/// an Attr root, which no removal moves: it is in no bucket.
 #[derive(Default, Debug)]
 pub struct TraversalState {
-    roots: Vec<Option<NodeId>>,
+    /// (root, the document whose bucket holds it) of each live iterator by slot (`None` = free)
+    slots: Vec<Option<(NodeId, NodeId)>>,
+    /// handles of the live iterators by their root's node document
+    by_doc: FxHashMap<NodeId, Vec<u32>>,
     free: Vec<u32>,
     live: u32,
 }
@@ -39,42 +45,82 @@ impl TraversalState {
         self.live == 0
     }
 
-    fn create(&mut self, root: NodeId) -> u32 {
-        self.live += 1;
-        match self.free.pop() {
-            Some(h) => {
-                self.roots[h as usize - 1] = Some(root);
-                h
-            }
-            None => {
-                self.roots.push(Some(root));
-                self.roots.len() as u32
+    fn release(&mut self, h: u32) {
+        if let Some(slot) = self.slots.get_mut((h as usize).wrapping_sub(1))
+            && let Some((root, doc)) = slot.take()
+        {
+            self.live -= 1;
+            self.free.push(h);
+            if root != 0 {
+                self.unbucket(doc, h);
             }
         }
     }
 
-    fn release(&mut self, h: u32) {
-        if let Some(s) = self.roots.get_mut((h as usize).wrapping_sub(1))
-            && s.take().is_some()
-        {
-            self.live -= 1;
-            self.free.push(h);
+    fn bucket(&mut self, doc: NodeId, h: u32) {
+        self.by_doc.entry(doc).or_default().push(h);
+    }
+
+    fn unbucket(&mut self, doc: NodeId, h: u32) {
+        if let Some(hs) = self.by_doc.get_mut(&doc) {
+            if let Some(i) = hs.iter().position(|&x| x == h) {
+                hs.swap_remove(i);
+            }
+            if hs.is_empty() {
+                self.by_doc.remove(&doc);
+            }
         }
     }
 }
 
 impl Env {
+    /// Registers an iterator over `root` (0 = an Attr root) in its root's document bucket; returns its handle.
+    fn iter_create(&mut self, root: NodeId) -> u32 {
+        let root = if self.table.contains(root) { root } else { 0 };
+        let doc = if root == 0 { 0 } else { self.node_doc(root) };
+        let t = &mut self.traversal;
+        t.live += 1;
+        let h = match t.free.pop() {
+            Some(h) => {
+                t.slots[h as usize - 1] = Some((root, doc));
+                h
+            }
+            None => {
+                t.slots.push(Some((root, doc)));
+                t.slots.len() as u32
+            }
+        };
+        if root != 0 {
+            t.bucket(doc, h);
+        }
+        h
+    }
+
+    /// After a cross-document adoption: moves every iterator whose root changed document to its new bucket.
+    pub(crate) fn node_iterators_rebucket(&mut self) {
+        for i in 0..self.traversal.slots.len() {
+            let Some((root, doc)) = self.traversal.slots[i] else { continue };
+            if root == 0 {
+                continue;
+            }
+            let now = self.node_doc(root);
+            if now != doc {
+                let h = i as u32 + 1;
+                self.traversal.unbucket(doc, h);
+                self.traversal.bucket(now, h);
+                self.traversal.slots[i] = Some((root, now));
+            }
+        }
+    }
+
     /// DOM §6.1 NodeIterator pre-removing steps for `node`, about to be removed from its parent, for every
     /// iterator whose root's node document is `node`'s: its reference and, mid-traversal, its candidate.
     pub(crate) fn node_iterators_pre_remove(&mut self, node: NodeId) {
         let doc = self.node_doc(node);
-        let roots = std::mem::take(&mut self.traversal.roots);
-        for (i, root) in roots.iter().enumerate() {
-            let Some(root) = *root else { continue };
-            if root == 0 || self.node_doc(root) != doc {
-                continue;
-            }
-            let o = i * SLOT_WORDS;
+        let Some(hs) = self.traversal.by_doc.remove(&doc) else { return };
+        for &h in &hs {
+            let Some(Some((root, _))) = self.traversal.slots.get(h as usize - 1).copied() else { continue };
+            let o = (h as usize - 1) * SLOT_WORDS;
             let (r, c) = match self.iter_words.words().get(o..o + SLOT_WORDS) {
                 Some(w) => (w[0], w[1]),
                 None => continue,
@@ -83,7 +129,7 @@ impl Env {
             let c = if c >> 1 != 0 { adjust(self, root, c, node) } else { c };
             self.iter_words.words()[o..o + SLOT_WORDS].copy_from_slice(&[r, c]);
         }
-        self.traversal.roots = roots;
+        self.traversal.by_doc.insert(doc, hs);
     }
 }
 
@@ -133,7 +179,7 @@ natives! {
     }
     /// createNodeIterator: registers an iterator over `root` (0 = an Attr root, which no removal moves); returns its handle. The facade then writes its slot.
     fn iterNew(e, root: u32) -> u32 {
-        e.traversal.create(root)
+        e.iter_create(root)
     }
     /// Forgets iterator `h` (the facade's FinalizationRegistry, once JS no longer holds the iterator).
     fn iterFree(e, h: u32) -> () {
@@ -164,7 +210,7 @@ mod tests {
 
     /// Registers an iterator and writes its slot as the facade does.
     fn iter(e: &mut Env, root: NodeId, reference: NodeId, before: bool) -> u32 {
-        let h = e.traversal.create(root);
+        let h = e.iter_create(root);
         set(e, h, 0, reference, before);
         set(e, h, 1, 0, false);
         h
@@ -251,6 +297,22 @@ mod tests {
     }
 
     #[test]
+    fn removals_look_only_at_their_documents_bucket_and_freed_iterators_leave_it() {
+        let (mut e, doc, body, [a, ..]) = setup();
+        let other = e.create_document(DocKind::Html, None);
+        let other_body = e.rec(e.rec(other).last).last;
+        let hs: Vec<u32> = (0..3).map(|_| iter(&mut e, other_body, other_body, true)).collect();
+        assert_eq!(e.traversal.by_doc.get(&other).map(Vec::len), Some(3));
+        assert!(!e.traversal.by_doc.contains_key(&doc));
+        e.remove(a, Records::Queue); // this document has no bucket
+        for &h in &hs {
+            e.traversal.release(h);
+        }
+        assert!(e.traversal.by_doc.is_empty());
+        let _ = body;
+    }
+
+    #[test]
     fn untrusted_words_and_short_buffers_are_ignored() {
         let (mut e, _, body, [a, ..]) = setup();
         let h = iter(&mut e, body, a, true);
@@ -258,7 +320,7 @@ mod tests {
         e.remove(a, Records::Queue);
         assert_eq!(get(&mut e, h, 0), (0x0fff_ffff, true));
         // a registered iterator whose slot lies past the buffer is skipped
-        let far = e.traversal.create(body);
+        let far = e.iter_create(body);
         assert!(far as usize * SLOT_WORDS > e.iter_words.words().len());
         let b = e.rec(body).first;
         e.remove(b, Records::Queue);
@@ -267,12 +329,12 @@ mod tests {
     #[test]
     fn freed_handles_are_reused() {
         let (mut e, _, body, [a, ..]) = setup();
-        let h1 = e.traversal.create(body);
-        let h2 = e.traversal.create(body);
+        let h1 = e.iter_create(body);
+        let h2 = e.iter_create(body);
         e.traversal.release(h1);
         e.traversal.release(h1);
         assert_eq!(e.traversal.live, 1);
-        assert_eq!(e.traversal.create(a), h1);
+        assert_eq!(e.iter_create(a), h1);
         e.traversal.release(h1);
         e.traversal.release(h2);
         assert!(e.traversal.is_empty());

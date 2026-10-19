@@ -56,11 +56,12 @@ function filterNode(s, id) {
   s.active = true;
   let r;
   try {
-    r = callFilter(s.filter, id === 0 ? s.root : rt.wrap(id));
+    // the conversion is part of the WebIDL call: a valueOf() it runs still sees the active flag
+    r = (callFilter(s.filter, id === 0 ? s.root : rt.wrap(id)) >>> 0) & 0xffff;
   } finally {
     s.active = false;
   }
-  return (r >>> 0) & 0xffff;
+  return r;
 }
 
 /** Converts a `NodeFilter?` argument: null/undefined -> null; any object or function is kept as given. */
@@ -227,7 +228,8 @@ class TreeWalker {
           break;
         }
         const parent = parentOf(node);
-        if (!(parent > 0) || parent === s.rootId || parent === current) return null;
+        // the walker's current as it is now: a filter may have set currentNode
+        if (!(parent > 0) || parent === s.rootId || parent === this.#currentId()) return null;
         node = parent;
       }
     }
@@ -367,12 +369,15 @@ function preceding(id, root) {
 /**
  * DOM "traverse" for NodeIterator (refs/jsdom/lib/jsdom/living/traversal/NodeIterator-impl.js). A filter
  * callback can remove nodes, and the pre-removing steps then move the candidate as well as the reference, so
- * around each callback the candidate sits in the shared slot and is read back after it.
+ * around each callback the candidate sits in the shared slot and is read back after it. A traversal re-entered
+ * from its own filter throws InvalidStateError at its filter call and puts the outer candidate back.
  */
 function traverse(s, next) {
   if (s.gen !== V.envGen) return null;
   const o = s.o;
   const user = s.filter !== null;
+  // a call re-entered from the filter (it throws, or finds nothing) leaves the outer call's candidate as it was
+  const outer = IT[o + 1];
   let cand = IT[o] >>> 1;
   let candBefore = (IT[o] & 1) !== 0;
   let result = -1;
@@ -402,7 +407,7 @@ function traverse(s, next) {
         const c = IT[o + 1];
         cand = c >>> 1;
         candBefore = (c & 1) !== 0;
-        IT[o + 1] = 0;
+        IT[o + 1] = outer;
       }
     }
     if (r === FILTER_ACCEPT) {

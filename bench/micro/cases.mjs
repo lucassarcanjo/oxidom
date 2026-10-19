@@ -201,9 +201,10 @@ export const cases = {
         const r = bench(iters, fn);
         return { value: r.value / 4096, samples: r.samples.map((x) => x / 4096) };
       };
-      // First, while only this one NodeIterator exists: rsdom wraps the removal natives once a NodeIterator
-      // exists (lib/traversal.cjs), so compare with `mutate`. The cost grows with the iterators still alive
-      // (jsdom's too), and the walks below create thousands that live until this synchronous job ends.
+      // First, while only this one NodeIterator exists: a removal runs the pre-removing steps for the iterators
+      // of its document (src/traversal.rs), so compare with `mutate`. The cost grows with the iterators
+      // registered on the document (jsdom's too), and the walks below create thousands on it that stay
+      // registered until a GC collects them (no earlier than the end of this synchronous job).
       metric('createElement + appendChild + removeChild, with a live NodeIterator', 'ns', () => {
         const it = d.createNodeIterator(root, NF.SHOW_ELEMENT);
         const host = root.lastChild;

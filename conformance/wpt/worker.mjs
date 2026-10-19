@@ -13,7 +13,7 @@
 //   5. results come from testharness's add_result_callback / add_completion_callback; setup() gets
 //      {output:false, explicit_timeout:true} and we call timeout() ourselves after TIMEOUT_MS.
 //
-// Usage: node worker.mjs --print <dom> <test-id>        (debugging; the runner forks it with IPC instead)
+// Usage: node worker.mjs --print <dom> [wpt:|tuwpt:]<test-id>   (debugging; the runner forks it with IPC instead)
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -260,10 +260,15 @@ export async function runOne(dom, test) {
 // ---- entry ----
 const argv = process.argv.slice(2);
 if (argv[0] === '--print') {
-  const [, dom, id] = argv;
+  const [, dom, arg] = argv;
   const sel = readJSON(path.join(RESULTS, 'selection.json'));
-  const test = sel.tests.find((t) => t.id === id) ?? sel.toUpstream?.tests.find((t) => t.id === id);
-  if (!test) throw new Error('unknown test ' + id);
+  // a few to-upstream ids are also WPT ids; `tuwpt:<id>` (or `wpt:<id>`) picks the list, as in conformance/parity
+  const [, source, id] = /^(?:(wpt|tuwpt):)?(.*)$/.exec(arg);
+  const wpt = source === 'tuwpt' ? undefined : sel.tests.find((t) => t.id === id);
+  const tuwpt = source === 'wpt' ? undefined : sel.toUpstream?.tests.find((t) => t.id === id);
+  if (wpt && tuwpt) console.error(`worker: ${id} is in wpt and tuwpt; running wpt (--print ${dom} tuwpt:${id} for the other)`);
+  const test = wpt ?? tuwpt;
+  if (!test) throw new Error('unknown test ' + arg);
   const r = await runOne(dom, test);
   fs.writeSync(1, JSON.stringify(r, null, 2) + '\n');
   process.exit(0);

@@ -1,9 +1,10 @@
 # Roadmap items (docs/ROADMAP.md) and the parity-suite tests that measure them. results/summary.md reports each
 # item's gap: the subtests jsdom passes in those files and rsdom does not. `tests` are globs over
 # "<source>:<test id>" (sources: wpt, tuwpt, legacy, api; ids as in expectations/<source>.yaml). `**` must be a
-# whole path segment: `api:api/**`, not `api:**`. A leading `!` excludes. Scopes may overlap. An item without tests has no coverage in
-# jsdom's suite; its contract tests in packages/rsdom/test carry it. Run one item's scope with
-# `npm run test:parity -- --item <id>`.
+# whole path segment: `api:api/**`, not `api:**`. A leading `!` excludes. Scopes may overlap; report.mjs warns
+# about a glob that matches no test. An item without tests has none in the suite's selection (jsdom may still run
+# some in a WPT DIR the selection leaves out, conformance/wpt/select.mjs INCLUDE); its contract tests in
+# packages/rsdom/test carry it. Run one item's scope with `npm run test:parity -- --item <id>`.
 
 # ---- Stage 1: close the measured library gaps
 - id: traversal
@@ -30,11 +31,11 @@
 - id: xhr
   stage: 1
   title: XMLHttpRequest
-  tests: ['wpt:xhr/**', 'tuwpt:xhr/**']
+  tests: ['wpt:xhr/**']
 - id: observers
   stage: 1
   title: No-op observers and scrolling APIs (beyond jsdom)
-  tests: []
+  tests: [] # the scrolling APIs' WPT DIR, css/cssom-view, is outside the selection
 
 # ---- Stage 2: jsdom-compatible entry points
 - id: jsdom-api
@@ -46,7 +47,7 @@
 - id: selection
   stage: 3
   title: Selection backed by real Ranges
-  tests: ['wpt:selection/**', 'tuwpt:selection/**']
+  tests: ['wpt:selection/**']
 - id: cssom
   stage: 3
   title: CSSOM rule objects (insertRule, cssRules, styleSheets)
@@ -71,11 +72,16 @@
 - id: storage
   stage: 3
   title: Web Storage named properties
-  tests: ['wpt:webstorage/**', 'tuwpt:webstorage/**']
+  tests: ['wpt:webstorage/**']
 - id: reflection
   stage: 3
   title: Reflected IDL attributes and ARIAMixin
-  tests: ['wpt:html/dom/reflection-*', 'wpt:html/dom/aria-*', 'legacy:to-port-to-wpts/level1/html.js', 'legacy:to-port-to-wpts/level2/html.js']
+  tests:
+    - 'wpt:html/dom/reflection-*'
+    - 'tuwpt:html/dom/reflection-*'
+    - 'wpt:html/dom/aria-*'
+    - 'legacy:to-port-to-wpts/level1/html.js'
+    - 'legacy:to-port-to-wpts/level2/html.js'
 - id: ranges
   stage: 3
   title: Range comparison and stringification, then Range mutation with live boundaries
@@ -90,7 +96,6 @@
     - 'legacy:to-port-to-wpts/level1/core.js'
     - 'legacy:to-port-to-wpts/level2/core.js'
     - 'legacy:to-port-to-wpts/xml.js'
-    - 'legacy:to-port-to-wpts/namespaces.js'
     - 'legacy:to-port-to-wpts/serialization.js'
 - id: xpath
   stage: 3
@@ -99,7 +104,7 @@
 - id: geometry
   stage: 3
   title: DOMRect classes and the remaining Window members
-  tests: []
+  tests: [] # DOMRect's WPT DIR, css/geometry, is outside the selection
 - id: core
   stage: 3
   title: Core DOM and HTML behaviour no other item claims
@@ -112,6 +117,7 @@
     - 'legacy:to-port-to-wpts/misc*.js'
     - 'legacy:to-port-to-wpts/parsing.js'
     - 'legacy:to-port-to-wpts/htmlimageelement.js'
+    - 'legacy:to-port-to-wpts/namespaces.js' # fails on NamedNodeMap named properties (attributes['xmlns:xlink'])
     - '!*:dom/traversal/**'
     - '!*:dom/ranges/**'
     - '!tuwpt:dom/nodes/Node-removeChild.html'
@@ -119,13 +125,13 @@
     - '!*:html/dom/reflection-*'
     - '!*:html/dom/aria-*'
     - '!*:html/semantics/forms/**'
-    - '!*:html/semantics/scripting-1/**'
+    - '!*:html/semantics/scripting-1/the-script-element/**'
 
 # ---- Stage 4: architectural work
 - id: shadow-dom
   stage: 4
   title: 'Full Shadow DOM: retargeting, slots, scoped styles'
-  tests: ['wpt:shadow-dom/**', 'tuwpt:shadow-dom/**']
+  tests: ['wpt:shadow-dom/**']
 - id: custom-elements
   stage: 4
   title: Custom elements and customElements
@@ -142,9 +148,9 @@
   stage: 4
   title: iframes, script execution (runScripts) and resource loading
   tests:
-    - 'wpt:html/semantics/scripting-1/**'
-    - 'tuwpt:html/semantics/scripting-1/**'
-    - 'api:options-run-scripts.js'
+    - 'wpt:html/semantics/scripting-1/the-script-element/**'
+    - 'tuwpt:html/semantics/scripting-1/the-script-element/**'
+    - 'api:api/options-run-scripts.js'
     - 'legacy:to-port-to-wpts/frame.js'
     - 'legacy:to-port-to-wpts/script.js'
     - 'legacy:to-port-to-wpts/on-error.js'

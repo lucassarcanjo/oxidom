@@ -983,8 +983,11 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   `traversal`): `TreeWalker(SHOW_ELEMENT).nextNode()` 24 ns/node (jsdom 106, happy-dom 45), with an object
   `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 24 ns/node (jsdom 112, happy-dom 45).
 - **Filter protocol** (WebIDL callback interface): a function is called with `this` undefined; otherwise
-  `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short;
-  re-entering a traversal from its own filter throws InvalidStateError; filter exceptions propagate unchanged.
+  `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short
+  as part of the call, so re-entering a traversal from the filter or from a `valueOf()` that conversion runs
+  throws InvalidStateError; the re-entered NodeIterator traversal leaves the outer one's candidate alone (jsdom
+  30 clears it, so the outer call then sets a null reference); filter exceptions propagate unchanged. A filter may
+  set `currentNode`: `firstChild()` / `lastChild()` compare with the walker's current node as it is at each step.
 - **NodeIterator pre-removing steps (DOM §6.1).** Rust registers every live iterator (`src/traversal.rs`,
   `Env.traversal`: its root by handle) and the child-list module runs the pre-removing steps inside every
   removal step, before unlinking (§17; DOM §4.2.3 "remove" step 4). So every removal path (removeChild, the
@@ -992,7 +995,8 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   `adoptNode`) adjusts the pointers against the real tree, in removal order, and only when the removal
   happens. A removal adjusts the iterators whose root's node document is the removed node's, checked at
   removal time, as the spec says (jsdom keeps them on the document `createNodeIterator()` was called on and
-  fails WPT `NodeIterator-removal.html` for iterators over another document's nodes).
+  fails WPT `NodeIterator-removal.html` for iterators over another document's nodes). An iterator whose root
+  is adopted into another document is moved by removals there from then on, as the spec says (jsdom does not).
   - **Shared pointer words.** An iterator's reference and candidate pointers live in a JS-owned resizable
     ArrayBuffer that Rust pins like OUT (§3.4; `iterBind`, again after each resize): two words per handle, each
     packed `id << 1 | pointer before`, candidate 0 = not traversing. The facade walks the node table and reads
@@ -1001,17 +1005,26 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
     and Rust treats them as untrusted input (unknown ids never match, a slot past the buffer is skipped). A
     FinalizationRegistry frees an iterator's registration once JS drops it (a stale callback from a reset env
     is ignored).
-  - Cost: one emptiness test per removal while no iterator is alive; one owner-document comparison per live
-    iterator otherwise (O(live iterators) per removal, as in jsdom). Iterators stay registered until garbage
-    collection.
+  - **Per-document buckets.** Iterators are bucketed by their root's node document, so a removal looks only at
+    its own document's iterators (one hash lookup), and a cross-document adoption re-buckets those whose root
+    moved (template contents included). A dropped iterator stays in its bucket until a GC runs the
+    FinalizationRegistry callback, which can be much later (rsdom keeps nodes off the JS heap); the buckets
+    confine that to its own document.
+  - Cost: one emptiness test per removal while no iterator is alive. `NodeIterator.nextNode()` 27 ns/node;
+    create + append + remove with one live iterator on the same document 0.7-0.9 us (jsdom 6.2 us). In a
+    DOMPurify-style loop (each call parses into a fresh document, walks it with a NodeIterator and removes
+    nodes), 2,000 calls cost 0.15 ms each (fallback mode 0.2 ms), flat (jsdom 1.4-1.6 ms); afterwards an
+    append + remove of a non-leaf element in the main document costs 2.2 us.
   - This replaced a first version that wrapped the twelve removal natives in JS and predicted from their
     arguments which nodes each call removes (a second copy of the removal rules), with a virtual tree for a
     call's earlier removals and an undo for calls that then failed validation.
 - **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
   `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
-  that are rsdom-specific (innerHTML, textContent, replaceChildren, normalize, moves) and the focus-scope walk
-  libraries do. In `e2e/libraries`, Radix Dialog, Headless UI and react-aria now pass; lit gets past import and
-  stops at custom elements / `attachShadow`.
+  that are rsdom-specific (innerHTML / outerHTML, textContent, replaceChildren, normalize, replaceChild,
+  adoptNode, moves by insertion and by convert-nodes-into-a-node, calls that fail before or part-way through
+  their removals, iterators on two documents) and the focus-scope walk libraries do. In `e2e/libraries`, Radix
+  Dialog, Headless UI and react-aria now pass; lit gets past import and stops at custom elements /
+  `attachShadow`.
 
 ---
 

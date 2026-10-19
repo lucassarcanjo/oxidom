@@ -135,15 +135,19 @@ Mutation paths call these hooks (see `src/hooks.rs`); implement the functions in
 |---|---|
 | `style::on_node_connected` / `forms::on_node_connected` | for each inclusive descendant of a subtree that became connected |
 | `focus::on_node_disconnected` (implemented: focus fixup) / `style::…` / `forms::…` | each inclusive descendant of a subtree that became disconnected |
-| `style::on_children_changed` / `forms::on_children_changed` | once per child-list change of a parent (after `child_ver`/`EP[TREE]` bump) |
+| `style::on_children_changed` / `forms::on_children_changed` | DOM "children changed steps": after each insert or remove step on a parent (after `child_ver`/`EP[TREE]` bump). Replace-all runs them once per removed child and once for the insertion, as jsdom does (a `<select>` resets its selectedness at every option insertion and removal); a `FreshTree` runs them once per parent when it finishes |
 | `style::on_attr_changed` / `forms::on_attr_changed` | after every attribute set/remove, incl. same-value sets (after `attr_ver`/`EP[ATTR]` bump); a same-value set of `class`/`id`/`style`/`type`/`hidden`/`open`/`popover` only calls `forms::on_attr_changed` and queues the MO record (`hook_attr_same_value`: no bump, no style hook) |
 | `style::on_char_data_changed` / `forms::on_char_data_changed` | after Text/Comment/PI data changes (after `EP[TEXT]` bump and the node's `DATA_VER` update) |
 | `forms::on_cloned` | cloning steps (`cloneNode`/`importNode`) per element |
-| `mo::queue_child_list` / `queue_attribute` / `queue_char_data` | at the spec'd record points; they must return immediately when `DocData.observers == 0`. `queue_char_data`'s `old` is only filled when `mo::active(target)` (replaceData skips the copy otherwise): keep `active` and the queue functions consistent |
+| `mo::queue_child_list` / `queue_attribute` / `queue_char_data` | at the spec'd record points; they must return immediately when no observer is registered (`e.mo.nregs == 0`). `queue_char_data`'s `old` is only filled when `mo::active(target)` (replaceData skips the copy otherwise): keep `active` and the queue functions consistent |
 
 `style::on_attr_changed` / `on_children_changed` currently bump `EP[STYLE]` with the DESIGN §8.2 default rules;
-area A refines them. Parser inserts link nodes raw and then run ONE tree operation (`replace_all`, `replace_child`,
-`pre_insert`), so hooks see one children-changed per innerHTML set and the connected pass covers the new subtree.
+area A refines them. All child-list changes go through the child-list module in `src/tree.rs` (DESIGN §16): the
+`insert` / `remove` primitives and the operations composed from them, and `FreshTree` for nodes created inside the
+same native call (document creation, cloning). The parser links nodes raw, settles them with `hook_parsed`, then
+runs ONE tree operation (`replace_all`, `replace_child`, `pre_insert`) or `FreshTree::take_linked` (documents), so
+per-node hooks never fire for parsed nodes and the connected pass covers the new subtree. Do not link nodes into a
+tree any other way.
 
 Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.children_vec(p)`,
 `e.is_inclusive_ancestor`, `e.tree_order(a, b)`, `e.get_element_by_id(root, atom)`, `e.get_attr(el, atom)`,

@@ -22,10 +22,15 @@
     "test:js": "npm test --workspace=rsdom",
     "test:fallback": "npm run test:fallback --workspace=rsdom",
     "test:e2e": "npm run test:rsdom --workspace=e2e/react-app",
+    "test:parity": "node conformance/parity/run.mjs",
     "lint": "cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
     "fmt": "cargo fmt --all",
     "bench:m0": "node --expose-gc bench/micro/m0-gates.mjs",
     "bench:micro": "node --expose-gc bench/micro/run.mjs",
     "bench:e2e": "node bench/e2e/run.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "5.5.0",
+    "parse5": "8.0.1"
   }
 }

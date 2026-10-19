@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
-import { LAB, WPT_ROOT, ORIGIN, readScriptMeta, wrapperPage, resolveSrc, appRequire, RESULTS, readJSON } from './lib.mjs';
+import { LAB, ORIGIN, readScriptMeta, wrapperPage, resolveSrc, appRequire, RESULTS, readJSON, testRoot, scriptFile } from './lib.mjs';
 
 const nodeSetTimeout = globalThis.setTimeout;
 const nodeClearTimeout = globalThis.clearTimeout;
@@ -146,7 +146,7 @@ export async function runOne(dom, test) {
   process.on('unhandledRejection', (e) => reportError(state, e, 'unhandledrejection'));
 
   // --- page ---
-  const abs = path.join(WPT_ROOT, test.file);
+  const abs = path.join(testRoot(test), test.file);
   const src = fs.readFileSync(abs, 'utf8');
   const page = test.kind === 'html' ? src : wrapperPage(test.kind, '/' + test.file, readScriptMeta(src));
   const pg = analysePage(page, test.id);
@@ -203,7 +203,7 @@ export async function runOne(dom, test) {
     } else {
       filename = ORIGIN + '/' + s.path;
       try {
-        code = fs.readFileSync(path.join(WPT_ROOT, s.path), 'utf8');
+        code = fs.readFileSync(scriptFile(test, s.path), 'utf8');
       } catch {
         state.scriptErrors.push('missing script ' + s.path);
         continue;
@@ -262,7 +262,7 @@ const argv = process.argv.slice(2);
 if (argv[0] === '--print') {
   const [, dom, id] = argv;
   const sel = readJSON(path.join(RESULTS, 'selection.json'));
-  const test = sel.tests.find((t) => t.id === id);
+  const test = sel.tests.find((t) => t.id === id) ?? sel.toUpstream?.tests.find((t) => t.id === id);
   if (!test) throw new Error('unknown test ' + id);
   const r = await runOne(dom, test);
   fs.writeSync(1, JSON.stringify(r, null, 2) + '\n');

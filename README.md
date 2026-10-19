@@ -45,6 +45,11 @@ Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md))
 | real libraries passing, of the 18 that pass on jsdom | 11 |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
+Every PR also runs **jsdom's own test suite** against rsdom ([`conformance/parity`](conformance/parity/README.md)):
+the web-platform-tests jsdom runs, jsdom's to-upstream tests, its legacy mocha tests and its API tests. rsdom
+passes 52.6% of the subtests jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) breaks
+that down by roadmap item.
+
 The seven library failures come from four missing APIs: TreeWalker/NodeFilter, ShadowRoot, history traversal
 and XMLHttpRequest. Closing them is [Stage 1 of the roadmap](docs/ROADMAP.md#stage-1-close-the-measured-library-gaps).
 Not supported today: Shadow DOM, custom elements, iframes, script execution, layout, CSSOM rule objects.
@@ -84,7 +89,7 @@ A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, St
 | [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |
-| [`conformance`](conformance) | web-platform-tests and WebIDL surface comparisons against jsdom |
+| [`conformance`](conformance) | jsdom's test suite as rsdom's gate (`parity`), web-platform-tests and WebIDL surface comparisons against jsdom |
 | [`scripts`](scripts) | data generators, `fetch-refs.sh` for upstream reference checkouts |
 | [`docs`](docs) | design, benchmarks, parity study, roadmap; [`docs/lab`](docs/lab) keeps the lab-phase record |
 
@@ -92,6 +97,7 @@ A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, St
 
 ```bash
 npm test               # Rust tests, contract suites (jsdom / happy-dom / rsdom), React app suite on rsdom
+npm run test:parity    # jsdom's own test suite on rsdom (needs scripts/fetch-refs.sh --wpt)
 npm run lint           # clippy + rustfmt
 npm run bench:micro    # see bench/README.md
 ```

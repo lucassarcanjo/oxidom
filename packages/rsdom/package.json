@@ -1,0 +1,48 @@
+{
+  "name": "rsdom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A fast DOM for Node.js test environments, implemented in Rust: a drop-in replacement for jsdom",
+  "keywords": ["dom", "jsdom", "html", "vitest", "testing", "napi", "rust"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/rsdom.git",
+    "directory": "packages/rsdom"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "lib/index.cjs",
+  "exports": {
+    ".": "./lib/index.cjs",
+    "./vitest-environment": "./lib/vitest-environment.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "native/*.node"
+  ],
+  "napi": {
+    "binaryName": "rsdom"
+  },
+  "scripts": {
+    "build": "napi build --release --platform --no-js --manifest-path ../../crates/rsdom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:debug": "napi build --platform --no-js --manifest-path ../../crates/rsdom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:profiling": "napi build --profile profiling --platform --no-js --manifest-path ../../crates/rsdom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:counters": "napi build --release --features counters --platform --no-js --manifest-path ../../crates/rsdom/Cargo.toml --package-json-path package.json --target-dir ../../target/counters --output-dir native/counters",
+    "test": "vitest run",
+    "test:fallback": "RSDOM_SHARED=0 vitest run"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.10.8",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/user-event": "14.6.8",
+    "happy-dom": "21.0.3",
+    "jsdom": "30.1.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 54e381c85cd224dca491747992b2c9236c6e6f3b61d4365d8b23152a944704da # shrinks to ops = [CreateElement, CreateElement, CreateElement, CreateElement, CreateElement, AdoptToOther(44), InsertBeforeNull(4, 15)]
+cc 08be7ab6632f74c50a7803e1684b7e91b350fea74e260dc2714f78dc99c1ce18 # shrinks to ops = [ReplaceChildren(40, [5, 1])]
+cc 37704906812512774ae62eaa0f6968014938b8440429f43ac60458e932e21923 # shrinks to ops = [CreateElement, CreateElement, CreateElement, AdoptToOther(23), CreateElement, CreateElement, Append(37, 35), CreateElement, CreateElement, CreateFragment, CreateElement, CreateElement, CreateElement, ReplaceChild(7, 44, 21)]

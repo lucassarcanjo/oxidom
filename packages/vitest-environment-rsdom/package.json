@@ -1,0 +1,23 @@
+{
+  "name": "vitest-environment-rsdom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vitest environment for rsdom: `test.environment: 'rsdom'`",
+  "keywords": ["vitest", "vitest-environment", "rsdom", "dom", "jsdom"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/rsdom.git",
+    "directory": "packages/vitest-environment-rsdom"
+  },
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": ["index.js"],
+  "peerDependencies": {
+    "rsdom": "0.1.0",
+    "vitest": ">=5"
+  }
+}

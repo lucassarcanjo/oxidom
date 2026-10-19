@@ -1,0 +1,16 @@
+# rsdom area B micro: events / focus / forms (2026-10-16T20:54:20.777Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=0 RSDOM_NO_MEMO=-; median of 7 runs, one process per DOM
+# NOISY: measured while other agents shared the 4 CPUs; use for orders of magnitude only.
+operation                                                                    jsdom  happy-dom     rsdom
+addEventListener + removeEventListener x143, one container (us)               82.9       54.9      25.6
+fresh container + 143 new listeners, retained (us)                            58.6       46.1      99.8
+new MouseEvent + dispatch, 20 levels, React-like root listeners (ns)         19482      17602      3985
+dispatch only (event reused), 20 levels (ns)                                 11154      14380      3002
+checkbox click() with activation (ns)                                        26121      16332      7228
+focus() alternating two inputs (ns/focus)                                   278432      17565      4009
+document.activeElement (ns)                                                    281       10.2       9.6
+input.value get, unchanged (ns)                                               62.3       33.1      18.8
+input.value set + get (ns/pair)                                                646        215       282
+input.checked get (ns)                                                        54.2        2.1       8.4
+setSelectionRange + selectionStart get (ns/pair)                              6376       4601      2370
+select.value set + get (ns/pair)                                              1969       1255       219

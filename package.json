@@ -1,0 +1,31 @@
+{
+  "name": "rsdom-monorepo",
+  "private": true,
+  "description": "rsdom: a fast, drop-in replacement for jsdom, implemented in Rust",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/rsdom.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "e2e/react-app"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=rsdom",
+    "build:debug": "npm run build:debug --workspace=rsdom",
+    "test": "npm run test:rust && npm run test:js && npm run test:e2e",
+    "test:rust": "cargo test --workspace",
+    "test:js": "npm test --workspace=rsdom",
+    "test:fallback": "npm run test:fallback --workspace=rsdom",
+    "test:e2e": "npm run test:rsdom --workspace=e2e/react-app",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+    "fmt": "cargo fmt --all",
+    "bench:m0": "node --expose-gc bench/micro/m0-gates.mjs",
+    "bench:micro": "node --expose-gc bench/micro/run.mjs",
+    "bench:e2e": "node bench/e2e/run.mjs"
+  }
+}

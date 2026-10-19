@@ -1,0 +1,11 @@
+# rsdom M0 gates (2026-10-16T19:53:54.157Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4, linux 6.18.44-fc-v139, shared=true
+# ns/op: best / median of 7 runs
+raw u32 crossing (__echo)                                   27.0 /    27.2  PASS (gate <= 35)
+getAttr (2 x u32 -> latin1 "hello world")                   57.5 /    58.9  PASS (gate <= 90)
+hasAttr (2 x u32 -> bool)                                   33.3 /    34.7  (info)
+setAttr (2 x u32 + 11-char string)                          81.6 /    85.9  (info)
+JS table walk (ns/node, 4096 nodes)                          4.9 /     4.9  PASS (gate <= 10)
+facade walk via node.firstChild/nextSibling (ns/node)       15.0 /    15.1  (info)
+RSS growth: addon load / init()                          4524 KiB / 128 KiB  PASS (init < 1 MiB)
+# init() reserves 262144 records (16 MiB virtual, mmap MAP_NORESERVE): pages commit on first touch

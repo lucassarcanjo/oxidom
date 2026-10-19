@@ -1,8 +1,18 @@
-//! Tree mutation: pre-insert validation (order per jsdom `Node-impl.js` L833-1009 / DOM §4.2.3), insert,
-//! remove, replace, replace-all, adopt, with move semantics, fragments, CONNECTED maintenance, the
-//! document id map, `child_ver` / epoch bumps and the area hooks (see `crate::hooks`).
+//! The child-list module (DESIGN §16): every change to a child list goes through it. Pre-insert validation
+//! (order per jsdom `Node-impl.js` L833-1009 / DOM §4.2.3), then the DOM primitives [`Env::insert`] and
+//! [`Env::remove`], which own one step's bookkeeping in spec order: adoption, linking, the connect /
+//! disconnect pass (CONNECTED bits, document id map, per-node hooks), the MutationObserver record (unless
+//! the caller passes [`Records::Suppress`] and queues a merged one) and the children-changed steps
+//! (`child_ver` / `EP[TREE]` and the area hooks, see `crate::hooks`). Replace, replace-all and adopt are
+//! composed from them exactly as in DOM §4.2.3, so they run the children-changed steps once per step
+//! (replace-all: once per removed child and once for the insertion), as jsdom does.
 //!
-//! Ranges and NodeIterators are out of scope, so their fix-up steps are omitted.
+//! Nodes created inside the current native call (document creation, cloning) are assembled with
+//! [`FreshTree`], the only quiet path; the HTML parser links its own nodes and settles them through
+//! `Env::hook_parsed` plus an ordinary insert (fragments) or [`FreshTree::take_linked`] (documents).
+//!
+//! Ranges and NodeIterators are out of scope. Their fix-up steps belong in `insert` / `remove` (fresh nodes
+//! are unreachable for them).
 
 use smallvec::SmallVec;
 
@@ -13,6 +23,67 @@ use crate::node::{kind, meta};
 use crate::table::NodeId;
 
 type Nodes = SmallVec<[NodeId; 8]>;
+
+/// DOM "suppress observers flag" of insert / remove: replace-a-child and replace-all suppress the
+/// per-step records and queue one merged record themselves.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Records {
+    /// The step queues its own childList record.
+    Queue,
+    /// The caller queues a merged record.
+    Suppress,
+}
+
+/// Assembles a subtree from nodes created inside the current native call. Nothing outside the call can
+/// reach them yet, so [`FreshTree::append`] queues no record and defers the children-changed steps to
+/// [`FreshTree::finish`], which runs them once per parent after the subtree is complete (jsdom clones
+/// bottom-up, so its insertion steps always see complete subtrees: a cloned `<select>` resets its
+/// selectedness against all of its options). Appends into a connected parent run the connect pass at once.
+#[derive(Default)]
+#[must_use = "call `finish` to run the deferred children-changed steps"]
+pub(crate) struct FreshTree {
+    parents: SmallVec<[NodeId; 16]>,
+}
+
+impl FreshTree {
+    /// Appends fresh `child` (no parent) to fresh or connected `parent`.
+    #[inline]
+    pub(crate) fn append(&mut self, e: &mut Env, parent: NodeId, child: NodeId) {
+        e.link(child, parent, 0);
+        if e.rec(parent).meta & meta::CONNECTED != 0 {
+            e.connect_subtree(child);
+        }
+        self.note(parent);
+    }
+
+    /// Takes over children the HTML parser already linked into `parent` (the tree builder moves nodes
+    /// itself while parsing).
+    pub(crate) fn take_linked(&mut self, e: &mut Env, parent: NodeId) {
+        if e.rec(parent).meta & meta::CONNECTED != 0 {
+            let mut c = e.rec(parent).first;
+            while c != 0 {
+                e.connect_subtree(c);
+                c = e.rec(c).next;
+            }
+        }
+        self.note(parent);
+    }
+
+    #[inline]
+    fn note(&mut self, parent: NodeId) {
+        // Parents fill in batches; a repeat that slips through only reruns idempotent steps.
+        if self.parents.last() != Some(&parent) {
+            self.parents.push(parent);
+        }
+    }
+
+    /// Runs the deferred children-changed steps, once per parent.
+    pub(crate) fn finish(self, e: &mut Env) {
+        for p in self.parents {
+            e.hook_children_changed(p);
+        }
+    }
+}
 
 impl Env {
     // ------------------------------------------------------------------------------- raw linking
@@ -305,7 +376,7 @@ impl Env {
     pub fn pre_insert(&mut self, node: NodeId, parent: NodeId, child: NodeId) -> DomResult {
         self.ensure_validity(node, parent, child, false, false)?;
         let reference = if child == node { self.rec(node).next } else { child };
-        self.insert(node, parent, reference, false);
+        self.insert(node, parent, reference, Records::Queue);
         Ok(())
     }
 
@@ -316,7 +387,7 @@ impl Env {
 
     /// DOM "insert" (no validation). Fragments insert their children; nodes are adopted (which removes
     /// them from their old parent first, with its own record).
-    pub fn insert(&mut self, node: NodeId, parent: NodeId, child: NodeId, suppress: bool) {
+    pub fn insert(&mut self, node: NodeId, parent: NodeId, child: NodeId, records: Records) {
         let is_frag = self.kind(node) == kind::FRAGMENT;
         let nodes: Nodes = if is_frag { self.children_vec(node) } else { smallvec::smallvec![node] };
         if nodes.is_empty() {
@@ -324,8 +395,9 @@ impl Env {
         }
         if is_frag {
             for &c in &nodes {
-                self.remove(c, true);
+                self.remove(c, Records::Suppress);
             }
+            // Unconditional (DOM "insert" step 4.2): the fragment's own record ignores the caller's flag.
             crate::mo::queue_child_list(self, node, &[], &nodes, 0, 0);
         }
         // previousSibling is computed before adoption (spec order; it can be `node` itself on a move).
@@ -339,7 +411,7 @@ impl Env {
                 self.connect_subtree(n);
             }
         }
-        if !suppress {
+        if records == Records::Queue {
             crate::mo::queue_child_list(self, parent, &nodes, &[], prev, child);
         }
         self.hook_children_changed(parent);
@@ -352,12 +424,12 @@ impl Env {
         if self.rec(child).parent != parent {
             return Err(DomError::NotFound);
         }
-        self.remove(child, false);
+        self.remove(child, Records::Queue);
         Ok(())
     }
 
     /// DOM "remove" (`node` must have a parent; otherwise a no-op).
-    pub fn remove(&mut self, node: NodeId, suppress: bool) {
+    pub fn remove(&mut self, node: NodeId, records: Records) {
         let r = *self.rec(node);
         let parent = r.parent;
         if parent == 0 {
@@ -368,7 +440,7 @@ impl Env {
         if was_connected {
             self.disconnect_subtree(node);
         }
-        if !suppress {
+        if records == Records::Queue {
             crate::mo::queue_child_list(self, parent, &[], &[node], r.prev, r.next);
         }
         self.hook_children_changed(parent);
@@ -377,7 +449,7 @@ impl Env {
     /// DOM "adopt": removes `node` from its parent, then moves its subtree to `doc` if needed.
     pub fn adopt(&mut self, node: NodeId, doc: NodeId) {
         if self.rec(node).parent != 0 {
-            self.remove(node, false);
+            self.remove(node, Records::Queue);
         }
         let old_doc = self.node_doc(node);
         if old_doc == doc || self.kind(node) == kind::DOCUMENT {
@@ -434,14 +506,14 @@ impl Env {
         let mut removed: Nodes = SmallVec::new();
         if self.rec(child).parent != 0 {
             removed.push(child);
-            self.remove(child, true);
+            self.remove(child, Records::Suppress);
         }
         let nodes: Nodes = if self.kind(node) == kind::FRAGMENT {
             self.children_vec(node)
         } else {
             smallvec::smallvec![node]
         };
-        self.insert(node, parent, reference, true);
+        self.insert(node, parent, reference, Records::Suppress);
         crate::mo::queue_child_list(self, parent, &nodes, &removed, prev, reference);
         Ok(())
     }
@@ -459,10 +531,10 @@ impl Env {
             self.adopt(node, doc);
         }
         for &c in &removed {
-            self.remove(c, true);
+            self.remove(c, Records::Suppress);
         }
         if node != 0 {
-            self.insert(node, parent, 0, true);
+            self.insert(node, parent, 0, Records::Suppress);
         }
         if !added.is_empty() || !removed.is_empty() {
             crate::mo::queue_child_list(self, parent, &added, &removed, 0, 0);
@@ -500,7 +572,7 @@ impl Env {
 
     /// `ChildNode.remove()`.
     pub fn remove_self(&mut self, node: NodeId) {
-        self.remove(node, false);
+        self.remove(node, Records::Queue);
     }
 }
 
@@ -745,6 +817,81 @@ mod tests {
         for n in [c1, t2, c2, p] {
             assert_eq!(e.node_doc(n), tdoc, "node {n}");
         }
+    }
+
+    #[test]
+    fn replace_all_runs_children_changed_per_step() {
+        // DOM replace-all removes each child (children-changed steps each time), then inserts: the select
+        // resets at every removal, so options auto-selected on the way out stay selected (jsdom too).
+        let (mut e, _doc, body) = setup();
+        e.set_inner_html(body, "<select><option selected>a<option>b<option>c</select>").unwrap();
+        let s = e.rec(body).first;
+        let opts = e.options_of(s);
+        e.replace_all(0, s);
+        let selected: Vec<bool> =
+            opts.iter().map(|&o| e.rec(o).state & crate::node::state::SELECTED != 0).collect();
+        assert_eq!(selected, [true, true, true]);
+    }
+
+    #[test]
+    fn clone_settles_select_against_all_options() {
+        let (mut e, doc, body) = setup();
+        e.set_inner_html(body, "<select><optgroup><option>o1</optgroup><option>x</select>").unwrap();
+        let s = e.rec(body).first;
+        let copy = e.clone_node(s, doc, true).unwrap();
+        assert_eq!(e.selected_index(copy), 0, "the reset sees the optgroup's options too");
+        e.set_inner_html(body, "<select><option selected>a<option selected>b</select>").unwrap();
+        let s = e.rec(body).first;
+        let copy = e.clone_node(s, doc, true).unwrap();
+        assert_eq!(e.selected_index(copy), 1, "the last selected option wins");
+    }
+
+    #[test]
+    fn fresh_trees_queue_no_records_and_bump_child_ver() {
+        let (mut e, doc, body) = setup();
+        e.set_inner_html(body, "<div><p>x</p></div>").unwrap();
+        e.mo_observe(1, doc, crate::mo::opt::CHILD_LIST | crate::mo::opt::SUBTREE, &[]).unwrap();
+        let d = e.rec(body).first;
+        let tree = e.ep.get(crate::env::ep::TREE);
+        let copy = e.clone_node(d, doc, true).unwrap();
+        let other = e.create_document(DocKind::Html, Some("t"));
+        assert_eq!(e.ep.get(crate::env::ep::MO_PENDING) & 1, 0, "no record queued");
+        assert!(e.ep.get(crate::env::ep::TREE) > tree);
+        for parent in [copy, e.rec(copy).first, other, e.rec(other).last] {
+            assert!(e.rec(parent).child_ver > tree, "child_ver of {parent}");
+        }
+    }
+
+    #[test]
+    fn cloned_document_owns_its_copies() {
+        let (mut e, doc, body) = setup();
+        let a = div(&mut e, doc);
+        e.set_attr(a, atom::ID, "k").unwrap();
+        e.append_child(body, a).unwrap();
+        let copy = e.clone_node(doc, doc, true).unwrap();
+        let k = e.intern("k");
+        let ca = e.get_element_by_id(copy, k);
+        assert!(ca != 0 && ca != a);
+        assert_eq!(e.node_doc(ca), copy);
+        assert!(e.rec(ca).meta & meta::CONNECTED != 0);
+        // The copy is in its own document's id map only.
+        e.remove_child(body, a).unwrap();
+        assert_eq!(e.get_element_by_id(doc, k), 0);
+        assert_eq!(e.get_element_by_id(copy, k), ca);
+    }
+
+    #[test]
+    fn create_document_skeleton_is_connected() {
+        let mut e = Env::new();
+        let doc = e.create_document(DocKind::Html, Some("t"));
+        let mut n = doc;
+        let mut count = 0;
+        while n != 0 {
+            assert!(e.rec(n).meta & meta::CONNECTED != 0, "node {n}");
+            count += 1;
+            n = e.next_in_subtree(n, doc);
+        }
+        assert_eq!(count, 7, "document, doctype, html, head, title, text, body");
     }
 
     #[test]

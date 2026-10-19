@@ -970,6 +970,33 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
 
 ---
 
+## 16. The child-list module (2026-10)
+
+Every change to a child list goes through `src/tree.rs`:
+
+- **The DOM primitives `insert` and `remove`** own one step's bookkeeping, in spec order (DOM §4.2.3): adoption,
+  linking, the connect / disconnect pass (CONNECTED bits, the document id map, the per-node connectivity hooks),
+  the childList MutationObserver record and the children-changed steps (`child_ver` / `EP[TREE]` and the area
+  hooks in `src/hooks.rs`). Their `Records` argument is the spec's "suppress observers flag": replace-a-child
+  and replace-all suppress the per-step records and queue one merged record. Range and NodeIterator fix-up
+  steps, when they arrive, go into these two functions.
+- **Children-changed steps run once per step, not once per operation.** Replace-all removes each child and then
+  inserts, so it runs them once per removed child and once for the insertion. This is the DOM algorithm and
+  jsdom's behaviour, and it is observable: a `<select>` resets its selectedness at every option removal, so
+  after `select.textContent = ''` the options that were auto-selected on the way out stay `selected`
+  (`test/contract/child-list.test.mjs`). The cost is O(n) per step for a `<select>` (§15.2), as in jsdom.
+- **`FreshTree`** is the only quiet path, for nodes created inside the current native call (`createDocument`'s
+  skeleton, `cloneNode`). Nothing outside the call can reach these nodes, so appends queue no record; appends into a
+  connected parent connect at once; the children-changed steps run once per parent in `finish`, after the subtree
+  is complete. jsdom clones bottom-up, so its insertion steps always see complete subtrees: a cloned `<select>`
+  resets against all of its options. Before this, clones skipped the children-changed steps entirely and a cloned
+  `<select>` kept `selectedIndex` -1 (or several selected options).
+- **The HTML parser** links its own nodes (the tree builder reparents while parsing), then `hook_parsed` settles
+  their form state, and the result enters the tree through one ordinary operation (fragment parsing) or
+  `FreshTree::take_linked` (`parseDocument`).
+
+---
+
 ## 17. Browsing contexts (lib/context.cjs)
 
 A **browsing context** is one window: its window object, its document, the document's URL, the timers the

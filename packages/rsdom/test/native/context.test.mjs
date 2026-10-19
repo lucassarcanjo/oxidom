@@ -112,6 +112,25 @@ describe('the document URL', () => {
   });
 });
 
+describe('a whole-document source', () => {
+  it('is parsed as the context document, doctype and <html> attributes included', () => {
+    const ctx = context.open({ url: 'about:blank', source: '<!DOCTYPE html><html lang="pt"><head><title>t</title></head><body><p id=x>hi</p></body></html>' });
+    const d = ctx.window.document;
+    expect(d).toBe(ctx.document);
+    expect(rt.defaultDocument).toBe(d);
+    expect(d.doctype.name).toBe('html');
+    expect(d.documentElement.getAttribute('lang')).toBe('pt');
+    expect(d.title).toBe('t');
+    expect(d.getElementById('x').textContent).toBe('hi');
+    expect(d.URL).toBe('about:blank');
+    expect(ctx.window.document.defaultView).toBe(ctx.window);
+  });
+
+  it('cannot be combined with body markup', () => {
+    expect(() => context.open({ source: '<p>a</p>', html: '<p>b</p>' })).toThrow(TypeError);
+  });
+});
+
 describe('teardown', () => {
   it('close() cancels pending animation frames and hashchange tasks', async () => {
     const { window: w } = createWindow();

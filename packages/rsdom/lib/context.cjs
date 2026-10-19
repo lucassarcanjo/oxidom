@@ -122,16 +122,21 @@ class BrowsingContext {
  * Opens a browsing context: a new HTML document (html/head/body) and its window.
  * - `url`: the document URL (default DEFAULT_URL);
  * - `html`: body markup, set as `documentElement.innerHTML`;
+ * - `source`: a whole HTML document (doctype, `<html>` attributes and all) parsed as the context's document,
+ *   as `new JSDOM(source)` does; excludes `html`;
  * - `main: false`: the context does not become current;
  * - `global`: install the window's members on this object (the Vitest environment passes globalThis) instead
  *   of a fresh null-prototype object; `close()` restores the object's original properties;
  * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions).
- * @param {{ url?: string, html?: string, main?: boolean, global?: object, catchErrors?: boolean }} [options]
+ * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, catchErrors?: boolean }} [options]
  * @returns {BrowsingContext}
  */
 function openContext(options = {}) {
   const url = new URL(options.url ?? DEFAULT_URL);
-  const id = rt.checkId(rt.N.createDocument(0, null));
+  if (options.source !== undefined && options.html !== undefined) {
+    throw new TypeError('rsdom: context.open() takes `html` (body markup) or `source` (a whole document), not both');
+  }
+  const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source)));
   rt.afterAlloc();
   const document = rt.wrap(id);
   const ctx = new BrowsingContext(document, url);

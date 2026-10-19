@@ -39,7 +39,7 @@ function install(rt, dom) {
 
   /** @type {Map<string, {id:number, flags:number, t1:number, tags:Set<number>|null, tagOnly:boolean, depth:number}>} */
   let SEL = new Map();
-  /** @type {Map<number, {ids: Uint32Array|null, w: Array|null, first: number, k: Uint32Array}>} */
+  /** @type {Map<number, {ids: Uint32Array|null, w: Array|null, first: number, k: number[]}>} */
   let MEMO_MAP = new Map();
 
   rt.onReset(() => {

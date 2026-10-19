@@ -1074,7 +1074,7 @@ that returned a stale base URL after exactly 4096 attribute writes, and a recomm
 - **Per-node counters.** `NODE.ATTRS` / `DATA` / `CHILDREN` / `FORM` name the record words Rust rewrites
   (`attr_ver`, the character-data `DATA_VER`, `child_ver`, `form_ver`); `nodeVersion(id, word)` is one table read.
   The hottest memos (getAttribute / hasAttribute, `data`, input `value`; §15.2) keep their single compare inline.
-- **Epoch-page dependencies.** `deps('TREE', 'ATTR', ...)` names a set of EP slots. A stamp is a `Uint32Array` copy
+- **Epoch-page dependencies.** `deps('TREE', 'ATTR', ...)` names a set of up to five EP slots. A stamp is a plain-array copy
   of those slots plus the env generation; `fresh(stamp, n)` compares the first `n` slots one by one (exact, no
   packing) and fails for a stamp from an older env, so a reset can never revive a memo. Slots are ordered from
   always-needed to conditionally-needed: the qSA memo stamps TREE, ATTR, TEXT, FORM, REC and checks 2, 3 or 5 of

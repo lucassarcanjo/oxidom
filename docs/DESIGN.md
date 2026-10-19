@@ -981,29 +981,32 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   one. Attr roots, the only nodes without a table id, are id 0: a walker at an Attr returns null from every step
   and a NodeIterator over one returns the root itself. Measured over a 4096-node tree (`bench/micro`, case
   `traversal`): `TreeWalker(SHOW_ELEMENT).nextNode()` 24 ns/node (jsdom 106, happy-dom 45), with an object
-  `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 22 ns/node.
+  `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 24 ns/node (jsdom 112, happy-dom 45).
 - **Filter protocol** (WebIDL callback interface): a function is called with `this` undefined; otherwise
   `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short;
   re-entering a traversal from its own filter throws InvalidStateError; filter exceptions propagate unchanged.
-- **NodeIterator pre-removing steps (DOM §6.1).** Removals run inside natives (removeChild, the replace-all of
-  `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or `adoptNode`), and Rust never
-  calls JS (§0). The first `createNodeIterator()` in a process therefore wraps the twelve removal natives on
-  `rt.N` (the facade calls them as `N.name(...)`, so wrapping the property is enough). A wrapper derives from the
-  native's arguments which nodes the call removes, in removal order (a fragment's children, a moved node's old
-  position, the children a replace-all drops, the text nodes `normalize` merges), runs the steps for every live
-  iterator against a virtual tree in which the call's earlier removals already happened (a `gone` set skipped by
-  sibling and last-descendant lookups), calls the native, and puts back the pointers it moved if the native
-  returns an error code. `replaceChildren` / `nodesToNode` read their node lists from OUT, which record reads
-  overwrite in fallback mode, so the wrapper copies the list first and writes it back before the call.
-  - Cost: nothing until a NodeIterator exists (no wrapper is installed). Afterwards, one `live.size` test per
-    removal native while none is alive; with one alive, create + append + remove costs 1.0 us against 0.66 us
-    (jsdom 6.5 us, happy-dom 4.1 us, which does no fix-up). The steps are O(live iterators) per removal, as in
-    jsdom (`_workingNodeIterators`); a childless removed node is checked with one comparison per iterator. A
-    WeakRef target stays alive until the current job ends, so iterators created and dropped in one synchronous
-    loop all count until then: with 5,000 of them a create + append + remove costs 185 us (jsdom 921 us).
-  - Divergence: when `replaceChildren` fails pre-insertion validity, the iterators' pointers are restored as
-    if nothing was removed, although the nodes it had moved into a fragment stay there (the spec converts the
-    nodes before validating). It needs a NodeIterator over those nodes and an invalid call.
+- **NodeIterator pre-removing steps (DOM §6.1).** Rust registers every live iterator (`src/traversal.rs`,
+  `Env.traversal`: its root by handle) and the child-list module runs the pre-removing steps inside every
+  removal step, before unlinking (§17; DOM §4.2.3 "remove" step 4). So every removal path (removeChild, the
+  replace-all of `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or
+  `adoptNode`) adjusts the pointers against the real tree, in removal order, and only when the removal
+  happens. A removal adjusts the iterators whose root's node document is the removed node's, checked at
+  removal time, as the spec says (jsdom keeps them on the document `createNodeIterator()` was called on and
+  fails WPT `NodeIterator-removal.html` for iterators over another document's nodes).
+  - **Shared pointer words.** An iterator's reference and candidate pointers live in a JS-owned resizable
+    ArrayBuffer that Rust pins like OUT (§3.4; `iterBind`, again after each resize): two words per handle, each
+    packed `id << 1 | pointer before`, candidate 0 = not traversing. The facade walks the node table and reads
+    and writes its slot with zero FFI; around each filter callback (the only user code that can remove nodes
+    mid-walk) the candidate sits in the slot so a removal moves it. The words are iterator state, not DOM state,
+    and Rust treats them as untrusted input (unknown ids never match, a slot past the buffer is skipped). A
+    FinalizationRegistry frees an iterator's registration once JS drops it (a stale callback from a reset env
+    is ignored).
+  - Cost: one emptiness test per removal while no iterator is alive; one owner-document comparison per live
+    iterator otherwise (O(live iterators) per removal, as in jsdom). Iterators stay registered until garbage
+    collection.
+  - This replaced a first version that wrapped the twelve removal natives in JS and predicted from their
+    arguments which nodes each call removes (a second copy of the removal rules), with a virtual tree for a
+    call's earlier removals and an undo for calls that then failed validation.
 - **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
   `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
   that are rsdom-specific (innerHTML, textContent, replaceChildren, normalize, moves) and the focus-scope walk

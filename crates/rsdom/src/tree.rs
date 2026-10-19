@@ -11,8 +11,9 @@
 //! [`FreshTree`], the only quiet path; the HTML parser links its own nodes and settles them through
 //! `Env::hook_parsed` plus an ordinary insert (fragments) or [`FreshTree::take_linked`] (documents).
 //!
-//! Ranges and NodeIterators are out of scope. Their fix-up steps belong in `insert` / `remove` (fresh nodes
-//! are unreachable for them).
+//! `remove` runs the NodeIterator pre-removing steps (crate::traversal, DESIGN §16) before unlinking, as DOM
+//! §4.2.3 "remove" step 4 does. Live-range fix-ups (not implemented) belong in `insert` / `remove` too; fresh
+//! nodes are unreachable for both.
 
 use smallvec::SmallVec;
 
@@ -434,6 +435,9 @@ impl Env {
         let parent = r.parent;
         if parent == 0 {
             return;
+        }
+        if !self.traversal.is_empty() {
+            self.node_iterators_pre_remove(node);
         }
         let was_connected = r.meta & meta::CONNECTED != 0;
         self.unlink(node);

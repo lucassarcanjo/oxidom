@@ -127,6 +127,7 @@ State slots that already exist for each area (fill in the structs in your module
 | `Env.forms`, `ElementExt.form` | `forms::FormsState`, `forms::FormState` | B |
 | `Env.focus`, `DocData.focused`, `state::FOCUSED`, `EP[FOCUS]` | `focus::FocusState` | B |
 | `Env.mo`, `DocData.observers`, `meta::OBSERVED`, `EP[MO_PENDING]` | `mo::MoState` | C |
+| `Env.traversal` (NodeIterator pointers, moved by `Env::remove`) | `traversal::TraversalState` | traversal (`lib/traversal.cjs`) |
 
 Add per-element fields to `ElementExt` (boxed, allocated on demand), never to `ElementData` (kept small: fresh
 memory per element is the dominant creation cost in this VM, ~2 µs per first-touched 4 KiB page).

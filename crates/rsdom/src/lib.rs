@@ -34,6 +34,7 @@ pub mod serialize;
 pub mod string;
 pub mod table;
 pub mod text;
+pub mod traversal;
 pub mod tree;
 
 // Area modules (see CONTRIBUTING.md for ownership).

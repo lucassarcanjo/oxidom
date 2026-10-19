@@ -28,7 +28,7 @@ to-port-to-wpts/misc2.js:
   "jsdom/miscellaneous > node specific tests > jquery_attr_mixed_case": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_val_on_selects": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > setting_and_getting_script_element_text": [fail, "Expected values to be strictly equal: undefined !== …"]
-to-port-to-wpts/namespaces.js: [fail, "read of undefined (.prefix)"]
+to-port-to-wpts/namespaces.js: [fail, "NamedNodeMap named properties: attributes[name] is undefined (getNamedItem works)"]
 to-port-to-wpts/on-error.js:
   "on-error > onerror catches exceptions thrown in inline event handlers": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "on-error > onerror catches exceptions thrown in sync script execution": [fail, "TIMEOUT: Timeout of …ms exceeded"]

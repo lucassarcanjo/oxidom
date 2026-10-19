@@ -8,18 +8,33 @@
 // - jsdom's package entry (`require("../..")` from a test file resolves to refs/jsdom/lib/api.js)
 //   -> jsdom: node_modules/jsdom (the same 30.1.3 the checkout is tagged at); rsdom: ./rsdom-jsdom.cjs;
 // - any other refs/jsdom/lib/** file (a few tests import jsdom internals such as lib/jsdom/utils.js or
-//   lib/generated/js-globals.json, which only exists in a built checkout) -> node_modules/jsdom/lib/**, for both DOMs;
-// - `server-destroy` (one helper) -> a 10-line equivalent.
+//   lib/generated/js-globals.json, which only exists in a built checkout) -> node_modules/jsdom/lib/**, for both DOMs.
+//   Those internals run as jsdom code under rsdom too, so a file that only exercises them (no `new JSDOM`) says
+//   nothing about rsdom: such files are marked skip in expectations/api.yaml;
+// - `server-destroy` (one helper) -> a 10-line equivalent;
+// - other bare requests from refs/jsdom (undici, tough-cookie, ...) resolve from the repository root, so a
+//   refs/ checkout outside the repo (RSDOM_REFS, as scripts/fetch-refs.sh) shares this node_modules.
 //
 // Usage: node worker.cjs --print <dom> <file relative to refs/jsdom/test>      (debugging)
 const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 
+function realpath(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 const REPO = path.resolve(__dirname, '../../..');
-const JSDOM_TEST = path.join(REPO, 'refs/jsdom/test');
-const REFS_LIB = path.join(REPO, 'refs/jsdom/lib') + path.sep;
-const REFS_ROOT = path.join(REPO, 'refs/jsdom');
+// Real path: Node resolves modules to real paths, so a refs/ reached through a symlink (RSDOM_REFS, or a
+// worktree's refs link) must be compared through its target.
+const REFS = realpath(path.resolve(process.env.RSDOM_REFS || path.join(REPO, 'refs')));
+const JSDOM_TEST = path.join(REFS, 'jsdom/test');
+const REFS_LIB = path.join(REFS, 'jsdom/lib') + path.sep;
+const REFS_ROOT = path.join(REFS, 'jsdom');
 const NM_JSDOM = path.dirname(require.resolve('jsdom/package.json', { paths: [REPO] }));
 const SUGAR_FREE = path.join(__dirname, 'sugar-free.cjs');
 const ADAPTER = path.join(__dirname, 'rsdom-jsdom.cjs');
@@ -44,6 +59,8 @@ function installRedirects(dom) {
       const abs = path.resolve(path.dirname(parent.filename), request);
       if (abs === REFS_ROOT) return mapLib(REFS_LIB + 'api.js');
       if (abs.startsWith(REFS_LIB)) return orig.call(this, mapLib(abs), parent, isMain, options);
+    } else if (parent?.filename?.startsWith(REFS_ROOT + path.sep) && !path.isAbsolute(request) && !options?.paths) {
+      return orig.call(this, request, parent, isMain, { paths: [REPO] });
     }
     return orig.call(this, request, parent, isMain, options);
   };

@@ -23,6 +23,8 @@
     "test:fallback": "npm run test:fallback --workspace=rsdom",
     "test:e2e": "npm run test:rsdom --workspace=e2e/react-app",
     "test:parity": "node conformance/parity/run.mjs",
+    "check": "npm run lint && npm test && npm run test:fallback && npm run test:parity && npm run check:scoreboard",
+    "check:scoreboard": "node conformance/parity/report.mjs > /dev/null && git diff --exit-code conformance/parity/results/summary.md",
     "lint": "cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
     "fmt": "cargo fmt --all",
     "bench:m0": "node --expose-gc bench/micro/m0-gates.mjs",

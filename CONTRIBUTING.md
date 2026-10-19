@@ -163,7 +163,7 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
   every interface constructor; window.cjs exposes all of them), `flags` (`SHARED`, `MEMO`, `PREFILTER`),
   `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument` (read-only: the
   current browsing context's document).
-- Browsing contexts (`lib/context.cjs`, DESIGN §16): `context.open(options)` makes a window + document,
+- Browsing contexts (`lib/context.cjs`, DESIGN §17): `context.open(options)` makes a window + document,
   `ctx.close()` tears it down (timers, error routing, restored globals), `rt.reset()` closes them all. Code
   that needs "the window" without a node to ask (constructors such as `new Text()`, plain EventTargets,
   callback error reporting) uses `context.currentDocument()` / `context.current()`; a document's window is

@@ -970,7 +970,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
 
 ---
 
-## 16. Browsing contexts (lib/context.cjs)
+## 17. Browsing contexts (lib/context.cjs)
 
 A **browsing context** is one window: its window object, its document, the document's URL, the timers the
 window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and

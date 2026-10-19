@@ -1,5 +1,5 @@
 'use strict';
-// Browsing contexts (DESIGN §16): one per window. A context owns its window object, its document, the
+// Browsing contexts (DESIGN §17): one per window. A context owns its window object, its document, the
 // document's URL (the only copy: `document.URL`, `location` and `history` all read `ctx.url`), the timers
 // the window starts (animation frames, hashchange tasks), what it installed on a pre-existing global, and
 // its teardown: `close()` runs it in the right order.

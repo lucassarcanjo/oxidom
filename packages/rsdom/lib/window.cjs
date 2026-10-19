@@ -1,5 +1,5 @@
 'use strict';
-// AREA C (window/globals, DESIGN §12, §16, ROADMAP M6). `makeWindow(ctx, global)` builds the window of a
+// AREA C (window/globals, DESIGN §12, §17, ROADMAP M6). `makeWindow(ctx, global)` builds the window of a
 // browsing context (lib/context.cjs, which owns the document, the URL, timers and teardown):
 // - `createWindow()` (plain Node, contract tests): a fresh null-prototype object;
 // - the Vitest environment (lib/vitest-environment.mjs): `global = globalThis`, so every member is

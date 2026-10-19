@@ -50,7 +50,7 @@ allocations below still hold.
 | `lib/{runtime,dom,collections,native,index}.cjs` | foundation | extend through `install(rt, dom)` instead of editing |
 | `src/select/**`, `src/style/**`, `lib/select.cjs`, `lib/style.cjs` | **A** selectors, inline style, getComputedStyle | |
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | |
-| `src/mo.rs`, `lib/mo.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** window, globals, Vitest environment, MutationObserver, bench harness | |
+| `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
 
@@ -161,7 +161,14 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
   (`lookupAtom` (no intern, 0 = unknown), `internAtom`, `elementAtom`, `attrNameAtom`, `atomName`, `upperAtom`),
   `define(C, obj)` (copies getters/setters/methods non-enumerably onto `C.prototype`), `classes` (registry of
   every interface constructor; window.cjs exposes all of them), `flags` (`SHARED`, `MEMO`, `PREFILTER`),
-  `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument`.
+  `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument` (read-only: the
+  current browsing context's document).
+- Browsing contexts (`lib/context.cjs`, DESIGN §17): `context.open(options)` makes a window + document,
+  `ctx.close()` tears it down (timers, error routing, restored globals), `rt.reset()` closes them all. Code
+  that needs "the window" without a node to ask (constructors such as `new Text()`, plain EventTargets,
+  callback error reporting) uses `context.currentDocument()` / `context.current()`; a document's window is
+  `doc._ctx` (`ctx.window`, `ctx.wt`, `ctx.url`). Timers a window starts go through `ctx.setTimer` so
+  `close()` cancels them.
 - `dom` (`lib/dom.cjs` exports): every core class, `wrap`, `nodeArg(v, method)` (argument validation),
   `convertNodes`, `staticNodeListFromIds`, `isHtml(id, atom)`, `firstDescendant`, `attrLookup` / `attrSetAtom`,
   `reflectString` / `reflectBool` / `reflectLong` / `defineAccessor`, mixins `ParentNode`, `ChildNode`,

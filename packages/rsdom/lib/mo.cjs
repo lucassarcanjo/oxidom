@@ -11,6 +11,7 @@
 // Crossings per delivery: (observers with records) + 1.
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 
 const { N, V, EPI, TOKEN } = rt;
 
@@ -31,8 +32,6 @@ let queued = false;
 const stats = { ticks: 0, takes: 0, records: 0 };
 
 let dom = null;
-/** (error) => void: reports a callback exception (area B's reportException when present). */
-let report = (err) => process.emit('uncaughtException', err);
 
 function illegal() {
   throw new TypeError('Illegal constructor');
@@ -221,7 +220,8 @@ class MutationObserver {
       try {
         mo.#cb.call(mo, records, mo);
       } catch (err) {
-        report(err);
+        // "report the exception": the current browsing context's window, else the process
+        context.reportError(err);
       }
     };
   }
@@ -268,9 +268,4 @@ function install(_rt, d) {
   });
 }
 
-/** Window area: routes callback exceptions to the window's error reporting. */
-function setReporter(fn) {
-  report = fn;
-}
-
-module.exports = { install, MutationObserver, MutationRecord, stats, setReporter };
+module.exports = { install, MutationObserver, MutationRecord, stats };

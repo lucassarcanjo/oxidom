@@ -968,6 +968,34 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
+---
+
+## 17. Browsing contexts (lib/context.cjs)
+
+A **browsing context** is one window: its window object, its document, the document's URL, the timers the
+window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and
+`createWindow()`, the Vitest environment (§12) and a future `JSDOM` class are adapters over `open()`.
+
+- **Current context.** An Env (§2.1) holds any number of open contexts, but rsdom has one set of interface
+  objects per Env (`rt.classes`), not one per window. Whatever needs "the window" without a node to ask
+  resolves through the current context: `new Text()` / `Comment` / `DocumentFragment` / `Range` / `Option` /
+  `Image`, the URL of `new Document()` and `DOMParser` documents, the focus fast path (Rust's main document is
+  the current document, so `EP[FOCUS]` mirrors its focus), plain-EventTarget dispatch and MutationObserver
+  callback errors. `open()` makes the new context current (unless `main: false`); `close()` of the current
+  context makes the previous open one current again and re-points `setMainDocument`. `rt.defaultDocument` is
+  a read-only view of the current document.
+- **Links.** A context document's `_ctx` wrapper field is the only document -> window link (`defaultView`,
+  `location`, `getSelection`, the event path's WindowTarget `ctx.wt`); `context.ofWindow(win)` is the reverse.
+  Documents without a window (`createHTMLDocument`, `new Document()`, `DOMParser`, clones) keep `_url`.
+- **URL.** `ctx.url` is the only copy: `document.URL`, `location` and `history` read it, and fragment
+  navigation and `pushState` / `replaceState` replace it.
+- **Teardown.** `close()` cancels the context's timers (animation frames, hashchange tasks), runs what was
+  installed over the window in reverse order (Vitest's error routing, then the saved global descriptors) and
+  forgets the context. `rt.reset()` closes every open context, newest first (§11 Teardown: the Vitest
+  environment calls `ctx.close()` and then `rt.reset()`).
+
+---
+
 ## 19. Facade memo protocol (2026-10)
 
 Invariant 2 (§0) allows JS to memoise Rust answers only, each memo validated by a Rust-written counter and

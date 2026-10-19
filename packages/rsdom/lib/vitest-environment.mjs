@@ -59,26 +59,19 @@ export default {
   setup(global, options = {}) {
     const o = options.rsdom ?? {};
     applyOptions(o);
-    const facade = require('./index.cjs');
-    const win = require('./window.cjs');
-    const { rt } = facade;
+    const { rt } = require('./index.cjs'); // installs every area
+    const context = require('./context.cjs');
     if (process.env.RSDOM_COUNTERS === '1') rt.N.countersReset();
 
-    // window.cjs records the original descriptor of every global it defines (only those: reading all of
-    // globalThis would trigger Node's lazy getters) and restoreWindow() puts them back.
-    facade.createWindow({
-      url: o.url ?? 'http://localhost:3000/',
-      html: o.html,
-      global,
-    });
-    const clearErrors = win.catchWindowErrors(global);
+    // A browsing context on `global` (DESIGN §17). window.cjs records the original descriptor of every global
+    // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
+    // close() puts them back, after cancelling its timers and removing Vitest's error routing.
+    const ctx = context.open({ url: o.url, html: o.html, global, catchErrors: true });
 
     return {
-      teardown(g) {
+      teardown() {
         if (process.env.RSDOM_COUNTERS === '1') dumpCounters(rt);
-        clearErrors();
-        win.closeWindow(g);
-        win.restoreWindow(g);
+        ctx.close();
         // Drops the whole DOM in one call (no per-node finalizers) and leaves a fresh env behind; every
         // wrapper handed out before is neutered.
         rt.reset();

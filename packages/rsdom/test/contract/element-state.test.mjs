@@ -1,4 +1,4 @@
-// Element state contract (DESIGN §16): the HTML predicates rsdom keeps in one Rust module
+// Element state contract (DESIGN §18): the HTML predicates rsdom keeps in one Rust module
 // (src/forms/element_state.rs) and the cases where its former copies disagreed with jsdom.
 import { createRequire } from 'node:module';
 import { describe, it, expect, beforeEach } from 'vitest';

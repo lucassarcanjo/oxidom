@@ -562,7 +562,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 - Option selectedness and dirtiness, select single-selection exclusivity, `selectedIndex` of -1 when nothing matches.
 - Radio groups keyed by (name, form owner, tree).
 - Selection offsets in UTF-16, moving to the end when the value changes.
-- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern and number range, which fires a cancelable `invalid` event from JS. minlength/maxlength only affect `:valid` / `:invalid`, as in jsdom (§16).
+- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern and number range, which fires a cancelable `invalid` event from JS. minlength/maxlength only affect `:valid` / `:invalid`, as in jsdom (§18).
 
 **Internal reads never go through `element.value`.** React redefines `value` on each instance. Rust reads its own `FormState`.
 
@@ -968,7 +968,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
-## 16. Element state: one home for the HTML control predicates (2026-10)
+## 18. Element state: one home for the HTML control predicates (2026-10)
 
 The questions "is this control disabled", "what is its type", "is it a submit button", "is this the summary of
 its details", "is it valid" were answered in several places: selector matching (`select/adapter.rs`), the

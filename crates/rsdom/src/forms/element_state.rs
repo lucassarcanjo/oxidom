@@ -1,4 +1,4 @@
-//! Element state (DESIGN §16): the HTML predicates over form controls and `<details>` / `<summary>` that
+//! Element state (DESIGN §18): the HTML predicates over form controls and `<details>` / `<summary>` that
 //! more than one consumer asks, with one implementation each. The consumers are selector matching
 //! (`select/adapter.rs`), the forms algorithms (`forms/mod.rs`), focusability (`focus.rs`) and the facade
 //! (the natives at the bottom of this file, and the input-type table build.rs generates from

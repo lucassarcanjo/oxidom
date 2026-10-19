@@ -168,12 +168,44 @@ impl OutBuf {
     }
 }
 
+/// NodeIterator pointer words (traversal.rs, DESIGN §16): a JS-owned resizable ArrayBuffer the facade reads
+/// and writes between natives (zero-FFI traversals) and Rust adjusts during removals. Rust treats every word as
+/// untrusted input. `own` stands in until `iterBind` (Rust tests).
+#[derive(Default)]
+pub struct IterWords {
+    ext: Option<(NonNull<u32>, usize)>,
+    own: Vec<u32>,
+}
+
+impl IterWords {
+    /// The bound words (empty until bound, outside tests).
+    #[inline]
+    pub fn words(&mut self) -> &mut [u32] {
+        match self.ext {
+            // SAFETY: (ptr, n) were read from the pinned JS ArrayBuffer by `iterBind` (re-run after every
+            // `resize()`, which keeps a resizable buffer's data pointer); JS cannot run while this borrow lives.
+            Some((p, n)) => unsafe { std::slice::from_raw_parts_mut(p.as_ptr(), n) },
+            None => &mut self.own,
+        }
+    }
+
+    /// Rust-owned words of at least `n` (tests: no JS buffer is bound).
+    #[cfg(test)]
+    pub fn own_at_least(&mut self, n: usize) -> &mut [u32] {
+        if self.own.len() < n {
+            self.own.resize(n, 0);
+        }
+        &mut self.own
+    }
+}
+
 /// napi references that keep the JS side of the bindings alive.
 struct JsBinding {
     env: sys::napi_env,
     table_ref: sys::napi_ref,
     ep_ref: sys::napi_ref,
     out_ref: sys::napi_ref,
+    iter_ref: sys::napi_ref,
     shared: bool,
 }
 
@@ -184,6 +216,7 @@ impl Default for JsBinding {
             table_ref: ptr::null_mut(),
             ep_ref: ptr::null_mut(),
             out_ref: ptr::null_mut(),
+            iter_ref: ptr::null_mut(),
             shared: false,
         }
     }
@@ -216,7 +249,7 @@ impl JsBinding {
 
     fn release(&mut self) {
         self.detach_table();
-        for r in [self.ep_ref, self.out_ref] {
+        for r in [self.ep_ref, self.out_ref, self.iter_ref] {
             if !r.is_null() && !self.env.is_null() {
                 // SAFETY: references created by this binding on the same env.
                 unsafe { sys::napi_delete_reference(self.env, r) };
@@ -224,6 +257,7 @@ impl JsBinding {
         }
         self.ep_ref = ptr::null_mut();
         self.out_ref = ptr::null_mut();
+        self.iter_ref = ptr::null_mut();
     }
 }
 
@@ -259,6 +293,10 @@ pub struct Env {
     pub mo: crate::mo::MoState,
     /// Area B: focus state (focus.rs).
     pub focus: crate::focus::FocusState,
+    /// Live NodeIterators (traversal.rs, DESIGN §16).
+    pub traversal: crate::traversal::TraversalState,
+    /// Their pointer words, shared with the facade (`iterBind`).
+    pub iter_words: IterWords,
     /// Area C: per-native call counters (bench build, `counters` feature; zero-sized otherwise).
     pub counters: crate::counters::Counters,
     /// html5ever atom -> rsdom atom cache (parse.rs).
@@ -302,6 +340,8 @@ impl Env {
             forms: Default::default(),
             mo: Default::default(),
             focus: Default::default(),
+            traversal: Default::default(),
+            iter_words: Default::default(),
             parse_cache: Default::default(),
             counters: Default::default(),
             main_doc: 0,
@@ -487,6 +527,25 @@ impl Env {
             unsafe { sys::napi_create_reference(env, out_ab, 1, &mut self.js.out_ref) };
         }
         self.out.cap() as u32
+    }
+
+    /// Binds the NodeIterator pointer words to `ab` (the facade's resizable ArrayBuffer; again after every
+    /// `resize()`), pinning it like OUT. A non-ArrayBuffer unbinds them. Returns the capacity in words.
+    pub(crate) fn bind_iters(&mut self, env: sys::napi_env, ab: sys::napi_value) -> u32 {
+        if !self.js.iter_ref.is_null() {
+            // SAFETY: reference created by this binding on the same env.
+            unsafe { sys::napi_delete_reference(env, self.js.iter_ref) };
+            self.js.iter_ref = ptr::null_mut();
+        }
+        // SAFETY: value of the current callback scope.
+        let (p, len) = unsafe { crate::ffi::args::read_arraybuffer(env, ab) };
+        self.iter_words.ext =
+            NonNull::new(p.cast::<u32>()).filter(|p| p.as_ptr().is_aligned()).map(|p| (p, len / 4));
+        if self.iter_words.ext.is_some() {
+            // SAFETY: pins the ArrayBuffer whose data pointer we just cached.
+            unsafe { sys::napi_create_reference(env, ab, 1, &mut self.js.iter_ref) };
+        }
+        self.iter_words.words().len() as u32
     }
 
     /// The table as an external ArrayBuffer (one per allocation, cached by reference).

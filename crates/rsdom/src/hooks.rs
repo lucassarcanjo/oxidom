@@ -6,15 +6,16 @@
 //! |---|---|---|
 //! | `node_connected` | each inclusive descendant of a subtree that became connected | style, forms |
 //! | `node_disconnected` | each inclusive descendant of a subtree that became disconnected | focus fixup, style, forms |
-//! | `children_changed` | after any child-list change of `parent` (once per operation) | style, forms |
+//! | `children_changed` | DOM "children changed steps": after each insert or remove step on `parent` (replace-all runs it once per removed child and once for the insertion, as jsdom does); for a `FreshTree`, once per parent when it finishes | style, forms |
 //! | `attr_changed` | after an attribute was added, removed or set to a different value | style, forms, mo |
 //! | `attr_same_value` | after a same-value set of class/id/style/type/hidden/open/popover (no `attr_ver` / `EP[ATTR]` bump; other same-value sets take `attr_changed`) | forms, mo |
 //! | `char_data_changed` | after Text/Comment/PI data changed | style, forms, mo |
 //! | `cloned` | cloning steps for each cloned element | forms |
 //! | `parsed` | once per parse, for the nodes it created (ids `base..`), before they are inserted | forms |
 //!
-//! MutationObserver childList records are queued directly by the algorithms via `crate::mo::queue_child_list`
-//! (they need the exact added/removed/prev/next of each step).
+//! The child-list module (tree.rs, DESIGN §17) is the only caller of the connectivity and children-changed
+//! hooks, and it queues the MutationObserver childList records itself (they need the exact
+//! added/removed/prev/next of each step, or the merged record of replace / replace-all).
 
 use crate::atoms::Atom;
 use crate::env::{Env, ep};

@@ -1,7 +1,8 @@
-// rsdom-only traversal protocols (lib/traversal.cjs, DESIGN §16): the removal natives are wrapped only once a
-// NodeIterator exists, the wrappers keep OUT intact for replaceChildren in both table modes, iterators and
-// walkers from an env that was reset return null instead of walking the new env's ids, and a traversal
-// re-entered from its own filter leaves the outer one's state alone (where jsdom 30 loses it).
+// rsdom-only traversal protocols (lib/traversal.cjs, src/traversal.rs, DESIGN §16): NodeIterator pointers live
+// in a buffer shared with Rust and move inside the removal natives (nothing in JS wraps them), replaceChildren
+// with a live iterator inserts exactly the given nodes in both table modes, iterators and walkers from an env
+// that was reset return null instead of walking the new env's ids, and a traversal re-entered from its own
+// filter leaves the outer one's state alone (where jsdom 30 loses it).
 import { createRequire } from 'node:module';
 import { describe, it, expect, afterAll } from 'vitest';
 
@@ -13,19 +14,48 @@ afterAll(() => {
 });
 
 describe('traversal (rsdom protocols)', () => {
-  it('the removal natives are wrapped by the first createNodeIterator(), not by createTreeWalker()', () => {
+  it('removal natives stay unwrapped; a filter that removes nodes moves the candidate in Rust', () => {
     const { document } = createWindow();
-    const before = rt.N.removeChild;
-    document.createTreeWalker(document.body).nextNode();
-    expect(rt.N.removeChild).toBe(before);
-    document.createNodeIterator(document.body);
-    expect(rt.N.removeChild).not.toBe(before);
-    const wrapped = rt.N.removeChild;
-    document.createNodeIterator(document.body);
-    expect(rt.N.removeChild).toBe(wrapped); // once per process
+    const natives = { ...rt.N };
+    const host = document.createElement('div');
+    host.innerHTML = '<p id="a"></p><p id="b"></p><p id="c"></p>';
+    document.body.appendChild(host);
+    const seen = [];
+    const it = document.createNodeIterator(host, 1, (n) => {
+      seen.push(n.id || n.localName);
+      // removing the candidate itself: the walk continues from where the pre-removing steps put it
+      if (n.id === 'b') n.remove();
+      return 1;
+    });
+    expect(Object.keys(natives).every((k) => rt.N[k] === natives[k])).toBe(true);
+    expect(it.nextNode()).toBe(host);
+    expect(it.nextNode().id).toBe('a');
+    expect(it.nextNode().id).toBe('b');
+    // b was removed while it was the candidate (pointer after it): the steps moved it to a, as jsdom does
+    expect(it.referenceNode.id).toBe('a');
+    expect(it.pointerBeforeReferenceNode).toBe(false);
+    expect(it.nextNode().id).toBe('c');
+    expect(seen).toEqual(['div', 'a', 'b', 'c']);
   });
 
-  it('replaceChildren with a live iterator inserts exactly the given nodes (OUT copied around the steps)', () => {
+  it('more live iterators than the first pointer buffer holds: each one is still moved by removals', () => {
+    const { document } = createWindow();
+    const host = document.createElement('div');
+    host.innerHTML = '<p id="a"></p><p id="b"></p>';
+    document.body.appendChild(host);
+    const its = [];
+    for (let i = 0; i < 300; i++) {
+      const it = document.createNodeIterator(host);
+      it.nextNode();
+      it.nextNode(); // reference: a, pointer after it
+      its.push(it);
+    }
+    document.getElementById('a').remove();
+    expect(its.every((it) => it.referenceNode === host && it.pointerBeforeReferenceNode === false)).toBe(true);
+    expect(its[299].nextNode().id).toBe('b');
+  });
+
+  it('replaceChildren with a live iterator inserts exactly the given nodes', () => {
     const { document } = createWindow();
     const host = document.createElement('div');
     host.innerHTML = '<p id="old1"></p><p id="old2"></p>';

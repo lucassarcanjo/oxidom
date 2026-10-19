@@ -1,16 +1,26 @@
 //! Differential test (ROADMAP M1 acceptance): random sequences of tree operations applied to the Rust arena
 //! and to a simple Vec-based reference model must produce identical trees and identical errors, and the
 //! arena's link invariants (siblings, first/last, child_len, parent, CONNECTED, ownerDocument) must hold.
+//! The child-list module's bookkeeping (DESIGN §17) is checked after every operation too: a changed child
+//! list changes its `child_ver` and `EP[TREE]`, the document id map agrees with the tree, clones queue no
+//! MutationObserver records, and replaying the childList records of an observed parent over its old child
+//! list yields its new one.
 //!
 //! `PROPTEST_CASES` overrides the default of 10_000 sequences.
 
 use proptest::prelude::*;
 use rsdom::Env;
+use rsdom::atoms::Atom;
 use rsdom::atoms::atom;
 use rsdom::dom::DocKind;
+use rsdom::env::ep;
 use rsdom::error::DomError;
+use rsdom::mo::{HEADER_WORDS, REC_WORDS, opt};
 use rsdom::node::{Ns, kind, meta};
 use rsdom::table::NodeId;
+
+/// Values of the `id` attributes `Op::SetId` assigns.
+const IDS: [&str; 3] = ["i0", "i1", "i2"];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum K {
@@ -32,6 +42,8 @@ enum Op {
     Remove(usize),
     ReplaceChildren(usize, Vec<usize>),
     AdoptToOther(usize),
+    SetId(usize, usize),
+    Clone(usize),
 }
 
 fn op() -> impl Strategy<Value = Op> {
@@ -48,6 +60,8 @@ fn op() -> impl Strategy<Value = Op> {
         2 => i().prop_map(Op::Remove),
         1 => (i(), prop::collection::vec(i(), 0..3)).prop_map(|(a, v)| Op::ReplaceChildren(a, v)),
         1 => i().prop_map(Op::AdoptToOther),
+        2 => (i(), 0..IDS.len()).prop_map(|(a, v)| Op::SetId(a, v)),
+        1 => i().prop_map(Op::Clone),
     ]
 }
 
@@ -60,6 +74,8 @@ struct Model {
     /// pool index 0 is <body> (connected through the fixed html/document chain, not modelled as nodes)
     connected_root: usize,
     other_doc: Vec<bool>,
+    /// index into `IDS` of the element's id attribute
+    id: Vec<Option<usize>>,
 }
 
 type R = Result<(), DomError>;
@@ -70,7 +86,16 @@ impl Model {
         self.parent.push(None);
         self.children.push(Vec::new());
         self.other_doc.push(false);
+        self.id.push(None);
         self.kinds.len() - 1
+    }
+
+    /// Elements of `root`'s subtree in tree order.
+    fn preorder(&self, root: usize, out: &mut Vec<usize>) {
+        out.push(root);
+        for &c in &self.children[root] {
+            self.preorder(c, out);
+        }
     }
 
     fn is_incl_ancestor(&self, a: usize, mut n: usize) -> bool {
@@ -181,6 +206,18 @@ struct World {
     other: NodeId,
     ids: Vec<NodeId>,
     m: Model,
+    id_atoms: Vec<Atom>,
+}
+
+/// One decoded childList record: (target, added, removed, next sibling).
+type ChildRec = (NodeId, Vec<NodeId>, Vec<NodeId>, NodeId);
+
+/// What `World::step` compares an operation's effects against.
+struct Before {
+    children: Vec<Vec<usize>>,
+    in_body: Vec<bool>,
+    child_ver: Vec<u32>,
+    tree: u32,
 }
 
 impl World {
@@ -193,7 +230,101 @@ impl World {
         let mut m = Model::default();
         let b = m.add(K::Element);
         m.connected_root = b;
-        World { e, doc, other, ids: vec![body], m }
+        let id_atoms = IDS.iter().map(|v| e.intern(v)).collect();
+        // Observer 1 watches <body>'s subtree; `step` drains it after every operation.
+        e.mo_observe(1, body, opt::CHILD_LIST | opt::SUBTREE, &[]).unwrap();
+        World { e, doc, other, ids: vec![body], m, id_atoms }
+    }
+
+    /// Model nodes inside <body>'s subtree (observed by observer 1 whether or not <body> is attached).
+    fn in_body(&self) -> Vec<bool> {
+        (0..self.ids.len()).map(|i| self.m.root(i) == self.m.connected_root).collect()
+    }
+
+    /// Takes observer 1's records (the notification step, which also drops transient registrations).
+    fn take_records(&mut self) -> Vec<ChildRec> {
+        let _ = self.e.mo_take(0, u32::MAX).len();
+        let n = self.e.out.read(0) as usize;
+        let w = self.e.out.read_vec(n);
+        let cnt = w[2] as usize;
+        let ids = &w[HEADER_WORDS + cnt * REC_WORDS..];
+        (0..cnt)
+            .map(|i| {
+                let r = &w[HEADER_WORDS + i * REC_WORDS..HEADER_WORDS + (i + 1) * REC_WORDS];
+                let (add, rem) = (r[2] as usize, r[4] as usize);
+                (r[1], ids[add..add + r[3] as usize].to_vec(), ids[rem..rem + r[5] as usize].to_vec(), r[7])
+            })
+            .collect()
+    }
+
+    /// Applies `op`, then checks the tree against the model and the bookkeeping against the change.
+    fn step(&mut self, op: &Op) {
+        let before = Before {
+            children: self.m.children.clone(),
+            in_body: self.in_body(),
+            child_ver: self.ids.iter().map(|&id| self.e.rec(id).child_ver).collect(),
+            tree: self.e.ep.get(ep::TREE),
+        };
+        self.apply(op);
+        self.check();
+        let recs = self.take_records();
+        if matches!(op, Op::Clone(_)) {
+            assert!(recs.is_empty(), "clones queue no records: {recs:?}");
+        }
+        let tree = self.e.ep.get(ep::TREE);
+        let in_body = self.in_body();
+        for (i, old) in before.children.iter().enumerate() {
+            let id = self.ids[i];
+            let changed = *old != self.m.children[i];
+            if changed {
+                assert_ne!(self.e.rec(id).child_ver, before.child_ver[i], "child_ver of pool[{i}]");
+                assert!(tree > before.tree, "EP[TREE] after changing pool[{i}]");
+            }
+            assert!(self.e.rec(id).child_ver <= tree, "child_ver of pool[{i}] ahead of EP[TREE]");
+            // Replaying the records of an observed parent over its old child list yields the new one.
+            if before.in_body[i] && in_body[i] {
+                let mut list: Vec<NodeId> = old.iter().map(|&c| self.ids[c]).collect();
+                for (_, added, removed, next) in recs.iter().filter(|r| r.0 == id) {
+                    list.retain(|c| !removed.contains(c));
+                    let at = if *next != 0 {
+                        list.iter().position(|c| c == next).expect("record's next sibling is a child")
+                    } else {
+                        list.len()
+                    };
+                    list.splice(at..at, added.iter().copied());
+                }
+                let want: Vec<NodeId> = self.m.children[i].iter().map(|&c| self.ids[c]).collect();
+                assert_eq!(list, want, "records replayed over pool[{i}] (changed: {changed}) {recs:?}");
+            }
+        }
+        // The id map agrees with the tree: the first connected element with the id, in tree order.
+        // <body> is connected while it is still the html element's child (a model root with an arena parent).
+        let body_connected = self.m.parent[0].is_none() && self.e.rec(self.ids[0]).parent != 0;
+        let mut order = Vec::new();
+        if body_connected {
+            self.m.preorder(self.m.connected_root, &mut order);
+        }
+        for (v, &a) in self.id_atoms.iter().enumerate() {
+            let want = order.iter().find(|&&i| self.m.id[i] == Some(v)).map_or(0, |&i| self.ids[i]);
+            assert_eq!(self.e.get_element_by_id(self.doc, a), want, "getElementById({})", IDS[v]);
+            assert_eq!(self.e.get_element_by_id(self.other, a), 0, "other document id map");
+        }
+    }
+
+    /// Adds the model of the deep copy `copy` of pool node `src` (same shape and ids) and returns its index.
+    fn add_clone(&mut self, src: usize, copy: NodeId) -> usize {
+        let i = self.m.add(self.m.kinds[src]);
+        self.ids.push(copy);
+        self.m.other_doc[i] = self.m.other_doc[src];
+        self.m.id[i] = self.m.id[src];
+        let arena_children = self.e.children_vec(copy).to_vec();
+        assert_eq!(arena_children.len(), self.m.children[src].len(), "clone of pool[{src}]");
+        for (&c, cc) in self.m.children[src].clone().iter().zip(arena_children) {
+            let ci = self.add_clone(c, cc);
+            self.m.parent[ci] = Some(i);
+            self.m.children[i].push(ci);
+        }
+        i
     }
 
     fn pick(&self, i: usize) -> usize {
@@ -307,12 +438,27 @@ impl World {
                             self.m.parent.pop();
                             self.m.children.pop();
                             self.m.other_doc.pop();
+                            self.m.id.pop();
                         }
                     }
                 }
                 if want.is_ok() || r.is_ok() {
                     assert_eq!(r, want, "replaceChildren {p} {ns:?}");
                 }
+            }
+            Op::SetId(n, v) => {
+                let n = self.pick(n);
+                if self.m.kinds[n] != K::Element {
+                    return;
+                }
+                self.e.set_attr(self.ids[n], atom::ID, IDS[v]).unwrap();
+                self.m.id[n] = Some(v);
+            }
+            Op::Clone(n) => {
+                let n = self.pick(n);
+                let src = self.ids[n];
+                let copy = self.e.clone_node(src, self.e.node_doc(src), true).unwrap();
+                self.add_clone(n, copy);
             }
             Op::AdoptToOther(n) => {
                 let n = self.pick(n);
@@ -373,8 +519,7 @@ proptest! {
             w.apply(&Op::CreateElement);
         }
         for op in &ops {
-            w.apply(op);
-            w.check();
+            w.step(op);
         }
     }
 }

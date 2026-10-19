@@ -18,6 +18,7 @@
 //! Hooks (crate::hooks) keep the state in step with attribute and tree mutations; parser-created elements are
 //! initialised by [`on_parsed`] (the parser inserts nodes raw, without per-node hooks).
 
+pub mod element_state;
 pub mod types;
 
 use rustc_hash::FxHashMap;
@@ -29,6 +30,7 @@ use crate::error::{Code, DomError, DomResult, code};
 use crate::node::{kind, meta, state};
 use crate::string::Str;
 use crate::table::NodeId;
+use element_state::{has_datalist_ancestor, input_type, is_button, is_disabled, validity_bits};
 use types::{Mode, ty};
 
 type Ids = SmallVec<[NodeId; 16]>;
@@ -205,12 +207,6 @@ fn touch(e: &mut Env, id: NodeId) {
     e.rec_mut(id).form_ver = v;
 }
 
-/// Normalized input type of an `<input>` (state bits).
-#[inline]
-pub fn input_type(e: &Env, id: NodeId) -> u32 {
-    (st(e, id) & state::INPUT_TYPE_MASK) >> TYPE_SHIFT
-}
-
 /// Null-namespace attribute value (`getAttributeNS(null, a)`).
 #[inline]
 fn attr(e: &Env, id: NodeId, a: Atom) -> Option<&str> {
@@ -269,17 +265,6 @@ pub fn child_text(e: &Env, id: NodeId, out: &mut String) {
     }
 }
 
-/// HTML "rules for parsing non-negative integers" (`select.size`).
-fn parse_non_negative(v: &str) -> Option<u32> {
-    let t = types::trim_ascii_ws(v);
-    let t = t.strip_prefix('+').unwrap_or(t);
-    let n = t.bytes().take_while(u8::is_ascii_digit).count();
-    if n == 0 {
-        return None;
-    }
-    t[..n].parse::<u64>().ok().map(|x| x.min(u32::MAX as u64) as u32)
-}
-
 fn utf16(s: &str) -> u32 {
     crate::string::utf16_len(s)
 }
@@ -324,29 +309,6 @@ impl Env {
             None | Some("") => form,
             Some(_) => self.root_of(form),
         }
-    }
-
-    /// HTML "actually disabled" as jsdom's `isDisabled`: an own `disabled` on button/input/select/textarea,
-    /// or an ancestor `<fieldset disabled>` unless inside its first `<legend>` child.
-    pub fn is_disabled(&self, id: NodeId) -> bool {
-        let r = self.rec(id);
-        if r.meta & meta::DISABLED_ATTR != 0
-            && r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
-            && matches!(Atom(r.local), atom::BUTTON | atom::INPUT | atom::SELECT | atom::TEXTAREA)
-        {
-            return true;
-        }
-        let mut p = r.parent;
-        while p != 0 {
-            if self.rec(p).meta & meta::DISABLED_ATTR != 0 && self.is_html_elem(p, atom::FIELDSET) {
-                let legend = element_children(self, p).find(|&c| self.is_html_elem(c, atom::LEGEND));
-                if !legend.is_some_and(|l| self.is_inclusive_ancestor(l, id)) {
-                    return true;
-                }
-            }
-            p = self.rec(p).parent;
-        }
-        false
     }
 
     /// Listed elements (`form.elements` / `fieldset.elements` membership).
@@ -394,9 +356,12 @@ impl Env {
         }
     }
 
-    /// Submittable elements (image buttons included) owned by `form`, in tree order: the input of the HTML
-    /// "construct the entry list" algorithm (FormData).
-    pub fn form_submittables(&self, form: NodeId, out: &mut Vec<NodeId>) {
+    /// The controls of `form` that contribute entries to its entry list, in tree order: the control filter
+    /// of the HTML "construct the entry list" algorithm (jsdom `FormData-impl.js` `constructTheEntryList`)
+    /// over the submittable elements `form` owns. Skipped: datalist descendants, disabled controls, buttons
+    /// other than `submitter` (0 = none), unchecked checkboxes and radios, and `<object>`. The facade turns
+    /// the rest into name/value entries (it owns the FileList and image coordinates).
+    pub fn entry_list_controls(&self, form: NodeId, submitter: NodeId, out: &mut Vec<NodeId>) {
         out.clear();
         if !self.is_html_elem(form, atom::FORM) {
             return;
@@ -404,7 +369,16 @@ impl Env {
         let root = self.form_search_root(form);
         let mut n = root;
         while n != 0 {
-            if self.is_submittable(n) && self.form_owner(n) == form {
+            if self.is_submittable(n)
+                && self.form_owner(n) == form
+                && !has_datalist_ancestor(self, n)
+                && !is_disabled(self, n)
+                && !(is_button(self, n) && n != submitter)
+                && !(is_input(self, n)
+                    && matches!(input_type(self, n), ty::CHECKBOX | ty::RADIO)
+                    && st(self, n) & state::CHECKED == 0)
+                && !self.is_html_elem(n, atom::OBJECT)
+            {
                 out.push(n);
             }
             n = self.next_in_subtree(n, root);
@@ -420,15 +394,6 @@ impl Env {
                 out.push(n);
             }
             n = self.next_in_subtree(n, fs);
-        }
-    }
-
-    /// The `type` of a `<button>` (submit unless reset/button).
-    pub fn button_type(&self, id: NodeId) -> u32 {
-        match attr(self, id, atom::TYPE) {
-            Some(v) if v.eq_ignore_ascii_case("reset") => ty::RESET,
-            Some(v) if v.eq_ignore_ascii_case("button") => ty::BUTTON,
-            _ => ty::SUBMIT,
         }
     }
 
@@ -942,7 +907,7 @@ impl Env {
 
     fn display_size(&self, sel: NodeId) -> u32 {
         attr(self, sel, atom::SIZE)
-            .and_then(parse_non_negative)
+            .and_then(element_state::parse_non_negative_integer)
             .unwrap_or(if has(self, sel, atom::MULTIPLE) { 4 } else { 1 })
     }
 
@@ -1230,174 +1195,6 @@ impl Env {
         }
     }
 
-    // ============================================================================ validity
-
-    fn has_datalist_ancestor(&self, id: NodeId) -> bool {
-        let mut p = self.rec(id).parent;
-        while p != 0 {
-            if self.is_html_elem(p, atom::DATALIST) {
-                return true;
-            }
-            p = self.rec(p).parent;
-        }
-        false
-    }
-
-    /// Candidate for constraint validation (`willValidate`).
-    fn is_candidate(&self, id: NodeId) -> bool {
-        let r = self.rec(id);
-        if r.meta & (meta::KIND_MASK | meta::NS_MASK) != kind::ELEMENT {
-            return false;
-        }
-        let barred = match Atom(r.local) {
-            atom::INPUT => {
-                let t = input_type(self, id);
-                matches!(t, ty::HIDDEN | ty::RESET | ty::BUTTON)
-                    || (types::readonly_applies(t) && has(self, id, atom::READONLY))
-            }
-            atom::TEXTAREA | atom::SELECT => has(self, id, atom::READONLY),
-            atom::BUTTON => self.button_type(id) != ty::SUBMIT,
-            _ => true,
-        };
-        !barred && !self.is_disabled(id) && !self.has_datalist_ancestor(id)
-    }
-
-    fn input_mutable(&self, id: NodeId, t: u32) -> bool {
-        !self.is_disabled(id) && !(types::readonly_applies(t) && has(self, id, atom::READONLY))
-    }
-
-    fn input_required(&self, id: NodeId) -> bool {
-        is_input(self, id) && types::required_applies(input_type(self, id)) && has(self, id, atom::REQUIRED)
-    }
-
-    fn input_validity(&self, id: NodeId) -> u32 {
-        use vbits::*;
-        let t = input_type(self, id);
-        let v = raw(self, id);
-        let mut b = 0;
-        let required = self.input_required(id);
-        if required && types::mode(t) == Mode::Value && self.input_mutable(id, t) && v.is_empty() {
-            b |= VALUE_MISSING;
-        }
-        match t {
-            ty::CHECKBOX if required && st(self, id) & state::CHECKED == 0 => b |= VALUE_MISSING,
-            ty::RADIO => {
-                let others = self.radio_group_others(id, false);
-                let any_req = required || others.iter().any(|&o| self.input_required(o));
-                let any_checked = st(self, id) & state::CHECKED != 0
-                    || others.iter().any(|&o| st(self, o) & state::CHECKED != 0);
-                if any_req && !any_checked {
-                    b |= VALUE_MISSING;
-                }
-            }
-            ty::FILE if required => b |= CHECK_FILES,
-            ty::EMAIL if !v.is_empty() => {
-                let ok = if has(self, id, atom::MULTIPLE) {
-                    types::is_valid_email_list(v)
-                } else {
-                    types::is_valid_email(v)
-                };
-                if !ok {
-                    b |= TYPE_MISMATCH;
-                }
-            }
-            ty::URL if !v.is_empty() => b |= CHECK_URL,
-            _ => {}
-        }
-        if !v.is_empty() && types::length_pattern_applies(t) && has(self, id, atom::PATTERN) {
-            b |= CHECK_PATTERN;
-        }
-        if types::is_numeric(t) {
-            let (dmin, dmax) = types::default_min_max(t);
-            let num = |a| attr(self, id, a).and_then(|s| types::to_number(t, s));
-            let min = num(atom::MIN).or(dmin);
-            let max = num(atom::MAX).or(dmax);
-            if let Some(x) = types::to_number(t, v) {
-                let reversed = t == ty::TIME && matches!((min, max), (Some(lo), Some(hi)) if hi < lo);
-                if reversed {
-                    if let (Some(lo), Some(hi)) = (min, max) {
-                        if x > hi && x < lo {
-                            b |= RANGE_OVERFLOW | RANGE_UNDERFLOW;
-                        }
-                    }
-                } else {
-                    if max.is_some_and(|m| x > m) {
-                        b |= RANGE_OVERFLOW;
-                    }
-                    if min.is_some_and(|m| x < m) {
-                        b |= RANGE_UNDERFLOW;
-                    }
-                }
-                if let Some(step) = self.allowed_step(id, t) {
-                    let base = num(atom::MIN).or_else(|| num(atom::VALUE)).unwrap_or(if t == ty::WEEK {
-                        -259_200_000.0
-                    } else {
-                        0.0
-                    });
-                    let q = (x - base) / step;
-                    if (q - q.round()).abs() > 1e-9 * q.abs().max(1.0) {
-                        b |= STEP_MISMATCH;
-                    }
-                }
-            }
-        }
-        b
-    }
-
-    /// Allowed value step (None = "any" / not applicable).
-    fn allowed_step(&self, id: NodeId, t: u32) -> Option<f64> {
-        if !types::is_numeric(t) {
-            return None;
-        }
-        let (scale, dflt) = types::step_scale(t);
-        match attr(self, id, atom::STEP) {
-            None => Some(dflt * scale),
-            Some(s) if s.eq_ignore_ascii_case("any") => None,
-            Some(s) => match types::parse_float(s) {
-                Some(v) if v > 0.0 => Some(v * scale),
-                _ => Some(dflt * scale),
-            },
-        }
-    }
-
-    /// Validity bits (see [`vbits`]) of a form-associated element.
-    pub fn validity(&self, id: NodeId) -> u32 {
-        use vbits::*;
-        let r = self.rec(id);
-        if r.meta & (meta::KIND_MASK | meta::NS_MASK) != kind::ELEMENT {
-            return 0;
-        }
-        let mut b = match Atom(r.local) {
-            atom::INPUT => self.input_validity(id),
-            atom::TEXTAREA => {
-                let mut v = String::new();
-                self.value_into(id, &mut v);
-                let mutable = !self.is_disabled(id) && !has(self, id, atom::READONLY);
-                if has(self, id, atom::REQUIRED) && mutable && v.is_empty() { VALUE_MISSING } else { 0 }
-            }
-            atom::SELECT if has(self, id, atom::REQUIRED) => {
-                let i = self.selected_index(id);
-                let placeholder = !has(self, id, atom::MULTIPLE) && self.display_size(id) == 1 && {
-                    let opts = self.options_of(id);
-                    opts.first().is_some_and(|&o| {
-                        let mut v = String::new();
-                        self.option_value_into(o, &mut v);
-                        v.is_empty() && !self.is_html_elem(self.rec(o).parent, atom::OPTGROUP)
-                    })
-                };
-                if i < 0 || (i == 0 && placeholder) { VALUE_MISSING } else { 0 }
-            }
-            _ => 0,
-        };
-        if form_state(self, id).is_some_and(|f| !f.custom.is_empty()) {
-            b |= CUSTOM_ERROR;
-        }
-        if self.is_candidate(id) {
-            b |= CANDIDATE;
-        }
-        b
-    }
-
     /// Submittable controls of `form` that are candidates for constraint validation (the facade checks
     /// each one's validity, including the pattern / url / files parts it owns).
     fn form_validation_candidates(&self, form: NodeId, out: &mut Vec<NodeId>) {
@@ -1405,7 +1202,8 @@ impl Env {
         self.form_elements(form, &mut els);
         out.clear();
         out.extend(
-            els.into_iter().filter(|&c| self.is_submittable(c) && self.validity(c) & vbits::CANDIDATE != 0),
+            els.into_iter()
+                .filter(|&c| self.is_submittable(c) && validity_bits(self, c) & vbits::CANDIDATE != 0),
         );
     }
 
@@ -1665,10 +1463,10 @@ natives! {
         e.ids = v;
         e.write_ids()
     }
-    /// Submittable elements owned by a form (FormData entry list input) -> OUT ids; returns the count.
-    fn formSubmittables(e, id: u32) -> u32 {
+    /// Controls of a form that contribute FormData entries (submitter 0 = none) -> OUT ids; returns the count.
+    fn formEntryControls(e, form: u32, submitter: u32) -> u32 {
         let mut v = std::mem::take(&mut e.ids);
-        e.form_submittables(id, &mut v);
+        e.entry_list_controls(form, submitter, &mut v);
         e.ids = v;
         e.write_ids()
     }
@@ -1690,10 +1488,6 @@ natives! {
         e.ids = v;
         e.write_ids()
     }
-    /// jsdom isDisabled (own disabled attribute of form controls or a disabled fieldset ancestor).
-    fn isDisabled(e, id: u32) -> bool {
-        e.is_disabled(id)
-    }
     /// label.control (0 = none).
     fn labelControl(e, id: u32) -> u32 {
         e.label_control(id)
@@ -1708,10 +1502,6 @@ natives! {
             e.ids = v;
             e.write_ids()
         }
-    }
-    /// Validity bits (forms::vbits).
-    fn validity(e, id: u32) -> u32 {
-        e.validity(id)
     }
     /// Queued `<details>` toggle event tasks (ids in queue order) into OUT; clears `EP[MO_PENDING]` bit 1. Returns the count.
     fn takeToggles(e) -> u32 {
@@ -1737,10 +1527,6 @@ natives! {
     /// Sets (string) or clears (null) the output default-value override.
     fn setOutputOverride(e, id: u32, v: ostr) -> () {
         e.set_output_override(id, v)
-    }
-    /// button.type as an input type code (18 submit, 20 reset, 21 button).
-    fn buttonType(e, id: u32) -> u32 {
-        e.button_type(id)
     }
 }
 
@@ -1938,30 +1724,30 @@ mod tests {
     }
 
     #[test]
-    fn validity_bits() {
+    fn validity_bits_of_controls() {
         let (mut e, doc) = setup();
         let i = el(&mut e, doc, atom::INPUT);
         e.set_attr(i, atom::REQUIRED, "").unwrap();
-        assert_ne!(e.validity(i) & vbits::VALUE_MISSING, 0);
+        assert_ne!(validity_bits(&e, i) & vbits::VALUE_MISSING, 0);
         e.value_set(i, "x").unwrap();
-        assert_eq!(e.validity(i) & vbits::VALUE_MISSING, 0);
+        assert_eq!(validity_bits(&e, i) & vbits::VALUE_MISSING, 0);
         e.set_attr(i, atom::TYPE, "email").unwrap();
-        assert_ne!(e.validity(i) & vbits::TYPE_MISMATCH, 0);
+        assert_ne!(validity_bits(&e, i) & vbits::TYPE_MISMATCH, 0);
         e.value_set(i, "a@b.co").unwrap();
-        assert_eq!(e.validity(i) & vbits::TYPE_MISMATCH, 0);
+        assert_eq!(validity_bits(&e, i) & vbits::TYPE_MISMATCH, 0);
         let n = el(&mut e, doc, atom::INPUT);
         e.set_attr(n, atom::TYPE, "number").unwrap();
         e.set_attr(n, atom::MIN, "2").unwrap();
         e.set_attr(n, atom::MAX, "5").unwrap();
         e.value_set(n, "7").unwrap();
-        assert_ne!(e.validity(n) & vbits::RANGE_OVERFLOW, 0);
+        assert_ne!(validity_bits(&e, n) & vbits::RANGE_OVERFLOW, 0);
         e.value_set(n, "1").unwrap();
-        assert_ne!(e.validity(n) & vbits::RANGE_UNDERFLOW, 0);
+        assert_ne!(validity_bits(&e, n) & vbits::RANGE_UNDERFLOW, 0);
         e.value_set(n, "2.5").unwrap();
-        assert_ne!(e.validity(n) & vbits::STEP_MISMATCH, 0);
-        assert_ne!(e.validity(n) & vbits::CANDIDATE, 0);
+        assert_ne!(validity_bits(&e, n) & vbits::STEP_MISMATCH, 0);
+        assert_ne!(validity_bits(&e, n) & vbits::CANDIDATE, 0);
         e.set_attr(n, atom::DISABLED, "").unwrap();
-        assert_eq!(e.validity(n) & vbits::CANDIDATE, 0);
+        assert_eq!(validity_bits(&e, n) & vbits::CANDIDATE, 0);
     }
 
     #[test]

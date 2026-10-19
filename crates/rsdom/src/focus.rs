@@ -11,6 +11,7 @@
 
 use crate::atoms::atom;
 use crate::env::{Env, ep};
+use crate::forms::element_state;
 use crate::node::{Ns, kind, meta, state};
 use crate::table::NodeId;
 
@@ -76,11 +77,11 @@ impl Env {
             Ns::Html => match crate::atoms::Atom(r.local) {
                 atom::INPUT | atom::SELECT | atom::TEXTAREA | atom::BUTTON => {
                     if self.is_html_elem(id, atom::INPUT)
-                        && crate::forms::input_type(self, id) == crate::forms::types::ty::HIDDEN
+                        && element_state::input_type(self, id) == crate::forms::types::ty::HIDDEN
                     {
                         return false;
                     }
-                    !self.is_disabled(id)
+                    !element_state::is_disabled(self, id)
                 }
                 _ if tabindex(self) => true,
                 atom::IFRAME => true,
@@ -90,15 +91,8 @@ impl Env {
                     self.has_attr_ns_null(id, atom::HREF) || self.has_attr_ns_null(id, atom::CONTENTEDITABLE)
                 }
                 atom::SUMMARY => {
-                    let p = r.parent;
-                    let first = self.is_html_elem(p, atom::DETAILS) && {
-                        let mut c = self.rec(p).first;
-                        while c != 0 && !self.is_html_elem(c, atom::SUMMARY) {
-                            c = self.rec(c).next;
-                        }
-                        c == id
-                    };
-                    first || self.has_attr_ns_null(id, atom::CONTENTEDITABLE)
+                    element_state::is_summary_for_parent_details(self, id)
+                        || self.has_attr_ns_null(id, atom::CONTENTEDITABLE)
                 }
                 _ => self.has_attr_ns_null(id, atom::CONTENTEDITABLE),
             },

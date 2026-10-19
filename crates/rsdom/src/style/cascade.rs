@@ -928,7 +928,7 @@ mod tests {
         let width = props().id("width").unwrap();
         assert!(!declared_props(&mut e, x).contains(&width));
         assert!(declared_props(&mut e, x).contains(&color));
-        e.remove(s2, false);
+        e.remove(s2, crate::tree::Records::Queue);
         assert_eq!(display(&mut e, x), "flex");
         e.set_text_content(s1, ".a{width:1px}").unwrap();
         assert_eq!(display(&mut e, x), "block");

@@ -25,6 +25,7 @@ use crate::error::{Code, DomError, DomResult, code};
 use crate::node::{Attr, Ns, Quirks, kind};
 use crate::string::Str;
 use crate::table::NodeId;
+use crate::tree::FreshTree;
 
 /// Per-Env cache from html5ever atoms to rsdom atoms (html5ever atoms hash by a precomputed u64).
 #[derive(Default)]
@@ -352,12 +353,9 @@ impl Env {
             },
         );
         // Everything below the (connected) document becomes connected: id map, hooks.
-        let mut c = self.rec(doc).first;
-        while c != 0 {
-            self.connect_subtree(c);
-            c = self.rec(c).next;
-        }
-        self.hook_children_changed(doc);
+        let mut tree = FreshTree::default();
+        tree.take_linked(self, doc);
+        tree.finish(self);
         doc
     }
 

@@ -20,7 +20,7 @@ const N = rt.N;
 
 /** Atoms used here (static atoms: their ids are stable for the process). */
 const A = {};
-for (const n of ['input', 'button', 'label', 'a', 'area', 'summary', 'details', 'body', 'frameset', 'html', 'open']) {
+for (const n of ['input', 'button', 'label', 'a', 'area', 'summary', 'body', 'frameset', 'html', 'open']) {
   A[n] = rt.lookupAtom(n);
 }
 
@@ -35,8 +35,8 @@ function wrap(id) {
   return w !== undefined ? w : rt.wrap(id);
 }
 
-/** Input type codes (src/forms/types.rs `ty`). */
-const TY = { CHECKBOX: 15, RADIO: 16, SUBMIT: 18, IMAGE: 19, RESET: 20, BUTTON: 21 };
+/** Input type codes (generated from src/forms/types.rs `ty`). */
+const { TY } = require('./generated/input-types.cjs');
 
 // ============================================================================== WebIDL conversions
 
@@ -1346,12 +1346,8 @@ function activationBehavior(el, ev, packed) {
   } else if (a === A.label) {
     labelActivation(el, ev);
   } else if (a === A.summary) {
-    const p = V.T[V.off(id) + F.PARENT];
-    if (p === 0 || !isHtml(p, A.details)) return;
-    let c = V.T[V.off(p) + F.FIRST];
-    while (c > 0 && !isHtml(c, A.summary)) c = V.T[V.off(c) + F.NEXT];
-    if (c !== id) return;
-    const details = wrap(p);
+    if (!N.isSummaryForDetails(id)) return;
+    const details = wrap(V.T[V.off(id) + F.PARENT]);
     if (details.hasAttribute('open')) details.removeAttribute('open');
     else details.setAttribute('open', '');
   }
@@ -1372,7 +1368,7 @@ function isInteractive(n) {
     case 'object':
       return n.hasAttribute('usemap');
     case 'input':
-      return inputType(n._i) !== 1;
+      return inputType(n._i) !== TY.HIDDEN;
     case 'button':
     case 'details':
     case 'embed':

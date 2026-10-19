@@ -10,8 +10,8 @@ A Rust DOM (napi-rs addon + JS facade) meant as a drop-in replacement for jsdom 
 - Build before running JS tests: `npm ci && npm run build`. Checks: `npm run lint`, `npm test`,
   `npm run test:fallback`, `npm run test:parity` (jsdom's own test suite against `conformance/parity/expectations`;
   needs `scripts/fetch-refs.sh --wpt`; `--update` after a change that moves it, and commit the diff).
-  `npm run check` runs all four. GitHub Actions is disabled for this repository, so nothing runs them
-  automatically: run `npm run check` locally before merging.
+  `npm run check` runs all four plus a scoreboard-freshness check. GitHub Actions is disabled for this
+  repository, so nothing runs them automatically: run `npm run check` locally before merging.
 - Work through `docs/ROADMAP.md`; each item's parity-suite scope is in `conformance/parity/roadmap.yaml`
   (`npm run test:parity -- --item <id>`).
 - `packages/rsdom/lib/generated/` is written by `crates/rsdom/build.rs`; never edit it by hand.

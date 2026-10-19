@@ -30,11 +30,16 @@ export const SOURCES = {
 
 // ------------------------------------------------------------------------------------------------ tests
 
-/** selection.json is a gitignored cache: regenerated when the WPT commit moves or one of these is newer than it. */
+/**
+ * selection.json is a gitignored cache: regenerated when the WPT commit moves or one of these is newer than it.
+ * refs/jsdom's HEAD file changes on every checkout, so moving it to another tag (scripts/fetch-refs.sh) also
+ * refreshes the to-upstream list even when to-run.yaml did not change.
+ */
 const SELECTION_INPUTS = [
   path.join(REPO, 'conformance/wpt/select.mjs'),
   path.join(REPO, 'conformance/wpt/lib.mjs'),
   path.join(JSDOM_TEST, 'web-platform-tests/to-run.yaml'),
+  path.join(REFS, 'jsdom/.git/HEAD'),
 ];
 
 function selection() {
@@ -101,6 +106,18 @@ function fileStatus(sum) {
  * fewer than jsdom passes: subtests vanished, and the score credits a file without an entry with jsdom's passes.
  */
 const tooFew = (sum, oracle) => sum.pass === 0 || sum.pass < (oracle?.pass ?? 0);
+
+/**
+ * Fewest passes a subtest-list entry allows: jsdom's passes minus the listed failures jsdom passes. Fewer means
+ * passing subtests stopped being reported (the score still credits them).
+ */
+function listFloor(subtests, oracle) {
+  if (!oracle?.pass) return 0;
+  const jsdomFails = new Set(oracle.fail);
+  let expectedGap = 0;
+  for (const name of subtests.keys()) if (!jsdomFails.has(name)) expectedGap++;
+  return Math.max(0, oracle.pass - expectedGap);
+}
 
 /** Expectation reason for a failure message (mocha messages end with " | at <frame>", which is dropped). */
 const reasonOf = (msg) => cause(String(msg).replace(/ \| at .*$/, ''));
@@ -207,6 +224,10 @@ export function entryFromResult(sum, old, oracle) {
   }
   const subtests = new Map();
   for (const [name, msg] of sum.failing) subtests.set(name, old?.subtests?.get(name) ?? reasonOf(msg));
+  if (sum.pass < listFloor(subtests, oracle)) {
+    // passing subtests went missing: a floor entry, so the gate and the next update agree
+    return { status: 'fail', reason: old?.status === 'fail' ? old.reason : 'fewer subtests than jsdom passes', pass: sum.pass };
+  }
   return { subtests };
 }
 
@@ -234,6 +255,8 @@ export function compare(sum, exp, oracle) {
       if (fixed.length) notes.push(`  (and ${fixed.length} expected failure(s) now pass or are no longer reported)`);
       return { verdict: 'regression', notes };
     }
+    const least = listFloor(exp.subtests, oracle);
+    if (sum.pass < least) return { verdict: 'regression', notes: [`${sum.pass} subtest(s) pass, at least ${least} expected: passing subtests no longer run`] };
     if (!fixed.length) return { verdict: 'ok', notes: [] };
     const passed = fixed.filter((n) => sum.passing.has(n));
     const stale = fixed.filter((n) => !sum.passing.has(n));
@@ -248,7 +271,8 @@ export function compare(sum, exp, oracle) {
   }
   const floor = exp.pass ?? 0;
   if (sum.harnessOk && sum.failing.size === 0 && !tooFew(sum, oracle)) return { verdict: 'progress', notes: ['now passes entirely'] };
-  if (CRASH_STATUSES.has(sum.status) && exp.status !== 'crash') return { verdict: 'regression', notes: [`now crash (expected ${exp.status})`, '  ' + harness] };
+  // a process that died is a regression; KILLED (past the hard time limit) is slowness, informational like a timeout
+  if (sum.status === 'CRASH' && exp.status !== 'crash') return { verdict: 'regression', notes: [`now crash (expected ${exp.status})`, '  ' + harness] };
   if (sum.pass < floor) {
     const notes = [`passing subtests dropped from ${floor} to ${sum.pass}`];
     if (!sum.harnessOk) notes.push('  ' + harness);

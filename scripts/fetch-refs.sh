@@ -32,7 +32,14 @@ clone() { # name repo tag; an existing checkout at another tag is moved to this 
       echo "refs/$1: at $was, not $3, and has local changes (git -C $dir status); stash or discard them and rerun" >&2
       exit 1
     fi
-    git -C "$dir" fetch --quiet --depth 1 origin tag "$3"
+    # fetch only a tag that is not local yet, and keep a full clone full (--depth only deepens a shallow one)
+    if ! git -C "$dir" rev-parse -q --verify "refs/tags/$3^{commit}" >/dev/null; then
+      if [ "$(git -C "$dir" rev-parse --is-shallow-repository)" = true ]; then
+        git -C "$dir" fetch --quiet --depth 1 origin tag "$3"
+      else
+        git -C "$dir" fetch --quiet origin tag "$3"
+      fi
+    fi
     git -C "$dir" checkout --quiet "$3"
     echo "refs/$1: $2@$3 (was $was)"
     return

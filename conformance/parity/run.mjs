@@ -50,7 +50,8 @@ for (const s of sources) if (!SOURCES[s]) throw new Error(`unknown source ${s} (
 const concurrency = Number(opts.concurrency ?? os.availableParallelism());
 if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error(`--concurrency must be a positive integer, not ${opts.concurrency}`);
 const WPT_TIMEOUT_MS = Number(process.env.WPT_TIMEOUT_MS ?? 10_000);
-const HARD_KILL_MS = { wpt: WPT_TIMEOUT_MS + 30_000, tuwpt: WPT_TIMEOUT_MS + 30_000, legacy: 180_000, api: 180_000 };
+// generous: the webstorage quota files take ~32 s on an idle 4-core machine
+const HARD_KILL_MS = { wpt: WPT_TIMEOUT_MS + 50_000, tuwpt: WPT_TIMEOUT_MS + 50_000, legacy: 180_000, api: 180_000 };
 const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'rsdom-parity-compile-cache');
 
 function runJob(source, test) {

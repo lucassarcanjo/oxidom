@@ -80,7 +80,6 @@ api/methods.js:
   "API: JSDOM class's methods > nodeLocation > should return undefined for nodes created by createContextualFragment": [fail, "Location information was not saved for this jsdom. Use includeNodeLocations during creatio…"]
   "API: JSDOM class's methods > nodeLocation > should return undefined for nodes created by innerHTML": [fail, "Location information was not saved for this jsdom. Use includeNodeLocations during creatio…"]
   "API: JSDOM class's methods > nodeLocation > should return undefined for nodes created by outerHTML": [fail, "Location information was not saved for this jsdom. Use includeNodeLocations during creatio…"]
-  "API: JSDOM class's methods > reconfigure > url > should successfully change the URL": [fail, "Expected values to be strictly equal: + actual - expected + … - … ^"]
   "API: JSDOM class's methods > reconfigure > windowTop > should reconfigure the window.top property (tested from the inside)": [fail, "missing method: .getTopResult()"]
 api/options-run-scripts.js:
   "API: runScripts constructor option > <noscript> children > when set to \"dangerously\" > should parse according to runScripts with node locations": [fail, "The expression evaluated to a falsy value: assert(noscript.firstChild instanceof window[ch…"]

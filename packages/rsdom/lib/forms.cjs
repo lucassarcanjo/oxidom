@@ -16,6 +16,7 @@
 // are own members of the input and textarea prototypes. Internal code never reads `element.value`.
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 const events = require('./events.cjs');
 const { installIndices, liveQueryCollection, staticNodeListFromIds, ListIterator, HTMLCollection } = require('./collections.cjs');
 
@@ -1012,7 +1013,8 @@ rt.classes.FileList = FileList;
 // ========================================================================================= focus
 
 function currentFocus(doc) {
-  if (doc === rt.defaultDocument) return V.EP[EPI.FOCUS];
+  // Rust's main document is the current browsing context's (lib/context.cjs): EP[FOCUS] mirrors its focus.
+  if (doc === context.currentDocument()) return V.EP[EPI.FOCUS];
   return N.focusedOf(doc._i);
 }
 
@@ -1593,7 +1595,7 @@ function install(_rt, dom) {
   /** `new Option(text, value, defaultSelected, selected)` (legacy factory function). */
   function OptionFactory(text = '', value = undefined, defaultSelected = false, selected = false) {
     if (new.target === undefined) throw new TypeError("Failed to construct 'Option': Please use the 'new' operator.");
-    const doc = rt.defaultDocument;
+    const doc = context.currentDocument();
     if (doc === null) throw new TypeError('rsdom: no document');
     const o = doc.createElement('option');
     text = str(text);
@@ -1842,7 +1844,7 @@ function install(_rt, dom) {
   /** `new Image(width, height)` (legacy factory function). */
   function ImageFactory(width = undefined, height = undefined) {
     if (new.target === undefined) throw new TypeError("Failed to construct 'Image': Please use the 'new' operator.");
-    const doc = rt.defaultDocument;
+    const doc = context.currentDocument();
     if (doc === null) throw new TypeError('rsdom: no document');
     const img = doc.createElement('img');
     if (width !== undefined) img.setAttribute('width', String(Number(width) >>> 0));

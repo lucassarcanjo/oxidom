@@ -1,8 +1,10 @@
 'use strict';
-// AREA C (window/globals, DESIGN §12, ROADMAP M6). `makeWindow(rt, dom, document, options)` builds the window:
+// AREA C (window/globals, DESIGN §12, §16, ROADMAP M6). `makeWindow(ctx, global)` builds the window of a
+// browsing context (lib/context.cjs, which owns the document, the URL, timers and teardown):
 // - `createWindow()` (plain Node, contract tests): a fresh null-prototype object;
-// - the Vitest environment (lib/vitest-environment.mjs): `options.global = globalThis`, so every member is
-//   installed as an OWN DATA property of globalThis (1-2 ns per read, vs ~20 ns for populateGlobal accessors).
+// - the Vitest environment (lib/vitest-environment.mjs): `global = globalThis`, so every member is
+//   installed as an OWN DATA property of globalThis (1-2 ns per read, vs ~20 ns for populateGlobal accessors);
+//   the context's `close()` puts the original properties back.
 //
 // Members: every interface constructor in `rt.classes` (installed generically, so whatever areas A/B
 // register appears without editing this file), window/self/top/parent/frames = the window, document
@@ -19,18 +21,11 @@
 
 const rt = require('./runtime.cjs');
 
-// Node's timers, captured at load (Vitest captures its safe timers after the environment; fake timers
-// installed later must not stall animation frames that were requested before).
-const nodeSetTimeout = globalThis.setTimeout;
-const nodeClearTimeout = globalThis.clearTimeout;
 // NOT read at load: `FormData` (and `performance`) are lazy Node globals; touching FormData's descriptor loads
 // undici (~50-70 ms per process or worker), so rsdom ships its own FormData and deletes Node's.
 
-const DEFAULT_URL = 'http://localhost:3000/';
 const VERSION = '0.1.0';
 const USER_AGENT = `Mozilla/5.0 (${process.platform === 'darwin' ? 'darwin' : process.platform === 'win32' ? 'win32' : 'linux'}) AppleWebKit/537.36 (KHTML, like Gecko) rsdom/${VERSION}`;
-
-let dom = null;
 
 function illegal() {
   throw new TypeError('Illegal constructor');
@@ -42,7 +37,7 @@ function tag(C, name = C.name) {
   return C;
 }
 
-/** Private state of window-plumbing objects, keyed by the object (cold paths only). */
+/** Private state of window-plumbing objects (Location, History: `{ ctx, ... }`), keyed by the object. */
 const state = new WeakMap();
 
 // =========================================================================================== Storage
@@ -87,45 +82,32 @@ tag(Storage);
 
 // ========================================================================================== Location
 
-/** A same-document URL change (fragment, pushState): updates the document URL. */
-function setDocumentURL(win, url) {
-  const s = state.get(win);
-  s.url = url;
-  s.document._url = url.href;
-}
-
-function hashChange(win, oldURL, newURL) {
-  const E = rt.classes.HashChangeEvent;
-  if (typeof E !== 'function' || typeof win.dispatchEvent !== 'function') return;
-  nodeSetTimeout(() => {
-    try {
-      win.dispatchEvent(new E('hashchange', { oldURL, newURL }));
-    } catch {
-      // a reset env: nothing to notify
-    }
+/** Queues the `hashchange` event task (a context timer: closing the context cancels it). */
+function hashChange(ctx, oldURL, newURL) {
+  ctx.setTimer(() => {
+    ctx.window.dispatchEvent(new rt.classes.HashChangeEvent('hashchange', { oldURL, newURL }));
   }, 0);
 }
 
 /**
- * Navigates `win` to `href`. Like jsdom, only fragment navigations take effect (other navigations are not
- * implemented: the URL stays as it is).
+ * Navigates the context to `href`. Like jsdom, only fragment navigations take effect (other navigations are
+ * not implemented: the URL stays as it is).
  */
-function navigate(win, href) {
-  const s = state.get(win);
+function navigate(ctx, href) {
   let next;
   try {
-    next = new URL(String(href), s.url.href);
+    next = new URL(String(href), ctx.url.href);
   } catch {
     throw rt.domError(4, `Failed to set the 'href' property on 'Location': '${href}' is not a valid URL.`);
   }
-  const a = new URL(s.url.href);
+  const a = new URL(ctx.url.href);
   const b = new URL(next.href);
   a.hash = '';
   b.hash = '';
-  if (a.href === b.href && next.hash !== s.url.hash) {
-    const old = s.url.href;
-    setDocumentURL(win, next);
-    hashChange(win, old, next.href);
+  if (a.href === b.href && next.hash !== ctx.url.hash) {
+    const old = ctx.url.href;
+    ctx.setURL(next);
+    hashChange(ctx, old, next.href);
   }
 }
 
@@ -134,8 +116,9 @@ class Location {
     if (t !== rt.TOKEN) illegal();
   }
 
+  /** the browsing context (lib/context.cjs): `url` is the document URL */
   #s() {
-    return state.get(state.get(this).win);
+    return state.get(this).ctx;
   }
 
   get href() {
@@ -143,7 +126,7 @@ class Location {
   }
 
   set href(v) {
-    navigate(state.get(this).win, v);
+    navigate(this.#s(), v);
   }
 
   get origin() {
@@ -181,15 +164,15 @@ class Location {
   set hash(v) {
     const u = new URL(this.#s().url.href);
     u.hash = String(v);
-    navigate(state.get(this).win, u.href);
+    navigate(this.#s(), u.href);
   }
 
   assign(url) {
-    navigate(state.get(this).win, url);
+    navigate(this.#s(), url);
   }
 
   replace(url) {
-    navigate(state.get(this).win, url);
+    navigate(this.#s(), url);
   }
 
   reload() {}
@@ -234,13 +217,13 @@ class History {
 
   #update(data, url) {
     const h = state.get(this);
-    const ws = state.get(h.win);
+    const ctx = h.ctx;
     if (url !== undefined && url !== null) {
-      const next = new URL(String(url), ws.url.href);
-      if (next.origin !== ws.url.origin) {
-        throw new rt.classes.DOMException(`Failed to execute 'pushState' on 'History': A history state object with URL '${next.href}' cannot be created in a document with origin '${ws.url.origin}'.`, 'SecurityError');
+      const next = new URL(String(url), ctx.url.href);
+      if (next.origin !== ctx.url.origin) {
+        throw new rt.classes.DOMException(`Failed to execute 'pushState' on 'History': A history state object with URL '${next.href}' cannot be created in a document with origin '${ctx.url.origin}'.`, 'SecurityError');
       }
-      setDocumentURL(h.win, next);
+      ctx.setURL(next);
     }
     h.state = data === undefined ? null : structuredClone(data);
   }
@@ -593,21 +576,6 @@ function cssSupports(a, b = undefined) {
   return rt.N.cssProp(rt.asciiLower(prop)) !== 0;
 }
 
-// ================================================================================ getComputedStyle stub
-
-/**
- * Used only when area A's `rt.getComputedStyle` is absent (branch without the style engine): a read-only
- * object whose properties are '' (DTL's isInaccessible then treats everything as visible).
- */
-function getComputedStyleStub(elt) {
-  if (!(elt instanceof rt.classes.Element)) {
-    throw new TypeError("Failed to execute 'getComputedStyle' on 'Window': parameter 1 is not of type 'Element'.");
-  }
-  return new Proxy(Object.freeze({ getPropertyValue: () => '', length: 0, item: () => '', cssText: '' }), {
-    get: (t, k) => (k in t ? t[k] : typeof k === 'string' ? '' : undefined),
-  });
-}
-
 // ========================================================================================== FormData
 
 /** USVString conversion (lone surrogates -> U+FFFD). */
@@ -775,55 +743,42 @@ function catchWindowErrors(win) {
   };
 }
 
-/** Area B's window EventTarget (`installWindow(win, document)`), or a no-op stub when events.cjs lacks it. */
-function bindEventTarget(win, document) {
-  const events = require('./events.cjs');
-  if (typeof events.installWindow === 'function') {
-    events.installWindow(win, document);
-    return true;
+/**
+ * Puts back every property `makeWindow` (and the window EventTarget installed with it) defined on a
+ * pre-existing object such as globalThis: original descriptors back, added keys deleted.
+ */
+function restoreGlobals(win, saved) {
+  for (const [k, d] of saved) {
+    if (d === undefined || d === LAZY_NATIVE) delete win[k];
+    else Object.defineProperty(win, k, d);
   }
-  // STUB until area B merges: React's passive-listener probe calls window.addEventListener at import time.
-  const def = (k, v) => Object.defineProperty(win, k, { value: v, writable: true, enumerable: true, configurable: true });
-  def('addEventListener', function addEventListener() {});
-  def('removeEventListener', function removeEventListener() {});
-  def('dispatchEvent', function dispatchEvent() {
-    return true;
-  });
-  def('event', undefined);
-  return false;
-}
-
-/** True when `C` is a usable replacement for a Node global of the same name. */
-function exposable(name, C, isGlobal) {
-  if (C === undefined || C === null) return false;
-  // dom.cjs's EventTarget is a bare base class until area B installs the listener API: never shadow Node's
-  // working global EventTarget with it.
-  if (name === 'EventTarget' && isGlobal) return typeof C.prototype?.addEventListener === 'function';
-  return true;
+  saved.clear();
 }
 
 /**
- * Builds the window members onto `options.global` (Vitest env) or a fresh null-prototype object.
- * @param {object} rt runtime API
- * @param {object} d dom.cjs exports
- * @param {object} document the HTMLDocument wrapper
- * @param {{ url?: string, global?: object }} [options]
+ * Builds the window of browsing context `ctx` (lib/context.cjs) onto `global` (the Vitest environment) or a
+ * fresh null-prototype object, and returns it. On a pre-existing global, the context's `close()` restores
+ * the original properties.
+ * @param {import('./context.cjs').BrowsingContext} ctx
+ * @param {object} [global]
  */
-function makeWindow(_rt, d, document, options = {}) {
-  dom = d;
-  const win = options.global ?? Object.create(null);
-  const isGlobal = options.global !== undefined;
+function makeWindow(ctx, global = undefined) {
+  const { document, url } = ctx;
+  const win = global ?? Object.create(null);
+  const isGlobal = global !== undefined;
   /**
    * Original descriptors of every key this window defines on a pre-existing object (undefined = the key was
-   * absent): `restoreWindow` puts them back. Only the keys we touch are read (never a whole-global snapshot).
+   * absent): `restoreGlobals` puts them back. Only the keys we touch are read (never a whole-global snapshot).
    */
   const saved = new Map();
+  // Registered first, so it runs last: error routing installed over the window is undone before.
+  if (isGlobal) ctx.onClose(() => restoreGlobals(win, saved));
   const save = (k) => {
     if (saved.has(k)) return;
     if (!Object.prototype.hasOwnProperty.call(win, k)) saved.set(k, undefined);
     else if (win === globalThis && LAZY_NATIVE_KEYS.has(k)) {
       // Node's undici-backed lazy V8 data property: reading its descriptor (or redefining it) loads undici
-      // (~50-70 ms), `delete` does not. It cannot be brought back without loading undici, so restoreWindow()
+      // (~50-70 ms), `delete` does not. It cannot be brought back without loading undici, so restoreGlobals()
       // just deletes ours (an isolate: false worker tears the environment down when it stops).
       saved.set(k, LAZY_NATIVE);
       delete win[k];
@@ -834,18 +789,11 @@ function makeWindow(_rt, d, document, options = {}) {
     if (isGlobal) save(k);
     Object.defineProperty(win, k, { value: v, writable: true, enumerable, configurable: true });
   };
-  const url = new URL(options.url ?? document._url ?? DEFAULT_URL);
-  document._url = url.href;
-  document._win = win;
-  const s = { document, url, rafs: new Map(), rafId: 0, saved };
-  state.set(win, s);
   const perf = globalThis.performance;
+  const events = require('./events.cjs');
 
-  // Interface objects (WebIDL: non-enumerable on the global).
-  for (const [name, C] of Object.entries(rt.classes)) {
-    if (exposable(name, C, isGlobal)) def(name, C, false);
-  }
-  if (!isGlobal) def('FormData', FormData, false); // a Vitest global comes from rt.classes (tag() above)
+  // Interface objects (WebIDL: non-enumerable on the global). FormData is one of them (tag() above).
+  for (const [name, C] of Object.entries(rt.classes)) if (C !== undefined && C !== null) def(name, C, false);
 
   def('window', win);
   def('self', win);
@@ -859,10 +807,10 @@ function makeWindow(_rt, d, document, options = {}) {
   def('origin', url.origin);
 
   const location = new Location(rt.TOKEN);
-  state.set(location, { win });
+  state.set(location, { ctx });
   def('location', location);
   const history = new History(rt.TOKEN);
-  state.set(history, { win, length: 1, state: null, scroll: 'auto' });
+  state.set(history, { ctx, length: 1, state: null, scroll: 'auto' });
   def('history', history);
   def('navigator', new Navigator(rt.TOKEN));
   def('screen', new Screen(rt.TOKEN));
@@ -904,44 +852,45 @@ function makeWindow(_rt, d, document, options = {}) {
     if (arguments.length === 0) throw new TypeError("Failed to execute 'matchMedia' on 'Window': 1 argument required, but only 0 present.");
     return new MediaQueryList(rt.TOKEN, String(query));
   });
+  /** animation-frame id -> its context timer (closing the context cancels them) */
+  const rafs = new Map();
+  let rafId = 0;
   def('requestAnimationFrame', function requestAnimationFrame(callback) {
     if (typeof callback !== 'function') {
       throw new TypeError("Failed to execute 'requestAnimationFrame' on 'Window': The callback provided as parameter 1 is not a function.");
     }
-    const id = ++s.rafId;
-    s.rafs.set(id, nodeSetTimeout(() => {
-      s.rafs.delete(id);
+    const id = ++rafId;
+    rafs.set(id, ctx.setTimer(() => {
+      rafs.delete(id);
       try {
         callback(perf.now());
       } catch (err) {
-        reportError(win, err);
+        // HTML "report an exception": the window's `error` listeners, then the process.
+        events.reportException(win, err);
       }
     }, 16));
     return id;
   });
   def('cancelAnimationFrame', function cancelAnimationFrame(id) {
-    const t = s.rafs.get(id);
+    const t = rafs.get(id);
     if (t !== undefined) {
-      nodeClearTimeout(t);
-      s.rafs.delete(id);
+      ctx.clearTimer(t);
+      rafs.delete(id);
     }
   });
-  def('getComputedStyle', typeof rt.getComputedStyle === 'function' ? rt.getComputedStyle : getComputedStyleStub);
+  def('getComputedStyle', rt.getComputedStyle);
   def('getSelection', function getSelection() {
     return selectionOf(document);
   });
   def('CSS', Object.freeze({ escape: cssEscape, supports: cssSupports }), false);
 
+  // Area B's window EventTarget: listener methods, `event` and on* handlers.
   if (isGlobal) {
-    // Area B defines listener methods, `event` and on* handlers: record their originals (normally absent).
+    // Record their originals (normally absent), and every key installWindow adds.
     for (const k of ['addEventListener', 'removeEventListener', 'dispatchEvent', 'event']) save(k);
     const before = new Set(Reflect.ownKeys(win));
-    s.hasEvents = bindEventTarget(win, document);
+    events.installWindow(win, document);
     for (const k of Reflect.ownKeys(win)) if (!before.has(k)) saved.set(k, undefined);
-  } else {
-    s.hasEvents = bindEventTarget(win, document);
-  }
-  if (isGlobal) {
     // Diagnostics for benches / acceptance tests (non-enumerable): MO delivery stats, native counters.
     def('__rsdom', Object.freeze({
       version: VERSION,
@@ -950,54 +899,21 @@ function makeWindow(_rt, d, document, options = {}) {
       moStats: require('./mo.cjs').stats,
       counters: () => JSON.parse(rt.N.counters()),
     }), false);
+  } else {
+    events.installWindow(win, document);
   }
-  require('./mo.cjs').setReporter((err) => reportError(win, err));
   return win;
-}
-
-/**
- * HTML "report an exception" for callbacks the window runs (animation frames, MutationObserver callbacks):
- * area B's ErrorEvent path when present (window `error` listeners, then the process), else the process.
- */
-function reportError(win, err) {
-  const events = require('./events.cjs');
-  if (typeof events.reportException === 'function') events.reportException(win, err);
-  else process.emit('uncaughtException', err);
-}
-
-/** Cancels the window's pending animation-frame callbacks (teardown). */
-function closeWindow(win) {
-  const s = state.get(win);
-  if (s === undefined) return;
-  for (const t of s.rafs.values()) nodeClearTimeout(t);
-  s.rafs.clear();
-}
-
-/**
- * Restores every property `makeWindow` (and the window EventTarget / error routing installed with it) defined
- * on a pre-existing object such as globalThis: original descriptors back, added keys deleted.
- */
-function restoreWindow(win) {
-  const s = state.get(win);
-  if (s === undefined) return;
-  for (const [k, d] of s.saved) {
-    if (d === undefined || d === LAZY_NATIVE) delete win[k];
-    else Object.defineProperty(win, k, d);
-  }
-  s.saved.clear();
-  state.delete(win);
 }
 
 // ============================================================================================ install
 
 function install(_rt, d) {
-  dom = d;
   rt.define(d.Document, {
     getSelection() {
-      return this._win ? selectionOf(this) : null;
+      return this._ctx !== undefined ? selectionOf(this) : null;
     },
     get location() {
-      return this._win?.location ?? null;
+      return this._ctx?.window?.location ?? null;
     },
     get cookie() {
       const jar = this._cookies;
@@ -1026,7 +942,7 @@ function install(_rt, d) {
       return '';
     },
     get domain() {
-      return this._win ? state.get(this._win)?.url.hostname ?? '' : '';
+      return this._ctx?.url.hostname ?? '';
     },
     get hidden() {
       return false;
@@ -1040,4 +956,4 @@ function install(_rt, d) {
   });
 }
 
-module.exports = { install, makeWindow, closeWindow, restoreWindow, catchWindowErrors, cssEscape, Storage, Location, History, Navigator, Selection, USER_AGENT };
+module.exports = { install, makeWindow, catchWindowErrors, cssEscape, Storage, Location, History, Navigator, Selection, USER_AGENT };

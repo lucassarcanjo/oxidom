@@ -401,7 +401,6 @@ function reset(opts) {
   }
   W.length = 0;
   V.envGen++;
-  rt.defaultDocument = null;
   for (const h of resetHooks) h();
   init(opts);
 }
@@ -477,8 +476,7 @@ const rt = {
   onReset(fn) { resetHooks.push(fn); },
   /** registry of interface constructors, filled by dom.cjs / collections.cjs / areas */
   classes: Object.create(null),
-  /** the document `new Text()` / `new DocumentFragment()` etc. create nodes in (set by createWindow) */
-  defaultDocument: null,
+  // `defaultDocument` (read-only): the current browsing context's document, defined by lib/context.cjs.
 };
 
 module.exports = rt;

@@ -12,6 +12,7 @@
 //   _ch = DATA_VER the memo was read at, _at = the memoized data string.
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 const interfaces = require('./generated/interfaces.cjs');
 const {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeListFromIds, ListIterator, installIndices,
@@ -233,8 +234,9 @@ class Node extends EventTarget {
     afterAlloc();
     const w = wrap(id);
     if (this instanceof Document) {
-      // Document cloning steps: URL and content type travel with the clone (kept on the wrapper).
-      if (this._url !== undefined) w._url = this._url;
+      // Document cloning steps: URL and content type travel with the clone (kept on the wrapper; a clone
+      // has no browsing context).
+      w._url = this.URL;
       if (this._ct !== undefined) w._ct = this._ct;
     }
     return w;
@@ -491,7 +493,7 @@ class Document extends Node {
       const id = N.createDocument(1, null);
       afterAlloc();
       const d = materializeAs(id, Document);
-      d._url = rt.defaultDocument?.URL ?? 'about:blank';
+      d._url = context.currentDocument()?.URL ?? 'about:blank';
       return d;
     }
     super(t);
@@ -589,7 +591,9 @@ class Document extends Node {
   }
 
   get URL() {
-    return this._url ?? 'about:blank';
+    // A browsing-context document reads its context's URL (lib/context.cjs, the only copy); others keep theirs.
+    const c = this._ctx;
+    return c !== undefined ? c.url.href : (this._url ?? 'about:blank');
   }
 
   get documentURI() {
@@ -597,7 +601,7 @@ class Document extends Node {
   }
 
   get defaultView() {
-    return this._win ?? null;
+    return this._ctx?.window ?? null;
   }
 
   get compatMode() {
@@ -742,7 +746,7 @@ tag(XMLDocument);
 class DocumentFragment extends Node {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createDocumentFragment();
     }
@@ -881,7 +885,7 @@ define(CharacterData, NonDocumentTypeChildNode);
 class Text extends CharacterData {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createTextNode(t === undefined ? '' : t);
     }
@@ -931,7 +935,7 @@ tag(CDATASection);
 class Comment extends CharacterData {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createComment(t === undefined ? '' : t);
     }
@@ -1910,7 +1914,7 @@ class DOMParser {
     const id = checkId(N.parseDocument(String(string)));
     afterAlloc();
     const d = wrap(id);
-    d._url = rt.defaultDocument?.URL ?? 'about:blank';
+    d._url = context.currentDocument()?.URL ?? 'about:blank';
     return d;
   }
 }
@@ -1918,7 +1922,7 @@ tag(DOMParser);
 
 /** Basic Range (DESIGN §4.1): boundary points + createContextualFragment (RTL asFragment). */
 class Range {
-  constructor(doc = rt.defaultDocument) {
+  constructor(doc = context.currentDocument()) {
     if (!(doc instanceof Document)) illegal();
     this.startContainer = doc;
     this.startOffset = 0;

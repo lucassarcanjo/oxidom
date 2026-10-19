@@ -10,7 +10,7 @@
 //   local-name atom is not one of the selector list's rightmost type selectors returns false with zero
 //   FFI; `tagOnly` lists (`a, button`) return true on a tag hit. Never applied to SVG/MathML elements or
 //   to elements of XML documents (type selectors are case-sensitive there).
-// - qSA memo (RSDOM_NO_MEMO=1 disables; lib/memo.cjs, DESIGN §16): LRU of 64 (root, sel) entries holding
+// - qSA memo (RSDOM_NO_MEMO=1 disables; lib/memo.cjs, DESIGN §19): LRU of 64 (root, sel) entries holding
 //   the result ids, valid while EP[TREE] / EP[ATTR] are unchanged, plus EP[TEXT] for :empty/:has/value-
 //   dependent lists and EP[FORM] / EP[REC] for state-dependent ones (:checked, :focus, ...). Every hit
 //   returns a FRESH static NodeList built from the cached ids.

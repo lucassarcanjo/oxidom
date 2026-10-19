@@ -189,7 +189,7 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
-- Every JS memo goes through `lib/memo.cjs` (DESIGN §16): it is validated by Rust-written counters, per node
+- Every JS memo goes through `lib/memo.cjs` (DESIGN §19): it is validated by Rust-written counters, per node
   (`nodeVersion(id, NODE.ATTRS | DATA | CHILDREN | FORM)`) or on the epoch page (`deps('TREE', 'ATTR', ...)`:
   `stamp()` / `fresh(stamp)` compare slot by slot; never pack counters into one number), and it is off when
   the module's `MEMO` (or `PREFILTER`) switch is. test/native/memo.test.mjs runs one scenario per memo kind

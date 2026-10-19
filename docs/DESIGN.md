@@ -968,7 +968,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
-## 16. Facade memo protocol (2026-10)
+## 19. Facade memo protocol (2026-10)
 
 Invariant 2 (§0) allows JS to memoise Rust answers only, each memo validated by a Rust-written counter and
 behind an ablation flag (§12). Until this section, every memo re-implemented that protocol by hand: about 17 sites,

@@ -22,7 +22,7 @@ Outputs (in `results/`):
 ## Re-running
 
 ```sh
-# 1. WPT at the commit jsdom pins, blob-filtered + sparse (≈90 MB checked out)
+# 1. WPT at the commit jsdom pins, blob-filtered + sparse: `scripts/fetch-refs.sh --wpt` does this step
 WPT_ROOT=refs/wpt   # the default in lib.mjs (refs/ is gitignored); jsdom itself: scripts/fetch-refs.sh
 git clone --filter=blob:none --no-checkout https://github.com/web-platform-tests/wpt "$WPT_ROOT"
 git -C "$WPT_ROOT" sparse-checkout init --no-cone
@@ -57,7 +57,8 @@ cat > "$WPT_ROOT/.git/info/sparse-checkout" <<'EOF'
 EOF
 git -C "$WPT_ROOT" checkout 2971340498805350babb6c167e0df98eaa380f98
 
-# 2. select tests (adds any extra helper files to the sparse checkout)
+# 2. select tests (adds any extra helper files to the sparse checkout); selection.json also lists jsdom's
+#    to-upstream tests under `toUpstream`, which conformance/parity runs and run.mjs does not
 WPT_ROOT=... node conformance/wpt/select.mjs
 
 # 3. run (62 min for 7,167 (file, DOM) jobs at concurrency 2 on the shared 4-vCPU box; resumable — rerun

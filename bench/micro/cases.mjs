@@ -190,6 +190,56 @@ export const cases = {
     },
   },
 
+  traversal: {
+    row: 'traversal',
+    run({ metric, w }) {
+      const d = w.document;
+      need(typeof d.createTreeWalker === 'function', 'createTreeWalker missing');
+      const { root } = tree4k(d);
+      const NF = w.NodeFilter;
+      const perNode = (iters, fn) => {
+        const r = bench(iters, fn);
+        return { value: r.value / 4096, samples: r.samples.map((x) => x / 4096) };
+      };
+      // First, while only this one NodeIterator exists: rsdom wraps the removal natives once a NodeIterator
+      // exists (lib/traversal.cjs), so compare with `mutate`. The cost grows with the iterators still alive
+      // (jsdom's too), and the walks below create thousands that live until this synchronous job ends.
+      metric('createElement + appendChild + removeChild, with a live NodeIterator', 'ns', () => {
+        const it = d.createNodeIterator(root, NF.SHOW_ELEMENT);
+        const host = root.lastChild;
+        const r = bench(100_000, (n) => {
+          for (let i = 0; i < n; i++) {
+            const e = d.createElement('div');
+            host.appendChild(e);
+            host.removeChild(e);
+          }
+        });
+        sink += it.referenceNode === root ? 1 : 0;
+        return r;
+      });
+      metric('TreeWalker(SHOW_ELEMENT).nextNode() over 4096 nodes', 'ns/node', () => perNode(200, (n) => {
+        for (let i = 0; i < n; i++) {
+          const tw = d.createTreeWalker(root, NF.SHOW_ELEMENT);
+          while (tw.nextNode() !== null) sink++;
+        }
+      }));
+      // focus-trap / Radix FocusScope shape: an object filter that reads one property per node
+      const filter = { acceptNode: (node) => (node.localName === 'span' ? NF.FILTER_ACCEPT : NF.FILTER_SKIP) };
+      metric('TreeWalker with an acceptNode filter, 4096 nodes', 'ns/node', () => perNode(200, (n) => {
+        for (let i = 0; i < n; i++) {
+          const tw = d.createTreeWalker(root, NF.SHOW_ELEMENT, filter);
+          while (tw.nextNode() !== null) sink++;
+        }
+      }));
+      metric('NodeIterator(SHOW_ELEMENT).nextNode() over 4096 nodes', 'ns/node', () => perNode(200, (n) => {
+        for (let i = 0; i < n; i++) {
+          const it = d.createNodeIterator(root, NF.SHOW_ELEMENT);
+          while (it.nextNode() !== null) sink++;
+        }
+      }));
+    },
+  },
+
   matches: {
     row: 9,
     run({ metric, w }) {

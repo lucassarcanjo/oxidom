@@ -15,6 +15,12 @@ export const CAUSES = [
     evidence: 'ReferenceError at @mui/utils/contains/contains.mjs:26 called from @mui/material Unstable_TrapFocus/FocusTrap.mjs:126 (every MUI Modal/Dialog). Probe: typeof ShadowRoot === "undefined" only in rsdom.',
   },
   {
+    id: 'rsdom-no-custom-elements', category: 'missing-api', doms: ['rsdom'],
+    title: 'rsdom has no customElements or attachShadow: lit falls back to @lit-labs/ssr-dom-shim, whose registry never upgrades elements',
+    re: /to be an instance of CounterButton|Cannot read properties of null \(reading 'querySelector'\)/, file: /lit/,
+    evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class) and has no shadowRoot (rsdom has no attachShadow). Probe: typeof customElements / Element.prototype.attachShadow === "undefined" only in rsdom (diag-facts). ROADMAP Stage 1 ShadowRoot, Stage 4 custom elements.',
+  },
+  {
     id: 'rsdom-no-xhr', category: 'missing-api', doms: ['rsdom'],
     title: 'rsdom has no XMLHttpRequest (only Node fetch); axios `adapter: "xhr"` cannot run',
     re: /adapter xhr is not supported/,

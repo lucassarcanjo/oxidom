@@ -8,8 +8,11 @@ A Rust DOM (napi-rs addon + JS facade) meant as a drop-in replacement for jsdom 
 - Layout: Rust core in `crates/rsdom`, npm package in `packages/rsdom` (`lib/` facade, `test/contract` parity
   suite against jsdom and happy-dom), React app suite in `e2e/react-app`.
 - Build before running JS tests: `npm ci && npm run build`. Checks: `npm run lint`, `npm test`,
-  `npm run test:fallback`.
+  `npm run test:fallback`, `npm run test:parity` (jsdom's own test suite against `conformance/parity/expectations`;
+  needs `scripts/fetch-refs.sh --wpt`; `--update` after a change that moves it, and commit the diff).
+- Work through `docs/ROADMAP.md`; each item's parity-suite scope is in `conformance/parity/roadmap.yaml`
+  (`npm run test:parity -- --item <id>`).
 - `packages/rsdom/lib/generated/` is written by `crates/rsdom/build.rs`; never edit it by hand.
 - Code comments cite `DESIGN §N` (docs/DESIGN.md), lab milestones `M0`-`M9` (docs/lab/ROADMAP.md) and
   `refs/...` upstream paths (`scripts/fetch-refs.sh`).
-- Next work is tracked in `docs/ROADMAP.md`; jsdom is the behavioural oracle.
+- jsdom is the behavioural oracle.

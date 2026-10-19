@@ -18,6 +18,14 @@ comments cite, are recorded in [`lab/ROADMAP.md`](lab/ROADMAP.md). This file cov
 Baseline (2026-10-17, [`PARITY.md`](PARITY.md)): 62% of jsdom's IDL members, 51% of the WPT subtests jsdom passes,
 11 of the 18 real libraries that pass on jsdom, and the full 90-test React app suite.
 
+**How progress is measured.** The parity suite ([`conformance/parity`](../conformance/parity/README.md)) runs jsdom's
+own test suite against rsdom on every PR: the WPT files jsdom runs, jsdom's to-upstream WPT tests, its legacy mocha
+tests and its API tests (2,616 files). On 2026-10-19 rsdom passed **52.6%** of the 167,733 subtests jsdom passes
+there, with 1,689 of the 2,616 files at parity. Each item below names its scope in the suite in backticks
+(`conformance/parity/roadmap.yaml`): `npm run test:parity -- --item <id>` runs it, and
+[`results/summary.md`](../conformance/parity/results/summary.md) gives every item's remaining gap. An item is done when
+its gap is 0, or when every remaining entry in `conformance/parity/expectations/` is explained there.
+
 ---
 
 ## Stage 0: Repository and distribution
@@ -25,6 +33,8 @@ Baseline (2026-10-17, [`PARITY.md`](PARITY.md)): 62% of jsdom's IDL members, 51%
 - [x] Monorepo layout: `crates/rsdom` (Rust), `packages/rsdom` (npm), e2e suites, benchmarks, conformance harnesses.
 - [x] `vitest-environment-rsdom` package so `environment: 'rsdom'` resolves like `'jsdom'`.
 - [x] CI: lint, Rust tests, contract suite (also in fallback mode), React app suite on Linux.
+- [x] Parity suite: jsdom's own test suite gates every PR against checked-in expectations (regressions and
+      unlocked progress both fail), and publishes the scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
 - [ ] Prebuilt binaries: napi-rs per-platform packages (`@rsdom/<triple>` as `optionalDependencies`) for linux x64/arm64
       (gnu and musl), darwin x64/arm64 and win32 x64; release workflow.
@@ -33,27 +43,33 @@ Baseline (2026-10-17, [`PARITY.md`](PARITY.md)): 62% of jsdom's IDL members, 51%
 - [ ] Versioning and changelog (one version for all packages; changesets or a release script).
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
-- [ ] Scheduled conformance runs (WPT, API surface, libraries) that publish their summaries, so parity is tracked
-      over time instead of as a one-off snapshot.
+- [ ] Scheduled runs of the three-DOM measurements (`conformance/wpt`, `conformance/api-surface`, `e2e/libraries`)
+      that publish their summaries; the parity suite already tracks rsdom against jsdom on every PR.
+- [ ] Refresh the parity oracle with each jsdom release: bump the pins in `scripts/fetch-refs.sh` and
+      `conformance/wpt/lib.mjs`, then `npm run test:parity -- --dom jsdom --update` and `--update`.
 
 ## Stage 1: Close the measured library gaps
 
 Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen in the library sample
 ([`PARITY.md`](PARITY.md) §3.2). Each is small or medium.
 
-- [ ] **TreeWalker / NodeIterator / NodeFilter** (S). Unblocks Radix Dialog, Headless UI, react-aria and lit; 7 of 20
-      libraries reference it.
-- [ ] **ShadowRoot + `attachShadow`**, without retargeting (M). Unblocks MUI Modal and Dialog; first step for lit.
-- [ ] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S). react-router.
-- [ ] **XMLHttpRequest** (M). axios with the XHR adapter.
+- [x] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
+      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §16): all 17 suite files at parity, libraries
+      11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
+- [ ] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
+      for lit.
+- [ ] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S) `history`. react-router.
+- [ ] **XMLHttpRequest** (M) `xhr`. axios with the XHR adapter.
 - [ ] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
-      `scrollIntoView`, `scrollTo` on elements, pointer capture, `checkVisibility` (S, beyond jsdom).
+      `scrollIntoView`, `scrollTo` on elements, pointer capture, `checkVisibility` (S, beyond jsdom) `observers`.
 
 ## Stage 2: jsdom-compatible entry points
 
 - [ ] `JSDOM` class: `new JSDOM(html, { url, contentType, pretendToBeVisual, ... })`, `.window`, `.serialize()`,
-      `.fragment()`; `JSDOM.fragment()`. Decide how several live `JSDOM` instances map onto one Env per thread
-      (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one).
+      `.fragment()`; `JSDOM.fragment()` `jsdom-api`. Decide how several live `JSDOM` instances map onto one Env per
+      thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). The
+      parity suite runs jsdom's own API tests through a minimal test-only adapter
+      (`conformance/parity/mocha/rsdom-jsdom.cjs`); the real class replaces it.
 - [ ] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
       as well as `environmentOptions.rsdom`.
 - [ ] `jest-environment-rsdom` for Jest (`testEnvironment: 'rsdom'`).
@@ -65,28 +81,32 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 
 In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and evidence for each):
 
-- [ ] Selection backed by real Ranges (M). tiptap and lexical typing through user-event.
-- [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L). The largest WPT gap share.
-- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M).
-- [ ] `document.createEvent`, `init*Event` and the missing event classes (S).
-- [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M).
-- [ ] FileReader with DOM Blob and File (S).
-- [ ] Web Storage named properties (S).
-- [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M).
-- [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L).
-- [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M); XPath (M).
-- [ ] DOMRect classes and the remaining Window members (S).
+- [ ] Selection backed by real Ranges (M) `selection`. tiptap and lexical typing through user-event.
+- [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share.
+- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
+- [ ] `document.createEvent`, `init*Event` and the missing event classes (S) `events`.
+- [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
+- [ ] FileReader with DOM Blob and File (S) `file-api`.
+- [ ] Web Storage named properties (S) `storage`.
+- [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
+- [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`.
+- [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.
+- [ ] DOMRect classes and the remaining Window members (S) `geometry`.
+- [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax): the
+      scoreboard's last table lists them by directory.
 
 ## Stage 4: Architectural work
 
 These change rsdom's data model or add a second browsing context. Each needs a design note in
 [`DESIGN.md`](DESIGN.md) before code.
 
-- [ ] Full Shadow DOM: event retargeting, slots, scoped styles (L).
-- [ ] Custom elements and `customElements` (L). lit after Stage 1.
-- [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8).
-- [ ] WTF-8 or UTF-16 character data, so lone surrogates round-trip (§8 there).
-- [ ] iframes, script execution (`runScripts`) and resource loading (XL). No library in the sample needs them.
+- [ ] Full Shadow DOM: event retargeting, slots, scoped styles (L) `shadow-dom`.
+- [ ] Custom elements and `customElements` (L) `custom-elements`. lit after Stage 1.
+- [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8)
+      `reclamation`.
+- [ ] WTF-8 or UTF-16 character data, so lone surrogates round-trip (§8 there) `surrogates`.
+- [ ] iframes, script execution (`runScripts`) and resource loading (XL) `browsing-contexts`. No library in the sample
+      needs them.
 
 ## Not planned
 

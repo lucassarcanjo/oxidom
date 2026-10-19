@@ -11,6 +11,7 @@ use crate::error::{DomError, DomResult};
 use crate::node::{Attr, DocData, DoctypeData, ElementData, Ns, kind, meta};
 use crate::string::Str;
 use crate::table::{NodeId, NodeRec};
+use crate::tree::FreshTree;
 
 /// Which document `createDocument` builds.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -392,20 +393,22 @@ impl Env {
         self.docs.push(DocData { id, html, ..DocData::default() });
         if dk == DocKind::Html {
             let dt = self.create_doctype(id, "html", "", "");
-            self.raw_append(id, dt);
             let html_el = self.create_element(id, atom::HTML, Ns::Html);
             let head = self.create_element(id, atom::HEAD, Ns::Html);
             let body = self.create_element(id, atom::BODY, Ns::Html);
-            self.raw_append(html_el, head);
+            // Bottom-up, one batch per parent; appending into the (connected) document connects.
+            let mut tree = FreshTree::default();
             if let Some(t) = title {
                 let te = self.create_element(id, atom::TITLE, Ns::Html);
                 let tx = self.create_text(id, t);
-                self.raw_append(te, tx);
-                self.raw_append(head, te);
+                tree.append(self, te, tx);
+                tree.append(self, head, te);
             }
-            self.raw_append(html_el, body);
-            self.raw_append(id, html_el);
-            self.mark_connected_subtree(id);
+            tree.append(self, html_el, head);
+            tree.append(self, html_el, body);
+            tree.append(self, id, dt);
+            tree.append(self, id, html_el);
+            tree.finish(self);
         }
         id
     }
@@ -575,22 +578,6 @@ impl Env {
         frag
     }
 
-    /// Appends without validation, records or hooks (construction of fresh, unobserved trees only).
-    pub(crate) fn raw_append(&mut self, parent: NodeId, child: NodeId) {
-        self.link(child, parent, 0);
-        let v = self.ep.bump(crate::env::ep::TREE);
-        self.rec_mut(parent).child_ver = v;
-    }
-
-    /// Sets CONNECTED on every inclusive descendant (fresh documents only; no hooks needed).
-    fn mark_connected_subtree(&mut self, root: NodeId) {
-        let mut n = root;
-        while n != 0 {
-            self.rec_mut(n).meta |= meta::CONNECTED;
-            n = self.next_in_subtree(n, root);
-        }
-    }
-
     // ------------------------------------------------------------------------------------ cloning
 
     /// DOM "clone a node" into `doc` (`cloneNode` uses the node's own document, `importNode` another).
@@ -605,19 +592,24 @@ impl Env {
         let mut stack: Vec<(NodeId, NodeId, NodeId)> = Vec::new();
         let copy = self.clone_one(node, doc, deep, &mut stack)?;
         if deep && self.rec(node).first != 0 {
-            stack.push((node, copy, doc));
+            // DOM "clone a node": a document's copy is the node document of its descendants' copies.
+            let child_doc = if k == kind::DOCUMENT { copy } else { doc };
+            stack.push((node, copy, child_doc));
         }
+        // Copies are fresh (only a cloned document is connected): see `FreshTree`.
+        let mut tree = FreshTree::default();
         while let Some((src, dst, d)) = stack.pop() {
             let mut c = self.rec(src).first;
             while c != 0 {
                 let cc = self.clone_one(c, d, true, &mut stack)?;
-                self.raw_append_quiet(dst, cc);
+                tree.append(self, dst, cc);
                 if self.rec(c).first != 0 {
                     stack.push((c, cc, d));
                 }
                 c = self.rec(c).next;
             }
         }
+        tree.finish(self);
         Ok(copy)
     }
 
@@ -685,15 +677,6 @@ impl Env {
             _ => return Err(DomError::NotSupported),
         };
         Ok(copy)
-    }
-
-    /// Appends into a freshly cloned (therefore detached and unobserved) parent. Cloning into a
-    /// document node connects the child.
-    fn raw_append_quiet(&mut self, parent: NodeId, child: NodeId) {
-        self.raw_append(parent, child);
-        if self.rec(parent).meta & meta::CONNECTED != 0 {
-            self.connect_subtree(child);
-        }
     }
 
     /// Installs the attribute list of a fresh element and derives the cached id / class / flag state.

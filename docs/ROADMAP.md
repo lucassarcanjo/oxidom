@@ -19,12 +19,13 @@ Baseline (2026-10-17, [`PARITY.md`](PARITY.md)): 62% of jsdom's IDL members, 51%
 11 of the 18 real libraries that pass on jsdom, and the full 90-test React app suite.
 
 **How progress is measured.** The parity suite ([`conformance/parity`](../conformance/parity/README.md)) runs jsdom's
-own test suite against rsdom on every PR: the WPT files jsdom runs, jsdom's to-upstream WPT tests, its legacy mocha
-tests and its API tests (2,616 files). On 2026-10-19 rsdom passed **52.6%** of the 167,733 subtests jsdom passes
-there, with 1,689 of the 2,616 files at parity. Each item below names its scope in the suite in backticks
-(`conformance/parity/roadmap.yaml`): `npm run test:parity -- --item <id>` runs it, and
-[`results/summary.md`](../conformance/parity/results/summary.md) gives every item's remaining gap. An item is done when
-its gap is 0, or when every remaining entry in `conformance/parity/expectations/` is explained there.
+own test suite against rsdom: WPT files from the 67 of jsdom's 127 `to-run.yaml` DIRs relevant to a DOM environment,
+jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests (about 2,600 files). On 2026-10-19 rsdom
+passed **53.5%** of the subtests jsdom passes there; the scoreboard,
+[`results/summary.md`](../conformance/parity/results/summary.md), has the current numbers and every item's remaining
+gap. Each item below names its scope in the suite in backticks (`conformance/parity/roadmap.yaml`):
+`npm run test:parity -- --item <id>` runs it. An item is done when its gap is 0, or when every remaining entry in
+`conformance/parity/expectations/` is explained there.
 
 ---
 
@@ -32,9 +33,11 @@ its gap is 0, or when every remaining entry in `conformance/parity/expectations/
 
 - [x] Monorepo layout: `crates/rsdom` (Rust), `packages/rsdom` (npm), e2e suites, benchmarks, conformance harnesses.
 - [x] `vitest-environment-rsdom` package so `environment: 'rsdom'` resolves like `'jsdom'`.
-- [x] CI: lint, Rust tests, contract suite (also in fallback mode), React app suite on Linux.
-- [x] Parity suite: jsdom's own test suite gates every PR against checked-in expectations (regressions and
-      unlocked progress both fail), and publishes the scoreboard (`conformance/parity`).
+- [ ] CI running on every PR. `.github/workflows/ci.yml` defines the jobs (lint, Rust tests, contract suite also in
+      fallback mode, React app suite and the parity suite, on Linux), but GitHub Actions is disabled for this
+      repository; until it runs, `npm run check` runs the same checks locally before merging.
+- [x] Parity suite: jsdom's own test suite, gated by checked-in expectations (regressions and unlocked progress both
+      fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
 - [ ] Prebuilt binaries: napi-rs per-platform packages (`@rsdom/<triple>` as `optionalDependencies`) for linux x64/arm64
       (gnu and musl), darwin x64/arm64 and win32 x64; release workflow.
@@ -44,9 +47,12 @@ its gap is 0, or when every remaining entry in `conformance/parity/expectations/
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
 - [ ] Scheduled runs of the three-DOM measurements (`conformance/wpt`, `conformance/api-surface`, `e2e/libraries`)
-      that publish their summaries; the parity suite already tracks rsdom against jsdom on every PR.
-- [ ] Refresh the parity oracle with each jsdom release: bump the pins in `scripts/fetch-refs.sh` and
-      `conformance/wpt/lib.mjs`, then `npm run test:parity -- --dom jsdom --update` and `--update`.
+      that publish their summaries; the parity suite's scoreboard is already committed with every change that moves it.
+- [ ] Refresh the parity oracle with each jsdom release. Bump every pin: the jsdom tag and `WPT_COMMIT` in
+      `scripts/fetch-refs.sh`, `WPT_COMMIT` in `conformance/wpt/lib.mjs`, and the `jsdom` devDependency in
+      `packages/rsdom/package.json` and `e2e/react-app/package.json` followed by `npm install` (`--dom jsdom` runs
+      `node_modules/jsdom`, not `refs/jsdom`). Then re-fetch (`rm -rf refs/jsdom && scripts/fetch-refs.sh --wpt`) and
+      run `npm run test:parity -- --dom jsdom --update`, then `npm run test:parity -- --update`.
 
 ## Stage 1: Close the measured library gaps
 
@@ -54,7 +60,7 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 ([`PARITY.md`](PARITY.md) §3.2). Each is small or medium.
 
 - [x] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
-      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §16): all 17 suite files at parity, libraries
+      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §19): all 17 suite files at parity, libraries
       11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
 - [ ] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
       for lit.
@@ -92,8 +98,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`.
 - [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.
 - [ ] DOMRect classes and the remaining Window members (S) `geometry`.
-- [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax): the
-      scoreboard's last table lists them by directory.
+- [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
+      including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's
+      `core` row and its last table list them.
 
 ## Stage 4: Architectural work
 

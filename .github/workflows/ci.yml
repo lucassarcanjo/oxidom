@@ -1,3 +1,6 @@
+# GitHub Actions is disabled for this repository, so this workflow does not run. It stays as the definition to
+# re-enable. Until then, run the same checks locally before merging: `npm run check` (after `npm run build` and
+# `scripts/fetch-refs.sh --wpt`; CONTRIBUTING.md §1).
 name: CI
 
 on:

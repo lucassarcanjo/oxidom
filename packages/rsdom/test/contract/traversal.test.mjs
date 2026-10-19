@@ -1,8 +1,9 @@
 // TreeWalker / NodeIterator / NodeFilter (ROADMAP Stage 1, lib/traversal.cjs). The upstream coverage is
 // conformance/parity (`--item traversal`: WPT dom/traversal, jsdom's node-iterator.js); these cases add what
 // component libraries do with a TreeWalker (focus scopes walking tabbables) and the removal paths that run
-// inside rsdom natives (innerHTML, textContent, replaceChildren, normalize), where NodeIterator's pre-removing
-// steps are rsdom-specific. Every assertion runs on jsdom, happy-dom and rsdom; jsdom wins disagreements.
+// inside rsdom natives (innerHTML / outerHTML, textContent, replaceChildren, normalize, moves by insertion,
+// convert-nodes-into-a-node and adoptNode, calls that fail part-way), where NodeIterator's pre-removing steps
+// are rsdom-specific. Every assertion runs on jsdom, happy-dom and rsdom; jsdom wins disagreements.
 import { createRequire } from 'node:module';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -35,7 +36,7 @@ describe.each(DOMS)('traversal [%s]', (kind) => {
     expect(NF.SHOW_COMMENT).toBe(0x80);
     expect(NF.SHOW_DOCUMENT_FRAGMENT).toBe(0x400);
     if (kind !== 'happy-dom') expect(errName(() => new w.TreeWalker())).toBe('TypeError'); // PINNED to jsdom: happy-dom 21 throws a DOMException
-    if (kind !== 'happy-dom') expect(errName(() => new w.NodeIterator())).toBe('TypeError'); // PINNED to jsdom: happy-dom 21 constructs it
+    if (kind !== 'happy-dom') expect(errName(() => new w.NodeIterator())).toBe('TypeError'); // PINNED to jsdom: happy-dom 21 throws a DOMException
     const tw = d.createTreeWalker(d.body);
     expect(tw).toBeInstanceOf(w.TreeWalker);
     if (kind !== 'happy-dom') expect(Object.prototype.toString.call(tw)).toBe('[object TreeWalker]'); // PINNED to jsdom: happy-dom 21 has no toStringTag
@@ -133,15 +134,39 @@ describe.each(DOMS)('traversal [%s]', (kind) => {
     if (kind !== 'happy-dom') expect(inner).toBe('InvalidStateError'); // PINNED to jsdom: happy-dom 21 allows recursive filtering
     // the result is converted to unsigned short: 65537 -> 1 (FILTER_ACCEPT)
     const big = d.createTreeWalker(r, NF.SHOW_ELEMENT, () => 65537);
-    if (kind !== 'happy-dom') expect(big.firstChild().id).toBe('x'); // PINNED to jsdom: happy-dom 21 compares the raw value
+    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom 21 compares the raw value
+    expect(big.firstChild().id).toBe('x');
+    // the conversion is part of the callback call: re-entering from valueOf() throws too
+    inner = null;
+    const viaValueOf = d.createTreeWalker(r, NF.SHOW_ELEMENT, () => ({
+      valueOf() {
+        inner = errName(() => viaValueOf.nextNode());
+        return NF.FILTER_ACCEPT;
+      },
+    }));
+    expect(viaValueOf.firstChild().id).toBe('x');
+    expect(inner).toBe('InvalidStateError');
+  });
+
+  it('a filter that sets currentNode: firstChild() stops at the current node as it is then', () => {
+    d.body.innerHTML = '<div id="r"><div id="a"><span id="a1"></span></div><div id="b"></div></div>';
+    const b = d.getElementById('b');
+    const tw = d.createTreeWalker(d.getElementById('r'), NF.SHOW_ELEMENT, (n) => {
+      if (n.id !== 'a1') return NF.FILTER_ACCEPT;
+      tw.currentNode = b;
+      return NF.FILTER_REJECT;
+    });
+    tw.currentNode = d.getElementById('a');
+    expect(tw.firstChild()).toBe(b); // climbs out of a, which is no longer the current node
+    expect(tw.currentNode).toBe(b);
   });
 
   it('NodeIterator walks forward and back, the pointer flips', () => {
-    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom 21's NodeIterator has no referenceNode / pointer
     d.body.innerHTML = '<div id="r"><a id="a"></a><b id="b"><i id="i"></i></b><c id="c"></c></div>';
     const r = d.getElementById('r');
     const ni = d.createNodeIterator(r, NF.SHOW_ELEMENT);
     expect(ids(collect(() => ni.nextNode()))).toEqual(['r', 'a', 'b', 'i', 'c']);
+    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom 21's NodeIterator has no referenceNode / pointer
     expect(ni.referenceNode.id).toBe('c');
     expect(ni.pointerBeforeReferenceNode).toBe(false);
     expect(ni.previousNode().id).toBe('c');
@@ -223,11 +248,95 @@ describe.each(DOMS)('traversal [%s]', (kind) => {
       expect(t.nextNode()).toBe(null);
     });
 
-    it('a failed removal leaves the iterator alone', () => {
+    it('outerHTML, replaceChild and adoptNode remove the reference', () => {
       if (skip) return;
       advanceTo('b1');
-      expect(errName(() => d.getElementById('p2').removeChild(d.getElementById('b1')))).toBe('NotFoundError');
-      expect(ni.referenceNode.id).toBe('b1');
+      d.getElementById('p1').outerHTML = '<i id="n"></i>';
+      expect(ni.referenceNode).toBe(r);
+      expect(ni.pointerBeforeReferenceNode).toBe(false);
+      expect(ni.nextNode().id).toBe('n');
+      advanceTo('b2');
+      r.replaceChild(d.createElement('hr'), d.getElementById('p2'));
+      expect(ni.referenceNode.id).toBe('n');
+      expect(ni.pointerBeforeReferenceNode).toBe(false);
+      expect(ni.nextNode().localName).toBe('hr');
+      d.implementation.createHTMLDocument('').adoptNode(ni.referenceNode); // the hr
+      expect(ni.referenceNode.id).toBe('n');
+      expect(ids(collect(() => ni.nextNode()))).toEqual(['p3']);
+    });
+
+    it('moving the reference with several nodes (convert nodes into a fragment)', () => {
+      if (skip) return;
+      advanceTo('b1');
+      d.body.append(d.getElementById('p1'), 'x');
+      expect(ni.referenceNode).toBe(r);
+      expect(ni.nextNode().id).toBe('p2');
+      advanceTo('b2');
+      d.getElementById('p3').before(d.getElementById('b2'), 'y');
+      expect(ni.referenceNode.id).toBe('p2');
+      expect(ni.nextNode().id).toBe('b2'); // now r's child, before p3
+      d.getElementById('b2').replaceWith('a', 'b');
+      expect(ni.referenceNode.id).toBe('p2');
+      expect(ni.pointerBeforeReferenceNode).toBe(false);
+      expect(ni.nextNode().id).toBe('p3');
+    });
+
+    it('a call that fails before removing anything leaves the iterator where it was', () => {
+      if (skip) return;
+      advanceTo('b1');
+      const p1 = d.getElementById('p1');
+      const b1 = d.getElementById('b1');
+      // these two fail validation after the pre-removing steps for moving p1 have moved the iterator out of it
+      expect(errName(() => b1.appendChild(p1))).toBe('HierarchyRequestError');
+      expect(ni.referenceNode).toBe(b1);
+      expect(errName(() => d.getElementById('p3').insertBefore(p1, d.getElementById('b2')))).toBe('NotFoundError');
+      expect(ni.referenceNode).toBe(b1);
+      expect(errName(() => d.getElementById('p2').removeChild(b1))).toBe('NotFoundError'); // not a child: no steps
+      expect(ni.referenceNode).toBe(b1);
+      expect(ni.pointerBeforeReferenceNode).toBe(false);
+      expect(ni.nextNode().id).toBe('p2');
+    });
+
+    it('a call that fails part-way keeps the steps for the removals it did', () => {
+      if (skip) return;
+      advanceTo('b1');
+      const p1 = d.getElementById('p1');
+      // p1 is moved into the conversion fragment, then the doctype fails the call
+      expect(errName(() => d.body.append(p1, d.implementation.createDocumentType('html', '', '')))).toBe('HierarchyRequestError');
+      expect(p1.parentNode.nodeType).toBe(11);
+      expect(ni.referenceNode).toBe(r);
+      expect(ni.nextNode().id).toBe('p2');
+      // replaceChildren on a document: the converted nodes move, the replace-all then fails (two elements)
+      const o = d.implementation.createHTMLDocument('');
+      o.body.innerHTML = '<p id="q1"></p><p id="q2"></p>';
+      const oi = o.createNodeIterator(o, NF.SHOW_ELEMENT);
+      while (oi.nextNode().id !== 'q1');
+      expect(errName(() => o.replaceChildren(o.getElementById('q1'), o.createElement('x')))).toBe('HierarchyRequestError');
+      expect(o.documentElement.parentNode).toBe(o); // the children it would have replaced are still there
+      expect(oi.referenceNode).toBe(o.body);
+      expect(oi.pointerBeforeReferenceNode).toBe(false);
+      expect(oi.nextNode().id).toBe('q2');
+    });
+
+    it("another document's iterators follow the removals in that document", () => {
+      if (skip) return;
+      const o = d.implementation.createHTMLDocument('');
+      o.body.innerHTML = '<p id="q1"></p><p id="q2"></p><p id="q3"></p>';
+      const oi = o.createNodeIterator(o.body, NF.SHOW_ELEMENT);
+      oi.nextNode();
+      oi.nextNode();
+      advanceTo('b1');
+      d.getElementById('p1').remove(); // only ni moves
+      expect(oi.referenceNode.id).toBe('q1');
+      // moving q1 into a document without iterators is still a removal from o
+      d.implementation.createHTMLDocument('').body.appendChild(o.getElementById('q1'));
+      expect(oi.referenceNode).toBe(o.body);
+      expect(oi.nextNode().id).toBe('q2');
+      d.getElementById('p2').appendChild(o.getElementById('q2'));
+      expect(oi.referenceNode).toBe(o.body);
+      expect(oi.nextNode().id).toBe('q3');
+      expect(ni.referenceNode).toBe(r);
+      expect(ids(collect(() => ni.nextNode()))).toEqual(['p2', 'b2', 'q2', 'p3']);
     });
   });
 });

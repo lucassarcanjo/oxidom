@@ -968,7 +968,10 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
-## 16. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
+## 19. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
+
+(§16-§18 are taken by the child-list, browsing-context and element-state notes of the parallel foundation
+refactor.)
 
 `lib/traversal.cjs`, a facade-only module installed before the area modules. It ports
 `refs/jsdom/lib/jsdom/living/traversal/` with node ids in place of impl objects.
@@ -981,29 +984,52 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   `traversal`): `TreeWalker(SHOW_ELEMENT).nextNode()` 24 ns/node (jsdom 106, happy-dom 45), with an object
   `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 22 ns/node.
 - **Filter protocol** (WebIDL callback interface): a function is called with `this` undefined; otherwise
-  `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short;
-  re-entering a traversal from its own filter throws InvalidStateError; filter exceptions propagate unchanged.
+  `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short
+  as part of the call, so re-entering a traversal from the filter or from a `valueOf()` that conversion runs
+  throws InvalidStateError; the re-entered NodeIterator traversal leaves the outer one's candidate alone (jsdom
+  30 clears it, so the outer call then sets a null reference); filter exceptions propagate unchanged. A filter may
+  set `currentNode`: `firstChild()` / `lastChild()` compare with the walker's current node as it is at each step.
 - **NodeIterator pre-removing steps (DOM §6.1).** Removals run inside natives (removeChild, the replace-all of
   `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or `adoptNode`), and Rust never
   calls JS (§0). The first `createNodeIterator()` in a process therefore wraps the twelve removal natives on
   `rt.N` (the facade calls them as `N.name(...)`, so wrapping the property is enough). A wrapper derives from the
   native's arguments which nodes the call removes, in removal order (a fragment's children, a moved node's old
-  position, the children a replace-all drops, the text nodes `normalize` merges), runs the steps for every live
-  iterator against a virtual tree in which the call's earlier removals already happened (a `gone` set skipped by
-  sibling and last-descendant lookups), calls the native, and puts back the pointers it moved if the native
-  returns an error code. `replaceChildren` / `nodesToNode` read their node lists from OUT, which record reads
-  overwrite in fallback mode, so the wrapper copies the list first and writes it back before the call.
-  - Cost: nothing until a NodeIterator exists (no wrapper is installed). Afterwards, one `live.size` test per
-    removal native while none is alive; with one alive, create + append + remove costs 1.0 us against 0.66 us
-    (jsdom 6.5 us, happy-dom 4.1 us, which does no fix-up). The steps are O(live iterators) per removal, as in
-    jsdom (`_workingNodeIterators`); a childless removed node is checked with one comparison per iterator. A
-    WeakRef target stays alive until the current job ends, so iterators created and dropped in one synchronous
-    loop all count until then: with 5,000 of them a create + append + remove costs 185 us (jsdom 921 us).
-  - Divergence: when `replaceChildren` fails pre-insertion validity, the iterators' pointers are restored as
-    if nothing was removed, although the nodes it had moved into a fragment stay there (the spec converts the
-    nodes before validating). It needs a NodeIterator over those nodes and an invalid call.
+  position, the children a replace-all drops, the text nodes `normalize` merges), runs the steps for the live
+  iterators of each removed node's document against a virtual tree in which the call's earlier removals already
+  happened (a `gone` set skipped by sibling and last-descendant lookups), and calls the native. A native that
+  returns an error code has done a prefix of its removals: convert-nodes-into-a-node (`nodesToNode`, the first
+  step of `replaceChildren`) moves its nodes into the new fragment one at a time and stops at the first invalid
+  one (a doctype, say), and every other native validates before removing anything. So the wrapper records each
+  listed node's parent before the call and, on failure, puts back (newest first) the pointers moved for the
+  removals from the first node still under its old parent. `replaceChildren` / `nodesToNode` read their node
+  lists from OUT, which record reads overwrite in fallback mode, so the wrapper copies the list first and writes
+  it back before the call.
+  - Registry: WeakRefs to the iterators' states, in one set per document, keyed by the node document of the
+    root at creation (the spec runs the steps of "each NodeIterator whose root's node document is node's node
+    document"; jsdom keys by the document `createNodeIterator` was called on). Each wrapper first reads the
+    documents of the nodes the call may remove (`F.OWNER`) and calls the native straight away when none has an
+    iterator. Edge case: an iterator whose root is later adopted into another document stays under the old one,
+    so removals in the new document do not move it (jsdom behaves the same; the spec would move it). Within one
+    call the documents are read before the call: when a call moves a node to another document and then removes a
+    descendant of it, the iterators rooted in that node are still checked, as the spec says (jsdom skips them).
+  - Cost: nothing until a NodeIterator exists (no wrapper is installed): create + append + remove 0.75 us.
+    Afterwards, one map lookup per removal native in documents without iterators (0.84 us with an iterator on
+    another document); with one on the same document, 0.96 us (jsdom 5.7 us, happy-dom 3.0 us, which does no
+    fix-up). The steps are O(iterators of the document) per removal, as in jsdom; a childless removed
+    node is checked with one comparison per iterator. A dropped iterator stays registered until a GC collects its
+    state, which is no earlier than the end of the current job and, since rsdom keeps nodes off the JS heap and
+    major GCs are rare, often much later. Keying by document confines that to its own document. In a
+    DOMPurify-style loop (each call parses into a fresh document, walks it with a NodeIterator and removes
+    nodes), 2,000 calls cost 0.1 ms each (fallback mode 0.13 ms), flat. Before the per-document registry they
+    rose from 0.5 to 5 ms (fallback mode 3 to 24 ms); jsdom stays at 0.7 to 1 ms. After 2,000 such dropped
+    iterators, an append + remove of a non-leaf element in the main document costs 3.6 us (before: 251 us). On
+    the iterator's own document a dropped iterator still counts: after 5,000 created and dropped in one loop, a
+    create + append + remove costs 210 us (jsdom 412 us), and after one, `normalize()` over 10k nodes costs
+    0.5 to 0.7 ms instead of 0.18 ms (it lists the text nodes it merges in JS).
 - **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
   `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
-  that are rsdom-specific (innerHTML, textContent, replaceChildren, normalize, moves) and the focus-scope walk
-  libraries do. In `e2e/libraries`, Radix Dialog, Headless UI and react-aria now pass; lit gets past import and
-  stops at custom elements / `attachShadow`.
+  that are rsdom-specific (innerHTML / outerHTML, textContent, replaceChildren, normalize, replaceChild,
+  adoptNode, moves by insertion and by convert-nodes-into-a-node, calls that fail before or part-way through
+  their removals, iterators on two documents) and the focus-scope walk libraries do. In `e2e/libraries`, Radix
+  Dialog, Headless UI and react-aria now pass; lit gets past import and stops at custom elements /
+  `attachShadow`.

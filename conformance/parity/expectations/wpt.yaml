@@ -1,4 +1,4 @@
-# rsdom's expected failures in the parity suite: web-platform-tests (the DIRs jsdom runs).
+# rsdom's expected failures in the parity suite: web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127).
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 

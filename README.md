@@ -45,10 +45,11 @@ Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md))
 | real libraries passing, of the 18 that pass on jsdom | 14 (2026-10-19, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
-Every PR also runs **jsdom's own test suite** against rsdom ([`conformance/parity`](conformance/parity/README.md)):
-the web-platform-tests jsdom runs, jsdom's to-upstream tests, its legacy mocha tests and its API tests. On
-2026-10-19 rsdom passed 53.5% of the subtests jsdom passes there; the
-[scoreboard](conformance/parity/results/summary.md) breaks that down by roadmap item.
+The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
+rsdom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
+to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-19 rsdom passed 53.5% of the subtests
+jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) has the current numbers, broken down
+by roadmap item.
 
 The four remaining library failures come from missing APIs: ShadowRoot (MUI), custom elements and
 `attachShadow` (lit), history traversal (react-router) and XMLHttpRequest (axios). Closing them is
@@ -100,8 +101,12 @@ A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, St
 npm test               # Rust tests, contract suites (jsdom / happy-dom / rsdom), React app suite on rsdom
 npm run test:parity    # jsdom's own test suite on rsdom (needs scripts/fetch-refs.sh --wpt)
 npm run lint           # clippy + rustfmt
+npm run check          # lint, npm test, the fallback-mode suites and test:parity: run it before merging
 npm run bench:micro    # see bench/README.md
 ```
+
+GitHub Actions is disabled for this repository, so nothing runs these checks automatically;
+`.github/workflows/ci.yml` keeps the definition for when it is turned back on.
 
 Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): build and test commands, how to add a native function, the
 facade conventions and the invariants that keep rsdom fast.

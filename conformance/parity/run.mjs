@@ -10,10 +10,11 @@
 //   --dom jsdom       run jsdom against the oracle instead of rsdom against the expectations
 //   --update          rewrite the expectations (or, with --dom jsdom, the oracle) for the files that ran, then
 //                     regenerate results/summary.md; a run over a whole source also drops stale entries
-//   --all             also run files expected to time out, flaky or skipped files
+//   --all             also run files expected to time out, and flaky or skipped files (reported, never gating)
 //   --allow-progress  exit 0 when tests pass that are expected to fail (default: fail, so progress is locked in)
 //   --concurrency N   parallel processes (default: available parallelism)
-//   --print <id>      run one test file and print the raw result as JSON
+//   --print <id>      run one test file and print the raw result as JSON; `<source>:<id>` picks the source
+//                     when two share the id (a few to-upstream ids are also WPT ids)
 //
 // Exit code 1 on any regression (or, without --allow-progress, unexpected pass). Raw results of the run go to
 // results/raw/<dom>.jsonl (gitignored).
@@ -23,7 +24,8 @@ import path from 'node:path';
 import { fork } from 'node:child_process';
 import {
   SOURCES, RESULTS, SKIPPED_BY_DEFAULT, listTests, summarize, compare, entryFromResult, loadExpectations,
-  saveExpectations, loadOracle, saveOracle, oracleFromResult, oracleAsExpectations, makeFilter, loadRoadmap,
+  saveExpectations, loadOracle, saveOracle, oracleFromResult, oracleAsExpectations, makeFilter, splitSource,
+  loadRoadmap,
 } from './lib.mjs';
 import { writeReport } from './report.mjs';
 
@@ -33,8 +35,11 @@ const opts = {};
 const patterns = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
-  if (['--source', '--item', '--dom', '--concurrency', '--print'].includes(a)) opts[a.slice(2)] = argv[++i];
-  else if (a.startsWith('--')) flags.add(a.slice(2));
+  if (['--source', '--item', '--dom', '--concurrency', '--print'].includes(a)) {
+    const v = argv[++i];
+    if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`);
+    opts[a.slice(2)] = v;
+  } else if (a.startsWith('--')) flags.add(a.slice(2));
   else patterns.push(a);
 }
 const dom = opts.dom ?? 'rsdom';
@@ -43,6 +48,7 @@ const update = flags.has('update');
 const sources = (opts.source ?? Object.keys(SOURCES).join(',')).split(',');
 for (const s of sources) if (!SOURCES[s]) throw new Error(`unknown source ${s} (expected ${Object.keys(SOURCES).join(', ')})`);
 const concurrency = Number(opts.concurrency ?? os.availableParallelism());
+if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error(`--concurrency must be a positive integer, not ${opts.concurrency}`);
 const WPT_TIMEOUT_MS = Number(process.env.WPT_TIMEOUT_MS ?? 10_000);
 const HARD_KILL_MS = { wpt: WPT_TIMEOUT_MS + 30_000, tuwpt: WPT_TIMEOUT_MS + 30_000, legacy: 180_000, api: 180_000 };
 const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'rsdom-parity-compile-cache');
@@ -87,14 +93,13 @@ function runJob(source, test) {
 
 // ------------------------------------------------------------------------------------------- --print
 if (opts.print) {
-  for (const s of sources) {
-    const t = listTests(s).find((x) => x.id === opts.print);
-    if (t) {
-      fs.writeSync(1, JSON.stringify(await runJob(s, t), null, 2) + '\n');
-      process.exit(0);
-    }
-  }
-  throw new Error(`no test ${opts.print} in ${sources.join(', ')}`);
+  const { source, text: id } = splitSource(opts.print);
+  const where = source ? [source] : sources;
+  const found = where.flatMap((s) => listTests(s).filter((x) => x.id === id).map((t) => ({ s, t })));
+  if (!found.length) throw new Error(`no test ${id} in ${where.join(', ')}`);
+  if (found.length > 1) console.error(`parity: ${id} is in ${found.map((f) => f.s).join(' and ')}; running ${found[0].s} (--print ${found[1].s}:${id} for the other)`);
+  fs.writeSync(1, JSON.stringify(await runJob(found[0].s, found[0].t), null, 2) + '\n');
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------------------------- run
@@ -106,7 +111,7 @@ const plan = [];
 const state = {};
 for (const source of sources) {
   const tests = listTests(source).filter((t) => filter(source, t.id) && (!item || item.match(source, t.id)));
-  const oracle = dom === 'jsdom' ? loadOracle(source) : null;
+  const oracle = loadOracle(source);
   const exps = dom === 'jsdom' ? oracleAsExpectations(oracle) : loadExpectations(source);
   const skipped = [];
   for (const t of tests) {
@@ -140,7 +145,7 @@ async function lane() {
     const st = state[source];
     const sum = summarize(r);
     st.results.set(test.id, sum);
-    const { verdict, notes } = compare(sum, st.exps.get(test.id));
+    const { verdict, notes } = compare(sum, st.exps.get(test.id), st.oracle.get(test.id));
     st.counts[verdict]++;
     finished++;
     if (verdict !== 'ok') console.log(`${SIGN[verdict]} ${source}:${test.id}\n${notes.map((n) => '    ' + n).join('\n')}`);
@@ -182,7 +187,7 @@ if (update) {
     } else {
       const exps = st.exps;
       for (const [id, sum] of st.results) {
-        const e = entryFromResult(sum, exps.get(id));
+        const e = entryFromResult(sum, exps.get(id), st.oracle.get(id));
         if (e) exps.set(id, e);
         else exps.delete(id);
       }

@@ -5,7 +5,7 @@
 #
 #   scripts/fetch-refs.sh            jsdom only (enough for scripts/gen-interfaces.mjs, conformance/api-surface)
 #   scripts/fetch-refs.sh --wpt      also web-platform-tests at the commit jsdom pins, blob-filtered and sparse
-#                                    (~300 MB; conformance/parity and conformance/wpt run it)
+#                                    (~90 MB; conformance/parity and conformance/wpt run it)
 #   scripts/fetch-refs.sh --all      also happy-dom, vitest, dom-testing-library, react (reading material)
 #
 # RSDOM_REFS overrides the destination (default: <repo>/refs).
@@ -14,12 +14,30 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 dest="${RSDOM_REFS:-$root/refs}"
 mkdir -p "$dest"
 
-clone() { # name repo tag
-  if [ -d "$dest/$1/.git" ]; then
-    echo "refs/$1: present ($(git -C "$dest/$1" describe --tags 2>/dev/null || echo unknown))"
+# True when $1 is the top of its own checkout: git -C on a directory whose .git is broken would act on the
+# enclosing repository (this one, with the default destination).
+is_checkout() { [ "$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" = "$(cd "$1" && pwd -P)" ]; }
+
+clone() { # name repo tag; an existing checkout at another tag is moved to this one (refused with local changes)
+  local dir="$dest/$1" head was
+  if [ -d "$dir/.git" ]; then
+    is_checkout "$dir" || { echo "refs/$1: $dir is not a git checkout; remove it and rerun" >&2; exit 1; }
+    head="$(git -C "$dir" rev-parse -q --verify HEAD || true)"
+    if [ -n "$head" ] && [ "$head" = "$(git -C "$dir" rev-parse -q --verify "refs/tags/$3^{commit}" || true)" ]; then
+      echo "refs/$1: present ($3)"
+      return
+    fi
+    was="$(git -C "$dir" describe --tags 2>/dev/null || echo unknown)"
+    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
+      echo "refs/$1: at $was, not $3, and has local changes (git -C $dir status); stash or discard them and rerun" >&2
+      exit 1
+    fi
+    git -C "$dir" fetch --quiet --depth 1 origin tag "$3"
+    git -C "$dir" checkout --quiet "$3"
+    echo "refs/$1: $2@$3 (was $was)"
     return
   fi
-  git clone --quiet --depth 1 --branch "$3" "https://github.com/$2.git" "$dest/$1"
+  git clone --quiet --depth 1 --branch "$3" "https://github.com/$2.git" "$dir"
   echo "refs/$1: $2@$3"
 }
 
@@ -29,7 +47,16 @@ clone jsdom jsdom/jsdom v30.1.3
 # (WPT_COMMIT) must name the same one.
 WPT_COMMIT=2971340498805350babb6c167e0df98eaa380f98
 fetch_wpt() {
-  local wpt="$dest/wpt"
+  local wpt="$dest/wpt" pinned
+  pinned="$(git -C "$dest/jsdom" rev-parse HEAD:test/web-platform-tests/tests)"
+  if [ "$pinned" != "$WPT_COMMIT" ]; then
+    echo "refs/wpt: WPT_COMMIT is $WPT_COMMIT but refs/jsdom pins $pinned; bump it here and in conformance/wpt/lib.mjs" >&2
+    exit 1
+  fi
+  if [ -d "$wpt/.git" ] && ! is_checkout "$wpt"; then
+    echo "refs/wpt: $wpt is not a git checkout; remove it and rerun" >&2
+    exit 1
+  fi
   if [ -d "$wpt/.git" ] && [ "$(git -C "$wpt" rev-parse HEAD 2>/dev/null)" = "$WPT_COMMIT" ]; then
     echo "refs/wpt: present ($WPT_COMMIT)"
     return

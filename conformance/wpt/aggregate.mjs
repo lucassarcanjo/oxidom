@@ -129,9 +129,7 @@ for (const d of DOMS) domTotals.fileScore[d] = Number(((100 * domTotals.fileScor
 const globalsFile = path.join(RESULTS, 'globals.json');
 const globals = fs.existsSync(globalsFile) ? readJSON(globalsFile).globals : null;
 
-// ---- failure causes ----
-/** Normalises an error message into a cause bucket (missing API, assertion kind, ...). */
-
+// ---- failure causes (buckets from lib.mjs cause()) ----
 const causes = Object.fromEntries(DOMS.map((d) => [d, new Map()]));
 const addCause = (d, c, id, n = 1) => {
   const e = causes[d].get(c) ?? { subtests: 0, files: new Set() };

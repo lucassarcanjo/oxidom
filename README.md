@@ -42,16 +42,17 @@ Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md))
 |---|---|
 | jsdom's WebIDL members present | 62% (1,167 of 1,877) |
 | WPT subtests that pass on jsdom and also pass on rsdom | 51% (82,867 of 162,751) |
-| real libraries passing, of the 18 that pass on jsdom | 11 |
+| real libraries passing, of the 18 that pass on jsdom | 14 (2026-10-19, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
 Every PR also runs **jsdom's own test suite** against rsdom ([`conformance/parity`](conformance/parity/README.md)):
-the web-platform-tests jsdom runs, jsdom's to-upstream tests, its legacy mocha tests and its API tests. rsdom
-passes 52.6% of the subtests jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) breaks
-that down by roadmap item.
+the web-platform-tests jsdom runs, jsdom's to-upstream tests, its legacy mocha tests and its API tests. On
+2026-10-19 rsdom passed 53.5% of the subtests jsdom passes there; the
+[scoreboard](conformance/parity/results/summary.md) breaks that down by roadmap item.
 
-The seven library failures come from four missing APIs: TreeWalker/NodeFilter, ShadowRoot, history traversal
-and XMLHttpRequest. Closing them is [Stage 1 of the roadmap](docs/ROADMAP.md#stage-1-close-the-measured-library-gaps).
+The four remaining library failures come from missing APIs: ShadowRoot (MUI), custom elements and
+`attachShadow` (lit), history traversal (react-router) and XMLHttpRequest (axios). Closing them is
+[Stage 1 of the roadmap](docs/ROADMAP.md#stage-1-close-the-measured-library-gaps) (custom elements are Stage 4).
 Not supported today: Shadow DOM, custom elements, iframes, script execution, layout, CSSOM rule objects.
 
 ## Usage (from source)

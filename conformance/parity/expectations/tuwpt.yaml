@@ -205,9 +205,7 @@ dom/nodes/pre-insertion-validity-children-to-exclude.html:
 dom/nodes/tree-mutation-indexes.html:
   "Adoption visits every node in nested shadow trees and their hosts' light trees": [fail, "missing method: .attachShadow()"]
   "Range common ancestors, cloning, and extraction follow moves between branches of different depths": [fail, "missing method: .cloneContents()"]
-  "Range indexes, tree walking, and document position agree after seeded subtree moves": [fail, "missing method: .createTreeWalker()"]
   "Removing a subtree adjusts descendant and parent Ranges, including offset zero": [fail, "assert_equals: wrong value"]
-  "Tree order follows moves between ancestors and disconnected roots": [fail, "missing method: .createTreeWalker()"]
 dom/ranges/Range-character-data.html: [fail, "assert_equals: wrong value"]
 dom/ranges/Range-contents-boundaries.html: [fail, "range[method] is not a function"]
 dom/ranges/Range-traversal-boundaries.html: [fail, "assert_equals: wrong value"]

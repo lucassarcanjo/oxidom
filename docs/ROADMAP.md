@@ -53,8 +53,9 @@ its gap is 0, or when every remaining entry in `conformance/parity/expectations/
 Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen in the library sample
 ([`PARITY.md`](PARITY.md) §3.2). Each is small or medium.
 
-- [ ] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
-      lit; 7 of 20 libraries reference it.
+- [x] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
+      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §16): all 17 suite files at parity, libraries
+      11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
 - [ ] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
       for lit.
 - [ ] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S) `history`. react-router.

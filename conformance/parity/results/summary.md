@@ -8,11 +8,11 @@ passes. **Files at parity** = files where rsdom passes everything jsdom passes. 
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests (the DIRs jsdom runs) | 2389 | 1555 | 162751 | 85089 | 52.3% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 129 | 2578 | 2176 | 84.4% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 3 | 1781 | 712 | 40.0% |
+| web-platform-tests (the DIRs jsdom runs) | 2389 | 1571 | 162751 | 86673 | 53.3% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 129 | 2578 | 2178 | 84.5% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 744 | 41.8% |
 | jsdom's API tests (test/api) | 18 | 2 | 623 | 178 | 28.6% |
-| **all** | **2616** | **1689** | **167733** | **88155** | **52.6%** |
+| **all** | **2616** | **1706** | **167733** | **89773** | **53.5%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -20,7 +20,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 
 | stage | item | files | files at parity | gap (subtests) | parity | main causes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| 1 | TreeWalker / NodeIterator / NodeFilter | 16 | 0 | 1612 | 0.1% | missing global: NodeFilter (805); harness ERROR: missing global: NodeFilter (763); missing method: .createNodeIterator() (37) |
+| 1 | TreeWalker / NodeIterator / NodeFilter | 17 | 17 | 0 | 100.0% |  |
 | 1 | ShadowRoot + attachShadow, without retargeting | 25 | 1 | 512 | 0.6% | missing method: .attachShadow() (500); harness ERROR: missing global: customElements (6); assert_true: wrong value (4) |
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no suite coverage |  |
 | 1 | XMLHttpRequest | 31 | 16 | 114 | 41.2% | missing global: XMLHttpRequest (111); assert_true: wrong value (3) |
@@ -38,7 +38,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 40 | 18 | 798 | 13.9% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom adapter: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no suite coverage |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 906 | 684 | 1177 | 95.1% | assert_equals: wrong value (470); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
+| 3 | Core DOM and HTML behaviour no other item claims | 906 | 685 | 1171 | 95.2% | assert_equals: wrong value (470); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
 | 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 49 | 810 | 3.7% | missing method: .attachShadow() (740); assert_true: wrong value (39); harness ERROR: missing method: .attachShadow() (21) |
 | 4 | Custom elements and customElements | 147 | 51 | 2995 | 0.2% | missing global: customElements (2623); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no suite coverage |  |

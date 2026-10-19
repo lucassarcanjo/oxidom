@@ -9,7 +9,7 @@
 - id: traversal
   stage: 1
   title: TreeWalker / NodeIterator / NodeFilter
-  tests: ['wpt:dom/traversal/**', 'legacy:to-port-to-wpts/node-iterator.js']
+  tests: ['wpt:dom/traversal/**', 'wpt:dom/nodes/Document-createTreeWalker.html', 'legacy:to-port-to-wpts/node-iterator.js']
 - id: shadow-root
   stage: 1
   title: ShadowRoot + attachShadow, without retargeting

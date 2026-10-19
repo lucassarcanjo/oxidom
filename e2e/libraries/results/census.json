@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-17T18:23:02.624Z",
+  "generated": "2026-10-19T18:30:59.216Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -1871,7 +1871,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -1890,7 +1890,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -1901,7 +1901,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3161,32 +3161,6 @@
           "focus-trap + tabbable",
           "@floating-ui/react",
           "lexical"
-        ]
-      },
-      {
-        "api": "createTreeWalker",
-        "libs": 7,
-        "usedBy": [
-          "@radix-ui/react-dialog",
-          "@radix-ui/react-select",
-          "@radix-ui/react-dropdown-menu",
-          "@headlessui/react",
-          "react-aria-components",
-          "lexical",
-          "lit"
-        ]
-      },
-      {
-        "api": "NodeFilter",
-        "libs": 7,
-        "usedBy": [
-          "@radix-ui/react-dialog",
-          "@radix-ui/react-select",
-          "@radix-ui/react-dropdown-menu",
-          "@headlessui/react",
-          "react-aria-components",
-          "lexical",
-          "lit"
         ]
       },
       {

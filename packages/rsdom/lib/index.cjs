@@ -1,5 +1,5 @@
 'use strict';
-// rsdom facade entry. `createWindow()` opens a browsing context (lib/context.cjs, DESIGN §17): a document
+// rsdom facade entry. `createWindow()` opens a browsing context (lib/context.cjs, DESIGN §18): a document
 // (html/head/body) in this process's env and a window-like object, WITHOUT installing globals (plain Node /
 // contract tests). The Vitest environment (lib/vitest-environment.mjs, area C) opens one on globalThis.
 //

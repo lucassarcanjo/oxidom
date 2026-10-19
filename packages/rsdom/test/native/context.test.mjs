@@ -1,4 +1,4 @@
-// Browsing contexts (lib/context.cjs, DESIGN §17): several windows in one env, the current context and what
+// Browsing contexts (lib/context.cjs, DESIGN §18): several windows in one env, the current context and what
 // follows it (constructors, the focus fast path, MutationObserver error reporting), the URL as one copy,
 // and teardown (close() / rt.reset() cancel the context's timers and restore a global).
 import { createRequire } from 'node:module';

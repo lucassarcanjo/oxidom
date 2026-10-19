@@ -1,4 +1,4 @@
-// Child-list module contract (DESIGN §16): children-changed steps run once per insert/remove step (a
+// Child-list module contract (DESIGN §17): children-changed steps run once per insert/remove step (a
 // <select> resets its selectedness at each option insertion and removal, also inside replace-all), and the
 // quiet path for fresh nodes (cloneNode, createHTMLDocument, DOMParser) settles them like jsdom's bottom-up
 // construction: a cloned <select> resets against all of its options, nothing queues a MutationObserver

@@ -1,4 +1,4 @@
-// The facade memo protocol (lib/memo.cjs, DESIGN §19): memos are transparent (RSDOM_NO_MEMO=1 /
+// The facade memo protocol (lib/memo.cjs, DESIGN §20): memos are transparent (RSDOM_NO_MEMO=1 /
 // RSDOM_NO_PREFILTER=1 give the same answers) and validated by exact Rust counters.
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';

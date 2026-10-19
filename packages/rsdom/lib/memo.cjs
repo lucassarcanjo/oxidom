@@ -1,5 +1,5 @@
 'use strict';
-// The facade memo protocol (DESIGN §19, CONTRIBUTING §5). JS never authors DOM state: it only memoises Rust
+// The facade memo protocol (DESIGN §20, CONTRIBUTING §5). JS never authors DOM state: it only memoises Rust
 // answers, and every memo is validated by counters that Rust writes (invariant 2). This module owns what all
 // memos share, so a call site only states what its memo depends on and how to recompute it:
 //

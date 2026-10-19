@@ -1,4 +1,4 @@
-//! The child-list module (DESIGN §16): every change to a child list goes through it. Pre-insert validation
+//! The child-list module (DESIGN §17): every change to a child list goes through it. Pre-insert validation
 //! (order per jsdom `Node-impl.js` L833-1009 / DOM §4.2.3), then the DOM primitives [`Env::insert`] and
 //! [`Env::remove`], which own one step's bookkeeping in spec order: adoption, linking, the connect /
 //! disconnect pass (CONNECTED bits, document id map, per-node hooks), the MutationObserver record (unless

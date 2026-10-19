@@ -13,7 +13,7 @@
 //! | `cloned` | cloning steps for each cloned element | forms |
 //! | `parsed` | once per parse, for the nodes it created (ids `base..`), before they are inserted | forms |
 //!
-//! The child-list module (tree.rs, DESIGN §16) is the only caller of the connectivity and children-changed
+//! The child-list module (tree.rs, DESIGN §17) is the only caller of the connectivity and children-changed
 //! hooks, and it queues the MutationObserver childList records itself (they need the exact
 //! added/removed/prev/next of each step, or the merged record of replace / replace-all).
 

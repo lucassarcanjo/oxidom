@@ -49,7 +49,7 @@ allocations below still hold.
 | `src/{lib,ffi,env,table,chunk,atoms,string,node,error,dom,tree,attrs,text,parse,serialize,hooks}.rs`, `build.rs` | foundation | the hot paths and the JS contract; keep changes small, isolated (append rather than reorder) and called out in the commit message |
 | `lib/{runtime,dom,collections,native,index}.cjs` | foundation | extend through `install(rt, dom)` instead of editing |
 | `src/select/**`, `src/style/**`, `lib/select.cjs`, `lib/style.cjs` | **A** selectors, inline style, getComputedStyle | |
-| `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §18) |
+| `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
@@ -142,7 +142,7 @@ Mutation paths call these hooks (see `src/hooks.rs`); implement the functions in
 | `mo::queue_child_list` / `queue_attribute` / `queue_char_data` | at the spec'd record points; they must return immediately when no observer is registered (`e.mo.nregs == 0`). `queue_char_data`'s `old` is only filled when `mo::active(target)` (replaceData skips the copy otherwise): keep `active` and the queue functions consistent |
 
 `style::on_attr_changed` / `on_children_changed` currently bump `EP[STYLE]` with the DESIGN §8.2 default rules;
-area A refines them. All child-list changes go through the child-list module in `src/tree.rs` (DESIGN §16): the
+area A refines them. All child-list changes go through the child-list module in `src/tree.rs` (DESIGN §17): the
 `insert` / `remove` primitives and the operations composed from them, and `FreshTree` for nodes created inside the
 same native call (document creation, cloning). The parser links nodes raw, settles them with `hook_parsed`, then
 runs ONE tree operation (`replace_all`, `replace_child`, `pre_insert`) or `FreshTree::take_linked` (documents), so
@@ -167,7 +167,7 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
   every interface constructor; window.cjs exposes all of them), `flags` (`SHARED`, `MEMO`, `PREFILTER`),
   `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument` (read-only: the
   current browsing context's document).
-- Browsing contexts (`lib/context.cjs`, DESIGN §17): `context.open(options)` makes a window + document,
+- Browsing contexts (`lib/context.cjs`, DESIGN §18): `context.open(options)` makes a window + document,
   `ctx.close()` tears it down (timers, error routing, restored globals), `rt.reset()` closes them all. Code
   that needs "the window" without a node to ask (constructors such as `new Text()`, plain EventTargets,
   callback error reporting) uses `context.currentDocument()` / `context.current()`; a document's window is
@@ -200,7 +200,7 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
-- Every JS memo goes through `lib/memo.cjs` (DESIGN §19): it is validated by Rust-written counters, per node
+- Every JS memo goes through `lib/memo.cjs` (DESIGN §20): it is validated by Rust-written counters, per node
   (`nodeVersion(id, NODE.ATTRS | DATA | CHILDREN | FORM)`) or on the epoch page (`deps('TREE', 'ATTR', ...)`:
   `stamp()` / `fresh(stamp)` compare slot by slot; never pack counters into one number), and it is off when
   the module's `MEMO` (or `PREFILTER`) switch is. test/native/memo.test.mjs runs one scenario per memo kind

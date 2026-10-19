@@ -63,7 +63,7 @@ export default {
     const context = require('./context.cjs');
     if (process.env.RSDOM_COUNTERS === '1') rt.N.countersReset();
 
-    // A browsing context on `global` (DESIGN §17). window.cjs records the original descriptor of every global
+    // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
     const ctx = context.open({ url: o.url, html: o.html, global, catchErrors: true });

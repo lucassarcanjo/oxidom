@@ -1,7 +1,7 @@
 //! Differential test (ROADMAP M1 acceptance): random sequences of tree operations applied to the Rust arena
 //! and to a simple Vec-based reference model must produce identical trees and identical errors, and the
 //! arena's link invariants (siblings, first/last, child_len, parent, CONNECTED, ownerDocument) must hold.
-//! The child-list module's bookkeeping (DESIGN §16) is checked after every operation too: a changed child
+//! The child-list module's bookkeeping (DESIGN §17) is checked after every operation too: a changed child
 //! list changes its `child_ver` and `EP[TREE]`, the document id map agrees with the tree, clones queue no
 //! MutationObserver records, and replaying the childList records of an observed parent over its old child
 //! list yields its new one.

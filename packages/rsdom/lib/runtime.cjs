@@ -27,6 +27,8 @@ const flags = {
 const EPI = Object.freeze({
   GEN: 0, TREE: 1, ATTR: 2, STYLE: 3, FORM: 4, MO_PENDING: 5, FOCUS: 6, ATOM_LEN: 7, NODE_LEN: 8,
   OUT_NEED: 9, ERR: 10, REC: 11, TEXT: 12,
+  /** area A's slot (src/style/mod.rs EP_STYLE_DEP): non-zero while author sheets select on element state */
+  STYLE_DEP: 13,
 });
 /** Node-record field offsets (src/table.rs `NodeRec`). */
 const F = Object.freeze({
@@ -70,7 +72,7 @@ const V = {
   OUT: new Uint32Array(0),
   /** Offset of record `id` in `T` (fallback mode refreshes a stale mirror record first). */
   off: offShared,
-  /** Env generation: incremented by every `reset()` (id-caching objects compare it to detect a dead env). */
+  /** Env generation: incremented by every `reset()` (id-caching objects use memo.cjs `envGen()` / `alive()`). */
   envGen: 1,
 };
 let EP_AB = null;
@@ -463,8 +465,6 @@ const rt = {
   check, checkId, domError,
   wrap, mutated, define, defineOn, exposeMembers, reset,
   get shared() { return shared; },
-  /** incremented by every reset(): id-caching objects created in an older env are dead */
-  get envGen() { return V.envGen; },
   /** set by dom.cjs */
   setMaterializer(fn) { materializer = fn; },
   /** area C: called (from `mutated()`) when EP[MO_PENDING] != 0 */

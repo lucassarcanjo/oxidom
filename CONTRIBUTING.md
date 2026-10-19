@@ -166,7 +166,7 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
   `convertNodes`, `staticNodeListFromIds`, `isHtml(id, atom)`, `firstDescendant`, `attrLookup` / `attrSetAtom`,
   `reflectString` / `reflectBool` / `reflectLong` / `defineAccessor`, mixins `ParentNode`, `ChildNode`,
   `NonDocumentTypeChildNode`; collections: `require('./collections.cjs')` (`liveQueryCollection(src)` for
-  getElementsBy*).
+  getElementsBy*); memos: `require('./memo.cjs')` (below).
 - New interfaces: plain classes; constructors that must not be user-constructible check `rt.TOKEN`; set
   `Symbol.toStringTag` and register in `rt.classes[name]` (exact `constructor.name` matters for pretty-format).
 - Read node facts with zero FFI: `const o = rt.V.off(id); rt.V.T[o + rt.F.STATE]`. Never keep `V.T` in a
@@ -175,12 +175,13 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - Character data: record word 11 is `F.DATA_VER` (the `attr_ver` slot of elements), changed by every data
   change. CharacterData wrappers memoize `data` in `_at` keyed by `_ch` (they have no children/attributes).
 - Never write `rt.W` directly (it is kept dense); use `rt.wrap(id)`. `rt.reset()` neuters every wrapper
-  (`_i = 0`) and bumps `rt.V.envGen`; JS caches keyed by ids or dynamic atoms must be cleared in
-  `rt.onReset`, and objects that cache ids should compare `V.envGen` (the core collections do).
+  (`_i = 0`) and bumps the env generation; JS caches keyed by ids or dynamic atoms must be cleared in
+  `rt.onReset`, and objects that cache ids record `memo.envGen()` and check `memo.alive(gen)` (the core
+  collections do).
 - Collections: live lists have NO own numeric properties (index getters live on the prototype, always
   current); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
-  (Vitest `toEqual` compares own entries). `liveQueryCollection({ key, items })`: `items()` may return any
-  iterable. `_sync()` still exists on every collection.
+  (Vitest `toEqual` compares own entries). `liveQueryCollection({ deps, items })`: `deps` is a
+  `memo.deps(...)` set, `items()` may return any iterable. `_sync()` still exists on every collection.
 - Attr wrappers are cached per element by (namespace atom, local atom) in `el._at.map` (key `local` for no
   namespace, `"ns:local"` otherwise).
 - `rt.define` gives WebIDL descriptors: public (non-`_`) names are enumerable, `_x` and symbols are not;
@@ -188,8 +189,11 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
-- Every JS memo must be validated by a Rust-written counter (`child_ver`, `attr_ver`, `form_ver`, `EP[*]`) and
-  have an ablation switch (`rt.flags.MEMO` / `PREFILTER`).
+- Every JS memo goes through `lib/memo.cjs` (DESIGN §19): it is validated by Rust-written counters, per node
+  (`nodeVersion(id, NODE.ATTRS | DATA | CHILDREN | FORM)`) or on the epoch page (`deps('TREE', 'ATTR', ...)`:
+  `stamp()` / `fresh(stamp)` compare slot by slot; never pack counters into one number), and it is off when
+  the module's `MEMO` (or `PREFILTER`) switch is. test/native/memo.test.mjs runs one scenario per memo kind
+  with memos on and off: extend it with a new memo.
 - Do not add per-instance fields in constructors (hidden-class stability); use the reserved wrapper fields
   (§2 table) or a side `Map`/`WeakMap`.
 

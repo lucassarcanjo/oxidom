@@ -967,3 +967,29 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   epoch on child-list changes (needs a per-node validity key in Rust and JS), the property table / UA sheet
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
+
+## 19. Facade memo protocol (2026-10)
+
+Invariant 2 (§0) allows JS to memoise Rust answers only, each memo validated by a Rust-written counter and
+behind an ablation flag (§12). Until this section, every memo re-implemented that protocol by hand: about 17 sites,
+three key formulas for "these epoch slots are unchanged" (`TREE + ATTR`, the lossy `TREE * 0x1000 + (ATTR & 0xfff)`
+that returned a stale base URL after exactly 4096 attribute writes, and a recommended but non-monotonic
+`TREE ^ ATTR`), seven memos without the `RSDOM_NO_MEMO` switch, and two spellings of the env generation.
+
+`lib/memo.cjs` now owns the protocol; a call site only says what its memo depends on and how to recompute it:
+
+- **Switches.** `MEMO` and `PREFILTER` (read once from `rt.flags`). Every memo, including live-collection cursors,
+  element counts and query caches, recomputes on every read when its switch is off.
+- **Per-node counters.** `NODE.ATTRS` / `DATA` / `CHILDREN` / `FORM` name the record words Rust rewrites
+  (`attr_ver`, the character-data `DATA_VER`, `child_ver`, `form_ver`); `nodeVersion(id, word)` is one table read.
+  The hottest memos (getAttribute / hasAttribute, `data`, input `value`; §15.2) keep their single compare inline.
+- **Epoch-page dependencies.** `deps('TREE', 'ATTR', ...)` names a set of EP slots. A stamp is a `Uint32Array` copy
+  of those slots plus the env generation; `fresh(stamp, n)` compares the first `n` slots one by one (exact, no
+  packing) and fails for a stamp from an older env, so a reset can never revive a memo. Slots are ordered from
+  always-needed to conditionally-needed: the qSA memo stamps TREE, ATTR, TEXT, FORM, REC and checks 2, 3 or 5 of
+  them by the selector's flags (§6.3); the computed-style core stamps STYLE, REC, FORM and checks REC and FORM only
+  while `EP[STYLE_DEP]` (slot 13, now named in `EPI`) says author sheets select on state (§8.2).
+- **Env lifetime.** Objects that cache ids record `envGen()` and test `alive(gen)`.
+
+`test/native/memo.test.mjs` runs one scenario that fills and invalidates every memo kind with memos on and off
+(child processes) and asserts identical, literal results, plus the base-URL collision regression.

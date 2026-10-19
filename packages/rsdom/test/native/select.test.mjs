@@ -123,7 +123,8 @@ describe('selectors: ablation transparency', () => {
     const calls = withCounter('byClass', () => {
       for (let i = 0; i < 10; i++) void byCls.length;
     });
-    expect(calls).toBe(0);
+    // RSDOM_NO_MEMO=1 turns the collection's query cache off too (lib/memo.cjs)
+    expect(calls).toBe(rt.flags.MEMO ? 0 : 10);
     document.querySelectorAll('p')[1].setAttribute('class', 'b a');
     expect(byCls.length).toBe(2);
     document.body.appendChild(document.createElement('p'));

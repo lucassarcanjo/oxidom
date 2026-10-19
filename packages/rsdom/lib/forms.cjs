@@ -19,8 +19,9 @@ const rt = require('./runtime.cjs');
 const events = require('./events.cjs');
 const { installIndices, liveQueryCollection, staticNodeListFromIds, ListIterator, HTMLCollection } = require('./collections.cjs');
 
+const { MEMO, NODE, nodeVersion, deps, envGen, alive } = require('./memo.cjs');
+
 const { N, V, F, M, K, S, EPI, W, NS } = rt;
-const MEMO = rt.flags.MEMO;
 
 function wrap(id) {
   if (id === 0) return null;
@@ -190,7 +191,10 @@ function reflectULong(C, prop, attr, dflt, positive = false) {
 
 // ------------------------------------------------------------------------------------------- URLs
 
+/** Base URL memo per document: { k: stamp of BASE_DEPS, u: document URL, b: base URL }. */
 const BASE = new WeakMap();
+/** Which `<base href>` applies can change with any child-list or attribute change. */
+const BASE_DEPS = deps('TREE', 'ATTR');
 const URL_CACHE = new Map();
 rt.onReset(() => URL_CACHE.clear());
 
@@ -198,9 +202,8 @@ rt.onReset(() => URL_CACHE.clear());
 function baseURL(doc) {
   if (doc === null) return 'about:blank';
   const url = doc.URL;
-  const key = V.EP[EPI.TREE] * 0x1000 + (V.EP[EPI.ATTR] & 0xfff);
   const m = BASE.get(doc);
-  if (m !== undefined && m.k === key && m.u === url) return m.b;
+  if (m !== undefined && m.u === url && BASE_DEPS.fresh(m.k)) return m.b;
   let b = url;
   const root = doc.documentElement;
   if (root !== null) {
@@ -221,7 +224,12 @@ function baseURL(doc) {
       n = nextInSubtree(n, stop);
     }
   }
-  BASE.set(doc, { k: key, u: url, b });
+  if (m === undefined) BASE.set(doc, { k: BASE_DEPS.stamp(), u: url, b });
+  else {
+    BASE_DEPS.stamp(m.k);
+    m.u = url;
+    m.b = b;
+  }
   return b;
 }
 
@@ -305,8 +313,8 @@ class DOMTokenList {
 
   #sync() {
     const el = this.#el;
-    const v = V.T[V.off(el._i) + F.ATTR_VER];
-    if (v !== this.#ver || !MEMO) {
+    const v = nodeVersion(el._i, NODE.ATTRS);
+    if (!MEMO || v !== this.#ver) {
       this.#ver = v;
       this.#tokens = parseTokens(el.getAttribute(this.#attr));
     }
@@ -532,7 +540,7 @@ function makeDataset(el) {
 /** API value of input / textarea (memoised by FORM_VER). */
 function memoValue(el) {
   const id = el._i;
-  const fv = V.T[V.off(id) + F.FORM_VER];
+  const fv = nodeVersion(id, NODE.FORM);
   const s = el._vm;
   if (MEMO && s !== null && s.fv === fv) return s.val;
   const v = N.valueGet(id);
@@ -553,7 +561,7 @@ function setValue(el, v) {
     // Lone surrogates become U+FFFD in Rust's UTF-8 storage: memoise only what Rust really holds.
     if (MEMO && v.isWellFormed()) {
       const s = bs(el);
-      s.fv = V.T[V.off(id) + F.FORM_VER];
+      s.fv = nodeVersion(id, NODE.FORM);
       s.val = v;
     }
   } else if (c !== 0) rt.check(c);
@@ -562,7 +570,7 @@ function setValue(el, v) {
 /** Selection memo (start, end, dir) or null when the selection API does not apply. */
 function selection(el) {
   const id = el._i;
-  const fv = V.T[V.off(id) + F.FORM_VER];
+  const fv = nodeVersion(id, NODE.FORM);
   const s = bs(el);
   if (!(MEMO && s.sv === fv)) {
     if (N.selGet(id) === 0) {
@@ -810,10 +818,8 @@ const Labelable = {
 
 // =============================================================================== collections
 
-/** Key of live area-B collections: EP[REC] changes with any record write (tree, attributes, form state). */
-function recKey() {
-  return V.EP[EPI.REC];
-}
+/** Live area-B collections depend on EP[REC]: it changes with any record write (tree, attributes, form state). */
+const REC_DEPS = deps('REC');
 
 function idsToWrappers(ids) {
   const a = new Array(ids.length);
@@ -975,7 +981,7 @@ let coverOptionIndices = null;
 
 function liveIds(Proto, owner, native) {
   const id = owner._i;
-  const c = liveQueryCollection({ key: recKey, items: () => idsToWrappers(rt.outIds(native(id))) });
+  const c = liveQueryCollection({ deps: REC_DEPS, items: () => idsToWrappers(rt.outIds(native(id))) });
   if (Proto !== null) Object.setPrototypeOf(c, Proto.prototype);
   OWNER.set(c, owner);
   return c;
@@ -1220,10 +1226,10 @@ function runUaTasks() {
     const el = rt.wrap(id);
     if (TOGGLE_PENDING.has(el)) continue;
     TOGGLE_PENDING.add(el);
-    const envGen = rt.envGen;
+    const gen = envGen();
     setImmediate(() => {
       TOGGLE_PENDING.delete(el);
-      if (el._i !== 0 && rt.envGen === envGen) events.fire(el, 'toggle', {});
+      if (el._i !== 0 && alive(gen)) events.fire(el, 'toggle', {});
     });
   }
 }

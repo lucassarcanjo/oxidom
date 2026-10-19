@@ -10,10 +10,10 @@
 //   local-name atom is not one of the selector list's rightmost type selectors returns false with zero
 //   FFI; `tagOnly` lists (`a, button`) return true on a tag hit. Never applied to SVG/MathML elements or
 //   to elements of XML documents (type selectors are case-sensitive there).
-// - qSA memo (RSDOM_NO_MEMO=1 disables): LRU of 64 (root, sel) entries holding the result ids, valid
-//   while EP[TREE] / EP[ATTR] are unchanged, plus EP[TEXT] for :empty/:has/value-dependent lists and
-//   EP[FORM] / EP[REC] for state-dependent ones (:checked, :focus, ...). Every hit returns a FRESH static
-//   NodeList built from the cached ids.
+// - qSA memo (RSDOM_NO_MEMO=1 disables; lib/memo.cjs, DESIGN §19): LRU of 64 (root, sel) entries holding
+//   the result ids, valid while EP[TREE] / EP[ATTR] are unchanged, plus EP[TEXT] for :empty/:has/value-
+//   dependent lists and EP[FORM] / EP[REC] for state-dependent ones (:checked, :focus, ...). Every hit
+//   returns a FRESH static NodeList built from the cached ids.
 
 /** Rust `sel_flags` (src/select/mod.rs). */
 const SF = Object.freeze({ TAG_ONLY: 1, STATE: 2, FOCUS: 4, PSEUDO_ELEMENT: 8, TEXT: 16 });
@@ -22,15 +22,24 @@ const SEL_MAX = 4096;
 const MEMO_MAX = 64;
 
 function install(rt, dom) {
-  const { N, V, F, M, EPI, flags } = rt;
+  const { N, V, F, M } = rt;
   const { liveQueryCollection, staticNodeListShared, wrapAll } = require('./collections.cjs');
+  const { MEMO, PREFILTER, deps } = require('./memo.cjs');
   const { Element, Document, DocumentFragment, staticNodeListFromIds, wrap } = dom;
-  const PREFILTER = flags.PREFILTER;
-  const MEMO = flags.MEMO;
 
-  /** @type {Map<string, {id:number, flags:number, t1:number, tags:Set<number>|null, tagOnly:boolean}>} */
+  /**
+   * What a qSA result depends on, from always to conditionally needed: every list reads the tree and
+   * attributes, TEXT-flagged lists also character data, state-dependent lists (SF.STATE) also form state and
+   * any record write (focus, ...). A compiled entry's `depth` is how many of these slots it checks.
+   */
+  const QSA_DEPS = deps('TREE', 'ATTR', 'TEXT', 'FORM', 'REC');
+  const DEPTH_PLAIN = 2;
+  const DEPTH_TEXT = 3;
+  const DEPTH_STATE = 5;
+
+  /** @type {Map<string, {id:number, flags:number, t1:number, tags:Set<number>|null, tagOnly:boolean, depth:number}>} */
   let SEL = new Map();
-  /** @type {Map<number, {ids: Uint32Array, first: number, t: number, a: number, x: number, f: number, r: number}>} */
+  /** @type {Map<number, {ids: Uint32Array|null, w: Array|null, first: number, k: Uint32Array}>} */
   let MEMO_MAP = new Map();
 
   rt.onReset(() => {
@@ -62,7 +71,8 @@ function install(rt, dom) {
       tags = new Set();
       for (let i = 0; i < n; i++) tags.add(OUT[2 + i]);
     }
-    const c = { id, flags: fl, t1, tags, tagOnly: (fl & SF.TAG_ONLY) !== 0 && n > 0 };
+    const depth = (fl & SF.STATE) !== 0 ? DEPTH_STATE : (fl & SF.TEXT) !== 0 ? DEPTH_TEXT : DEPTH_PLAIN;
+    const c = { id, flags: fl, t1, tags, tagOnly: (fl & SF.TAG_ONLY) !== 0 && n > 0, depth };
     if (SEL.size >= SEL_MAX) evict();
     // Key by an internalized copy: sliced/cons strings (split(), template literals) kept as Map keys make
     // every later SEL lookup ~30 ns slower in V8 (measured: prefilter miss 7 ns -> 39 ns).
@@ -101,9 +111,7 @@ function install(rt, dom) {
     const key = memoKey(c, root, first);
     const m = MEMO_MAP.get(key);
     if (m === undefined) return undefined;
-    const EP = V.EP;
-    if (m.t !== EP[EPI.TREE] || m.a !== EP[EPI.ATTR] || (m.x >= 0 && m.x !== EP[EPI.TEXT])
-      || (m.f >= 0 && (m.f !== EP[EPI.FORM] || m.r !== EP[EPI.REC]))) {
+    if (!QSA_DEPS.fresh(m.k, c.depth)) {
       MEMO_MAP.delete(key);
       return undefined;
     }
@@ -115,18 +123,13 @@ function install(rt, dom) {
 
   function memoPut(c, root, first, ids, one) {
     if (MEMO_MAP.size >= MEMO_MAX) MEMO_MAP.delete(MEMO_MAP.keys().next().value);
-    const EP = V.EP;
-    const state = (c.flags & SF.STATE) !== 0;
     const m = {
       ids,
       /** wrappers of `ids` (querySelectorAll: shared by every NodeList built from this entry) */
       w: null,
       first: one,
-      t: EP[EPI.TREE],
-      a: EP[EPI.ATTR],
-      x: (c.flags & SF.TEXT) !== 0 || state ? EP[EPI.TEXT] : -1,
-      f: state ? EP[EPI.FORM] : -1,
-      r: state ? EP[EPI.REC] : -1,
+      /** QSA_DEPS stamp (all five slots; `c.depth` decides how many are checked) */
+      k: QSA_DEPS.stamp(),
     };
     MEMO_MAP.set(memoKey(c, root, first), m);
     return m;
@@ -206,10 +209,10 @@ function install(rt, dom) {
 
   // ------------------------------------------------------------------------ getElementsBy*
 
-  /** Live collection over a Rust query; `key` must be a Rust-written version (sums of epochs grow). */
-  function live(key, run) {
+  /** Live collection over a Rust query, valid while the epoch slots of `d` (a memo.deps set) are unchanged. */
+  function live(d, run) {
     return liveQueryCollection({
-      key,
+      deps: d,
       items() {
         const ids = rt.outIds(run());
         const a = new Array(ids.length);
@@ -219,27 +222,27 @@ function install(rt, dom) {
     });
   }
 
-  const treeKey = () => V.EP[EPI.TREE];
-  const treeAttrKey = () => V.EP[EPI.TREE] + V.EP[EPI.ATTR];
+  const TREE_DEPS = deps('TREE');
+  const TREE_ATTR_DEPS = deps('TREE', 'ATTR');
 
   const ByMixin = {
     getElementsByTagName(qualifiedName) {
       required(arguments.length, 'getElementsByTagName', this.constructor.name);
       const root = this._i;
       const name = String(qualifiedName);
-      return live(treeKey, () => N.byTag(root, name));
+      return live(TREE_DEPS, () => N.byTag(root, name));
     },
     getElementsByTagNameNS(namespace, localName) {
       const root = this._i;
       const ns = namespace === null || namespace === undefined || namespace === '' ? null : String(namespace);
       const local = String(localName);
-      return live(treeKey, () => N.byTagNS(root, ns, local));
+      return live(TREE_DEPS, () => N.byTagNS(root, ns, local));
     },
     getElementsByClassName(classNames) {
       required(arguments.length, 'getElementsByClassName', this.constructor.name);
       const root = this._i;
       const names = String(classNames);
-      return live(treeAttrKey, () => N.byClass(root, names));
+      return live(TREE_ATTR_DEPS, () => N.byClass(root, names));
     },
   };
   rt.define(Element, ByMixin);

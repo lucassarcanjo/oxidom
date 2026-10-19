@@ -21,6 +21,8 @@ npm run test:js           # vitest: test/contract (jsdom / happy-dom / rsdom par
 npm run test:fallback     # the same suite with RSDOM_SHARED=0 (crossing-getter fallback); must stay green
 npm run test:e2e          # e2e/react-app: 90 React + Testing Library tests under `environment: 'rsdom'`
 npm test                  # all of the above except the fallback run
+npm run test:parity       # jsdom's own test suite on rsdom, against conformance/parity/expectations (~4 min;
+                          # needs scripts/fetch-refs.sh --wpt)
 npm run lint              # cargo clippy --all-targets -D warnings && cargo fmt --check
 npm run bench:m0          # M0 gates; bench/README.md lists every harness
 ```
@@ -31,8 +33,8 @@ npm run bench:m0          # M0 gates; bench/README.md lists every harness
   --test prop_tree` for the long fuzz run.
 - `e2e/react-app` also runs on the other DOMs: `npm run test:jsdom -w e2e/react-app` (or `test:happy-dom`).
 - `e2e/libraries` (real-library smoke tests) has its own dependencies: `e2e/libraries/run.sh`.
-- `refs/` (gitignored) holds upstream checkouts at the pinned versions: `scripts/fetch-refs.sh` (jsdom) or
-  `scripts/fetch-refs.sh --all`. Code comments cite paths in it (`refs/jsdom/lib/jsdom/living/...`).
+- `refs/` (gitignored) holds upstream checkouts at the pinned versions: `scripts/fetch-refs.sh` (jsdom),
+  `scripts/fetch-refs.sh --wpt` (also web-platform-tests at the commit jsdom pins) or `scripts/fetch-refs.sh --all`. Code comments cite paths in it (`refs/jsdom/lib/jsdom/living/...`).
   `scripts/gen-interfaces.mjs` and `conformance/*` read it; their outputs are committed.
 - `lib/generated/` is gitignored and rewritten by every cargo build (atoms, interfaces, events, CSS property names,
   native.d.ts). After a merge, just rebuild; never hand-edit generated files. If you delete the directory, touch
@@ -217,6 +219,12 @@ select -> style -> forms -> events -> mo -> window, after the core classes exist
 - rsdom-only checks (protocols, wrappers, epochs) go to `test/native/`. `test/native/workers.test.mjs` also
   runs `test/fixtures/pool-threads` (Vitest `pool: 'threads'`, one fresh worker thread per file) in a child
   process: loading the addon on a new thread after another exited must keep working.
+- The parity suite (`conformance/parity`, `npm run test:parity`) runs jsdom's own test suite against rsdom: the
+  WPT files jsdom runs, jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests, about 2,600
+  files. `conformance/parity/expectations/*.yaml` lists what rsdom fails; anything else must pass, and a run
+  also fails when a listed failure starts passing, so progress gets locked in. `--update` rewrites the
+  expectations for the files that ran; commit that diff with the change that caused it. CI runs the whole
+  suite on every PR. Its README has the workflow.
 - Everything must pass with `RSDOM_SHARED=0` too. Rust logic gets unit tests next to the code; tree-shaped
   invariants can extend `tests/prop_tree.rs`.
 - Known, asserted divergences: MathML elements are `MathMLElement` (spec) where jsdom/happy-dom use `Element`;
@@ -276,6 +284,8 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
 
 1. Pick the item in [`docs/ROADMAP.md`](docs/ROADMAP.md) (the measured need behind each one is in
    [`docs/PARITY.md`](docs/PARITY.md) §3). Read jsdom's implementation in `refs/jsdom` and the WPT files for the area.
+   `npm run test:parity -- --item <id>` runs the item's scope in the parity suite (`conformance/parity/roadmap.yaml`);
+   its entries in `conformance/parity/expectations/` are the failing upstream tests you are about to fix.
 2. Write the contract test first (`test/contract/`): every assertion runs on jsdom, happy-dom and rsdom, and jsdom is
    the oracle. A case where jsdom itself is wrong against the spec gets a comment and an explicit divergence.
 3. Decide where the state lives. State that must survive or react to tree mutations goes to Rust (a new
@@ -283,5 +293,8 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
    (a new `lib/<feature>.cjs` installed from `lib/index.cjs`). Unused features must cost nothing on the hot paths.
 4. Run `npm test` and `npm run test:fallback`; for anything on a hot path also `npm run bench:micro` and compare with
    `bench/results/micro.md`.
-5. Tick the roadmap item, and record architecture decisions in `docs/DESIGN.md` (append sections; code cites the
+5. `npm run test:parity -- --update --item <id>` locks in what now passes and regenerates the scoreboard
+   (`conformance/parity/results/summary.md`); then `npm run test:parity` over everything, since a fix in one area can
+   move another.
+6. Tick the roadmap item, and record architecture decisions in `docs/DESIGN.md` (append sections; code cites the
    section numbers).

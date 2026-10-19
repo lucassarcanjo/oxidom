@@ -3,12 +3,13 @@
 // (html/head/body) in this process's env and a window-like object, WITHOUT installing globals (plain Node /
 // contract tests). The Vitest environment (lib/vitest-environment.mjs, area C) opens one on globalThis.
 //
-// Area install order: core (dom.cjs, collections.cjs) -> select -> style -> forms -> events -> mo -> window.
+// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window.
 
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
 const context = require('./context.cjs');
 const areas = [
+  require('./traversal.cjs'),
   require('./select.cjs'),
   require('./style.cjs'),
   require('./forms.cjs'),

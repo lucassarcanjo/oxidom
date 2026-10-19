@@ -45,3 +45,36 @@ jobs:
         run: npm run test:fallback
       - name: React app suite on rsdom
         run: npm run test:e2e
+
+  parity:
+    name: jsdom parity suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Cache upstream checkouts (jsdom 30.1.3, WPT at jsdom's pin)
+        uses: actions/cache@v4
+        with:
+          path: refs
+          key: refs-${{ hashFiles('scripts/fetch-refs.sh') }}
+      - run: scripts/fetch-refs.sh --wpt
+      - run: npm ci
+      - run: npm run build
+      - name: Scoreboard matches the committed expectations
+        run: node conformance/parity/report.mjs > /dev/null && git diff --exit-code conformance/parity/results/summary.md
+      - name: jsdom's test suite on rsdom, against conformance/parity/expectations
+        run: npm run test:parity
+      - name: Publish the scoreboard
+        if: always()
+        run: cat conformance/parity/results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload raw results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-raw
+          path: conformance/parity/results/raw/

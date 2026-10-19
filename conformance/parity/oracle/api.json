@@ -1,0 +1,20 @@
+{
+"api/basics.js": ["OK",6,[]],
+"api/cookies.js": ["OK",11,[]],
+"api/css-parsing-errors.js": ["OK",14,[]],
+"api/encoding.js": ["OK",213,[]],
+"api/file-url-functionality.js": ["OK",5,[]],
+"api/fragment.js": ["OK",7,[]],
+"api/from-file.js": ["OK",13,[]],
+"api/from-outside.js": ["OK",17,["Test cases only possible to test from the outside > does not retain closed windows after stylesheet parsing (imported)","Test cases only possible to test from the outside > does not retain closed windows after stylesheet parsing (invalid)","Test cases only possible to test from the outside > does not retain closed windows after stylesheet parsing (throwing)","Test cases only possible to test from the outside > does not retain closed windows after stylesheet parsing (valid)","Test cases only possible to test from the outside > does not retain observed nodes through MutationObserver instances","Test cases only possible to test from the outside > does not retain removed children through live collections","Test cases only possible to test from the outside > does not retain removed iframe windows","Test cases only possible to test from the outside > does not retain removed subtrees after Range indexing","Test cases only possible to test from the outside > does not retain targets or callbacks of removed signal-bound event listeners","Test cases only possible to test from the outside > frees up callback handles passed to setTimeout","Test cases only possible to test from the outside > releases idle MutationObserver bookkeeping"]],
+"api/from-url.js": ["OK",26,[]],
+"api/jsdom-errors.js": ["OK",9,[]],
+"api/methods.js": ["OK",27,[]],
+"api/options-run-scripts.js": ["OK",83,[]],
+"api/options.js": ["OK",36,[]],
+"api/resources-dispatcher.js": ["OK",9,[]],
+"api/resources-http2.js": ["OK",2,[]],
+"api/resources-interceptors.js": ["OK",61,[]],
+"api/resources.js": ["OK",37,[]],
+"api/virtual-console.js": ["OK",47,[]]
+}

@@ -970,6 +970,48 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
 
 ---
 
+## 16. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
+
+`lib/traversal.cjs`, a facade-only module installed before the area modules. It ports
+`refs/jsdom/lib/jsdom/living/traversal/` with node ids in place of impl objects.
+
+- **Walks read the node table.** Every step reads parent/child/sibling links and `META & KIND` (the
+  `whatToShow` test) by id through `V.off()`, and wraps only the nodes it hands to a filter or returns. A filter
+  callback may run any code, including node creation that replaces the table, so links are never held across
+  one. Attr roots, the only nodes without a table id, are id 0: a walker at an Attr returns null from every step
+  and a NodeIterator over one returns the root itself. Measured over a 4096-node tree (`bench/micro`, case
+  `traversal`): `TreeWalker(SHOW_ELEMENT).nextNode()` 24 ns/node (jsdom 106, happy-dom 45), with an object
+  `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 22 ns/node.
+- **Filter protocol** (WebIDL callback interface): a function is called with `this` undefined; otherwise
+  `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short;
+  re-entering a traversal from its own filter throws InvalidStateError; filter exceptions propagate unchanged.
+- **NodeIterator pre-removing steps (DOM §6.1).** Removals run inside natives (removeChild, the replace-all of
+  `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or `adoptNode`), and Rust never
+  calls JS (§0). The first `createNodeIterator()` in a process therefore wraps the twelve removal natives on
+  `rt.N` (the facade calls them as `N.name(...)`, so wrapping the property is enough). A wrapper derives from the
+  native's arguments which nodes the call removes, in removal order (a fragment's children, a moved node's old
+  position, the children a replace-all drops, the text nodes `normalize` merges), runs the steps for every live
+  iterator against a virtual tree in which the call's earlier removals already happened (a `gone` set skipped by
+  sibling and last-descendant lookups), calls the native, and puts back the pointers it moved if the native
+  returns an error code. `replaceChildren` / `nodesToNode` read their node lists from OUT, which record reads
+  overwrite in fallback mode, so the wrapper copies the list first and writes it back before the call.
+  - Cost: nothing until a NodeIterator exists (no wrapper is installed). Afterwards, one `live.size` test per
+    removal native while none is alive; with one alive, create + append + remove costs 1.0 us against 0.66 us
+    (jsdom 6.5 us, happy-dom 4.1 us, which does no fix-up). The steps are O(live iterators) per removal, as in
+    jsdom (`_workingNodeIterators`); a childless removed node is checked with one comparison per iterator. A
+    WeakRef target stays alive until the current job ends, so iterators created and dropped in one synchronous
+    loop all count until then: with 5,000 of them a create + append + remove costs 185 us (jsdom 921 us).
+  - Divergence: when `replaceChildren` fails pre-insertion validity, the iterators' pointers are restored as
+    if nothing was removed, although the nodes it had moved into a fragment stay there (the spec converts the
+    nodes before validating). It needs a NodeIterator over those nodes and an invalid call.
+- **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
+  `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
+  that are rsdom-specific (innerHTML, textContent, replaceChildren, normalize, moves) and the focus-scope walk
+  libraries do. In `e2e/libraries`, Radix Dialog, Headless UI and react-aria now pass; lit gets past import and
+  stops at custom elements / `attachShadow`.
+
+---
+
 ## 17. The child-list module (2026-10)
 
 Every change to a child list goes through `src/tree.rs`:

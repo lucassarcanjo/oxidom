@@ -1,4 +1,6 @@
-// Step 1: choose the WPT test files to run (conformance/wpt/results/selection.json).
+// Step 1: choose the WPT test files to run (conformance/wpt/results/selection.json), plus jsdom's own
+// WPT-format tests from refs/jsdom/test/web-platform-tests/to-upstream (`toUpstream` in the same file; run by
+// conformance/parity, not by run.mjs).
 //
 // Source of truth for "which tests exist" is jsdom's own WPT manifest (refs/jsdom/test/web-platform-tests/
 // wpt-manifest.json, generated at the WPT commit jsdom pins) and the DIR list in its to-run.yaml. We keep the
@@ -157,11 +159,12 @@ const MULTI_PURPOSE_HELPERS = new Set([
   'custom-elements/resources/custom-elements-helpers.js', 'html/resources/common.js',
   'dom/nodes/Comment-Text-constructor.js', 'common/object-association.js',
 ]);
-function helperReason(paths) {
+function helperReason(paths, root = WPT_ROOT) {
   for (const p of paths) {
     if (p === 'resources/testharness.js' || p === 'resources/testharnessreport.js') continue;
     if (/WebIDLParser|idlharness/.test(p)) return 'idlharness (fetches .idl files from the server)';
-    const abs = path.join(WPT_ROOT, p);
+    let abs = path.join(root, p);
+    if (!fs.existsSync(abs)) abs = path.join(WPT_ROOT, p);
     if (!fs.existsSync(abs)) continue;
     const src = fs.readFileSync(abs, 'utf8');
     if (/\.py\b|[?&]pipe=/.test(src)) return 'server-side handler (.py / pipe)';
@@ -206,51 +209,77 @@ const excluded = {}; // reason -> [urlPath]
 const exclude = (reason, t) => (excluded[reason] ??= []).push(t.urlPath);
 const neededPaths = new Set();
 
+/**
+ * Applies the exclusion rules to one test URL; returns the selection record, or null (exclusion recorded in
+ * `exclusions`). `root` is the directory test files are read from: WPT_ROOT, or jsdom's to-upstream directory,
+ * whose pages load testharness.js and the shared helpers from the WPT checkout (wptserve aliases in
+ * refs/jsdom/test/web-platform-tests/tuwpt-config.json).
+ */
+function select(t, root, exclusions, extra) {
+  const ex = (reason) => {
+    (exclusions[reason] ??= []).push(t.urlPath);
+    return null;
+  };
+  const pr = PATH_RULES.find(([, f]) => f(t));
+  if (pr) return ex(pr[0]);
+  const abs = path.join(root, t.file);
+  if (!fs.existsSync(abs)) return ex('test file missing from checkout');
+  const src = fs.readFileSync(abs, 'utf8');
+  const kind = t.file.endsWith('.any.js') ? 'any' : t.file.endsWith('.window.js') ? 'window' : 'html';
+  const page = kind === 'html' ? src : wrapperPage(kind, '/' + t.file, readScriptMeta(src));
+  const cr = CONTENT_RULES.find(([, re]) => re.test(src));
+  if (cr) return ex(cr[0]);
+  const scripts = scriptsOfPage(page, t.urlPath);
+  if (scripts.some((s) => s.path === null)) return ex('off-origin script');
+  const hr = helperReason(scripts.map((s) => s.path), root);
+  if (hr) return ex(hr);
+  for (const s of scripts) {
+    if (s.path !== 'resources/testharnessreport.js' && !fs.existsSync(path.join(root, s.path))) neededPaths.add(s.path);
+  }
+  return {
+    id: t.urlPath,
+    ...extra,
+    file: t.file,
+    kind,
+    long: /name=["']?timeout["']?\s+content=["']?long/.test(page) || t.extras.timeout === 'long',
+    scripts: scripts.map((s) => s.path),
+  };
+}
+
 for (const doc of toRunDocs) {
   if (!dirs.includes(doc.DIR)) continue;
   const inDir = items.filter((t) => t.urlPath.startsWith(doc.DIR + '/'));
   const exps = expectationsFor(doc, inDir.map((t) => t.urlPath));
   for (const t of inDir) {
-    const pr = PATH_RULES.find(([, f]) => f(t));
-    if (pr) {
-      exclude(pr[0], t);
-      continue;
-    }
-    const abs = path.join(WPT_ROOT, t.file);
-    if (!fs.existsSync(abs)) {
-      exclude('test file missing from checkout', t);
-      continue;
-    }
-    const src = fs.readFileSync(abs, 'utf8');
-    const kind = t.file.endsWith('.any.js') ? 'any' : t.file.endsWith('.window.js') ? 'window' : 'html';
-    const page = kind === 'html' ? src : wrapperPage(kind, '/' + t.file, readScriptMeta(src));
-    const cr = CONTENT_RULES.find(([, re]) => re.test(src));
-    if (cr) {
-      exclude(cr[0], t);
-      continue;
-    }
-    const scripts = scriptsOfPage(page, t.urlPath);
-    if (scripts.some((s) => s.path === null)) {
-      exclude('off-origin script', t);
-      continue;
-    }
-    const hr = helperReason(scripts.map((s) => s.path));
-    if (hr) {
-      exclude(hr, t);
-      continue;
-    }
-    for (const s of scripts) if (s.path !== 'resources/testharnessreport.js') neededPaths.add(s.path);
-    selected.push({
-      id: t.urlPath,
-      dir: doc.DIR,
-      file: t.file,
-      kind,
-      long: /name=["']?timeout["']?\s+content=["']?long/.test(page) || t.extras.timeout === 'long',
-      scripts: scripts.map((s) => s.path),
-      jsdomExpectation: normExpectation(exps.get(t.urlPath)),
-    });
+    const rec = select(t, WPT_ROOT, excluded, { dir: doc.DIR });
+    if (rec) selected.push({ ...rec, jsdomExpectation: normExpectation(exps.get(t.urlPath)) });
   }
 }
+
+// ---- 5. jsdom's own WPT-format tests (refs/jsdom/test/web-platform-tests/to-upstream) ----------------------
+// jsdom regenerates a manifest for them with wptserve; here every .html page outside resources/ and support/
+// that loads testharness.js is a test, one per `<meta name="variant">`. Same exclusion rules as above.
+const TUWPT_ROOT = path.join(JSDOM_WPT, 'to-upstream');
+const tuwptExcluded = {};
+const tuwptSelected = [];
+(function walk(dir) {
+  for (const e of fs.readdirSync(path.join(TUWPT_ROOT, dir), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const rel = dir ? `${dir}/${e.name}` : e.name;
+    if (e.isDirectory()) {
+      if (e.name !== 'resources' && e.name !== 'support') walk(rel);
+      continue;
+    }
+    if (!/\.(html?|xhtml|any\.js|window\.js)$/.test(e.name)) continue;
+    const src = fs.readFileSync(path.join(TUWPT_ROOT, rel), 'utf8');
+    if (/\.html?$/.test(e.name) && !/testharness\.js/.test(src)) continue;
+    const variants = [...src.matchAll(/<meta\s+name=["']?variant["']?\s+content=["']([^"']*)["']/g)].map((m) => m[1]);
+    for (const v of variants.length ? variants : ['']) {
+      const t = { urlPath: rel + v, file: rel, extras: {} };
+      const rec = select(t, TUWPT_ROOT, tuwptExcluded, { dir: rel.split('/').slice(0, -1).join('/'), root: 'tuwpt' });
+      if (rec) tuwptSelected.push({ ...rec, jsdomExpectation: null });
+    }
+  }
+})('');
 
 // Script files outside the sparse checkout: add them (non-cone sparse-checkout accepts file paths), or drop
 // the test when the file does not exist at the commit (server-generated resources).
@@ -267,6 +296,11 @@ const final = [];
 for (const t of selected) {
   if (t.scripts.some((p) => unavailable.has(p))) exclude('script resource not in repo (server-generated)', { urlPath: t.id });
   else final.push(t);
+}
+const tuwptFinal = [];
+for (const t of tuwptSelected) {
+  if (t.scripts.some((p) => unavailable.has(p))) (tuwptExcluded['script resource not in repo (server-generated)'] ??= []).push(t.id);
+  else tuwptFinal.push(t);
 }
 
 const exclusionCounts = Object.fromEntries(
@@ -286,7 +320,15 @@ const out = {
   perDir,
   excluded,
   tests: final,
+  toUpstream: {
+    root: 'refs/jsdom/test/web-platform-tests/to-upstream',
+    selectedCount: tuwptFinal.length,
+    exclusionCounts: Object.fromEntries(Object.entries(tuwptExcluded).map(([k, v]) => [k, v.length]).sort((a, b) => b[1] - a[1])),
+    excluded: tuwptExcluded,
+    tests: tuwptFinal,
+  },
 };
 writeJSON(path.join(RESULTS, 'selection.json'), out, true);
 console.log(`selected ${final.length} test files from ${dirs.length} DIRs; excluded:`, exclusionCounts);
+console.log(`to-upstream: selected ${tuwptFinal.length}; excluded:`, out.toUpstream.exclusionCounts);
 console.log('added to sparse checkout:', fetchable.length, 'unavailable:', [...unavailable]);

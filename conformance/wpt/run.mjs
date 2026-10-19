@@ -83,7 +83,9 @@ function runJob({ dom, test }) {
     child.on('message', (m) => {
       result = m;
     });
-    child.on('exit', (code, signal) => {
+    // 'close', not 'exit': 'exit' can arrive before the child's last IPC message (a large result then looks
+    // like a crash); 'close' waits for the IPC channel too.
+    child.on('close', (code, signal) => {
       clearTimeout(timer);
       if (!result) {
         result = {

@@ -968,10 +968,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
-## 19. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
-
-(§16-§18 are taken by the child-list, browsing-context and element-state notes of the parallel foundation
-refactor.)
+## 16. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
 
 `lib/traversal.cjs`, a facade-only module installed before the area modules. It ports
 `refs/jsdom/lib/jsdom/living/traversal/` with node ids in place of impl objects.
@@ -1013,8 +1010,9 @@ refactor.)
     call the documents are read before the call: when a call moves a node to another document and then removes a
     descendant of it, the iterators rooted in that node are still checked, as the spec says (jsdom skips them).
   - Cost: nothing until a NodeIterator exists (no wrapper is installed): create + append + remove 0.75 us.
-    Afterwards, one map lookup per removal native in documents without iterators (0.84 us with an iterator on
-    another document); with one on the same document, 0.96 us (jsdom 5.7 us, happy-dom 3.0 us, which does no
+    Afterwards, one map lookup per node a removal native may remove, in documents without iterators (0.84 us
+    with an iterator on another document; `replaceChildren` / `nodesToNode` also copy their node list out of OUT
+    first, because fallback-mode record reads reuse OUT); with one on the same document, 0.96 us (jsdom 5.7 us, happy-dom 3.0 us, which does no
     fix-up). The steps are O(iterators of the document) per removal, as in jsdom; a childless removed
     node is checked with one comparison per iterator. A dropped iterator stays registered until a GC collects its
     state, which is no earlier than the end of the current job and, since rsdom keeps nodes off the JS heap and

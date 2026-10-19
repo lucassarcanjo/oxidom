@@ -24,7 +24,7 @@ npm test                  # all of the above except the fallback run
 npm run test:parity       # jsdom's own test suite on rsdom, against conformance/parity/expectations (~4 min;
                           # needs scripts/fetch-refs.sh --wpt)
 npm run lint              # cargo clippy --all-targets -D warnings && cargo fmt --check
-npm run check             # lint, npm test, test:fallback and test:parity: run it before merging
+npm run check             # lint, npm test, test:fallback, test:parity, scoreboard freshness: run it before merging
 npm run bench:m0          # M0 gates; bench/README.md lists every harness
 ```
 

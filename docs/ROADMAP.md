@@ -52,7 +52,8 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
       `scripts/fetch-refs.sh`, `WPT_COMMIT` in `conformance/wpt/lib.mjs`, and the `jsdom` devDependency in
       `packages/rsdom/package.json` and `e2e/react-app/package.json` followed by `npm install` (`--dom jsdom` runs
       `node_modules/jsdom`, not `refs/jsdom`). Then re-fetch (`rm -rf refs/jsdom && scripts/fetch-refs.sh --wpt`) and
-      run `npm run test:parity -- --dom jsdom --update`, then `npm run test:parity -- --update`.
+      run `npm run test:parity -- --dom jsdom --update --all`, then `npm run test:parity -- --update --all` (`--all` also
+      reruns the ~130 files expected to time out, about 10 s each, so their entries follow the new versions).
 
 ## Stage 1: Close the measured library gaps
 
@@ -60,7 +61,7 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 ([`PARITY.md`](PARITY.md) §3.2). Each is small or medium.
 
 - [x] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
-      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §19): all 17 suite files at parity, libraries
+      lit; 7 of 20 libraries reference it. Done 2026-10-19 (DESIGN §16): all 17 suite files at parity, libraries
       11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
 - [ ] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
       for lit.

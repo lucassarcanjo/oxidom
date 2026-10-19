@@ -110,18 +110,21 @@ html/semantics/embedded-content/the-img-element/reuse-img.html: [timeout, "harne
 | `flaky` | set by hand: the result varies between runs; never gates | no |
 | `skip` | set by hand: the file does not measure rsdom (say why in the reason); never gates, left out of the score | no |
 
-A run compares each file with its entry: no entry means every subtest must pass; a subtest list means exactly
-those may fail; a file-level entry means at least `pass` subtests must pass (0 if absent). A file whose process
-crashes or is killed (`CRASH`, `KILLED`) is a regression unless its entry already says `crash`. An expected
-subtest failure the run no longer reports at all (the subtest was renamed or removed) shows as PROGRESS, marked
-stale; `--update` drops it.
+A run compares each file with its entry: no entry means every subtest must pass, and at least as many as jsdom
+passes; a subtest list means exactly those may fail, and the others (jsdom's passes, less the listed failures
+jsdom passes) must still be reported; a file-level entry means at least `pass` subtests must pass (0 if absent).
+A file whose process dies (`CRASH`) is a regression unless its entry already says `crash`; one killed for
+running past the hard limit (`KILLED`, 60 s for WPT files) is reported like a timeout, without failing the run.
+An expected subtest failure the run no longer reports at all (the subtest was renamed or removed) shows as
+PROGRESS, marked stale; `--update` drops it.
 
 ## The oracle and the score
 
 `oracle/<source>.json` holds, for every test file, jsdom's harness status, its number of passing subtests and
 the names of its failing subtests, from running jsdom 30.1.3 through the same harness:
-`npm run test:parity -- --dom jsdom` checks jsdom against it, and `--dom jsdom --update` rewrites it. Do that
-when the jsdom or WPT pin moves, or when a harness change alters what jsdom passes. jsdom passing a test through
+`npm run test:parity -- --dom jsdom` checks jsdom against it, and `--dom jsdom --update --all` rewrites it
+(`--all`, so the files expected to time out are rerun too). Do that when the jsdom or WPT pin moves, or when a
+harness change alters what jsdom passes. jsdom passing a test through
 this harness is the actual drop-in question: would it pass in a Vitest test file on jsdom?
 
 The pins move together: the jsdom tag and `WPT_COMMIT` in `scripts/fetch-refs.sh`, `WPT_COMMIT` in

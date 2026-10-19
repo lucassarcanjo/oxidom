@@ -20,8 +20,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 
+function realpath(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 const REPO = path.resolve(__dirname, '../../..');
-const REFS = path.resolve(process.env.RSDOM_REFS || path.join(REPO, 'refs'));
+// Real path: Node resolves modules to real paths, so a refs/ reached through a symlink (RSDOM_REFS, or a
+// worktree's refs link) must be compared through its target.
+const REFS = realpath(path.resolve(process.env.RSDOM_REFS || path.join(REPO, 'refs')));
 const JSDOM_TEST = path.join(REFS, 'jsdom/test');
 const REFS_LIB = path.join(REFS, 'jsdom/lib') + path.sep;
 const REFS_ROOT = path.join(REFS, 'jsdom');

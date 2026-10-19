@@ -1,4 +1,4 @@
-// rsdom-only traversal protocols (lib/traversal.cjs, DESIGN §19): the removal natives are wrapped only once a
+// rsdom-only traversal protocols (lib/traversal.cjs, DESIGN §16): the removal natives are wrapped only once a
 // NodeIterator exists, the wrappers keep OUT intact for replaceChildren in both table modes, iterators and
 // walkers from an env that was reset return null instead of walking the new env's ids, and a traversal
 // re-entered from its own filter leaves the outer one's state alone (where jsdom 30 loses it).

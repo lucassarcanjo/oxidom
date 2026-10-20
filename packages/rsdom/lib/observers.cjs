@@ -332,7 +332,8 @@ function checkVisibility(el, options) {
 function hitTesting(iface) {
   function coords(argc, x, y, method) {
     need(argc, 2, method, iface);
-    if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) {
+    // Unary plus is WebIDL ToNumber: it throws on BigInt and Symbol, which Number() would accept or convert.
+    if (!Number.isFinite(+x) || !Number.isFinite(+y)) {
       throw new TypeError(`Failed to execute '${method}' on '${iface}': The provided double value is non-finite.`);
     }
   }

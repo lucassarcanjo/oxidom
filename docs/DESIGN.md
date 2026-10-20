@@ -1426,7 +1426,9 @@ nothing here reads or authors the tree beyond what public members already expose
   over `getBoundingClientRect`; without the method its mousedown handler throws on every click (tiptap in
   `e2e/libraries`: error* -> pass, 18 -> 19 of 20 with and without shims). Missing or non-finite coordinates throw
   TypeError (WebIDL `double`). Beyond jsdom, which has neither. `caretPositionFromPoint`/`caretRangeFromPoint` stay
-  undefined: ProseMirror feature-detects them, so a stub would change nothing.
+  undefined: ProseMirror feature-detects them, so a stub would change nothing. A setup that shims
+  `elementFromPoint` only when it is missing now gets rsdom's `null`; one that needs a hit must assign it
+  unconditionally (the method is a writable prototype member, so that wins).
 
 ---
 

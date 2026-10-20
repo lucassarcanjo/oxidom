@@ -16,7 +16,10 @@ describe.each(DOMS.filter((k) => k === 'jsdom'))('observers [%s]', (kind) => {
     const w = makeWindow(kind);
     for (const k of NAMES) expect(k in w, k).toBe(false);
     for (const k of ELEMENT_METHODS) expect(k in w.Element.prototype, k).toBe(false);
-    expect('elementFromPoint' in w.document).toBe(false);
+    for (const k of ['elementFromPoint', 'elementsFromPoint']) {
+      expect(k in w.document, k).toBe(false);
+      expect(k in w.ShadowRoot.prototype, k).toBe(false);
+    }
   });
 });
 
@@ -208,6 +211,8 @@ describe.each(DOMS.filter((k) => k !== 'jsdom'))('observers [%s]', (kind) => {
       expect(errName(() => d.elementFromPoint(1))).toBe('TypeError');
       expect(errName(() => d.elementFromPoint(NaN, 0))).toBe('TypeError');
       expect(errName(() => root.elementsFromPoint(0, Infinity))).toBe('TypeError');
+      expect(errName(() => d.elementFromPoint(1n, 1))).toBe('TypeError');
+      expect([d.elementFromPoint.length, d.elementsFromPoint.length]).toEqual([2, 2]);
     }
   });
 });

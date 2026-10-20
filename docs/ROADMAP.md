@@ -138,7 +138,8 @@ These change rsdom's data model or add a second browsing context. Each needs a d
 
 ## Not planned
 
-- Layout and geometry: rsdom, like jsdom, reports zero sizes; `elementFromPoint` finds nothing (DESIGN §24).
+- Layout and geometry: rsdom, like jsdom, reports zero sizes; unlike jsdom, `elementFromPoint` exists and finds nothing
+  (DESIGN §24).
 - Canvas, media playback and WebSocket.
 - `contentEditable` editing and `execCommand` beyond what Selection and Range need.
 - Electron.

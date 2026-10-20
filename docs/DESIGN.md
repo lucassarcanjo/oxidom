@@ -1075,7 +1075,7 @@ window starts and what it installed on a pre-existing global. `lib/context.cjs` 
   Documents without a window (`createHTMLDocument`, `new Document()`, `DOMParser`, clones) keep `_url`.
 - **URL.** `ctx.url` is the only copy: `document.URL`, `location` and `history` read it, and fragment
   navigation and `pushState` / `replaceState` replace it.
-- **Teardown.** `close()` cancels the context's timers (animation frames, hashchange tasks), runs what was
+- **Teardown.** `close()` cancels the context's timers and tasks (animation frames, history tasks, §23), runs what was
   installed over the window in reverse order (Vitest's error routing, then the saved global descriptors) and
   forgets the context. `rt.reset()` closes every open context, newest first (§11 Teardown: the Vitest
   environment calls `ctx.close()` and then `rt.reset()`).
@@ -1256,3 +1256,42 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
   captured fetch, the msw 3 and msw 2 contracts emulated without msw, sync `send()`, fake timers and the close
   hook; `test/fixtures/vitest-env/xhr-leak.spec.mjs` leaves a request in flight in all four vitest-env fixture runs (a
   smoke test: it does not fail when the teardown abort is removed; the native teardown test does).
+
+---
+
+## 23. Session history traversal (ROADMAP Stage 1, 2026-10)
+
+Facade only, no Rust: the entry list is browsing-context state, not DOM state. `lib/history.cjs` holds
+`SessionHistory`, one per context (`ctx.history`, created with the window); `History` and `Location` in
+`lib/window.cjs` call it, and it is the only writer of `ctx.url` (§18) after the context opens. It ports
+`refs/jsdom/lib/jsdom/living/window/SessionHistory.js` and the parts of `History-impl.js` and `navigation.js` that
+touch it, including jsdom's timing, which tests written against jsdom depend on.
+
+- **Entries.** `{ url, state }`, a current index, and the entry whose state was last made the document's (jsdom's
+  `document._latestEntry`): `popstate` fires when a traversal changes it. `pushState` drops the entries after the
+  current one and appends; `replaceState` rewrites the current entry. A fragment navigation (`location.hash`,
+  `href`, `assign`) also adds an entry; `location.replace` adds one in place of the current entry.
+- **Tasks.** `ctx.queueTask` is jsdom's `_queueATask`: `setImmediate` on Node's timer captured at load (like
+  `ctx.setTimer`, so fake timers installed later do not stall it; under jsdom they do), cancelled by `close()`.
+  - `back()`, `forward()`, `go(delta)` queue a task that resolves `current + delta` (out of range: nothing); it
+    queues a second task that traverses: URL, `history.state`, then `popstate` (PopStateEvent, trusted, not
+    bubbling) and `hashchange` if the fragment changed, synchronously. Both tasks are traversal tasks:
+    `pushState` and fragment navigations cancel them, `replaceState` does not. Two `back()` calls in the same turn
+    resolve against the same index, so they move back once, as in jsdom.
+  - A fragment navigation traverses at once and queues one task (not a traversal task) for `popstate` then
+    `hashchange`. It replaces the setTimeout-based `hashchange` task of §18.
+  - `go(0)` and `go()` are `location.reload()`, which does nothing. The delta converts like a WebIDL `long`
+    (`delta | 0`).
+- **Divergences from jsdom** (asserted in `test/contract/history.test.mjs`): a fragment navigation's entry has
+  state `null` (jsdom leaves it `undefined`, so `history.state` and `popstate.state` are `undefined` there; the spec
+  and browsers say `null`); `pushState` / `replaceState` structured-clone the state (jsdom keeps the object, a TODO
+  in its source), so `history.state !== data`. `replaceState(data, '', '')` keeps the URL, as in jsdom (it used to
+  drop the fragment).
+- **Not covered:** traversal to another document (rsdom does not navigate across documents), `scrollRestoration`
+  beyond storing the value, `beforeunload` / `pagehide`.
+- **Verification.** The parity suite selects no test for the item: WPT's history tests navigate documents, and
+  jsdom's own tests touch history only through `reconfigure()` (Stage 2) and iframes. `test/contract/history.test.mjs`
+  (13 cases on all three DOMs, happy-dom pinned where it traverses synchronously) follows jsdom's task order,
+  cancellation, popstate/hashchange order and entry bookkeeping; `test/native/context.test.mjs` checks that
+  `close()` cancels a queued traversal. `e2e/libraries`: react-router's BrowserRouter `back()` and `forward()` test
+  passes.

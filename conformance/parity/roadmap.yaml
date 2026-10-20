@@ -27,7 +27,7 @@
 - id: history
   stage: 1
   title: Session history traversal (back, forward, go, popstate)
-  tests: [] # WPT history tests navigate documents; the selection excludes them
+  tests: [] # WPT history tests navigate documents; jsdom's own touch it via reconfigure() and iframes only (DESIGN §23)
 - id: xhr
   stage: 1
   title: XMLHttpRequest

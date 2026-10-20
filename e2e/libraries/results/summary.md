@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs rsdom
 
-Generated 2026-10-19T22:22:13.307Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
+Generated 2026-10-20T14:55:44.606Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -10,10 +10,10 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 |---|---|---|---|---|---|
 | polyfills-jsdom | 41 | 39 | 0 | 2 | 18/20 |
 | polyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| polyfills-rsdom | 41 | 35 | 0 | 6 | 15/20 |
+| polyfills-rsdom | 41 | 36 | 0 | 5 | 16/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-rsdom | 41 | 32 | 2 | 7 | 13/20 |
+| nopolyfills-rsdom | 41 | 33 | 2 | 6 | 14/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -37,7 +37,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | @radix-ui/react-tabs | @radix-ui/react-tabs@1.2.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
 | react-aria-components | react-aria-components@1.22.1 | 3 | pass 3/3 | **FAIL** 2/3 | pass 3/3 | pass / **FAIL** / pass |
 | react-hook-form | react-hook-form@7.90.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
-| react-router | react-router@8.4.0 | 2 | pass 2/2 | pass 2/2 | **FAIL** 1/2 | pass / pass / **FAIL** |
+| react-router | react-router@8.4.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | react-select | react-select@5.10.2 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | @tanstack/react-table | @tanstack/react-table@9.3.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
 | @tiptap/react | @tiptap/react@3.32.0<br>@tiptap/starter-kit@3.32.0 | 2 | **FAIL** 1/2 | pass 2/2 | **FAIL** 1/2 | **FAIL** / pass / **FAIL** |
@@ -58,11 +58,6 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 
 - **DOM(s):** rsdom. **Category:** missing-api. **Libraries hit:** lit
 - **Evidence:** Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class) and has no shadowRoot (rsdom has no attachShadow). Probe: typeof customElements / Element.prototype.attachShadow === "undefined" only in rsdom (diag-facts). ROADMAP Stage 1 ShadowRoot, Stage 4 custom elements.
-
-### rsdom History.back()/forward()/go() are no-ops: no session history, no popstate
-
-- **DOM(s):** rsdom. **Category:** missing-behaviour. **Libraries hit:** react-router
-- **Evidence:** pushState works (pathname assertion passes) but after history.back() the route never changes. packages/rsdom/lib/window.cjs History: `back() {}` `forward() {}` `go() {}`. diag-facts: pushState+back -> popstate fired=false, pathname stays /b (jsdom, happy-dom: fired=true, /a).
 
 ### rsdom Selection is a stub: collapse()/setBaseAndExtent() set anchor/focus but create no Range (rangeCount 0), so getRangeAt(0) throws
 
@@ -178,7 +173,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | elementsFromPoint | geometry | 1 | **no** | **no** | **no** |
 | Element#animate (WAAPI) | animation | 1 | **no** | yes | **no** |
 | history.pushState | html | 1 | yes | yes | yes |
-| history traversal fires popstate | html | 1 | yes | yes | **no** |
+| history traversal fires popstate | html | 1 | yes | yes | yes |
 | createNodeIterator | traversal | 0 | yes | yes | yes |
 | dialog.showModal | html | 0 | **no** | yes | yes |
 | popover API | html | 0 | **no** | **no** | **no** |
@@ -187,7 +182,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **rsdom** (23 APIs): ShadowRoot (global) (11), IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), Element#scrollTo (8), checkVisibility (8), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1), history traversal fires popstate (1)
+- **rsdom** (22 APIs): ShadowRoot (global) (11), IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), Element#scrollTo (8), checkVisibility (8), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1)
 
 ## Caveats
 

@@ -1,7 +1,7 @@
 'use strict';
 // Browsing contexts (DESIGN §18): one per window. A context owns its window object, its document, the
 // document's URL (the only copy: `document.URL`, `location` and `history` all read `ctx.url`), the timers
-// the window starts (animation frames, hashchange tasks), what it installed on a pre-existing global, and
+// the window starts (animation frames, history traversal tasks), what it installed on a pre-existing global, and
 // its teardown: `close()` runs it in the right order.
 //
 // An env (one per thread, DESIGN §2.1) holds any number of open contexts. rsdom has ONE set of interface
@@ -27,6 +27,8 @@ const DEFAULT_URL = 'http://localhost:3000/';
 // installed later must not stall animation frames requested before.
 const nodeSetTimeout = globalThis.setTimeout;
 const nodeClearTimeout = globalThis.clearTimeout;
+const nodeSetImmediate = globalThis.setImmediate;
+const nodeClearImmediate = globalThis.clearImmediate;
 
 /** Every open context, in opening order. */
 const open = new Set();
@@ -39,6 +41,7 @@ const byWindow = new WeakMap();
 
 class BrowsingContext {
   #timers = new Set();
+  #tasks = new Set();
   #cleanups = [];
 
   constructor(document, url) {
@@ -50,6 +53,8 @@ class BrowsingContext {
     this.window = null;
     /** the window's hidden EventTarget (events.cjs `installWindow`) */
     this.wt = null;
+    /** the session history (lib/history.cjs, DESIGN §23), created with the window */
+    this.history = null;
     this.closed = false;
   }
 
@@ -71,6 +76,25 @@ class BrowsingContext {
 
   clearTimer(t) {
     if (this.#timers.delete(t)) nodeClearTimeout(t);
+  }
+
+  /**
+   * HTML "queue a task" the way jsdom's `Document#_queueATask` does it: `setImmediate` on Node's timer,
+   * cancelled by `close()`. Returns the handle for `cancelTask`. Session history traversal (lib/history.cjs,
+   * DESIGN §23) runs on it.
+   */
+  queueTask(fn) {
+    const tasks = this.#tasks;
+    const t = nodeSetImmediate(() => {
+      tasks.delete(t);
+      fn();
+    });
+    tasks.add(t);
+    return t;
+  }
+
+  cancelTask(t) {
+    if (this.#tasks.delete(t)) nodeClearImmediate(t);
   }
 
   /** Teardown work; `close()` runs it in reverse order of registration (last installed, first undone). */
@@ -100,6 +124,8 @@ class BrowsingContext {
     this.closed = true;
     for (const t of this.#timers) nodeClearTimeout(t);
     this.#timers.clear();
+    for (const t of this.#tasks) nodeClearImmediate(t);
+    this.#tasks.clear();
     const cleanups = this.#cleanups;
     for (let i = cleanups.length - 1; i >= 0; i--) cleanups[i]();
     cleanups.length = 0;

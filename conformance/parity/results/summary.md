@@ -9,11 +9,19 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
+<<<<<<< HEAD
 | web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1676 | 162751 | 88759 | 54.5% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2188 | 84.9% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
 | **all** | **2615** | **1813** | **167724** | **91882** | **54.8%** |
+=======
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1667 | 162751 | 122497 | 75.3% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2192 | 85.0% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
+| jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
+| **all** | **2615** | **1804** | **167724** | **125624** | **74.9%** |
+>>>>>>> origin/main
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -27,7 +35,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 17 | 2 | 426 | 30.6% | rsdom adapter: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
-| 3 | Selection backed by real Ranges | 64 | 41 | 19945 | 40.5% | assert_equals: wrong value (17712); Selection.getRangeAt() throws: … is not a valid index. (2230); assert_throws_dom: did not throw (2) |
+| 3 | Selection backed by real Ranges | 64 | 42 | 19944 | 40.5% | assert_equals: wrong value (17711); Selection.getRangeAt() throws: … is not a valid index. (2230); assert_throws_dom: did not throw (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 132 | 709 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 206 | 3147 | 19.5% | assert_equals: wrong value (1909); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 74 | 160 | 70.9% | missing method: .createEvent() (62); assert_array_equals: wrong value (23); assert_equals: wrong value (19) |
@@ -35,8 +43,8 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8866 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (323) |
-| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 11 | 36983 | 8.4% | assert_equals: wrong value (13856); missing method: .compareBoundaryPoints() (9315); missing method: .isPointInRange() (5672) |
-| 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 18 | 794 | 14.0% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
+| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 21 | 3109 | 92.3% | assert_equals: wrong value (2973); assert_true: wrong value (100); range[method] is not a function (20) |
+| 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 19 | 790 | 14.4% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom adapter: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
 | 3 | Core DOM and HTML behaviour no other item claims | 955 | 741 | 1125 | 95.4% | assert_equals: wrong value (203); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |

@@ -1424,6 +1424,32 @@ nothing here reads or authors the tree beyond what public members already expose
 
 ---
 
+## 25. Ranges (ROADMAP Stage 3, 2026-10)
+
+`lib/range.cjs`: AbstractRange, StaticRange and Range, ported from `refs/jsdom/lib/jsdom/living/range/`. It replaced
+the boundary-point holder of §4.1 (which had no validation, comparison or stringification) and owns
+`Document.prototype.createRange`.
+
+- **Boundary points are (wrapper, offset) pairs** in private fields of AbstractRange. Wrapper identity is stable
+  for an env's lifetime (§7 invariant 5), and Attr nodes, which have no table id, are boundary points like any
+  other node: an Attr is its own root, so a range touching one is collapsed on it.
+- **Comparison reads the node table.** The position of one boundary point relative to another (DOM §5.2) lifts
+  the deeper node to the other's depth, climbs both chains to the common ancestor and orders the two children
+  below it, reading parent / sibling links by id with no native call: O(depth + siblings), the approach of
+  jsdom's `boundary-point.js`. Roots are compared by the id of the top of each chain (the Attr itself for an
+  Attr). `toString` walks tree order between the two points the same way and reads Text data through the
+  memoized `data` getter. `compareBoundaryPoints`, `comparePoint`, `isPointInRange`, `intersectsNode`, the
+  `set*` family (with the collapse-on-other-root rule), `selectNode(Contents)`, `commonAncestorContainer` and
+  `createContextualFragment` (an `html` context parses as `body`) follow the spec's error order.
+- `InvalidNodeTypeError` is facade-only error code 12 in `runtime.cjs` (11 stays TypeError).
+- **Verification.** Parity `--item ranges` (the comparison and stringification PR): 18 of 44 files at parity
+  (9 before), gap 36,987 -> 3,114 subtests; overall parity 53.6% -> 73.8% (the WPT range tests are large
+  pairwise matrices). The rest of the gap is live boundary updates, the content methods (`deleteContents`,
+  `extractContents`, `cloneContents`, `insertNode`, `surroundContents`), Shadow DOM and XML documents.
+  `test/contract/range.test.mjs` runs the API on all three DOMs.
+
+---
+
 ## 26. Web Storage named properties (ROADMAP Stage 3, 2026-10)
 
 Facade only (`lib/window.cjs`, the Storage block): the items are window state, not DOM state (CONTRIBUTING §7).

@@ -1478,3 +1478,41 @@ Storage is a WebIDL legacy platform object with a named getter, setter and delet
 
 `test/contract/storage.test.mjs` runs on all three DOMs (happy-dom 21 pinned where it has no named-property
 semantics); the parity scope is WPT `webstorage/**`, 25 of 25 files at parity.
+
+---
+
+## 27. File API: Blob, File and FileReader (ROADMAP Stage 3, 2026-10)
+
+Facade only (`lib/file-api.cjs`, installed after xhr): blob bytes are not DOM state. A port of
+`refs/jsdom/lib/jsdom/living/file-api/` and of the WebIDL conversions jsdom generates for it.
+
+- **Blob and File subclass Node's.** jsdom's Blob is its own class holding a `Uint8Array`; that is why, under
+  jsdom, `fetch(url, { body: blob })` and `new Response(blob)` do not take a window Blob. rsdom's `Blob extends`
+  Node's Blob instead, so the bytes stay in Node's blob store and fetch, Response, `URL.createObjectURL` and
+  `structuredClone` accept it, while the constructor and `slice` follow WebIDL the way jsdom's bindings do: the
+  `sequence<BlobPart>` is read through one `@@iterator` lookup and each part is converted as it comes, Blob parts
+  are any Node Blob, `BlobPropertyBag` members are read in lexicographic order (`FilePropertyBag`'s
+  `lastModified` after the inherited ones), `endings: 'native'` writes `\n` (jsdom pretends to be *nix), and
+  `slice` takes `[Clamp] long long` offsets (halves round to even; Node truncates them). `slice` builds its
+  result from Node's own slice through a private constructor path (the `CONVERTED` token), so
+  slices are window Blobs. `File extends` the window Blob, with `name` and `lastModified` of its own.
+- **`instanceof` accepts Node's own Blobs and Files.** The Vitest environment installs the window's Blob and
+  File over the globals, and Node keeps creating its own (`await response.blob()`, `fs.openAsBlob`, undici's
+  FormData parsing). `Blob[Symbol.hasInstance]` accepts any Node Blob and `File[Symbol.hasInstance]` any Node
+  File, so `x instanceof Blob` stays true for them; `File`'s getters read Node's for those. The cost is an own
+  `@@hasInstance` on the two interface objects, which WebIDL does not define.
+- **FileReader** reads any Blob through `blob.arrayBuffer()`, started when the read starts, and fires jsdom's
+  three queued tasks (Node's `setImmediate`, captured at load so fake timers cannot stall a read; a closed
+  context ends the read): `loadstart`, then `progress` when the blob is not empty, then `load` and `loadend`
+  with the result. The third task waits for the bytes if Node has not produced them yet (in practice it has).
+  `readAsText` takes the label, then the type's `charset`, then UTF-8, and a BOM overrides all three
+  (Encoding's "decode"); Node's TextDecoder decodes windows-1252 (also the encoding of the `latin1` and
+  `iso-8859-1` labels) as ISO-8859-1, so 0x80-0x9F go through the WHATWG index instead. A failed blob read
+  sets `error` to a NotReadableError and fires `error` (jsdom cannot fail). One spec-correct divergence: a
+  new read started from a `load` or `error` handler suppresses the old read's `loadend`, as the spec says and
+  jsdom does not.
+
+`test/contract/file-api.test.mjs` runs on all three DOMs (happy-dom 21 pinned where its FileReader and Blob
+differ). The parity scope is WPT `FileAPI/**`: 36 of 37 files at parity. The remaining subtest needs
+HTMLCollection's `@@iterator` to be `%Array.prototype.values%` (it reads `length` through the object), which
+belongs to `core`.

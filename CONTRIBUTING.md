@@ -62,6 +62,7 @@ allocations below still hold.
 | `src/shadow.rs`, `lib/shadow.cjs` | ShadowRoot and `attachShadow`, without retargeting (DESIGN §22) | a shadow root is a fragment record with `meta::SHADOW` (bit 20, also set on its host) and its host in `payload`; connect / disconnect / adopt walks are shadow-including, the id map holds document-tree elements only |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `lib/history.cjs` | session history (DESIGN §23) | facade only; one `SessionHistory` per browsing context (`ctx.history`), driven by `History` and `Location` in `window.cjs` |
+| `lib/file-api.cjs` | Blob, File, FileReader (DESIGN §27) | facade only; Blob and File subclass Node's (the bytes stay in Node's blob store) |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
 

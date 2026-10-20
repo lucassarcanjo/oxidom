@@ -1212,7 +1212,7 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
 - **Teardown.** `rt.onReset` aborts every in-flight request without events (jsdom's `_abortError` path), so with
   `isolate: true` (the default) a file's requests end with it. With `isolate: false` teardown runs once per worker,
   so a request left in flight completes during a later file, as under jsdom. `abortRequests(doc)` is exported and registered with
-  `doc._ctx.onClose` when a window context offers one (the foundation refactor); `window.stop()` and
+  the browsing context's `onClose` (`lib/context.cjs`, §18), so closing the context aborts its document's requests; `window.stop()` and
   `window.close()` do not abort requests yet (two api/resources.js cases stay listed).
 - **Divergences from jsdom**, asserted in `test/contract/xhr.test.mjs` ("spec-correct divergences"):
   - Fixed (jsdom bugs, or failures in its to-run.yaml): no transport callback fires for a request after its

@@ -302,31 +302,25 @@ describe('cookies', () => {
 });
 
 describe('window context close hook', () => {
-  it('doc._ctx.onClose is registered once per document and aborts its requests without events', async () => {
+  it('the context close hook is registered once per document and aborts its requests without events', async () => {
     const { window, document } = createWindow({ url: 'http://localhost:3000/' });
-    const fns = [];
-    document._ctx = { closed: false, onClose: (fn) => fns.push(fn) };
-    try {
-      const a = new window.XMLHttpRequest();
-      const b = new window.XMLHttpRequest();
-      const ta = trace(a);
-      const tb = trace(b);
-      a.open('GET', `${base}/hang`);
-      a.send();
-      b.open('GET', `${base}/chunks`);
-      b.send();
-      expect(fns.length).toBe(1);
-      await new Promise((r) => b.addEventListener('progress', r, { once: true }));
-      const seen = [ta.ev.length, tb.ev.length];
-      fns[0]();
-      await sleep(100);
-      expect([ta.ev.length, tb.ev.length]).toEqual(seen);
-      expect([a.readyState, b.readyState, b.responseText]).toEqual([4, 4, '']);
-      // a closed context is a destroyed document
-      document._ctx.closed = true;
-      expect(() => a.open('GET', `${base}/echo`)).toThrow(expect.objectContaining({ name: 'InvalidStateError' }));
-    } finally {
-      delete document._ctx;
-    }
+    const onClose = vi.spyOn(document._ctx, 'onClose');
+    const a = new window.XMLHttpRequest();
+    const b = new window.XMLHttpRequest();
+    const ta = trace(a);
+    const tb = trace(b);
+    a.open('GET', `${base}/hang`);
+    a.send();
+    b.open('GET', `${base}/chunks`);
+    b.send();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await new Promise((r) => b.addEventListener('progress', r, { once: true }));
+    const seen = [ta.ev.length, tb.ev.length];
+    document._ctx.close();
+    await sleep(100);
+    expect([ta.ev.length, tb.ev.length]).toEqual(seen);
+    expect([a.readyState, b.readyState, b.responseText]).toEqual([4, 4, '']);
+    // a closed context is a destroyed document
+    expect(() => a.open('GET', `${base}/echo`)).toThrow(expect.objectContaining({ name: 'InvalidStateError' }));
   });
 });

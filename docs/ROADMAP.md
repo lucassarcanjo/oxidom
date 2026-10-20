@@ -65,7 +65,7 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
       11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
 - [x] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
       for lit. Done 2026-10-20 (DESIGN §22): 23 of 25 suite files at parity (1 before), gap 512 -> 7 subtests (6 need
-      `customElements`, 1 an iframe); overall parity 53.6% -> 54.0%, Stage 4 `shadow-dom` 3.7% -> 69.0%. Libraries
+      `customElements`, 1 an iframe); overall parity +0.4 points (54.3% -> 54.7% on the main it merged into), Stage 4 `shadow-dom` 3.7% -> 69.0%. Libraries
       16 -> 17 of 20 (MUI); lit now stops at custom elements only. Events are not retargeted (Stage 4).
 - [x] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S) `history`. react-router. Done
       2026-10-20 (DESIGN §23): jsdom's queued traversal, popstate/hashchange order and entry bookkeeping, 13

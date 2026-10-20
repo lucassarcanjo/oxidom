@@ -42,20 +42,19 @@ Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md))
 |---|---|
 | jsdom's WebIDL members present | 62% (1,167 of 1,877) |
 | WPT subtests that pass on jsdom and also pass on rsdom | 51% (82,867 of 162,751) |
-| real libraries passing, of the 18 that pass on jsdom | 16 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
+| real libraries passing, of the 18 that pass on jsdom | 17 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
 The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
 rsdom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
-to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-20 rsdom passed 54.3% of the subtests
+to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-20 rsdom passed 54.7% of the subtests
 jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) has the current numbers, broken down
 by roadmap item.
 
-The two remaining library failures come from missing APIs: ShadowRoot (MUI), and custom elements and
-`attachShadow` (lit). Closing them is
-[Stage 1 of the roadmap](docs/ROADMAP.md#stage-1-close-the-measured-library-gaps) (custom elements are Stage 4).
-Not supported today: Shadow DOM, custom elements, iframes, script execution, layout, CSSOM rule objects,
-synchronous XMLHttpRequest.
+The remaining library failure comes from a missing API: custom elements (lit), which are
+[Stage 4 of the roadmap](docs/ROADMAP.md#stage-4-architectural-work).
+Not supported today: Shadow DOM event retargeting, slots and scoped styles, custom elements, iframes, script
+execution, layout, CSSOM rule objects, synchronous XMLHttpRequest.
 
 ## Usage (from source)
 

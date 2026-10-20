@@ -1327,7 +1327,8 @@ slots, scoped styles and declarative shadow DOM are Stage 4 (`shadow-dom`).
   6 in `Element-interface-attachShadow-custom-element.html` need `customElements` (Stage 4) and
   `upper-boundary-encapsulation/test-011.html` needs an iframe (Stage 4 `browsing-contexts`). Across the suite 68
   files progressed and none regressed: Stage 4 `shadow-dom` 3.7% -> 69.0% (49 -> 83 files at parity), `events` 69.4%
-  -> 70.7%, overall 53.6% -> 54.0%. 70 expectation entries whose kept reason still said "missing method:
+  -> 70.7%, overall +0.4 points (53.6% -> 54.0% on the main this started from; 54.3% -> 54.7% after
+  merging the history, observers and storage items). 70 expectation entries whose kept reason still said "missing method:
   .attachShadow()" were re-recorded with their current first failure (none lost a passing subtest). The
   `upper-boundary-encapsulation` form cases also needed `HTMLObjectElement.form` (`<object>` was already a listed
   element in `src/forms/mod.rs`; one line in `forms.cjs`). `test/contract/shadow-root.test.mjs` (11 cases on all three

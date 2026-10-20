@@ -2,45 +2,18 @@
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
-FileAPI/FileReader/progress_event_bubbles_cancelable.html: [fail, "missing global: FileReader"]
-FileAPI/blob/Blob-array-buffer-data-isolation.html: [fail, "missing global: FileReader"]
 FileAPI/blob/Blob-constructor-detached-buffer.any.html: [fail, "promise_test: Unhandled rejection with value: object …"]
 FileAPI/blob/Blob-constructor-dom.window.html:
-  "A platform object that supports indexed properties should be treated as a sequence for the blobParts argument (overwritten 'length'.)": [fail, "assert_throws_exactly: wrong value"]
-FileAPI/blob/Blob-constructor-endings.html: [fail, "missing global: FileReader"]
+  "A platform object that supports indexed properties should be treated as a sequence for the blobParts argument (overwritten 'length'.)": [fail, "core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length"]
 FileAPI/blob/Blob-constructor.any.html:
-  "Arguments should be evaluated from left to right.": [fail, "assert_unreached: wrong value"]
-  "Getters and value conversions should happen in order until an exception is thrown.": [fail, "assert_array_equals: wrong value"]
   "Passing a Float16Array as element of the blobParts array should work.": [fail, "missing global: Float16Array"]
-  "blobParts not an object: BigInt with BigInt.prototype[Symbol.iterator]": [fail, "assert_true: wrong value"]
-  "blobParts not an object: Symbol with Symbol.prototype[Symbol.iterator]": [fail, "assert_true: wrong value"]
-  "blobParts not an object: boolean with Boolean.prototype[Symbol.iterator]": [fail, "assert_true: wrong value"]
-  "blobParts not an object: number with Number.prototype[Symbol.iterator]": [fail, "assert_true: wrong value"]
-  "options properties should be accessed in lexicographic order.": [fail, "assert_array_equals: wrong value"]
-FileAPI/blob/Blob-slice.any.html:
-  "Slicing test: slice (1,1).": [fail, "assert_equals: wrong value"]
-  "Slicing test: slice (1,3).": [fail, "assert_equals: wrong value"]
-  "Slicing test: slice (1,5).": [fail, "assert_equals: wrong value"]
-  "Slicing test: slice (1,7).": [fail, "assert_equals: wrong value"]
-  "Slicing test: slice (1,8).": [fail, "assert_equals: wrong value"]
-  "Slicing test: slice (1,9).": [fail, "assert_equals: wrong value"]
 FileAPI/blob/Blob-textStream.any.html: [fail, "missing method: .textStream()"]
-FileAPI/file/File-constructor-endings.html: [fail, "missing global: FileReader"]
-FileAPI/fileReader.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/Determining-Encoding.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/FileReader-event-handler-attributes.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/FileReader-multiple-reads.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_abort.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_error.any.html: [fail, "missing global: FileReader"]
+FileAPI/reading-data-section/FileReader-multiple-reads.any.html:
+  "A new read in an abort handler suppresses the old read loadend": [fail, "assert_array_equals: wrong value"]
+  "test abort and restart in onloadstart event for readAsText": [fail, "assert_equals: wrong value"]
+FileAPI/reading-data-section/filereader_abort.any.html:
+  "Aborting a reused reader after a previous read completed": [fail, "assert_true: wrong value"]
 FileAPI/reading-data-section/filereader_events.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsArrayBuffer.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsBinaryString.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsDataURL.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsDataURL.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsText.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readAsText_blob_type_charset.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_readystate.any.html: [fail, "missing global: FileReader"]
-FileAPI/reading-data-section/filereader_result.any.html: [fail, "missing global: FileReader"]
 FileAPI/url/url-format.any.html:
   "Blob URL parses correctly": [fail, "assert_equals: wrong value"]
   "Origin of Blob URL matches our origin": [fail, "assert_equals: wrong value"]
@@ -859,7 +832,6 @@ dom/events/KeyEvent-initKeyEvent.html:
   "KeyboardEvent.initKeyEvent shouldn't be defined (created by createEvent(\"KeyboardEvent\")": [fail, "missing method: .createEvent()"]
 dom/events/event-global-event-targets.html:
   "window.event is set when dispatching on AbortSignal": [fail, "The … argument must be an instance of Event. Received an instance of Event"]
-  "window.event is set when dispatching on FileReader": [fail, "missing global: FileReader"]
   "window.event is set when dispatching on Performance": [fail, "The … argument must be an instance of Event. Received an instance of Event"]
 dom/events/event-global.html:
   "window.event is undefined if the target is in a shadow tree (event dispatched inside shadow tree)": [fail, "missing method: .attachShadow()"]

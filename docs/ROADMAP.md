@@ -97,7 +97,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
 - [ ] `document.createEvent`, `init*Event` and the missing event classes (S) `events`.
 - [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
-- [ ] FileReader with DOM Blob and File (S) `file-api`.
+- [x] FileReader with DOM Blob and File (S) `file-api`. Done 2026-10-20 (DESIGN §27): FileReader, and Blob and File
+      as WebIDL-converting subclasses of Node's; 16 -> 36 of 37 suite files at parity, gap 137 -> 1 (an HTMLCollection
+      iterator detail that belongs to `core`).
 - [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
       named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
       gap 1,205 -> 0.

@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1607 | 162751 | 88019 | 54.1% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1628 | 162751 | 88156 | 54.2% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 129 | 2578 | 2178 | 84.5% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 744 | 41.8% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1742** | **167724** | **91129** | **54.3%** |
+| **all** | **2615** | **1763** | **167724** | **91266** | **54.4%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -30,9 +30,9 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | Selection backed by real Ranges | 64 | 41 | 19946 | 40.5% | assert_equals: wrong value (17706); Selection.getRangeAt() throws: … is not a valid index. (2226); missing method: .attachShadow() (11) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 131 | 710 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 205 | 3150 | 19.4% | assert_equals: wrong value (1897); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 71 | 168 | 69.4% | missing method: .createEvent() (62); missing method: .attachShadow() (26); assert_array_equals: wrong value (22) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 72 | 167 | 69.6% | missing method: .createEvent() (62); missing method: .attachShadow() (26); assert_array_equals: wrong value (22) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 215 | 337 | 90.5% | assert_equals: got undefined (missing attribute/API) (96); missing method: .stepUp() (70); assert_equals: wrong value (32) |
-| 3 | FileReader with DOM Blob and File | 37 | 16 | 137 | 69.8% | missing global: FileReader (123); assert_equals: wrong value (6); assert_true: wrong value (4) |
+| 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8869 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (326) |
 | 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 9 | 36987 | 8.4% | assert_equals: wrong value (13856); missing method: .compareBoundaryPoints() (9315); missing method: .isPointInRange() (5672) |

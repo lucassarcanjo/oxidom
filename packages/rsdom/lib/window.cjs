@@ -14,10 +14,11 @@
 // no-op scroll/alert-family functions. The window is an EventTarget through area B's `installWindow`.
 //
 // Kept as Node's (never overridden): timers, setImmediate, queueMicrotask, performance, console,
-// AbortController/AbortSignal, MessageChannel, typed arrays, Blob, File, URL, fetch, crypto, DOMException,
+// AbortController/AbortSignal, MessageChannel, typed arrays, URL, fetch, crypto, DOMException,
 // structuredClone, TextEncoder/Decoder. Names rsdom does not implement are not defined (feature detection
 // with `in` must not be fooled): no customElements, ResizeObserver, IntersectionObserver, DataTransfer,
-// requestIdleCallback, TextEvent, reportError, documentMode.
+// requestIdleCallback, TextEvent, reportError, documentMode. Blob and File are rsdom's subclasses of Node's
+// (lib/file-api.cjs, DESIGN §27).
 
 const rt = require('./runtime.cjs');
 

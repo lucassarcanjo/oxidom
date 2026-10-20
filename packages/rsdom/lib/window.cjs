@@ -242,18 +242,12 @@ const isStorage = (v) => areas.get(v)?.proxy === v;
 
 // ========================================================================================== Location
 
-/** Queues the `hashchange` event task (a context timer: closing the context cancels it). */
-function hashChange(ctx, oldURL, newURL) {
-  ctx.setTimer(() => {
-    ctx.window.dispatchEvent(new rt.classes.HashChangeEvent('hashchange', { oldURL, newURL }));
-  }, 0);
-}
-
 /**
  * Navigates the context to `href`. Like jsdom, only fragment navigations take effect (other navigations are
- * not implemented: the URL stays as it is).
+ * not implemented: the URL stays as it is); they add a session history entry (`replacement`: in place of the
+ * current one), DESIGN §23.
  */
-function navigate(ctx, href) {
+function navigate(ctx, href, replacement = false) {
   let next;
   try {
     next = new URL(String(href), ctx.url.href);
@@ -264,11 +258,7 @@ function navigate(ctx, href) {
   const b = new URL(next.href);
   a.hash = '';
   b.hash = '';
-  if (a.href === b.href && next.hash !== ctx.url.hash) {
-    const old = ctx.url.href;
-    ctx.setURL(next);
-    hashChange(ctx, old, next.href);
-  }
+  if (a.href === b.href && next.hash !== ctx.url.hash) ctx.history.navigateToFragment(next, replacement);
 }
 
 class Location {
@@ -332,7 +322,7 @@ class Location {
   }
 
   replace(url) {
-    navigate(this.#s(), url);
+    navigate(this.#s(), url, true);
   }
 
   reload() {}
@@ -350,12 +340,17 @@ class History {
     if (t !== rt.TOKEN) illegal();
   }
 
+  /** the context's session history (lib/history.cjs) */
+  #s() {
+    return state.get(this).ctx.history;
+  }
+
   get length() {
-    return state.get(this).length;
+    return this.#s().length;
   }
 
   get state() {
-    return state.get(this).state;
+    return this.#s().state;
   }
 
   get scrollRestoration() {
@@ -367,32 +362,41 @@ class History {
   }
 
   pushState(data, unused, url = undefined) {
-    this.#update(data, url);
-    state.get(this).length++;
+    const [next, clone] = this.#args(data, url, 'pushState');
+    this.#s().push(next, clone);
   }
 
   replaceState(data, unused, url = undefined) {
-    this.#update(data, url);
+    const [next, clone] = this.#args(data, url, 'replaceState');
+    this.#s().replace(next, clone);
   }
 
-  #update(data, url) {
-    const h = state.get(this);
-    const ctx = h.ctx;
-    if (url !== undefined && url !== null) {
-      const next = new URL(String(url), ctx.url.href);
+  /** The new URL (the current one if `url` is absent) and the cloned state of push/replaceState. */
+  #args(data, url, method) {
+    const ctx = state.get(this).ctx;
+    let next = ctx.url;
+    if (url !== undefined && url !== null && String(url) !== '') {
+      next = new URL(String(url), ctx.url.href);
       if (next.origin !== ctx.url.origin) {
-        throw new rt.classes.DOMException(`Failed to execute 'pushState' on 'History': A history state object with URL '${next.href}' cannot be created in a document with origin '${ctx.url.origin}'.`, 'SecurityError');
+        throw new rt.classes.DOMException(`Failed to execute '${method}' on 'History': A history state object with URL '${next.href}' cannot be created in a document with origin '${ctx.url.origin}'.`, 'SecurityError');
       }
-      ctx.setURL(next);
     }
-    h.state = data === undefined ? null : structuredClone(data);
+    return [next, data === undefined ? null : structuredClone(data)];
   }
 
-  back() {}
+  // DESIGN §23: traversal is queued like jsdom's; go(0) is location.reload(), which does nothing.
+  go(delta = 0) {
+    const d = delta | 0;
+    if (d !== 0) this.#s().traverseByDelta(d);
+  }
 
-  forward() {}
+  back() {
+    this.#s().traverseByDelta(-1);
+  }
 
-  go() {}
+  forward() {
+    this.#s().traverseByDelta(1);
+  }
 }
 tag(History);
 
@@ -970,7 +974,8 @@ function makeWindow(ctx, global = undefined) {
   state.set(location, { ctx });
   def('location', location);
   const history = new History(rt.TOKEN);
-  state.set(history, { ctx, length: 1, state: null, scroll: 'auto' });
+  state.set(history, { ctx, scroll: 'auto' });
+  ctx.history = new (require('./history.cjs').SessionHistory)(ctx);
   def('history', history);
   def('navigator', new Navigator(rt.TOKEN));
   def('screen', new Screen(rt.TOKEN));

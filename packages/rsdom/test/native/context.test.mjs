@@ -144,6 +144,17 @@ describe('teardown', () => {
     expect([frames, hashchanges]).toEqual([0, 0]);
   });
 
+  it('close() cancels queued history traversals (DESIGN §23)', async () => {
+    const { window: w } = createWindow();
+    let popstates = 0;
+    w.addEventListener('popstate', () => popstates++);
+    w.history.pushState(1, '', '/a');
+    w.history.back();
+    close(w);
+    await sleep(40);
+    expect(popstates).toBe(0);
+  });
+
   it('rt.reset() closes every open context (its timers too)', async () => {
     const { window: w } = createWindow();
     let frames = 0;

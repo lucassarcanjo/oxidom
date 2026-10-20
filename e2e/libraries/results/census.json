@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T15:27:05.186Z",
+  "generated": "2026-10-20T15:20:56.265Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -1914,7 +1914,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": true
+        "rsdom": false
       }
     },
     {
@@ -1937,7 +1937,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": true
+        "rsdom": false
       }
     },
     {
@@ -2233,7 +2233,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2253,7 +2253,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2296,7 +2296,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2340,7 +2340,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2363,7 +2363,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2473,7 +2473,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3038,36 +3038,20 @@
     ],
     "rsdom": [
       {
-        "api": "IntersectionObserver",
+        "api": "ShadowRoot (global)",
         "libs": 11,
         "usedBy": [
+          "@radix-ui/react-dialog",
           "@radix-ui/react-select",
           "@radix-ui/react-dropdown-menu",
           "@headlessui/react",
           "react-aria-components",
           "@mui/material",
+          "focus-trap + tabbable",
           "@floating-ui/react",
           "react-select",
-          "framer-motion",
-          "react-router",
           "lexical",
           "lit"
-        ]
-      },
-      {
-        "api": "scrollIntoView",
-        "libs": 10,
-        "usedBy": [
-          "@radix-ui/react-select",
-          "@headlessui/react",
-          "react-aria-components",
-          "@mui/material",
-          "@floating-ui/react",
-          "downshift",
-          "react-select",
-          "react-router",
-          "@tiptap/react",
-          "lexical"
         ]
       },
       {
@@ -3087,22 +3071,6 @@
         ]
       },
       {
-        "api": "ResizeObserver",
-        "libs": 10,
-        "usedBy": [
-          "@radix-ui/react-select",
-          "@radix-ui/react-dropdown-menu",
-          "@headlessui/react",
-          "react-aria-components",
-          "@mui/material",
-          "@floating-ui/react",
-          "react-select",
-          "framer-motion",
-          "lexical",
-          "lit"
-        ]
-      },
-      {
         "api": "inert",
         "libs": 10,
         "usedBy": [
@@ -3116,34 +3084,6 @@
           "@floating-ui/react",
           "lexical",
           "msw"
-        ]
-      },
-      {
-        "api": "Element#scrollTo",
-        "libs": 8,
-        "usedBy": [
-          "@headlessui/react",
-          "react-aria-components",
-          "@mui/material",
-          "@floating-ui/react",
-          "react-select",
-          "framer-motion",
-          "react-router",
-          "lexical"
-        ]
-      },
-      {
-        "api": "checkVisibility",
-        "libs": 8,
-        "usedBy": [
-          "@radix-ui/react-dialog",
-          "@radix-ui/react-select",
-          "@radix-ui/react-dropdown-menu",
-          "@headlessui/react",
-          "react-aria-components",
-          "focus-trap + tabbable",
-          "@floating-ui/react",
-          "lexical"
         ]
       },
       {
@@ -3200,16 +3140,6 @@
         ]
       },
       {
-        "api": "setPointerCapture/hasPointerCapture",
-        "libs": 4,
-        "usedBy": [
-          "@radix-ui/react-select",
-          "@headlessui/react",
-          "react-aria-components",
-          "@mui/material"
-        ]
-      },
-      {
         "api": "DataTransfer",
         "libs": 4,
         "usedBy": [
@@ -3243,6 +3173,13 @@
         "usedBy": [
           "@tiptap/react",
           "lexical"
+        ]
+      },
+      {
+        "api": "attachShadow",
+        "libs": 1,
+        "usedBy": [
+          "lit"
         ]
       },
       {

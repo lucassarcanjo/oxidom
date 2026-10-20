@@ -10,7 +10,7 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | --- | --- | --- | --- | --- |
 | shadow-root | ShadowRoot + `attachShadow`, without retargeting (`shadow-root`) | `parity/shadow-root` | §22 | done |
 | history | Session history traversal (`history`) | `parity/history` | §23 | done |
-| observers | No-op observers and scrolling APIs (`observers`) | `parity/observers` | §24 | in progress |
+| observers | No-op observers and scrolling APIs (`observers`) | `parity/observers` | §24 | done |
 | ranges | Range comparison and stringification, then live mutation (`ranges`) | `parity/ranges` | §25 | in progress |
 | quick-wins | Web Storage named properties (`storage`), FileReader (`file-api`), `createEvent` (`events`), in that order | `parity/quick-wins` | §26, §27, §28 | in progress |
 | selection | Selection backed by real Ranges (`selection`) | `parity/selection` | §29 | starts when Range comparison is on main |

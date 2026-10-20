@@ -16,8 +16,8 @@
 // Kept as Node's (never overridden): timers, setImmediate, queueMicrotask, performance, console,
 // AbortController/AbortSignal, MessageChannel, typed arrays, Blob, File, URL, fetch, crypto, DOMException,
 // structuredClone, TextEncoder/Decoder. Names rsdom does not implement are not defined (feature detection
-// with `in` must not be fooled): no customElements, ResizeObserver, IntersectionObserver, DataTransfer,
-// requestIdleCallback, TextEvent, reportError, documentMode.
+// with `in` must not be fooled): no customElements, DataTransfer, requestIdleCallback, TextEvent,
+// reportError, documentMode. ResizeObserver and IntersectionObserver come from lib/observers.cjs (DESIGN §24).
 
 const rt = require('./runtime.cjs');
 
@@ -41,44 +41,204 @@ function tag(C, name = C.name) {
 const state = new WeakMap();
 
 // =========================================================================================== Storage
+// DESIGN §26. A Storage is a legacy platform object with named properties (`localStorage.foo = 'x'`,
+// `'foo' in localStorage`, `delete`, `Object.keys`): like jsdom's generated wrapper
+// (node_modules/jsdom/lib/generated/idl/Storage.js), each instance is a Proxy over an ordinary target whose
+// prototype is Storage.prototype. The items live in a facade Map: storage is window state, not DOM state.
+
+/** jsdom's default `storageQuota` (refs/jsdom/lib/api.js), in UTF-16 code units of keys plus values. */
+const STORAGE_QUOTA = 5000000;
+
+/** Storage area per proxy and per proxy target (the traps see the target, methods see the proxy). */
+const areas = new WeakMap();
+
+function area(s, name) {
+  const m = areas.get(s);
+  if (m === undefined) throw new TypeError(`'${name}' called on an object that is not a valid instance of Storage.`);
+  return m;
+}
+
+function needArgs(len, n, name) {
+  if (len < n) {
+    throw new TypeError(`Failed to execute '${name}' on 'Storage': ${n} argument${n > 1 ? 's' : ''} required, but only ${len} present.`);
+  }
+}
+
+/** WebIDL DOMString conversion (a template literal throws TypeError on a Symbol, as ToString must). */
+const domString = (v) => (typeof v === 'string' ? v : `${v}`);
+
+class QuotaExceededError extends DOMException {
+  #quota = null;
+  #requested = null;
+
+  constructor(message = '', options = undefined) {
+    super(message === undefined ? '' : domString(message), 'QuotaExceededError');
+    if (options !== undefined && options !== null) {
+      if (typeof options !== 'object' && typeof options !== 'function') {
+        throw new TypeError("Failed to construct 'QuotaExceededError': parameter 2 is not of type 'QuotaExceededErrorOptions'.");
+      }
+      const finite = (v, k) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) throw new TypeError(`Failed to construct 'QuotaExceededError': ${k} is not a finite floating-point value.`);
+        return n;
+      };
+      const { quota, requested } = options;
+      if (quota !== undefined) {
+        this.#quota = finite(quota, 'quota');
+        if (this.#quota < 0) throw new RangeError('quota must be non-negative');
+      }
+      if (requested !== undefined) {
+        this.#requested = finite(requested, 'requested');
+        if (this.#requested < 0) throw new RangeError('requested must be non-negative');
+      }
+      if (this.#quota !== null && this.#requested !== null && this.#requested < this.#quota) {
+        throw new RangeError('requested must be greater than or equal to quota');
+      }
+    }
+  }
+
+  get quota() {
+    return this.#quota;
+  }
+
+  get requested() {
+    return this.#requested;
+  }
+}
+tag(QuotaExceededError);
 
 class Storage {
-  #m = new Map();
-
   constructor(t = undefined) {
     if (t !== rt.TOKEN) illegal();
   }
 
   get length() {
-    return this.#m.size;
+    return area(this, 'length').items.size;
   }
 
   key(index) {
+    const { items } = area(this, 'key');
+    needArgs(arguments.length, 1, 'key');
     const i = Number(index) >>> 0;
-    if (i >= this.#m.size) return null;
+    if (i >= items.size) return null;
     let k = 0;
-    for (const key of this.#m.keys()) if (k++ === i) return key;
+    for (const key of items.keys()) if (k++ === i) return key;
     return null;
   }
 
   getItem(key) {
-    const v = this.#m.get(String(key));
+    const { items } = area(this, 'getItem');
+    needArgs(arguments.length, 1, 'getItem');
+    const v = items.get(domString(key));
     return v === undefined ? null : v;
   }
 
   setItem(key, value) {
-    this.#m.set(String(key), String(value));
+    const a = area(this, 'setItem');
+    needArgs(arguments.length, 2, 'setItem');
+    setItem(a, domString(key), domString(value));
   }
 
   removeItem(key) {
-    this.#m.delete(String(key));
+    const { items } = area(this, 'removeItem');
+    needArgs(arguments.length, 1, 'removeItem');
+    items.delete(domString(key));
   }
 
   clear() {
-    this.#m.clear();
+    area(this, 'clear').items.clear();
   }
 }
 tag(Storage);
+
+/** setItem steps with jsdom's quota check (refs/jsdom/lib/jsdom/living/webstorage/Storage-impl.js). */
+function setItem(a, key, value) {
+  const { items } = a;
+  if (items.get(key) === value) return;
+  let total = key.length + value.length;
+  for (const [k, v] of items) if (k !== key) total += k.length + v.length;
+  if (total > a.quota) throw new QuotaExceededError(`The ${a.quota}-code unit storage quota has been exceeded.`);
+  items.set(key, value);
+}
+
+/**
+ * The named-property traps: WebIDL's legacy platform object [[GetOwnProperty]], [[Set]], [[DefineOwnProperty]],
+ * [[Delete]] and [[OwnPropertyKeys]] for an interface with a named getter, setter and deleter and no
+ * [LegacyOverrideBuiltIns]: an item is visible as a property only when no own or inherited property shadows it.
+ */
+const storageTraps = {
+  get(target, P, receiver) {
+    if (typeof P !== 'symbol' && !(P in target)) {
+      const v = areas.get(target).items.get(P);
+      if (v !== undefined) return v;
+    }
+    return Reflect.get(target, P, receiver);
+  },
+
+  has(target, P) {
+    if (typeof P !== 'symbol' && areas.get(target).items.has(P)) return true;
+    return Reflect.has(target, P);
+  },
+
+  getOwnPropertyDescriptor(target, P) {
+    if (typeof P !== 'symbol' && !(P in target)) {
+      const v = areas.get(target).items.get(P);
+      if (v !== undefined) return { value: v, writable: true, enumerable: true, configurable: true };
+    }
+    return Reflect.getOwnPropertyDescriptor(target, P);
+  },
+
+  set(target, P, V, receiver) {
+    const a = areas.get(target);
+    if (typeof P === 'string' && receiver === a.proxy) {
+      setItem(a, P, domString(V));
+      return true;
+    }
+    return Reflect.set(target, P, V, receiver);
+  },
+
+  defineProperty(target, P, desc) {
+    if (typeof P === 'symbol' || Object.hasOwn(target, P)) return Reflect.defineProperty(target, P, desc);
+    if (desc.get || desc.set) return false;
+    setItem(areas.get(target), P, domString(desc.value));
+    return true;
+  },
+
+  deleteProperty(target, P) {
+    if (typeof P !== 'symbol' && !(P in target)) {
+      const { items } = areas.get(target);
+      if (items.has(P)) {
+        items.delete(P);
+        return true;
+      }
+    }
+    return Reflect.deleteProperty(target, P);
+  },
+
+  ownKeys(target) {
+    const keys = new Set();
+    for (const k of areas.get(target).items.keys()) if (!(k in target)) keys.add(k);
+    for (const k of Reflect.ownKeys(target)) keys.add(k);
+    return [...keys];
+  },
+
+  preventExtensions() {
+    return false;
+  },
+};
+
+/** A new, empty Storage (one per window and kind: rsdom has no same-origin frames to share an area with). */
+function createStorage() {
+  const target = new Storage(rt.TOKEN);
+  const proxy = new Proxy(target, storageTraps);
+  const a = { items: new Map(), quota: STORAGE_QUOTA, proxy };
+  areas.set(target, a);
+  areas.set(proxy, a);
+  return proxy;
+}
+
+/** True for a real Storage object (StorageEvent's `storageArea` conversion). */
+const isStorage = (v) => areas.get(v)?.proxy === v;
 
 // ========================================================================================== Location
 
@@ -819,8 +979,8 @@ function makeWindow(ctx, global = undefined) {
   def('history', history);
   def('navigator', new Navigator(rt.TOKEN));
   def('screen', new Screen(rt.TOKEN));
-  def('localStorage', new Storage(rt.TOKEN));
-  def('sessionStorage', new Storage(rt.TOKEN));
+  def('localStorage', createStorage());
+  def('sessionStorage', createStorage());
 
   def('innerWidth', 1024);
   def('innerHeight', 768);
@@ -961,4 +1121,4 @@ function install(_rt, d) {
   });
 }
 
-module.exports = { install, makeWindow, catchWindowErrors, cssEscape, Storage, Location, History, Navigator, Selection, USER_AGENT };
+module.exports = { install, makeWindow, catchWindowErrors, cssEscape, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };

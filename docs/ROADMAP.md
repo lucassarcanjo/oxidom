@@ -73,8 +73,10 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [x] **XMLHttpRequest** (M) `xhr`. axios with the XHR adapter. Done 2026-10-19 (DESIGN §21): all 31 suite files at
       parity, libraries 14 -> 15 of 20 (axios). Asynchronous only: a synchronous `send()` throws NetworkError, the
       way a failed synchronous request does in jsdom.
-- [ ] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
+- [x] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
       `scrollIntoView`, `scrollTo` on elements, pointer capture, `checkVisibility` (S, beyond jsdom) `observers`.
+      Done 2026-10-20 (DESIGN §24): inert, the observers never fire; libraries without shims 14 -> 16 of 20 (Headless
+      UI, Radix Select), the same as with shims (16).
 
 ## Stage 2: jsdom-compatible entry points
 
@@ -100,7 +102,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [ ] `document.createEvent`, `init*Event` and the missing event classes (S) `events`.
 - [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
 - [ ] FileReader with DOM Blob and File (S) `file-api`.
-- [ ] Web Storage named properties (S) `storage`.
+- [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
+      named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
+      gap 1,205 -> 0.
 - [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
 - [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`.
 - [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.

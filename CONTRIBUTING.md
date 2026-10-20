@@ -170,7 +170,7 @@ Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.childre
 ## 5. JS facade conventions
 
 Each area file exports `install(rt, dom)`; `lib/index.cjs` calls them once in the order
-select -> style -> forms -> events -> mo -> window -> xhr -> shadow, after the core classes exist.
+select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow, after the core classes exist.
 
 - `rt` (`lib/runtime.cjs`): `N` (natives), `V` (hot holder: `V.T` table view, `V.EP`, `V.OUT`, `V.off(id)`),
   `F`/`M`/`S`/`K`/`EPI`/`NSC`/`NS` constants, `W` (id -> wrapper), `wrap(id)`, `field(id, F.X)`, `afterAlloc()`,

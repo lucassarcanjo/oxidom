@@ -194,26 +194,12 @@ dom/nodes/Node-proxy-brand-checks.html:
   "The innerHTML setter rejects a transparent proxy as its receiver": [fail, "assert_true: wrong value"]
   "appendChild rejects a transparent proxy as its Node argument": [fail, "assert_true: wrong value"]
   "appendChild rejects a transparent proxy as its receiver": [fail, "assert_true: wrong value"]
-dom/nodes/Node-removeChild.html: [fail, "assert_equals: wrong value"]
 dom/nodes/adoption-tag-name.html:
   "Adoption updates cached tag names in a detached template subtree": [fail, "assert_equals: wrong value"]
 dom/nodes/attribute-change-steps.html: [fail, "missing global: customElements"]
 dom/nodes/pre-insertion-validity-children-to-exclude.html:
   "replaceChild() excludes the replaced doctype when validating an element": [fail, "assert_array_equals: wrong value"]
   "replaceChildren() excludes all current children when validating a retained element": [fail, "assert_array_equals: wrong value"]
-dom/nodes/tree-mutation-indexes.html:
-  "Range common ancestors, cloning, and extraction follow moves between branches of different depths": [fail, "missing method: .cloneContents()"]
-  "Removing a subtree adjusts descendant and parent Ranges, including offset zero": [fail, "assert_equals: wrong value"]
-dom/ranges/Range-character-data.html:
-  "Inserting at a CDATASection boundary splits the text": [fail, "missing method: .insertNode()"]
-  "cloneContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "cloneContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
-  "deleteContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "deleteContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
-  "extractContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "extractContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
-dom/ranges/Range-contents-boundaries.html: [fail, "range[method] is not a function"]
-dom/ranges/Range-traversal-boundaries.html: [fail, "assert_equals: wrong value"]
 domparsing/DOMParser-parseFromString-xml-script.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domparsing/xml-serialization-namespaces.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling-dont-upstream.html:

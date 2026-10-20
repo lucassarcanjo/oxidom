@@ -241,6 +241,70 @@ export const cases = {
     },
   },
 
+  ranges: {
+    row: 'ranges',
+    run({ metric, w }) {
+      const d = w.document;
+      need(typeof d.createRange().comparePoint === 'function', 'Range.comparePoint missing');
+      const { root, all } = tree4k(d);
+      // Compare with `mutate`: every insertion and removal runs the live-range steps for the ranges of its
+      // document (src/range.rs). This one is the only range alive while it runs.
+      metric('createElement + appendChild + removeChild, with a live Range on the document', 'ns', () => {
+        const r = d.createRange();
+        r.selectNodeContents(root);
+        const host = root.lastChild;
+        const res = bench(100_000, (n) => {
+          for (let i = 0; i < n; i++) {
+            const e = d.createElement('div');
+            host.appendChild(e);
+            host.removeChild(e);
+          }
+        });
+        sink += r.endOffset;
+        return res;
+      });
+      metric('insertBefore first child + remove(), live Range on the parent (100 siblings)', 'ns', () => {
+        const host = d.createElement('div');
+        root.appendChild(host);
+        for (let i = 0; i < 100; i++) host.appendChild(d.createElement('i'));
+        const r = d.createRange();
+        r.setStart(host, 50);
+        const res = bench(100_000, (n) => {
+          for (let i = 0; i < n; i++) {
+            const e = d.createElement('b');
+            host.insertBefore(e, host.firstChild);
+            e.remove();
+          }
+        });
+        sink += r.startOffset;
+        host.remove();
+        return res;
+      });
+      metric('createRange + setStart + setEnd', 'ns', () => bench(100_000, (n) => {
+        for (let i = 0; i < n; i++) {
+          const r = d.createRange();
+          r.setStart(all[i & 4095], 0);
+          r.setEnd(root, 1);
+          sink += r.endOffset;
+        }
+      }));
+      const r = d.createRange();
+      r.setStart(all[100], 1);
+      r.setEnd(all[3000], 0);
+      metric('comparePoint against a range, random nodes of a 4096-node tree', 'ns', () => bench(200_000, (n) => {
+        for (let i = 0; i < n; i++) sink += r.comparePoint(all[(i * 2654435761) & 4095], 0);
+      }));
+      const text = d.createElement('div');
+      text.innerHTML = '<p>' + 'lorem <b>ipsum</b> dolor '.repeat(100) + '</p>';
+      root.appendChild(text);
+      const t = d.createRange();
+      t.selectNodeContents(text);
+      metric('toString of a 300-node paragraph', 'ns', () => bench(20_000, (n) => {
+        for (let i = 0; i < n; i++) sink += t.toString().length;
+      }));
+    },
+  },
+
   matches: {
     row: 9,
     run({ metric, w }) {

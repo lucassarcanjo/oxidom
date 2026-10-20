@@ -30,6 +30,7 @@ pub mod error;
 pub mod hooks;
 pub mod node;
 pub mod parse;
+pub mod range;
 pub mod serialize;
 pub mod shadow;
 pub mod string;

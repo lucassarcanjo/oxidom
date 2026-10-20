@@ -11,9 +11,9 @@
 //! [`FreshTree`], the only quiet path; the HTML parser links its own nodes and settles them through
 //! `Env::hook_parsed` plus an ordinary insert (fragments) or [`FreshTree::take_linked`] (documents).
 //!
-//! `remove` runs the NodeIterator pre-removing steps (crate::traversal, DESIGN §16) before unlinking, as DOM
-//! §4.2.3 "remove" step 4 does. Live-range fix-ups (not implemented) belong in `insert` / `remove` too; fresh
-//! nodes are unreachable for both.
+//! `remove` runs the live-range steps (crate::range, DESIGN §25) and the NodeIterator pre-removing steps
+//! (crate::traversal, DESIGN §16) before unlinking, as DOM §4.2.3 "remove" steps 3-7 do; `insert` runs the
+//! live-range step before linking ("insert" step 5). Fresh nodes are unreachable for both.
 
 use smallvec::SmallVec;
 
@@ -319,7 +319,7 @@ impl Env {
     /// DOM "ensure pre-insert validity" (`replace` = the replace-child variant with `child` excluded;
     /// `exclude_all` = every current child of `parent` is excluded from the document checks, as jsdom does
     /// for `replaceChildren`, whose replace-all removes them).
-    fn ensure_validity(
+    pub(crate) fn ensure_validity(
         &self,
         node: NodeId,
         parent: NodeId,
@@ -453,6 +453,9 @@ impl Env {
             // Unconditional (DOM "insert" step 4.2): the fragment's own record ignores the caller's flag.
             crate::mo::queue_child_list(self, node, &[], &nodes, 0, 0);
         }
+        if child != 0 && !self.ranges.is_empty() {
+            self.live_ranges_insert(parent, child, nodes.len() as u32);
+        }
         // previousSibling is computed before adoption (spec order; it can be `node` itself on a move).
         let prev = if child != 0 { self.rec(child).prev } else { self.rec(parent).last };
         let doc = self.doc_for_children_of(parent);
@@ -488,6 +491,9 @@ impl Env {
         if parent == 0 {
             return;
         }
+        if !self.ranges.is_empty() {
+            self.live_ranges_pre_remove(node, parent);
+        }
         if !self.traversal.is_empty() {
             self.node_iterators_pre_remove(node);
         }
@@ -514,7 +520,10 @@ impl Env {
         // Work list of (subtree root, new owner document). Template contents (at any nesting depth) move to
         // the new document's template-contents owner (HTML adopting steps).
         let mut work: SmallVec<[(NodeId, NodeId); 4]> = smallvec::smallvec![(node, doc)];
+        // the documents nodes moved out of (live ranges there may have moved with them)
+        let mut olds: SmallVec<[NodeId; 4]> = SmallVec::new();
         while let Some((root, owner)) = work.pop() {
+            olds.push(self.node_doc(root));
             let html = self.doc_data(owner).is_some_and(|d| d.html);
             let mut n = root;
             while n != 0 {
@@ -540,6 +549,9 @@ impl Env {
         if !self.traversal.is_empty() {
             // NodeIterators rooted in the moved nodes now belong to their new document (crate::traversal)
             self.node_iterators_rebucket();
+        }
+        if !self.ranges.is_empty() {
+            self.live_ranges_rebucket(&olds);
         }
     }
 

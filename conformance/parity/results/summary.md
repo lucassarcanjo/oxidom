@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1667 | 162751 | 122497 | 75.3% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2192 | 85.0% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1688 | 162751 | 125558 | 77.1% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 136 | 2578 | 2255 | 87.5% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1804** | **167724** | **125624** | **74.9%** |
+| **all** | **2615** | **1830** | **167724** | **128748** | **76.8%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -35,12 +35,12 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | FileReader with DOM Blob and File | 37 | 16 | 137 | 69.8% | missing global: FileReader (123); assert_equals: wrong value (6); assert_true: wrong value (4) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8866 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (323) |
-| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 21 | 3109 | 92.3% | assert_equals: wrong value (2973); assert_true: wrong value (100); range[method] is not a function (20) |
+| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 43 | 1 | 100.0% | rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 19 | 790 | 14.4% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom adapter: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 741 | 1125 | 95.4% | assert_equals: wrong value (203); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 83 | 261 | 69.0% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (42) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 744 | 1110 | 95.5% | assert_equals: wrong value (200); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 84 | 260 | 69.1% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (42) |
 | 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |

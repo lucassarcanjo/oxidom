@@ -17,9 +17,13 @@ impl Env {
         if off16 > s.utf16_len() {
             return Err(DomError::IndexSize);
         }
+        let count16 = count16.min(s.utf16_len() - off16);
         let old = if keep_old { s.clone() } else { Str::new() };
         s.replace_range16(off16, count16, data);
         self.hook_char_data_changed(id, &old);
+        if !self.ranges.is_empty() {
+            self.live_ranges_replace_data(id, off16, count16, crate::string::utf16_len(data));
+        }
         Ok(())
     }
 
@@ -28,6 +32,10 @@ impl Env {
         let s = self.char_data_mut(id).ok_or(DomError::Type)?;
         let old = std::mem::replace(s, Str::from(data));
         self.hook_char_data_changed(id, &old);
+        if !self.ranges.is_empty() {
+            // DOM "replace data" with offset 0 and count = the old length
+            self.live_ranges_replace_data(id, 0, old.utf16_len(), crate::string::utf16_len(data));
+        }
         Ok(())
     }
 
@@ -49,6 +57,9 @@ impl Env {
         if parent != 0 {
             let next = self.rec(id).next;
             self.insert(new, parent, next, Records::Queue);
+            if !self.ranges.is_empty() {
+                self.live_ranges_split(id, new, off16, parent);
+            }
         }
         self.replace_data(id, off16, len - off16, "")?;
         Ok(new)
@@ -81,6 +92,16 @@ impl Env {
             // Unconditional (DOM "normalize" step 4): the replace-data step queues a characterData record
             // even when there is nothing to append.
             let _ = self.replace_data(n, len, 0, &data);
+            if !self.ranges.is_empty() {
+                // steps 6.5-6.9: boundary points in or before the merged siblings move into `n`
+                let mut at = len;
+                let mut c = self.rec(n).next;
+                while c != 0 && self.kind(c) == kind::TEXT {
+                    self.live_ranges_merge(n, c, at);
+                    at += self.char_data(c).map_or(0, |s| s.utf16_len());
+                    c = self.rec(c).next;
+                }
+            }
             let mut c = self.rec(n).next;
             while c != 0 && self.kind(c) == kind::TEXT {
                 let nx = self.rec(c).next;

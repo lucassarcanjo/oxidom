@@ -69,6 +69,14 @@ function str(v) {
 function need(len, name) {
   if (len < 1) throw new TypeError(`Failed to construct '${name}': 1 argument required, but only 0 present.`);
 }
+function needInit(len, method, iface) {
+  if (len < 1) throw new TypeError(`Failed to execute '${method}' on '${iface}': 1 argument required, but only 0 present.`);
+}
+/** `Window?` (UIEvent's view, DESIGN §28): a window of an open browsing context, or null. */
+function toView(v, method) {
+  if (v === null || v === undefined || context.ofWindow(v) !== undefined) return v ?? null;
+  throw new TypeError(`Failed to ${method}: The provided value is not of type 'Window'.`);
+}
 function initDict(init, name) {
   if (init === undefined || init === null) return EMPTY;
   if (typeof init !== 'object' && typeof init !== 'function') {
@@ -87,6 +95,10 @@ let dispatchImpl;
 let forceCancel;
 /** True if the event's canceled flag is set (bypasses own-property overrides such as user-event's). */
 let isCanceled;
+/** Clears the initialized flag (`document.createEvent`, DESIGN §28): dispatching it throws until init*Event. */
+let uninitialize;
+/** The event's initialized flag. */
+let isInitialized;
 
 function tag(C, name = C.name) {
   Object.defineProperty(C.prototype, Symbol.toStringTag, { value: name, configurable: true });
@@ -110,6 +122,7 @@ class Event {
   #trusted = false;
   #path = NO_PATH;
   #ts = 0;
+  #initialized = true;
 
   constructor(type, eventInitDict = undefined) {
     need(arguments.length, 'Event');
@@ -207,6 +220,7 @@ class Event {
   initEvent(type, bubbles = false, cancelable = false) {
     if (arguments.length < 1) throw new TypeError("Failed to execute 'initEvent' on 'Event': 1 argument required, but only 0 present.");
     if (this.#dispatching) return;
+    this.#initialized = true;
     this.#type = str(type);
     this.#stop = false;
     this.#stopImm = false;
@@ -222,6 +236,10 @@ class Event {
       ev.#canceled = true;
     };
     isCanceled = (ev) => ev.#canceled;
+    uninitialize = (ev) => {
+      ev.#initialized = false;
+    };
+    isInitialized = (ev) => ev.#initialized;
 
     /**
      * DOM "dispatch" for a target without shadow trees. `target` is a node wrapper, a WindowTarget or a
@@ -376,6 +394,7 @@ class CustomEvent extends Event {
   }
 
   initCustomEvent(type, bubbles = false, cancelable = false, detail = null) {
+    needInit(arguments.length, 'initCustomEvent', 'CustomEvent');
     if (this.eventPhase !== 0) return;
     this.initEvent(type, bubbles, cancelable);
     this.#detail = detail;
@@ -394,7 +413,7 @@ class UIEvent extends Event {
     const d = initDict(eventInitDict, 'UIEvent');
     if (d !== EMPTY) {
       if (d.detail !== undefined) this.#detail = toLong(d.detail);
-      if (d.view !== undefined) this.#view = d.view;
+      if (d.view !== undefined) this.#view = toView(d.view, "construct 'UIEvent': member view");
       if (d.which !== undefined) this.#which = toULong(d.which);
     }
   }
@@ -412,9 +431,11 @@ class UIEvent extends Event {
   }
 
   initUIEvent(type, bubbles = false, cancelable = false, view = null, detail = 0) {
+    needInit(arguments.length, 'initUIEvent', 'UIEvent');
     if (this.eventPhase !== 0) return;
+    const v = toView(view, "execute 'initUIEvent' on 'UIEvent': parameter 4");
     this.initEvent(type, bubbles, cancelable);
-    this.#view = view;
+    this.#view = v;
     this.#detail = toLong(detail);
   }
 }
@@ -556,6 +577,7 @@ class MouseEvent extends UIEvent {
   initMouseEvent(type, bubbles = false, cancelable = false, view = null, detail = 0, screenX = 0, screenY = 0,
     clientX = 0, clientY = 0, ctrlKey = false, altKey = false, shiftKey = false, metaKey = false, button = 0,
     relatedTarget = null) {
+    needInit(arguments.length, 'initMouseEvent', 'MouseEvent');
     if (this.eventPhase !== 0) return;
     this.initUIEvent(type, bubbles, cancelable, view, detail);
     this.#screenX = Number(screenX) | 0;
@@ -801,6 +823,7 @@ class KeyboardEvent extends UIEvent {
 
   initKeyboardEvent(type, bubbles = false, cancelable = false, view = null, key = '', location = 0, ctrlKey = false,
     altKey = false, shiftKey = false, metaKey = false) {
+    needInit(arguments.length, 'initKeyboardEvent', 'KeyboardEvent');
     if (this.eventPhase !== 0) return;
     this.initUIEvent(type, bubbles, cancelable, view, 0);
     this.#key = str(key);
@@ -881,6 +904,7 @@ class CompositionEvent extends UIEvent {
   }
 
   initCompositionEvent(type, bubbles = false, cancelable = false, view = null, data = '') {
+    needInit(arguments.length, 'initCompositionEvent', 'CompositionEvent');
     if (this.eventPhase !== 0) return;
     this.initUIEvent(type, bubbles, cancelable, view, 0);
     this.#data = str(data);
@@ -1068,6 +1092,123 @@ StorageEvent.prototype.initStorageEvent = {
     vals[4] = area === undefined ? null : storageArea(area, 'storageArea');
   },
 }.initStorageEvent;
+
+// ======================================================== createEvent and its classes (DESIGN §28)
+// refs/jsdom/lib/jsdom/living/events/{BeforeUnloadEvent,DeviceMotionEvent,DeviceOrientationEvent,MessageEvent}-impl.js
+
+function illegal() {
+  throw new TypeError('Illegal constructor');
+}
+
+/** BeforeUnloadEvent: jsdom's has no members of its own (`returnValue` is Event's). */
+class BeforeUnloadEvent extends Event {
+  constructor(t = undefined) {
+    if (t !== rt.TOKEN) illegal();
+    super('');
+  }
+}
+tag(BeforeUnloadEvent);
+
+const nullableDbl = (v, k) => (v === null ? null : toDouble(v, k));
+const DeviceOrientationEvent = simpleEvent('DeviceOrientationEvent', Event, [['absolute', false, bool],
+  ['alpha', null, nullableDbl], ['beta', null, nullableDbl], ['gamma', null, nullableDbl]]);
+
+/** DeviceMotionEventAcceleration / DeviceMotionEventRotationRate: read-only nullable doubles. */
+function motionPart(name, keys) {
+  const C = { [name]: class { constructor() { illegal(); } } }[name];
+  for (const k of keys) {
+    Object.defineProperty(C.prototype, k, {
+      get() {
+        const v = STATE.get(this);
+        if (v === undefined) throw new TypeError('Illegal invocation');
+        return v[k];
+      },
+      enumerable: false,
+      configurable: true,
+    });
+  }
+  tag(C, name);
+  return (init, ctx) => {
+    if (init === undefined || init === null) return null;
+    if (typeof init !== 'object' && typeof init !== 'function') {
+      throw new TypeError(`Failed to construct 'DeviceMotionEvent': ${ctx} is not an object.`);
+    }
+    const o = Object.create(C.prototype);
+    const vals = {};
+    for (const k of keys) {
+      const v = init[k];
+      vals[k] = v === undefined || v === null ? null : toDouble(v, k);
+    }
+    STATE.set(o, vals);
+    return o;
+  };
+}
+const acceleration = motionPart('DeviceMotionEventAcceleration', ['x', 'y', 'z']);
+const rotationRate = motionPart('DeviceMotionEventRotationRate', ['alpha', 'beta', 'gamma']);
+const DeviceMotionEvent = simpleEvent('DeviceMotionEvent', Event, [['acceleration', null, acceleration],
+  ['accelerationIncludingGravity', null, acceleration], ['interval', 0, dbl], ['rotationRate', null, rotationRate]]);
+
+/** `MessageEventSource?`: jsdom takes any value here (its union conversion has no failing branch). */
+const messageSource = any;
+/** `sequence<MessagePort>`, as leniently as jsdom converts it (any iterable; elements are not checked). */
+const messagePorts = (v) => {
+  if (v === null || (typeof v !== 'object' && typeof v !== 'function') || typeof v[Symbol.iterator] !== 'function') {
+    throw new TypeError("Failed to construct 'MessageEvent': The provided value cannot be converted to a sequence.");
+  }
+  return Object.freeze([...v]);
+};
+const usv = (v) => str(v).toWellFormed();
+// members in dictionary (lexicographic) order: the init dictionary is read in this order
+const MessageEvent = simpleEvent('MessageEvent', Event, [['data', null, any], ['lastEventId', '', str], ['origin', '', usv],
+  ['ports', Object.freeze([]), messagePorts], ['source', null, messageSource]]);
+MessageEvent.prototype.initMessageEvent = {
+  initMessageEvent(type, bubbles = false, cancelable = false, data = null, origin = '', lastEventId = '', source = null, ports = []) {
+    const vals = STATE.get(this);
+    if (vals === undefined) throw new TypeError('Illegal invocation');
+    if (arguments.length < 1) throw new TypeError("Failed to execute 'initMessageEvent' on 'MessageEvent': 1 argument required, but only 0 present.");
+    if (this.eventPhase !== 0) return;
+    const conv = [data, str(lastEventId), usv(origin), messagePorts(ports), source === undefined ? null : source];
+    this.initEvent(type, bubbles, cancelable);
+    for (let i = 0; i < conv.length; i++) vals[i] = conv[i];
+  },
+}.initMessageEvent;
+
+/**
+ * DOM `createEvent(interface)`: jsdom's table (refs/jsdom/lib/jsdom/living/nodes/Document-impl.js
+ * `eventInterfaceTable`), matched ASCII case-insensitively. The event has type '' and its initialized flag
+ * cleared, so dispatching it throws until an init*Event method runs.
+ */
+const CREATE_EVENT = {
+  beforeunloadevent: () => new BeforeUnloadEvent(rt.TOKEN),
+  compositionevent: CompositionEvent,
+  customevent: CustomEvent,
+  devicemotionevent: DeviceMotionEvent,
+  deviceorientationevent: DeviceOrientationEvent,
+  event: Event,
+  events: Event,
+  focusevent: FocusEvent,
+  hashchangeevent: HashChangeEvent,
+  htmlevents: Event,
+  keyboardevent: KeyboardEvent,
+  messageevent: MessageEvent,
+  mouseevent: MouseEvent,
+  mouseevents: MouseEvent,
+  storageevent: StorageEvent,
+  svgevents: Event,
+  touchevent: TouchEvent,
+  uievent: UIEvent,
+  uievents: UIEvent,
+};
+
+function createEvent(iface) {
+  if (arguments.length < 1) throw new TypeError("Failed to execute 'createEvent' on 'Document': 1 argument required, but only 0 present.");
+  const name = str(iface);
+  const make = Object.hasOwn(CREATE_EVENT, rt.asciiLower(name)) ? CREATE_EVENT[rt.asciiLower(name)] : undefined;
+  if (make === undefined) throw rt.domError(7, `The provided event type ("${name}") is invalid`);
+  const ev = make === CREATE_EVENT.beforeunloadevent ? make() : new make('');
+  uninitialize(ev);
+  return ev;
+}
 
 // ============================================================================== EventTarget API
 
@@ -1262,6 +1403,7 @@ const EventTargetMethods = {
       throw new TypeError("Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.");
     }
     if (event.eventPhase !== 0) throw rt.domError(6, "Failed to execute 'dispatchEvent' on 'EventTarget': The event is already being dispatched.");
+    if (!isInitialized(event)) throw rt.domError(6, "Failed to execute 'dispatchEvent' on 'EventTarget': The event provided is uninitialized.");
     return dispatchImpl(this, event);
   },
 };
@@ -1586,6 +1728,7 @@ function installWindow(win, document) {
 
 function install(_rt, dom) {
   rt.define(dom.EventTarget, EventTargetMethods);
+  rt.define(dom.Document, { createEvent });
   rt.define(dom.HTMLElement, { click });
   defineHandlers(dom.HTMLElement.prototype, GLOBAL_EVENTS);
   defineHandlers(dom.SVGElement.prototype, GLOBAL_EVENTS);
@@ -1601,5 +1744,5 @@ module.exports = {
   Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, DragEvent, KeyboardEvent, FocusEvent, InputEvent,
   CompositionEvent, TouchEvent, ErrorEvent, SubmitEvent, AnimationEvent, TransitionEvent, ProgressEvent,
   PopStateEvent, PageTransitionEvent, HashChangeEvent, ClipboardEvent, StorageEvent, GLOBAL_EVENTS, WINDOW_EVENTS,
-  defineHandlers,
+  defineHandlers, BeforeUnloadEvent, DeviceMotionEvent, DeviceOrientationEvent, MessageEvent,
 };

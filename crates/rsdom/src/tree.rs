@@ -138,8 +138,12 @@ impl Env {
 
     // ------------------------------------------------------------------------- connectivity
 
-    /// Marks the subtree rooted at `root` connected: CONNECTED bits, id map, per-node hooks.
+    /// Marks the shadow-including subtree rooted at `root` connected: CONNECTED bits, id map (document trees
+    /// only), per-node hooks. Shadow trees go through a work list, so nesting depth cannot overflow the stack.
     pub(crate) fn connect_subtree(&mut self, root: NodeId) {
+        if self.shadow.any() {
+            return self.connect_shadow_including(root);
+        }
         let mut n = root;
         while n != 0 {
             let r = self.rec_mut(n);
@@ -152,8 +156,35 @@ impl Env {
         }
     }
 
-    /// Marks the subtree rooted at `root` disconnected (focus fixup and id-map removal included).
+    #[cold]
+    fn connect_shadow_including(&mut self, root: NodeId) {
+        let parent = self.rec(root).parent;
+        let in_doc = parent == 0 || !self.is_shadow_root(self.root_of(parent));
+        let mut work: SmallVec<[(NodeId, bool); 4]> = smallvec::smallvec![(root, in_doc)];
+        while let Some((top, in_doc)) = work.pop() {
+            let mut n = top;
+            while n != 0 {
+                let r = self.rec_mut(n);
+                r.meta |= meta::CONNECTED;
+                let m = r.meta;
+                if in_doc && m & (meta::KIND_MASK | meta::HAS_ID) == kind::ELEMENT | meta::HAS_ID {
+                    self.id_map_add(n);
+                }
+                self.hook_node_connected(n);
+                if m & (meta::KIND_MASK | meta::SHADOW) == kind::ELEMENT | meta::SHADOW {
+                    work.push((self.shadow_root_of(n), false));
+                }
+                n = self.next_in_subtree(n, top);
+            }
+        }
+    }
+
+    /// Marks the shadow-including subtree rooted at `root` disconnected (focus fixup and id-map removal
+    /// included).
     pub(crate) fn disconnect_subtree(&mut self, root: NodeId) {
+        if self.shadow.any() {
+            return self.disconnect_shadow_including(root);
+        }
         let mut n = root;
         while n != 0 {
             let r = self.rec_mut(n);
@@ -163,6 +194,27 @@ impl Env {
             }
             self.hook_node_disconnected(n);
             n = self.next_in_subtree(n, root);
+        }
+    }
+
+    #[cold]
+    fn disconnect_shadow_including(&mut self, root: NodeId) {
+        let mut work: SmallVec<[NodeId; 4]> = smallvec::smallvec![root];
+        while let Some(top) = work.pop() {
+            let mut n = top;
+            while n != 0 {
+                let r = self.rec_mut(n);
+                r.meta &= !meta::CONNECTED;
+                let m = r.meta;
+                if m & (meta::KIND_MASK | meta::HAS_ID) == kind::ELEMENT | meta::HAS_ID {
+                    self.id_map_remove(n); // a no-op for shadow-tree elements, which were never added
+                }
+                self.hook_node_disconnected(n);
+                if m & (meta::KIND_MASK | meta::SHADOW) == kind::ELEMENT | meta::SHADOW {
+                    work.push(self.shadow_root_of(n));
+                }
+                n = self.next_in_subtree(n, top);
+            }
         }
     }
 
@@ -477,6 +529,11 @@ impl Env {
                     let tdoc = self.template_doc(owner);
                     work.push((content, tdoc));
                 }
+                // DOM "adopt" step 3.2: shadow-including inclusive descendants
+                let sr = self.shadow_root_of(n);
+                if sr != 0 {
+                    work.push((sr, owner));
+                }
                 n = self.next_in_subtree(n, root);
             }
         }
@@ -490,6 +547,7 @@ impl Env {
     pub fn adopt_node(&mut self, doc: NodeId, node: NodeId) -> DomResult {
         match self.node_kind(node)? {
             kind::DOCUMENT => Err(DomError::NotSupported),
+            _ if self.is_shadow_root(node) => Err(DomError::HierarchyRequest),
             _ if self.doc_data(doc).is_none() => Err(DomError::Type),
             _ => {
                 self.adopt(node, doc);

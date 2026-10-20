@@ -76,7 +76,8 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [x] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
       `scrollIntoView`, `scrollTo` on elements, pointer capture, `checkVisibility` (S, beyond jsdom) `observers`.
       Done 2026-10-20 (DESIGN §24): inert, the observers never fire; libraries without shims 14 -> 16 of 20 (Headless
-      UI, Radix Select), the same as with shims (16).
+      UI, Radix Select), the same as with shims (16). `elementFromPoint`/`elementsFromPoint` finding nothing added
+      2026-10-20: libraries 18 -> 19 of 20 (tiptap).
 
 ## Stage 2: jsdom-compatible entry points
 
@@ -137,7 +138,8 @@ These change rsdom's data model or add a second browsing context. Each needs a d
 
 ## Not planned
 
-- Layout and geometry: rsdom, like jsdom, reports zero sizes and has no `elementFromPoint`.
+- Layout and geometry: rsdom, like jsdom, reports zero sizes; unlike jsdom, `elementFromPoint` exists and finds nothing
+  (DESIGN §24).
 - Canvas, media playback and WebSocket.
 - `contentEditable` editing and `execCommand` beyond what Selection and Range need.
 - Electron.

@@ -16,6 +16,10 @@ describe.each(DOMS.filter((k) => k === 'jsdom'))('observers [%s]', (kind) => {
     const w = makeWindow(kind);
     for (const k of NAMES) expect(k in w, k).toBe(false);
     for (const k of ELEMENT_METHODS) expect(k in w.Element.prototype, k).toBe(false);
+    for (const k of ['elementFromPoint', 'elementsFromPoint']) {
+      expect(k in w.document, k).toBe(false);
+      expect(k in w.ShadowRoot.prototype, k).toBe(false);
+    }
   });
 });
 
@@ -193,5 +197,22 @@ describe.each(DOMS.filter((k) => k !== 'jsdom'))('observers [%s]', (kind) => {
     $('g').style.display = 'contents';
     // PINNED to the spec: a display: contents element has no box (happy-dom asks its children)
     if (spec) expect($('g').checkVisibility()).toBe(false);
+  });
+
+  it('elementFromPoint finds nothing (no boxes)', () => {
+    expect(d.elementFromPoint(10, 10)).toBe(null);
+    expect(d.elementFromPoint(0, 0)).toBe(null);
+    if (spec) {
+      // PINNED to cssom-view: happy-dom has no elementsFromPoint, none on ShadowRoot, and no argument checks
+      expect(d.elementsFromPoint(10, 10)).toEqual([]);
+      const root = el.attachShadow({ mode: 'open' });
+      expect(root.elementFromPoint(1, 1)).toBe(null);
+      expect(root.elementsFromPoint(1, 1)).toEqual([]);
+      expect(errName(() => d.elementFromPoint(1))).toBe('TypeError');
+      expect(errName(() => d.elementFromPoint(NaN, 0))).toBe('TypeError');
+      expect(errName(() => root.elementsFromPoint(0, Infinity))).toBe('TypeError');
+      expect(errName(() => d.elementFromPoint(1n, 1))).toBe('TypeError');
+      expect([d.elementFromPoint.length, d.elementsFromPoint.length]).toEqual([2, 2]);
+    }
   });
 });

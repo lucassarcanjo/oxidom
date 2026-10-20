@@ -121,7 +121,6 @@ api/options.js:
   "API: constructor options > pretendToBeVisual > set to true > child frame document should have rAF": [fail, "read of undefined (.requestAnimationFrame)"]
   "API: constructor options > referrer > should allow customizing document.referrer via the referrer option": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
   "API: constructor options > referrer > should canonicalize referrer URLs": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
-  "API: constructor options > storageQuota > not set > should be 5000000 code units by default": [fail, "Expected values to be strictly equal: + actual - expected + undefined - '…"]
   "API: constructor options > storageQuota > set to 10000 code units > should only allow setting data within the custom quota": [fail, "Expected values to be strictly equal: + actual - expected + undefined - …"]
   "API: constructor options > storageQuota > set to 10000000 code units > should only allow setting data within the custom quota": [fail, "Missing expected exception."]
   "API: constructor options > storageQuota > should enforce the custom quota for localStorage in frames at depth 1": [fail, "read of undefined (.localStorage)"]

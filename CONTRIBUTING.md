@@ -138,6 +138,7 @@ State slots that already exist for each area (fill in the structs in your module
 | `Env.focus`, `DocData.focused`, `state::FOCUSED`, `EP[FOCUS]` | `focus::FocusState` | B |
 | `Env.mo`, `DocData.observers`, `meta::OBSERVED`, `EP[MO_PENDING]` | `mo::MoState` | C |
 | `Env.traversal` (NodeIterator pointers, moved by `Env::remove`) | `traversal::TraversalState` | traversal (`lib/traversal.cjs`) |
+| `Env.ranges` (live Range boundary points, moved by `insert` / `remove` and the text.rs edits) | `range::RangeState` | ranges (`lib/range.cjs`, DESIGN §25) |
 | `Env.shadow`, `ElementExt.shadow`, `meta::SHADOW` | `shadow::ShadowState` (shadow root modes) | shadow (`lib/shadow.cjs`) |
 
 Add per-element fields to `ElementExt` (boxed, allocated on demand), never to `ElementData` (kept small: fresh

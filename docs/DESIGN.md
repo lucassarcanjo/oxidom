@@ -1037,8 +1037,8 @@ Every change to a child list goes through `src/tree.rs`:
   linking, the connect / disconnect pass (CONNECTED bits, the document id map, the per-node connectivity hooks),
   the childList MutationObserver record and the children-changed steps (`child_ver` / `EP[TREE]` and the area
   hooks in `src/hooks.rs`). Their `Records` argument is the spec's "suppress observers flag": replace-a-child
-  and replace-all suppress the per-step records and queue one merged record. Range and NodeIterator fix-up
-  steps, when they arrive, go into these two functions.
+  and replace-all suppress the per-step records and queue one merged record. The live-range steps (§25) and the
+  NodeIterator pre-removing steps (§16) run inside these two functions.
 - **Children-changed steps run once per step, not once per operation.** Replace-all removes each child and then
   inserts, so it runs them once per removed child and once for the insertion. This is the DOM algorithm and
   jsdom's behaviour, and it is observable: a `<select>` resets its selectedness at every option removal, so
@@ -1426,27 +1426,72 @@ nothing here reads or authors the tree beyond what public members already expose
 
 ## 25. Ranges (ROADMAP Stage 3, 2026-10)
 
-`lib/range.cjs`: AbstractRange, StaticRange and Range, ported from `refs/jsdom/lib/jsdom/living/range/`. It replaced
-the boundary-point holder of §4.1 (which had no validation, comparison or stringification) and owns
-`Document.prototype.createRange`.
+`lib/range.cjs` (AbstractRange, StaticRange, Range) and `src/range.rs` (live ranges), ported from
+`refs/jsdom/lib/jsdom/living/range/`. They replaced the boundary-point holder of §4.1, which had no validation,
+comparison, stringification or live updates. `range.cjs` also owns `Document.prototype.createRange`.
 
-- **Boundary points are (wrapper, offset) pairs** in private fields of AbstractRange. Wrapper identity is stable
-  for an env's lifetime (§7 invariant 5), and Attr nodes, which have no table id, are boundary points like any
-  other node: an Attr is its own root, so a range touching one is collapsed on it.
-- **Comparison reads the node table.** The position of one boundary point relative to another (DOM §5.2) lifts
-  the deeper node to the other's depth, climbs both chains to the common ancestor and orders the two children
-  below it, reading parent / sibling links by id with no native call: O(depth + siblings), the approach of
-  jsdom's `boundary-point.js`. Roots are compared by the id of the top of each chain (the Attr itself for an
-  Attr). `toString` walks tree order between the two points the same way and reads Text data through the
-  memoized `data` getter. `compareBoundaryPoints`, `comparePoint`, `isPointInRange`, `intersectsNode`, the
-  `set*` family (with the collapse-on-other-root rule), `selectNode(Contents)`, `commonAncestorContainer` and
-  `createContextualFragment` (an `html` context parses as `body`) follow the spec's error order.
-- `InvalidNodeTypeError` is facade-only error code 12 in `runtime.cjs` (11 stays TypeError).
-- **Verification.** Parity `--item ranges` (the comparison and stringification PR): 18 of 44 files at parity
-  (9 before), gap 36,987 -> 3,114 subtests; overall parity 53.6% -> 73.8% (the WPT range tests are large
-  pairwise matrices). The rest of the gap is live boundary updates, the content methods (`deleteContents`,
-  `extractContents`, `cloneContents`, `insertNode`, `surroundContents`), Shadow DOM and XML documents.
-  `test/contract/range.test.mjs` runs the API on all three DOMs.
+- **Boundary points live in words shared with Rust**, like NodeIterator pointers (§16): slot `h - 1` of a live
+  range's handle is [start id, start offset, end id, end offset, bucket document], in a JS-owned resizable
+  ArrayBuffer that Rust pins (`rangeBind`, again after each resize). The facade reads and writes the first four
+  with zero FFI. The mutation natives move them, and only Rust writes the bucket word. Rust treats the words as
+  untrusted input: an id is followed only when the table contains it, and an unknown id never matches.
+  Attrs have no table id. An Attr boundary is id 0 plus the Attr object in the range's private fields. It is
+  in no bucket, and nothing moves it: an Attr is its own root, so a range touching one is collapsed on it or
+  lies inside it. StaticRanges are not live and keep their points in those fields only. A range from an env
+  that was reset returns the last points JS set and never reads the new env's words.
+- **Registry and buckets** (`Env.ranges`): live ranges are bucketed by their boundary nodes' node document,
+  which is one document for both points because they share a root. A mutation therefore looks only at its own
+  document's ranges (one hash lookup), and with no range alive it pays one emptiness test.
+  - When JS sets a start point in a document other than the one the bucket word names, it calls `rangeSync`.
+    The end point never moves into another root on its own.
+  - A cross-document adoption re-buckets the ranges of the documents it moved nodes out of, template contents
+    included.
+  - A FinalizationRegistry frees a range's registration once JS drops it. Until a GC runs, the range stays in
+    its bucket and costs each mutation of its document one check per boundary point.
+- **The live range steps run in Rust, at the spec's points:**
+  - **insert** step 5: in `Env::insert`, after a fragment's children are removed and before linking.
+  - **remove** steps 3-6: in `Env::remove`, before the NodeIterator pre-removing steps and the unlink (§17).
+  - **replace data**: in `replace_data`, and in `set_data` as "replace data(0, length)". The count is clamped
+    to the data first.
+  - **split a Text node** steps 7.2-7.5: in `split_text`, between the insertion of the new node and the
+    replace-data step.
+  - **normalize** steps 6.5-6.7: in `normalize`, after the merged data is appended and before the merged
+    siblings are removed.
+
+  So every path moves the points against the real tree in spec order, including those that are a single
+  native: innerHTML, outerHTML, textContent, replaceChildren, adoptNode and moves by insertion. The index a
+  step needs is computed only when the document has ranges: O(siblings).
+- **Comparison reads the node table.** To place one boundary point relative to another (DOM §5.2), the facade
+  lifts the deeper node to the other's depth and climbs both chains to the common ancestor. It then orders
+  the two children just below that ancestor, reading links by id with no native call: O(depth + siblings), as
+  in jsdom's `boundary-point.js`. `toString` walks tree order between the points the same way.
+- **The content methods are a port of jsdom on facade calls.** `deleteContents`, `extractContents`,
+  `cloneContents`, `insertNode` and `surroundContents` are composed from `cloneNode`, `replaceData`,
+  `splitText`, `removeChild` and `insertBefore`, so records, hooks and the live steps of the ranges they move
+  (the range itself included) come from the ordinary mutation paths. Their subranges are live ranges, as in
+  the spec. `insertNode` validates before it splits the Text node, through `preInsertCheck` (the child-list
+  module's pre-insert validity, without the insertion).
+- `InvalidNodeTypeError` is facade-only error code 12 in `runtime.cjs`. Code 11 stays TypeError.
+- **Cost** (`bench:micro`, case `ranges`, 2026-10-20, 4 vCPUs):
+  - **No live range:** `mutate` with main's addon against this one, three interleaved runs of 5 processes
+    each. Create + append + remove: main 640-699 ns, this addon 635-657 ns. insertBefore first + remove()
+    among 100 siblings: main 622-697 ns, this addon 570-642 ns. Within the noise.
+  - **One live Range on the document:** create + append + remove 703 ns (jsdom 5,390). With the range on
+    the mutated parent (100 siblings, so each step computes an index), 897 ns (jsdom 5,601).
+  - **Range operations:** createRange + setStart + setEnd 773 ns (jsdom 4,442; one `rangeNew` call plus the
+    FinalizationRegistry). comparePoint on a 4096-node tree 224 ns (jsdom 1,122). toString of a 300-node
+    paragraph 4.4 us (jsdom 6.6 us).
+- **Verification.** Parity `--item ranges`: 43 of 44 files at parity (9 before). The gap went from 36,987
+  subtests to 1, the StaticRange case that needs an XML document (`xml` item). Overall parity went from 74.9%
+  after the comparison PR to 76.8%. The live steps also fixed `dom/nodes/Node-normalize-2`,
+  `MutationObserver-characterData` and `MutationObserver-childList` (ranges in their scripts),
+  `tuwpt:dom/nodes/tree-mutation-indexes` and `shadow-dom/Range-prototype-insertNode`.
+  - `test/contract/range.test.mjs` runs on all three DOMs. It covers the API and every mutation path that is
+    one native in rsdom: innerHTML, textContent, replaceChildren, character-data edits, splitText,
+    normalize, adoption into another document, and moves by insertion.
+  - `test/native/range.test.mjs` covers the rsdom protocols: unwrapped mutation natives, re-bucketing across
+    documents and Attrs, more ranges than the first buffer holds, reset envs, and GC freeing registrations.
+  - `src/range.rs` has unit tests for each step and for untrusted words.
 
 ---
 
@@ -1573,19 +1618,25 @@ so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a
   `setPosition`, `collapseToStart` / `End`, `extend`, `setBaseAndExtent` and `selectAllChildren` build a new Range,
   as jsdom does, so a range the page held stops being the selection's. Nodes outside the document are ignored
   silently; the error types and their order follow jsdom.
-- **Range internals.** `range.cjs` exports `internal` (the private-field accessors, the checked and unchecked
-  boundary setters, `compareBP`, `nodeLength`, `rootKey`), so a Selection reads its boundaries and compares
-  points without going through the public getters. A Range object stays a Range; there is no Selection-only
+- **Range internals.** `range.cjs` exports `internal` (the boundary accessors, `newRange`, the checked boundary
+  setters, `compareBP`, `nodeLength`, `rootKey`), so a Selection reads its boundaries and compares points without
+  going through the public getters, which a page may have replaced. A Range object stays a Range; there is no Selection-only
   subclass.
 - **selectionchange.** Setting the range to one with different boundary points (or to or from none) queues a task
   on `ctx.queueTask` that fires a non-bubbling `selectionchange` at the document, one task per change, like jsdom's
   `_queueATask` (no "has scheduled selectionchange event" coalescing, which jsdom lacks too).
 - **jsdom quirks kept.** `containsNode(node, true)` is jsdom's "starts before the node or ends after it", true for
-  a node wholly after the range; full containment compares strictly. `deleteFromDocument` calls
-  `Range.prototype.deleteContents` and is a no-op until the ranges thread adds it.
+  a node wholly after the range; full containment compares strictly. `deleteFromDocument` is the range's
+  `deleteContents`.
 - **State.** One Selection per document of a browsing context (`doc._sel`, created on first `getSelection()`);
-  `document.getSelection()` is null without a browsing context. No Rust state: a selection is never read by
-  selector matching or the parser, and a Range's boundaries are facade state already (§25).
-- **Depends on live Ranges.** A selection's boundaries move on mutation only once Ranges do (the ranges thread's
-  live boundary updates); until then, removing a selected node leaves the selection pointing into the detached
-  subtree. The two parity files that test it carry the reason "needs live Range mutation (ranges thread)".
+  `document.getSelection()` is null without a browsing context. No Rust state of its own: a selection is never
+  read by selector matching or the parser, and its boundaries are its Range's (§25).
+- **Live through the Range.** The ranges are created with `newRange` (§25's live slots), so a mutation that
+  moves a range's boundary points moves the selection too: removing a selected editing host collapses the selection
+  where the host was, as in jsdom.
+- **Verification.** Parity `--item selection`: 42 -> 62 of 64 files at parity, gap 19,944 -> 2 subtests (overall
+  parity 76.9% -> 88.8%). The 2 left are `addRange.htm` and `collapse.htm`, where jsdom runs `window.onload` twice
+  and so reports a second, duplicate-named subtest. Two files now fail where jsdom fails too (`containsNode` on
+  nodes outside the flat tree, `content-visibility: hidden` text). `test/contract/selection.test.mjs` runs the API
+  on all three DOMs. In `e2e/libraries`, Lexical typing passes on rsdom (it fails on jsdom and happy-dom: no
+  `getTargetRanges`); tiptap's assertions pass, with one unhandled error from the missing `elementFromPoint`.

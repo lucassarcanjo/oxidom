@@ -97,10 +97,9 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and evidence for each):
 
 - [x] Selection backed by real Ranges (M) `selection`. tiptap and lexical typing through user-event. Done 2026-10-20
-      (DESIGN §29): jsdom's Selection over the real Range (identity through addRange, direction, selectionchange);
-      42 -> 60 of 64 suite files at parity, gap 19,944 -> 36 subtests (live Range mutation, the ranges thread's, and
-      a jsdom onload quirk). Lexical typing now passes on rsdom; tiptap's assertions pass, its remaining unhandled
-      error is `elementFromPoint`.
+      (DESIGN §29): jsdom's Selection over the live Range (identity through addRange, direction, selectionchange);
+      42 -> 62 of 64 suite files at parity, gap 19,944 -> 2 subtests (a jsdom onload quirk). Lexical typing now passes
+      on rsdom; tiptap's assertions pass, its remaining unhandled error is `elementFromPoint`.
 - [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share.
 - [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
 - [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
@@ -115,7 +114,8 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
       gap 1,205 -> 0.
 - [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
-- [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`.
+- [x] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`. Done
+      2026-10-20 (DESIGN §25): 43 of 44 suite files at parity, the last one needs an XML document (`xml`).
 - [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.
 - [ ] DOMRect classes and the remaining Window members (S) `geometry`.
 - [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,

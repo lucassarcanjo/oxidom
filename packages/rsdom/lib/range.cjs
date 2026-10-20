@@ -174,6 +174,51 @@ function parentArg(node) {
 
 // ------------------------------------------------------------------------------------------ interfaces
 
+// ------------------------------------------------------------------------------------- live boundary words
+
+/**
+ * Live-range boundary words shared with Rust (src/range.rs, DESIGN §25): slot `h - 1` of handle `h` holds
+ * [start id, start offset, end id, end offset, bucket document]. This file reads and writes the first four with
+ * zero FFI; the mutation natives move them (DOM §5.5 live range steps) and Rust writes the bucket word. A
+ * length-tracking view over a resizable ArrayBuffer, bound like the NodeIterator words (traversal.cjs).
+ */
+const SLOT_WORDS = 5;
+const RW_MAX_BYTES = 1 << 25; // 1,677,721 live ranges
+let RW = null;
+let rwBoundGen = -1;
+/** the largest handle Rust may return from the next `rangeNew` (free handles are below it) */
+let rwHigh = 1;
+
+/** Makes room for handle `h`'s slot and (re)binds the buffer when it grew or the env is new. */
+function rwRoom(h) {
+  if (RW === null) RW = new Uint32Array(new ArrayBuffer(64 * SLOT_WORDS * 4, { maxByteLength: RW_MAX_BYTES }));
+  const buf = RW.buffer;
+  const need = h * SLOT_WORDS * 4;
+  let grew = false;
+  if (buf.byteLength < need) {
+    if (need > RW_MAX_BYTES) throw new RangeError('rsdom: too many live Ranges');
+    buf.resize(Math.min(RW_MAX_BYTES, Math.max(need, buf.byteLength * 2)));
+    grew = true;
+  }
+  if (grew || rwBoundGen !== V.envGen) {
+    if (rwBoundGen !== V.envGen) rwHigh = 1;
+    rt.N.rangeBind(buf);
+    rwBoundGen = V.envGen;
+  }
+}
+
+/** Frees a range's Rust registration once JS no longer holds it (as traversal.cjs does for NodeIterators). */
+const registry = new FinalizationRegistry(({ h, gen }) => {
+  if (gen === V.envGen) rt.N.rangeFree(h);
+});
+
+/** Node document id of a boundary node (0 for an Attr: in no bucket). */
+function docOf(node) {
+  return node._i === 0 ? 0 : V.T[V.off(node._i) + F.OWNER];
+}
+
+// ------------------------------------------------------------------------------------------ interfaces
+
 /** Boundary state accessors, bound in AbstractRange's static block (the fields are private). */
 let sc;
 let so;
@@ -181,50 +226,91 @@ let ec;
 let eo;
 let setStart_;
 let setEnd_;
+let makeLive;
 
+/**
+ * A StaticRange keeps its boundary points in the four fields. A live Range (`#o >= 0`) keeps them in its slot
+ * of the shared words while its env lives; the fields then hold only what the words cannot: Attr containers
+ * (id 0), and the last points set from JS, read once the env was reset.
+ */
 class AbstractRange {
   #sc = null;
   #so = 0;
   #ec = null;
   #eo = 0;
+  #o = -1;
+  #gen = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) throw new TypeError('Illegal constructor');
   }
 
   static {
-    sc = (r) => r.#sc;
-    so = (r) => r.#so;
-    ec = (r) => r.#ec;
-    eo = (r) => r.#eo;
+    const live = (r) => r.#o >= 0 && r.#gen === V.envGen;
+    sc = (r) => {
+      if (!live(r)) return r.#sc;
+      const id = RW[r.#o];
+      return id === 0 ? r.#sc : dom.wrap(id);
+    };
+    so = (r) => (live(r) ? RW[r.#o + 1] : r.#so);
+    ec = (r) => {
+      if (!live(r)) return r.#ec;
+      const id = RW[r.#o + 2];
+      return id === 0 ? r.#ec : dom.wrap(id);
+    };
+    eo = (r) => (live(r) ? RW[r.#o + 3] : r.#eo);
     setStart_ = (r, node, offset) => {
       r.#sc = node;
       r.#so = offset;
+      if (live(r)) {
+        const o = r.#o;
+        RW[o] = node._i;
+        RW[o + 1] = offset;
+        // a point in another document moves the range to that document's bucket (the end follows the start
+        // into another root, never alone)
+        if (RW[o + 4] !== docOf(node)) rt.N.rangeSync(o / SLOT_WORDS + 1);
+      }
     };
     setEnd_ = (r, node, offset) => {
       r.#ec = node;
       r.#eo = offset;
+      if (live(r)) {
+        RW[r.#o + 2] = node._i;
+        RW[r.#o + 3] = offset;
+      }
+    };
+    makeLive = (r, sn, sOff, en, eOff) => {
+      r.#sc = sn;
+      r.#so = sOff;
+      r.#ec = en;
+      r.#eo = eOff;
+      rwRoom(rwHigh);
+      const h = rt.N.rangeNew(sn._i, sOff, en._i, eOff);
+      if (h >= rwHigh) rwHigh = h + 1;
+      r.#o = (h - 1) * SLOT_WORDS;
+      r.#gen = V.envGen;
+      registry.register(r, { h, gen: r.#gen });
     };
   }
 
   get startContainer() {
-    return this.#sc;
+    return sc(this);
   }
 
   get startOffset() {
-    return this.#so;
+    return so(this);
   }
 
   get endContainer() {
-    return this.#ec;
+    return ec(this);
   }
 
   get endOffset() {
-    return this.#eo;
+    return eo(this);
   }
 
   get collapsed() {
-    return this.#sc === this.#ec && this.#so === this.#eo;
+    return sc(this) === ec(this) && so(this) === eo(this);
   }
 }
 
@@ -244,7 +330,7 @@ class StaticRange extends AbstractRange {
       const t = n.nodeType;
       if (t === K.DOCTYPE || t === K.ATTRIBUTE) throw invalidNodeType('The supplied node is incorrect.');
     }
-    setStart_(this, sc0, so0);
+    setStart_(this, sc0, so0); // not live: the fields only
     setEnd_(this, ec0, eo0);
   }
 }
@@ -267,8 +353,7 @@ class Range extends AbstractRange {
     if (t === TOKEN) return;
     const doc = rt.defaultDocument;
     if (doc === null || doc === undefined) throw new TypeError('Illegal constructor');
-    setStart_(this, doc, 0);
-    setEnd_(this, doc, 0);
+    makeLive(this, doc, 0, doc, 0);
   }
 
   get commonAncestorContainer() {
@@ -358,11 +443,70 @@ class Range extends AbstractRange {
     }
   }
 
+  deleteContents() {
+    if (this.collapsed) return;
+    const s = sc(this);
+    const e = ec(this);
+    const s0 = so(this);
+    const e0 = eo(this);
+    if (s === e && isCharDataNode(s)) {
+      s.replaceData(s0, e0 - s0, '');
+      return;
+    }
+    // the outermost contained nodes, in tree order
+    const remove = [];
+    const end = isCharDataNode(e) ? e._i : nodeAfterBoundary(e._i, e0);
+    for (let n = nodeAfterBoundary(s._i, s0); n > 0 && n !== end; ) {
+      if (contained(n, this)) {
+        remove.push(n);
+        n = nextAfterSubtree(n);
+      } else {
+        n = nextInTree(n);
+      }
+    }
+    const [nn, no] = collapsedPoint(s, s0, commonInfo(s, e));
+    if (isCharDataNode(s)) s.replaceData(s0, nodeLength(s) - s0, '');
+    for (const id of remove) {
+      const n = dom.wrap(id);
+      n.parentNode.removeChild(n);
+    }
+    if (isCharDataNode(e)) e.replaceData(0, e0, '');
+    setStart_(this, nn, no);
+    setEnd_(this, nn, no);
+  }
+
+  extractContents() {
+    return extract(this);
+  }
+
+  cloneContents() {
+    return cloneContents(this);
+  }
+
+  insertNode(node) {
+    argc(arguments.length, 1, 'insertNode');
+    insertNode(this, nodeArg(node, 'insertNode'));
+  }
+
+  surroundContents(newParent) {
+    argc(arguments.length, 1, 'surroundContents');
+    nodeArg(newParent, 'surroundContents');
+    const { left, right } = commonInfo(sc(this), ec(this));
+    // a partially contained non-Text node lies on one of the two boundary paths below the common ancestor
+    if ((left !== 0 && !isText(typeOf(left))) || (right !== 0 && !isText(typeOf(right)))) {
+      throw rt.domError(6, 'The Range partially contains a non-Text node.');
+    }
+    const t = newParent.nodeType;
+    if (t === K.DOCUMENT || t === K.DOCTYPE || t === K.FRAGMENT) throw invalidNodeType('Invalid element type.');
+    const fragment = extract(this);
+    while (newParent.firstChild !== null) newParent.removeChild(newParent.firstChild);
+    insertNode(this, newParent);
+    newParent.appendChild(fragment);
+    selectNode(this, newParent);
+  }
+
   cloneRange() {
-    const r = new Range(TOKEN);
-    setStart_(r, sc(this), so(this));
-    setEnd_(r, ec(this), eo(this));
-    return r;
+    return newRange(sc(this), so(this), ec(this), eo(this));
   }
 
   detach() {}
@@ -445,6 +589,13 @@ class Range extends AbstractRange {
   }
 }
 
+/** A live range with the given boundary points (createRange, cloneRange and the content methods' subranges). */
+function newRange(sn, sOff, en, eOff) {
+  const r = new Range(TOKEN);
+  makeLive(r, sn, sOff, en, eOff);
+  return r;
+}
+
 /** DOM "set the start": an out-of-root or after-end start collapses the range there. */
 function setStartChecked(r, node, offset) {
   validateBP(node, offset);
@@ -467,6 +618,179 @@ function selectNode(r, node) {
   setEnd_(r, p, i + 1);
 }
 
+// ------------------------------------------------------------------------------------- content methods
+
+function isCharDataNode(node) {
+  return node._i !== 0 && isCharData(typeOf(node._i));
+}
+
+/** DOM "contained": node `id` lies entirely between the range's boundary points. */
+function contained(id, r) {
+  const n = dom.wrap(id);
+  return compareBP(n, 0, sc(r), so(r)) === 1 && compareBP(n, nodeLength(n), ec(r), eo(r)) === -1;
+}
+
+/**
+ * The common ancestor of boundary nodes `a` and `b` (same root) and the children of it on the way to each:
+ * `left` holds `a` and `right` holds `b`, 0 where the node is the ancestor itself (as jsdom's
+ * `_commonAncestorInfo`). Attr nodes are only ever their own common ancestor.
+ */
+function commonInfo(a, b) {
+  if (a === b || a._i === 0) return { anc: a._i, left: 0, right: 0 };
+  let x = a._i;
+  let y = b._i;
+  let dx = depthOf(x);
+  let dy = depthOf(y);
+  let cx = 0;
+  let cy = 0;
+  for (; dx > dy; dx--) {
+    cx = x;
+    x = parentOf(x);
+  }
+  for (; dy > dx; dy--) {
+    cy = y;
+    y = parentOf(y);
+  }
+  while (x !== y) {
+    cx = x;
+    cy = y;
+    x = parentOf(x);
+    y = parentOf(y);
+  }
+  return { anc: x, left: x === a._i ? 0 : cx, right: x === b._i ? 0 : cy };
+}
+
+/** Where extract / delete collapse the range: the start if it holds the end, else just after `left`. */
+function collapsedPoint(s, s0, info) {
+  return info.anc === s._i ? [s, s0] : [dom.wrap(info.anc), indexOf(info.left) + 1];
+}
+
+/** The fully contained children of the common ancestor, checked before anything is mutated. */
+function containedChildren(r, info) {
+  const start = info.left === 0 ? so(r) : indexOf(info.left) + 1;
+  const end = info.right === 0 ? eo(r) : indexOf(info.right);
+  const out = [];
+  let c = info.left === 0 ? childAt(info.anc, start) : nextOf(info.left);
+  for (let i = start; i < end && c > 0; i++, c = nextOf(c)) {
+    if (typeOf(c) === K.DOCTYPE) throw rt.domError(1, 'Invalid document type element.');
+    out.push(dom.wrap(c));
+  }
+  return out;
+}
+
+function nodeDocument(node) {
+  return node.nodeType === K.DOCUMENT ? node : node.ownerDocument;
+}
+
+/** A shallow clone of character data `node` holding `data`. */
+function cloneData(node, data) {
+  const c = node.cloneNode(false);
+  c.data = data;
+  return c;
+}
+
+/** DOM "clone the contents" of a live range. */
+function cloneContents(r) {
+  const s = sc(r);
+  const e = ec(r);
+  const s0 = so(r);
+  const e0 = eo(r);
+  const fragment = nodeDocument(s).createDocumentFragment();
+  if (s === e && s0 === e0) return fragment;
+  if (s === e && isCharDataNode(s)) {
+    fragment.appendChild(cloneData(s, s.substringData(s0, e0 - s0)));
+    return fragment;
+  }
+  const info = commonInfo(s, e);
+  const kids = containedChildren(r, info);
+  if (info.left !== 0) {
+    const left = dom.wrap(info.left);
+    if (isCharDataNode(left)) {
+      fragment.appendChild(cloneData(s, s.substringData(s0, nodeLength(s) - s0)));
+    } else {
+      const c = fragment.appendChild(left.cloneNode(false));
+      c.appendChild(cloneContents(newRange(s, s0, left, nodeLength(left))));
+    }
+  }
+  for (const k of kids) fragment.appendChild(k.cloneNode(true));
+  if (info.right !== 0) {
+    const right = dom.wrap(info.right);
+    if (isCharDataNode(right)) {
+      fragment.appendChild(cloneData(e, e.substringData(0, e0)));
+    } else {
+      const c = fragment.appendChild(right.cloneNode(false));
+      c.appendChild(cloneContents(newRange(right, 0, e, e0)));
+    }
+  }
+  return fragment;
+}
+
+/** DOM "extract" a live range. */
+function extract(r) {
+  const s = sc(r);
+  const e = ec(r);
+  const s0 = so(r);
+  const e0 = eo(r);
+  const fragment = nodeDocument(s).createDocumentFragment();
+  if (s === e && s0 === e0) return fragment;
+  if (s === e && isCharDataNode(s)) {
+    fragment.appendChild(cloneData(s, s.substringData(s0, e0 - s0)));
+    s.replaceData(s0, e0 - s0, '');
+    return fragment;
+  }
+  const info = commonInfo(s, e);
+  const kids = containedChildren(r, info);
+  const [nn, no] = collapsedPoint(s, s0, info);
+  if (info.left !== 0) {
+    const left = dom.wrap(info.left);
+    if (isCharDataNode(left)) {
+      fragment.appendChild(cloneData(s, s.substringData(s0, nodeLength(s) - s0)));
+      s.replaceData(s0, nodeLength(s) - s0, '');
+    } else {
+      const c = fragment.appendChild(left.cloneNode(false));
+      c.appendChild(extract(newRange(s, s0, left, nodeLength(left))));
+    }
+  }
+  for (const k of kids) fragment.appendChild(k);
+  if (info.right !== 0) {
+    const right = dom.wrap(info.right);
+    if (isCharDataNode(right)) {
+      fragment.appendChild(cloneData(e, e.substringData(0, e0)));
+      e.replaceData(0, e0, '');
+    } else {
+      const c = fragment.appendChild(right.cloneNode(false));
+      c.appendChild(extract(newRange(right, 0, e, e0)));
+    }
+  }
+  setStart_(r, nn, no);
+  setEnd_(r, nn, no);
+  return fragment;
+}
+
+/** DOM "insert" a node into a live range. */
+function insertNode(r, node) {
+  const s = sc(r);
+  const s0 = so(r);
+  const st = s._i === 0 ? K.ATTRIBUTE : typeOf(s._i);
+  if (st === K.PI || st === K.COMMENT || (isText(st) && parentOf(s._i) === 0) || node === s) {
+    throw rt.domError(1, 'Invalid start node.');
+  }
+  // an Attr can neither hold nor be inserted (pre-insertion validity)
+  if (s._i === 0 || node._i === 0) throw rt.domError(1);
+  let ref = isText(st) ? s._i : childAt(s._i, s0);
+  const parent = ref === 0 ? s._i : parentOf(ref);
+  rt.check(rt.N.preInsertCheck(node._i, parent, ref));
+  if (isText(st)) ref = s.splitText(s0)._i;
+  if (node._i === ref) ref = nextOf(ref);
+  const np = node.parentNode;
+  if (np !== null) np.removeChild(node);
+  const p = dom.wrap(parent);
+  let offset = ref === 0 ? nodeLength(p) : indexOf(ref);
+  offset += node.nodeType === K.FRAGMENT ? nodeLength(node) : 1;
+  p.insertBefore(node, dom.wrap(ref));
+  if (r.collapsed) setEnd_(r, p, offset);
+}
+
 const CONSTANTS = { START_TO_START, START_TO_END, END_TO_END, END_TO_START };
 
 function install(rt_, dom_) {
@@ -481,10 +805,7 @@ function install(rt_, dom_) {
   }
   rt.define(dom.Document, {
     createRange() {
-      const r = new Range(TOKEN);
-      setStart_(r, this, 0);
-      setEnd_(r, this, 0);
-      return r;
+      return newRange(this, 0, this, 0);
     },
   });
 }
@@ -493,6 +814,6 @@ function install(rt_, dom_) {
  * Boundary-point helpers for lib/selection.cjs (DESIGN §29): a Selection's anchor and focus are its range's
  * boundaries, read through the private-field accessors.
  */
-const internal = { sc, so, ec, eo, setStart_, setEnd_, setStartChecked, setEndChecked, compareBP, nodeLength, rootKey, validateBP };
+const internal = { sc, so, ec, eo, newRange, setStartChecked, setEndChecked, compareBP, nodeLength, rootKey };
 
 module.exports = { install, AbstractRange, StaticRange, Range, internal };

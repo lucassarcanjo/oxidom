@@ -13,7 +13,7 @@ const events = require('./events.cjs');
 const { Range, internal: R } = require('./range.cjs');
 
 const { K, TOKEN } = rt;
-const { sc, so, ec, eo, setStart_, setEnd_, setStartChecked, setEndChecked, compareBP, nodeLength, rootKey } = R;
+const { sc, so, ec, eo, newRange, setStartChecked, setEndChecked, compareBP, nodeLength, rootKey } = R;
 
 let dom = null;
 
@@ -56,12 +56,9 @@ function invalidNodeType() {
   return rt.domError(12, "DocumentType Node can't be used as boundary point.");
 }
 
-/** A new Range collapsed at (node, offset); the caller has validated the point. */
+/** A new live Range collapsed at (node, offset); the caller has validated the point. */
 function rangeAt(node, offset) {
-  const r = new Range(TOKEN);
-  setStart_(r, node, offset);
-  setEnd_(r, node, offset);
-  return r;
+  return newRange(node, offset, node, offset);
 }
 
 /** True when both points are in the same tree and equal. */
@@ -235,14 +232,9 @@ class Selection {
     const doc = this.#doc._i;
     if (rootKey(anchorNode) !== doc || rootKey(focusNode) !== doc) return;
     const backwards = compareBP(focusNode, focusOffset, anchorNode, anchorOffset) === -1;
-    const r = new Range(TOKEN);
-    if (compareBP(anchorNode, anchorOffset, focusNode, focusOffset) === -1) {
-      setStart_(r, anchorNode, anchorOffset);
-      setEnd_(r, focusNode, focusOffset);
-    } else {
-      setStart_(r, focusNode, focusOffset);
-      setEnd_(r, anchorNode, anchorOffset);
-    }
+    const r = backwards
+      ? newRange(focusNode, focusOffset, anchorNode, anchorOffset)
+      : newRange(anchorNode, anchorOffset, focusNode, focusOffset);
     associate(this, r);
     this.#dir = backwards ? BACKWARDS : FORWARDS;
   }
@@ -252,16 +244,12 @@ class Selection {
     nodeArg(node, 'selectAllChildren');
     if (isDoctype(node)) throw invalidNodeType();
     if (rootKey(node) !== this.#doc._i) return;
-    const r = new Range(TOKEN);
-    setStart_(r, node, 0);
-    setEnd_(r, node, node._i === 0 ? 0 : node.childNodes.length);
-    associate(this, r);
+    associate(this, newRange(node, 0, node, node._i === 0 ? 0 : node.childNodes.length));
   }
 
   deleteFromDocument() {
     const r = this.#range;
-    // Range.prototype.deleteContents is the ranges thread's (DESIGN §25); until it lands this is a no-op
-    if (r !== null && typeof Range.prototype.deleteContents === 'function') Range.prototype.deleteContents.call(r);
+    if (r !== null) Range.prototype.deleteContents.call(r);
   }
 
   containsNode(node, allowPartialContainment = false) {

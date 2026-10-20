@@ -147,3 +147,139 @@ describe.each(DOMS)('Range comparison and stringification [%s]', (kind) => {
     expect(errName(() => new w.AbstractRange())).toBe('TypeError');
   });
 });
+
+// Live ranges (DOM §5.5): every mutation path moves the boundary points. In rsdom the steps run inside the Rust
+// mutation natives (src/range.rs), so the paths that are whole operations there (innerHTML, textContent,
+// replaceChildren, normalize, adoptNode, moves by insertion) get their own cases.
+describe.each(DOMS)('Range live updates and contents [%s]', (kind) => {
+  let w;
+  let d;
+  let root;
+  beforeEach(() => {
+    w = makeWindow(kind);
+    d = w.document;
+    d.body.innerHTML = '<div id="root"><p id="p1">one <b id="b">two</b> three</p><!--c--><p id="p2">four</p></div>';
+    root = d.getElementById('root');
+  });
+  const $ = (id) => d.getElementById(id);
+  const range = (sc, so, ec, eo) => {
+    const r = d.createRange();
+    r.setStart(sc, so);
+    r.setEnd(ec, eo);
+    return r;
+  };
+  const pts = (r) => [r.startContainer, r.startOffset, r.endContainer, r.endOffset];
+  // PINNED to jsdom: happy-dom 21 does not update ranges on most mutations
+  const live = kind !== 'happy-dom';
+
+  it('insertion and removal move offsets and points inside removed nodes', () => {
+    if (!live) return;
+    const r = range(root, 1, root, 3);
+    root.insertBefore(d.createElement('i'), $('p1'));
+    expect(pts(r)).toEqual([root, 2, root, 4]);
+    const inner = range($('b').firstChild, 1, $('p2'), 1);
+    $('p1').remove();
+    expect(pts(inner)).toEqual([root, 1, $('p2'), 1]); // the start was inside p1; the end's container is not
+    expect(pts(r)).toEqual([root, 1, root, 3]);
+    const f = d.createDocumentFragment();
+    f.append(d.createElement('s'), d.createElement('s'));
+    root.insertBefore(f, root.firstChild);
+    expect(pts(r)).toEqual([root, 3, root, 5]);
+  });
+
+  it('innerHTML, textContent and replaceChildren remove every child step by step', () => {
+    if (!live) return;
+    const r = range($('b').firstChild, 1, root, 3);
+    root.innerHTML = '<i>x</i>';
+    expect(pts(r)).toEqual([root, 0, root, 0]);
+    const t = range(root.firstChild.firstChild, 1, root, 1);
+    root.textContent = 'plain';
+    expect(pts(t)).toEqual([root, 0, root, 0]);
+    const s = range(root.firstChild, 2, root.firstChild, 4);
+    root.replaceChildren(d.createElement('a'), d.createElement('a'));
+    expect(pts(s)).toEqual([root, 0, root, 0]);
+  });
+
+  it('character data changes clamp and shift offsets', () => {
+    if (!live) return;
+    const t = $('p2').firstChild; // "four"
+    const r = range(t, 1, t, 3);
+    t.insertData(0, 'XX');
+    expect(pts(r)).toEqual([t, 3, t, 5]);
+    t.deleteData(2, 2); // "XXur": 3 falls inside the deleted span
+    expect(pts(r)).toEqual([t, 2, t, 3]);
+    t.data = 'new';
+    expect(pts(r)).toEqual([t, 0, t, 0]);
+    const s = range(t, 3, t, 3);
+    t.appendData('er');
+    expect(s.startOffset).toBe(3);
+  });
+
+  it('splitText and normalize carry points across the split and the merge', () => {
+    if (!live) return;
+    const t = $('p1').firstChild; // "one "
+    const r = range(t, 1, t, 3);
+    const after = range($('p1'), 1, $('p1'), 1);
+    const tail = t.splitText(2);
+    expect(pts(r)).toEqual([t, 1, tail, 1]);
+    expect(pts(after)).toEqual([$('p1'), 2, $('p1'), 2]);
+    $('p1').normalize();
+    expect(pts(r)).toEqual([t, 1, t, 3]);
+    // (p1, 2) sits after the merged node, not at its index: the removal shifts it down
+    expect(pts(after)).toEqual([$('p1'), 1, $('p1'), 1]);
+  });
+
+  it('adopting a detached subtree into another document keeps its ranges live', () => {
+    if (!live) return;
+    const div = d.createElement('div');
+    div.innerHTML = '<span>a</span><span>b</span>';
+    const r = range(div, 1, div, 2);
+    const other = d.implementation.createHTMLDocument('');
+    other.adoptNode(div);
+    div.insertBefore(other.createElement('i'), div.firstChild);
+    expect(pts(r)).toEqual([div, 2, div, 3]);
+    other.body.append(div);
+    div.firstChild.remove();
+    expect(pts(r)).toEqual([div, 1, div, 2]);
+    // a node moved out of the range's subtree by insertion elsewhere is a removal
+    const moved = range(div.lastChild.firstChild, 0, div.lastChild.firstChild, 1);
+    other.body.prepend(div.lastChild);
+    expect(pts(moved)).toEqual([div, 1, div, 1]);
+  });
+
+  it('cloneContents / extractContents / deleteContents', () => {
+    const r = range($('p1').firstChild, 2, $('p2').firstChild, 2);
+    const holder = d.createElement('div');
+    holder.append(r.cloneContents());
+    expect(holder.innerHTML).toBe('<p id="p1">e <b id="b">two</b> three</p><!--c--><p id="p2">fo</p>');
+    expect(root.innerHTML).toBe('<p id="p1">one <b id="b">two</b> three</p><!--c--><p id="p2">four</p>');
+    const x = d.createElement('div');
+    x.append(r.extractContents());
+    expect(x.innerHTML).toBe('<p id="p1">e <b id="b">two</b> three</p><!--c--><p id="p2">fo</p>');
+    expect(root.innerHTML).toBe('<p id="p1">on</p><p id="p2">ur</p>');
+    expect(pts(r)).toEqual([root, 1, root, 1]);
+    const del = range(root.lastChild.firstChild, 0, root.lastChild.firstChild, 1);
+    del.deleteContents();
+    expect(root.lastChild.textContent).toBe('r');
+    if (live) expect(del.collapsed).toBe(true); // PINNED to jsdom: happy-dom does not collapse after deleteContents
+    if (live) expect(errName(() => range(d, 0, d, 2).extractContents())).toBe('HierarchyRequestError'); // the doctype. PINNED to jsdom: happy-dom extracts it
+  });
+
+  it('insertNode and surroundContents', () => {
+    const t = $('p2').firstChild;
+    const r = range(t, 2, t, 2);
+    const i = d.createElement('i');
+    r.insertNode(i);
+    expect($('p2').innerHTML).toBe('fo<i></i>ur');
+    if (live) expect(pts(r)).toEqual([t, 2, $('p2'), 2]);
+    const s = range($('p2').lastChild, 0, $('p2').lastChild, 2);
+    const u = d.createElement('u');
+    s.surroundContents(u);
+    expect($('p2').innerHTML).toBe('fo<i></i><u>ur</u>');
+    // extraction leaves an empty Text where "ur" was; insertNode splits it at 0, so <u> lands at index 3
+    if (kind !== 'happy-dom') expect(pts(s)).toEqual([$('p2'), 3, $('p2'), 4]); // PINNED to jsdom: happy-dom selects index 2
+    expect(errName(() => range($('p1').firstChild, 1, $('b').firstChild, 1).surroundContents(d.createElement('em')))).toBe('InvalidStateError');
+    expect(errName(() => range(root.childNodes[1], 0, root.childNodes[1], 0).insertNode(d.createElement('em')))).toBe('HierarchyRequestError');
+    expect(errName(() => range(root, 0, root, 0).insertNode(root))).toBe('HierarchyRequestError');
+  });
+});

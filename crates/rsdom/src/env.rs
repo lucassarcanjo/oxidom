@@ -168,9 +168,10 @@ impl OutBuf {
     }
 }
 
-/// NodeIterator pointer words (traversal.rs, DESIGN §16): a JS-owned resizable ArrayBuffer the facade reads
-/// and writes between natives (zero-FFI traversals) and Rust adjusts during removals. Rust treats every word as
-/// untrusted input. `own` stands in until `iterBind` (Rust tests).
+/// NodeIterator pointer words (traversal.rs, DESIGN §16) and live-range boundary words (range.rs, DESIGN §25):
+/// a JS-owned resizable ArrayBuffer the facade reads and writes between natives (zero FFI) and Rust adjusts
+/// during mutations. Rust treats every word as untrusted input. `own` stands in until `iterBind` / `rangeBind`
+/// (Rust tests).
 #[derive(Default)]
 pub struct IterWords {
     ext: Option<(NonNull<u32>, usize)>,
@@ -206,6 +207,7 @@ struct JsBinding {
     ep_ref: sys::napi_ref,
     out_ref: sys::napi_ref,
     iter_ref: sys::napi_ref,
+    range_ref: sys::napi_ref,
     shared: bool,
 }
 
@@ -217,6 +219,7 @@ impl Default for JsBinding {
             ep_ref: ptr::null_mut(),
             out_ref: ptr::null_mut(),
             iter_ref: ptr::null_mut(),
+            range_ref: ptr::null_mut(),
             shared: false,
         }
     }
@@ -249,7 +252,7 @@ impl JsBinding {
 
     fn release(&mut self) {
         self.detach_table();
-        for r in [self.ep_ref, self.out_ref, self.iter_ref] {
+        for r in [self.ep_ref, self.out_ref, self.iter_ref, self.range_ref] {
             if !r.is_null() && !self.env.is_null() {
                 // SAFETY: references created by this binding on the same env.
                 unsafe { sys::napi_delete_reference(self.env, r) };
@@ -258,7 +261,31 @@ impl JsBinding {
         self.ep_ref = ptr::null_mut();
         self.out_ref = ptr::null_mut();
         self.iter_ref = ptr::null_mut();
+        self.range_ref = ptr::null_mut();
     }
+}
+
+/// Binds `words` to `ab` (a resizable ArrayBuffer the facade owns), pinning it through `slot` like OUT; a
+/// non-ArrayBuffer unbinds them. Returns the capacity in words.
+fn bind_words(
+    env: sys::napi_env,
+    ab: sys::napi_value,
+    words: &mut IterWords,
+    slot: &mut sys::napi_ref,
+) -> u32 {
+    if !slot.is_null() {
+        // SAFETY: reference created by this binding on the same env.
+        unsafe { sys::napi_delete_reference(env, *slot) };
+        *slot = ptr::null_mut();
+    }
+    // SAFETY: value of the current callback scope.
+    let (p, len) = unsafe { crate::ffi::args::read_arraybuffer(env, ab) };
+    words.ext = NonNull::new(p.cast::<u32>()).filter(|p| p.as_ptr().is_aligned()).map(|p| (p, len / 4));
+    if words.ext.is_some() {
+        // SAFETY: pins the ArrayBuffer whose data pointer we just cached.
+        unsafe { sys::napi_create_reference(env, ab, 1, slot) };
+    }
+    words.words().len() as u32
 }
 
 /// All DOM state of one napi_env.
@@ -297,6 +324,10 @@ pub struct Env {
     pub traversal: crate::traversal::TraversalState,
     /// Their pointer words, shared with the facade (`iterBind`).
     pub iter_words: IterWords,
+    /// Live Ranges (range.rs, DESIGN §25).
+    pub ranges: crate::range::RangeState,
+    /// Their boundary words, shared with the facade (`rangeBind`); same protocol as `iter_words`.
+    pub range_words: IterWords,
     /// Shadow roots (shadow.rs, DESIGN §22).
     pub shadow: crate::shadow::ShadowState,
     /// Area C: per-native call counters (bench build, `counters` feature; zero-sized otherwise).
@@ -344,6 +375,8 @@ impl Env {
             focus: Default::default(),
             traversal: Default::default(),
             iter_words: Default::default(),
+            ranges: Default::default(),
+            range_words: Default::default(),
             shadow: Default::default(),
             parse_cache: Default::default(),
             counters: Default::default(),
@@ -535,20 +568,12 @@ impl Env {
     /// Binds the NodeIterator pointer words to `ab` (the facade's resizable ArrayBuffer; again after every
     /// `resize()`), pinning it like OUT. A non-ArrayBuffer unbinds them. Returns the capacity in words.
     pub(crate) fn bind_iters(&mut self, env: sys::napi_env, ab: sys::napi_value) -> u32 {
-        if !self.js.iter_ref.is_null() {
-            // SAFETY: reference created by this binding on the same env.
-            unsafe { sys::napi_delete_reference(env, self.js.iter_ref) };
-            self.js.iter_ref = ptr::null_mut();
-        }
-        // SAFETY: value of the current callback scope.
-        let (p, len) = unsafe { crate::ffi::args::read_arraybuffer(env, ab) };
-        self.iter_words.ext =
-            NonNull::new(p.cast::<u32>()).filter(|p| p.as_ptr().is_aligned()).map(|p| (p, len / 4));
-        if self.iter_words.ext.is_some() {
-            // SAFETY: pins the ArrayBuffer whose data pointer we just cached.
-            unsafe { sys::napi_create_reference(env, ab, 1, &mut self.js.iter_ref) };
-        }
-        self.iter_words.words().len() as u32
+        bind_words(env, ab, &mut self.iter_words, &mut self.js.iter_ref)
+    }
+
+    /// Binds the live-range boundary words (range.rs, DESIGN §25), as `bind_iters` does.
+    pub(crate) fn bind_ranges(&mut self, env: sys::napi_env, ab: sys::napi_value) -> u32 {
+        bind_words(env, ab, &mut self.range_words, &mut self.js.range_ref)
     }
 
     /// The table as an external ArrayBuffer (one per allocation, cached by reference).

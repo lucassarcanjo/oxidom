@@ -2,7 +2,7 @@
 // Core DOM classes: EventTarget (base only; area B adds the listener API), Node, Document/HTMLDocument,
 // DocumentFragment, DocumentType, Attr, CharacterData/Text/Comment/CDATASection/ProcessingInstruction,
 // Element, HTMLElement + every HTML*Element (generated from data/interfaces.json), SVG*, MathMLElement,
-// NamedNodeMap, DOMImplementation, DOMParser, Range (basic).
+// NamedNodeMap, DOMImplementation, DOMParser. Range lives in range.cjs.
 //
 // Wrappers: `W[id]` identity table, created lazily by `materialize` with zero crossings in shared mode.
 // Field order is the same for every node wrapper (stable hidden classes until React adds expandos):
@@ -724,10 +724,6 @@ class Document extends Node {
   getElementById(elementId) {
     const a = lookupAtom(String(elementId));
     return a === 0 ? null : wrap(N.byId(this._i, a));
-  }
-
-  createRange() {
-    return new Range(this);
   }
 
   hasFocus() {
@@ -1920,108 +1916,6 @@ class DOMParser {
 }
 tag(DOMParser);
 
-/** Basic Range (DESIGN §4.1): boundary points + createContextualFragment (RTL asFragment). */
-class Range {
-  constructor(doc = context.currentDocument()) {
-    if (!(doc instanceof Document)) illegal();
-    this.startContainer = doc;
-    this.startOffset = 0;
-    this.endContainer = doc;
-    this.endOffset = 0;
-  }
-
-  get collapsed() {
-    return this.startContainer === this.endContainer && this.startOffset === this.endOffset;
-  }
-
-  get commonAncestorContainer() {
-    let a = this.startContainer;
-    while (a !== null && !a.contains(this.endContainer)) a = a.parentNode;
-    return a;
-  }
-
-  setStart(node, offset) {
-    this.startContainer = node;
-    this.startOffset = offset >>> 0;
-  }
-
-  setEnd(node, offset) {
-    this.endContainer = node;
-    this.endOffset = offset >>> 0;
-  }
-
-  setStartBefore(node) {
-    this.setStart(node.parentNode, indexOf(node));
-  }
-
-  setStartAfter(node) {
-    this.setStart(node.parentNode, indexOf(node) + 1);
-  }
-
-  setEndBefore(node) {
-    this.setEnd(node.parentNode, indexOf(node));
-  }
-
-  setEndAfter(node) {
-    this.setEnd(node.parentNode, indexOf(node) + 1);
-  }
-
-  selectNode(node) {
-    this.setStartBefore(node);
-    this.setEndAfter(node);
-  }
-
-  selectNodeContents(node) {
-    this.setStart(node, 0);
-    this.setEnd(node, node instanceof CharacterData ? node.length : node.childNodes.length);
-  }
-
-  collapse(toStart = false) {
-    if (toStart) this.setEnd(this.startContainer, this.startOffset);
-    else this.setStart(this.endContainer, this.endOffset);
-  }
-
-  cloneRange() {
-    const r = new Range(this.startContainer.ownerDocument ?? this.startContainer);
-    r.setStart(this.startContainer, this.startOffset);
-    r.setEnd(this.endContainer, this.endOffset);
-    return r;
-  }
-
-  detach() {}
-
-  getBoundingClientRect() {
-    return makeRect();
-  }
-
-  getClientRects() {
-    return [];
-  }
-
-  createContextualFragment(fragment) {
-    const node = this.startContainer;
-    let ctx = node instanceof Element ? node : node instanceof Document || node instanceof DocumentFragment ? null : node.parentElement;
-    const id = checkId(N.parseFragment(ctx === null ? 0 : ctx._i, String(fragment), docIdOf(node)));
-    afterAlloc();
-    return wrap(id);
-  }
-
-  toString() {
-    return '';
-  }
-}
-tag(Range);
-for (const [k, v] of Object.entries({ START_TO_START: 0, START_TO_END: 1, END_TO_END: 2, END_TO_START: 3 })) {
-  Object.defineProperty(Range, k, { value: v, enumerable: true });
-  Object.defineProperty(Range.prototype, k, { value: v, enumerable: true });
-}
-
-function indexOf(node) {
-  let i = 0;
-  for (let c = V.T[o_(node) + F.PREV]; c > 0; c = V.T[V.off(c) + F.PREV]) i++;
-  return i;
-}
-
 rt.classes.DOMException = globalThis.DOMException;
 
 // ------------------------------------------------------------------- reflection helpers (for areas)
@@ -2066,7 +1960,7 @@ function reflectLong(C, prop, attr = prop.toLowerCase(), dflt = 0) {
 module.exports = {
   EventTarget, Node, Document, HTMLDocument, XMLDocument, DocumentFragment, DocumentType, CharacterData, Text,
   CDATASection, Comment, ProcessingInstruction, Attr, NamedNodeMap, Element, HTMLElement, HTMLUnknownElement,
-  SVGElement, MathMLElement, DOMImplementation, DOMParser, Range, NodeList, HTMLCollection,
+  SVGElement, MathMLElement, DOMImplementation, DOMParser, NodeList, HTMLCollection,
   nodeArg, convertNodes, staticNodeListFromIds, isHtml, firstDescendant, attrQName, attrLookup, attrSetAtom, makeRect,
   defineAccessor, reflectString, reflectBool, reflectLong, wrap, ParentNode, ChildNode, NonDocumentTypeChildNode,
 };

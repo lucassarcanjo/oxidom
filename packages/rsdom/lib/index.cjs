@@ -4,7 +4,7 @@
 // contract tests). The Vitest environment (lib/vitest-environment.mjs, area C) opens one on globalThis.
 //
 // Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
-// -> xhr.
+// -> xhr -> range.
 
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
@@ -18,6 +18,7 @@ const areas = [
   require('./mo.cjs'),
   require('./window.cjs'),
   require('./xhr.cjs'),
+  require('./range.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);
 // WebIDL: interface members are enumerable (class syntax made them non-enumerable).

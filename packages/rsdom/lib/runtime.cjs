@@ -319,6 +319,8 @@ function asciiLower(s) {
 const ERR_NAMES = [
   '', 'HierarchyRequestError', 'NotFoundError', 'InvalidCharacterError', 'SyntaxError', 'IndexSizeError',
   'InvalidStateError', 'NotSupportedError', 'WrongDocumentError', 'NamespaceError', 'NoModificationAllowedError',
+  // 11 is TypeError (Rust `DomError::Type`); 12 is facade-only (Range boundary points, DESIGN §25)
+  '', 'InvalidNodeTypeError',
 ];
 const ERR_MSG = [
   '', 'The operation would yield an incorrect node tree.', 'The object can not be found here.',
@@ -326,6 +328,7 @@ const ERR_MSG = [
   'The index is not in the allowed range.', 'The object is in an invalid state.',
   'The operation is not supported.', 'The object is in the wrong document.',
   'The operation is not allowed by Namespaces in XML.', 'The object can not be modified.',
+  '', 'The supplied node is incorrect or has an incorrect ancestor for this operation.',
 ];
 
 /** The DOMException constructor errors are created with (the window area may swap in a realm's). */

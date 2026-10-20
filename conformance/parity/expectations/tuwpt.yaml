@@ -217,7 +217,6 @@ dom/ranges/Range-traversal-boundaries.html: [fail, "assert_equals: wrong value"]
 domparsing/DOMParser-parseFromString-xml-script.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domparsing/xml-serialization-namespaces.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling-dont-upstream.html:
-  "Returning a string must not cancel the event: BeforeUnloadEvent with type \"click\", cancelable": [fail, "missing method: .createEvent()"]
   "Returning false must not cancel the event, because it's coerced to the DOMString \"false\" which does not cancel CustomEvents: CustomEvent, cancelable": [fail, "assert_false: wrong value"]
 html/browsers/the-window-object/named-access-on-the-window-object/element-contributions.html:
   "A name on a non-contributor does not preserve an old id contribution": [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -254,20 +253,15 @@ svg/struct/scripted/element-svg.html:
   "requiredExtensions": [fail, "missing global: SVGStringList"]
   "systemLanguage": [fail, "missing global: SVGStringList"]
 svg/types/scripted/SVGStringList.html: [fail, "missing global: SVGStringList"]
-uievents/constructors/constructor-view-proxy.html:
-  "MouseEvent rejects a revoked proxy around Window as view": [fail, "assert_true: wrong value"]
-  "MouseEvent rejects a transparent proxy around Window as view": [fail, "assert_true: wrong value"]
-  "UIEvent rejects a revoked proxy around Window as view": [fail, "assert_true: wrong value"]
-  "UIEvent rejects a transparent proxy around Window as view": [fail, "assert_true: wrong value"]
 uievents/focusevents/focus-computed-style.html:
-  "Computed styles remain complete after focus checks, and inline mutations invalidate display checks": [fail, "assert_equals: wrong value"]
-  "Focus checks reflect stylesheet and attribute mutations after both full and partial style reads": [fail, "read of undefined (.cssRules)"]
-  "Inherited display checks reflect reparenting and stylesheet rule insertion and removal": [fail, "read of undefined (.insertRule)"]
+  "Computed styles remain complete after focus checks, and inline mutations invalidate display checks": [fail, "computed-values: resolved em lengths"]
+  "Focus checks reflect stylesheet and attribute mutations after both full and partial style reads": [fail, "cssom: insertRule / cssRules"]
+  "Inherited display checks reflect reparenting and stylesheet rule insertion and removal": [fail, "cssom: insertRule / cssRules"]
 uievents/focusevents/focus-unfocus-steps.html:
-  "Entering and leaving a shadow tree delivers each host focus event once": [fail, "assert_array_equals: wrong value"]
-uievents/focusevents/focusable-area-flat-tree.html: [fail, "missing method: .assignedNodes()"]
+  "Entering and leaving a shadow tree delivers each host focus event once": [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
+uievents/focusevents/focusable-area-flat-tree.html: [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
 uievents/focusevents/focusable-area.html:
   "Calling focus() on an element inside an inert shadow host does nothing": [fail, "assert_not_equals: wrong value"]
-  "Calling focus() on an element slotted into display: none slot does nothing": [fail, "assert_not_equals: wrong value"]
+  "Calling focus() on an element slotted into display: none slot does nothing": [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
   "Calling focus() on an element with an inert ancestor does nothing": [fail, "assert_not_equals: wrong value"]
   "Calling focus() on an inert element does nothing": [fail, "assert_not_equals: wrong value"]

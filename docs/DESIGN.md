@@ -1516,3 +1516,43 @@ Facade only (`lib/file-api.cjs`, installed after xhr): blob bytes are not DOM st
 differ). The parity scope is WPT `FileAPI/**`: 36 of 37 files at parity. The remaining subtest needs
 HTMLCollection's `@@iterator` to be `%Array.prototype.values%` (it reads `length` through the object), which
 belongs to `core`.
+
+---
+
+## 28. `document.createEvent`, `init*Event` and the missing event classes (ROADMAP Stage 3, 2026-10)
+
+Facade only (`lib/events.cjs`, area B, in a block of its own before the EventTarget API). A port of
+`refs/jsdom/lib/jsdom/living/nodes/Document-impl.js` (`createEvent`, `eventInterfaceTable`) and of the event
+classes in `refs/jsdom/lib/jsdom/living/events/` that the table names and rsdom lacked.
+
+- **The initialized flag.** Event gets a private `#initialized`, true for constructed events, set by `initEvent`
+  (which every `init*Event` calls); `uninitialize` / `isInitialized` reach it from the module, like
+  `forceCancel`. `dispatchEvent` throws InvalidStateError for an uninitialized event, as DOM says.
+- **`createEvent(interface)`** looks the name up ASCII case-insensitively in jsdom's table (aliases `Events`,
+  `HTMLEvents`, `SVGEvents`, `MouseEvents`, `UIEvents` included; `TextEvent`, `DragEvent` and the other names DOM
+  lists and jsdom does not have throw NotSupportedError, as in jsdom), constructs the class with type `''` and
+  clears the flag.
+- **New classes**: BeforeUnloadEvent (not constructible; no members of its own, as in jsdom),
+  DeviceOrientationEvent, DeviceMotionEvent with DeviceMotionEventAcceleration / DeviceMotionEventRotationRate,
+  and MessageEvent with `initMessageEvent`. The simple ones use `simpleEvent`, members in dictionary
+  (lexicographic) order so the init dictionary is read in that order. MessageEvent `source` and `ports` are as
+  lenient as jsdom's conversions (any value; any iterable, frozen). MessageEvent replaces nothing: the window
+  already deletes Node's lazy undici `MessageEvent` global without reading it (reading its descriptor loads
+  undici), so before this there was no `MessageEvent` in the Vitest environment at all.
+- **Argument checks** jsdom's bindings make: the first argument of `initCustomEvent`, `initUIEvent`,
+  `initMouseEvent`, `initKeyboardEvent`, `initCompositionEvent` is required, and a UIEvent `view` (dictionary or
+  `initUIEvent`) must be the window of an open browsing context or null (`context.ofWindow`, so a Proxy around a
+  window is refused too).
+- **Not done, deliberately:** `isTrusted` stays a prototype getter. `[LegacyUnforgeable]` makes it an own
+  accessor on every event, which measured +140-280 ns on a ~1.4 µs MouseEvent construction for one WPT subtest.
+- **Harness fix** (`conformance/wpt/worker.mjs`): rsdom's "report an exception" fires the window's ErrorEvent and
+  then emits `uncaughtException` (what makes a Vitest test fail); the worker turned that emit into a second window
+  `error` event, so listener-error tests counted two. The worker now skips an error the window already received.
+  jsdom never emits both, so its runs are unaffected.
+
+`test/contract/create-event.test.mjs` runs on all three DOMs (happy-dom 21 pinned: no aliases, no initialized
+flag, no view check). The parity scope is WPT `dom/events/**` and `uievents/**` plus jsdom's to-upstream
+uievents: 97 of 108 files at parity; the remaining gap belongs to other items, and each entry's reason names it:
+content-attribute event handlers (`onclick="..."` needs script compilation, `browsing-contexts`), shadow-tree
+retargeting and slots (`shadow-dom`), CSSOM and resolved `em` (`cssom`, `computed-values`), `customElements`,
+and the `isTrusted` decision above.

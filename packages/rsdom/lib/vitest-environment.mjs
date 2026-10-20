@@ -7,7 +7,7 @@
 // globals, safe timers and console exist and before any setup/test file is imported; `teardown()` runs when
 // the worker stops (isolate: true -> once per file; isolate: false -> once per worker).
 //
-// Options: `test.environmentOptions.rsdom = { url, html, shared, memo, prefilter, counters }`. The env vars
+// Options: `test.environmentOptions.jetdom = { url, html, shared, memo, prefilter, counters }`. The env vars
 // RSDOM_SHARED=0 / RSDOM_NO_MEMO=1 / RSDOM_NO_PREFILTER=1 / RSDOM_COUNTERS=1 win over the options (the facade
 // reads them once, when it is first loaded in this worker).
 import { createRequire } from 'node:module';
@@ -16,7 +16,7 @@ import path from 'node:path';
 
 const require = createRequire(import.meta.url);
 
-/** Maps `options.rsdom` onto the facade's env-var switches unless the env var is already set. */
+/** Maps `options.jetdom` onto the facade's env-var switches unless the env var is already set. */
 function applyOptions(o) {
   const env = process.env;
   const set = (k, v) => {
@@ -57,7 +57,7 @@ export default {
   viteEnvironment: 'client',
   prewarmModules: false,
   setup(global, options = {}) {
-    const o = options.rsdom ?? {};
+    const o = options.jetdom ?? {};
     applyOptions(o);
     const { rt } = require('./index.cjs'); // installs every area
     const context = require('./context.cjs');

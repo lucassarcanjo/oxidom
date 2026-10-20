@@ -7,13 +7,14 @@ A DOM for Node.js test environments, implemented in Rust. The goal is a drop-in 
 // vitest.config.ts
 export default defineConfig({
   test: {
-    environment: 'rsdom', // was: 'jsdom'
+    environment: 'jetdom', // was: 'jsdom'
   },
 })
 ```
 
 > **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite, but it covers about 62% of
 > jsdom's API surface and is not on npm yet. See [what works](#compatibility) and the [roadmap](docs/ROADMAP.md).
+> Its npm name is `jetdom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm.
 
 ## Why
 
@@ -66,13 +67,13 @@ npm ci
 npm run build          # builds the native addon into packages/rsdom/native/
 ```
 
-**Vitest.** Install `rsdom` and `vitest-environment-rsdom` (from this repository for now) and set
-`environment: 'rsdom'`. Options go in `test.environmentOptions.rsdom`: `{ url, html }`.
+**Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
+`environment: 'jetdom'`. Options go in `test.environmentOptions.jetdom`: `{ url, html }`.
 
 **Plain Node.**
 
 ```js
-const { createWindow } = require('rsdom');
+const { createWindow } = require('jetdom');
 
 const { window, document } = createWindow({ url: 'https://example.test/' });
 document.body.innerHTML = '<button class="primary">Save</button>';
@@ -86,8 +87,8 @@ A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, St
 | path | what |
 |---|---|
 | [`crates/rsdom`](crates/rsdom) | the Rust core and Node-API bindings (napi-rs v3) |
-| [`packages/rsdom`](packages/rsdom) | the `rsdom` npm package: JS facade, native loader, Vitest environment, contract tests |
-| [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | makes `environment: 'rsdom'` resolve |
+| [`packages/rsdom`](packages/rsdom) | the `jetdom` npm package: JS facade, native loader, Vitest environment, contract tests |
+| [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-jetdom`: makes `environment: 'jetdom'` resolve |
 | [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |

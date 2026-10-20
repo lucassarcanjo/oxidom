@@ -1,8 +1,8 @@
 {
-  "name": "vitest-environment-rsdom",
+  "name": "vitest-environment-jetdom",
   "version": "0.1.0",
   "private": true,
-  "description": "Vitest environment for rsdom: `test.environment: 'rsdom'`",
+  "description": "Vitest environment for jetdom: `test.environment: 'jetdom'`",
   "keywords": ["vitest", "vitest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",
   "repository": {
@@ -17,7 +17,7 @@
   },
   "files": ["index.js"],
   "peerDependencies": {
-    "rsdom": "0.1.0",
+    "jetdom": "0.1.0",
     "vitest": ">=5"
   }
 }

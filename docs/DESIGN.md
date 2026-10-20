@@ -83,7 +83,7 @@ packages/rsdom/               the `rsdom` npm package
   native/rsdom.<triple>.node  the addon (gitignored)
   test/contract/              one parity suite run against jsdom, happy-dom and rsdom
   test/native/                rsdom-only tests (protocols, wrappers, epochs, Vitest pools)
-packages/vitest-environment-rsdom/   `test.environment: 'rsdom'`
+packages/vitest-environment-rsdom/   `test.environment: 'jetdom'` (npm: vitest-environment-jetdom)
 e2e/react-app/                React 19 + Testing Library suite (90 tests), the end-to-end subject
 e2e/libraries/                real-library smoke tests (Radix, MUI, react-aria, lit, ...)
 bench/micro/  bench/e2e/      benchmark harnesses (phase reporter, runner); bench/results/
@@ -706,7 +706,7 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 - XMLHttpRequest, XMLHttpRequestUpload and XMLHttpRequestEventTarget (§21). With them axios picks its XHR adapter by default, as on jsdom.
 - `img.decode()` resolves immediately.
 
-**Options.** Options come from `options.rsdom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
+**Options.** Options come from `options.jetdom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
 
 **Supported pools.** forks and threads, with or without isolate. vm pools are unsupported: there is no `setupVM`, and objects there would come from the wrong realm.
 

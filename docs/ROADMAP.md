@@ -9,7 +9,7 @@ comments cite, are recorded in [`lab/ROADMAP.md`](lab/ROADMAP.md). This file cov
 
 "Drop-in" has three parts, and each stage below moves at least one of them:
 
-1. **Same entry points.** `environment: 'rsdom'` in Vitest, `testEnvironment: 'rsdom'` in Jest, and a `JSDOM`-shaped
+1. **Same entry points.** `environment: 'jetdom'` in Vitest, `testEnvironment: 'jetdom'` in Jest, and a `JSDOM`-shaped
    programmatic API (`new JSDOM(html, options).window`).
 2. **Same behaviour.** Whatever passes on jsdom passes on rsdom. This is measured three ways: real libraries
    (`e2e/libraries`), web-platform-tests (`conformance/wpt`) and the WebIDL surface (`conformance/api-surface`).
@@ -32,17 +32,17 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
 ## Stage 0: Repository and distribution
 
 - [x] Monorepo layout: `crates/rsdom` (Rust), `packages/rsdom` (npm), e2e suites, benchmarks, conformance harnesses.
-- [x] `vitest-environment-rsdom` package so `environment: 'rsdom'` resolves like `'jsdom'`.
+- [x] `vitest-environment-jetdom` package so `environment: 'jetdom'` resolves like `'jsdom'`.
 - [ ] CI running on every PR. `.github/workflows/ci.yml` defines the jobs (lint, Rust tests, contract suite also in
       fallback mode, React app suite and the parity suite, on Linux), but GitHub Actions is disabled for this
       repository; until it runs, `npm run check` runs the same checks locally before merging.
 - [x] Parity suite: jsdom's own test suite, gated by checked-in expectations (regressions and unlocked progress both
       fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
-- [ ] Prebuilt binaries: napi-rs per-platform packages (`@rsdom/<triple>` as `optionalDependencies`) for linux x64/arm64
+- [ ] Prebuilt binaries: napi-rs per-platform packages (`@jetdom/<triple>` as `optionalDependencies`) for linux x64/arm64
       (gnu and musl), darwin x64/arm64 and win32 x64; release workflow.
-- [ ] Confirm the npm names (`rsdom`, `vitest-environment-rsdom`, `jest-environment-rsdom`, `@rsdom/*`) and publish
-      a first preview; drop `"private": true`.
+- [ ] Publish a first preview under the npm names `jetdom`, `vitest-environment-jetdom`, `jest-environment-jetdom` and
+      `@jetdom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`); drop `"private": true`.
 - [ ] Versioning and changelog (one version for all packages; changesets or a release script).
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
@@ -86,8 +86,8 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
       parity suite runs jsdom's own API tests through a minimal test-only adapter
       (`conformance/parity/mocha/rsdom-jsdom.cjs`); the real class replaces it.
 - [ ] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
-      as well as `environmentOptions.rsdom`.
-- [ ] `jest-environment-rsdom` for Jest (`testEnvironment: 'rsdom'`).
+      as well as `environmentOptions.jetdom`.
+- [ ] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`).
 - [ ] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports.
 - [ ] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
 - [ ] Migration guide: jsdom to rsdom, with the known divergences listed in one place.

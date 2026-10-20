@@ -13,7 +13,6 @@ to-port-to-wpts/level2/style.js:
   "level2/style > StyleSheetList.prototype.item returns null on index out of bounds": [fail, "read of undefined (.0)"]
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "level2/style > getComputedStyleWithMediaRules": [fail, "computed color of p is blue + actual - expected + … - …"]
   "level2/style > getStyleSheetByItem": [fail, "read of undefined (.length)"]
 to-port-to-wpts/level3/xpath.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)", {pass: 65}]
 to-port-to-wpts/misc.js:

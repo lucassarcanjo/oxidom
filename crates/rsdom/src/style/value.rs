@@ -223,49 +223,51 @@ fn keyword(c: &Comp, set: &'static [&'static str]) -> Option<String> {
 
 // --------------------------------------------------------------------------------------- colors
 
-const SYSTEM_COLORS: &[&str] = &[
-    "accentcolor",
-    "accentcolortext",
-    "activetext",
-    "buttonborder",
-    "buttonface",
-    "buttontext",
-    "canvas",
-    "canvastext",
-    "field",
-    "fieldtext",
-    "graytext",
-    "highlight",
-    "highlighttext",
-    "linktext",
-    "mark",
-    "marktext",
-    "selecteditem",
-    "selecteditemtext",
-    "visitedtext",
-    "activeborder",
-    "activecaption",
-    "appworkspace",
-    "background",
-    "buttonhighlight",
-    "buttonshadow",
-    "captiontext",
-    "inactiveborder",
-    "inactivecaption",
-    "inactivecaptiontext",
-    "infobackground",
-    "infotext",
-    "menu",
-    "menutext",
-    "scrollbar",
-    "threeddarkshadow",
-    "threedface",
-    "threedhighlight",
-    "threedlightshadow",
-    "threedshadow",
-    "window",
-    "windowframe",
-    "windowtext",
+/// CSS Color 4 system colours with their light-scheme values (jsdom 30 `css/helpers/system-colors.js`;
+/// `color-scheme: dark` is not modelled).
+const SYSTEM_COLORS: &[(&str, [u8; 3])] = &[
+    ("accentcolor", [0, 153, 255]),
+    ("accentcolortext", [0, 0, 0]),
+    ("activetext", [255, 0, 0]),
+    ("buttonborder", [51, 51, 51]),
+    ("buttonface", [204, 204, 204]),
+    ("buttontext", [0, 0, 0]),
+    ("canvas", [255, 255, 255]),
+    ("canvastext", [0, 0, 0]),
+    ("field", [255, 255, 255]),
+    ("fieldtext", [0, 0, 0]),
+    ("graytext", [102, 102, 102]),
+    ("highlight", [0, 153, 255]),
+    ("highlighttext", [255, 255, 255]),
+    ("linktext", [0, 0, 255]),
+    ("mark", [255, 255, 0]),
+    ("marktext", [0, 0, 0]),
+    ("selecteditem", [0, 153, 255]),
+    ("selecteditemtext", [255, 255, 255]),
+    ("visitedtext", [128, 0, 128]),
+    ("activeborder", [51, 51, 51]),
+    ("activecaption", [255, 255, 255]),
+    ("appworkspace", [255, 255, 255]),
+    ("background", [255, 255, 255]),
+    ("buttonhighlight", [204, 204, 204]),
+    ("buttonshadow", [204, 204, 204]),
+    ("captiontext", [0, 0, 0]),
+    ("inactiveborder", [51, 51, 51]),
+    ("inactivecaption", [255, 255, 255]),
+    ("inactivecaptiontext", [102, 102, 102]),
+    ("infobackground", [255, 255, 255]),
+    ("infotext", [0, 0, 0]),
+    ("menu", [255, 255, 255]),
+    ("menutext", [0, 0, 0]),
+    ("scrollbar", [255, 255, 255]),
+    ("threeddarkshadow", [51, 51, 51]),
+    ("threedface", [204, 204, 204]),
+    ("threedhighlight", [51, 51, 51]),
+    ("threedlightshadow", [51, 51, 51]),
+    ("threedshadow", [51, 51, 51]),
+    ("window", [255, 255, 255]),
+    ("windowframe", [51, 51, 51]),
+    ("windowtext", [0, 0, 0]),
 ];
 
 /// `rgb(r, g, b)` / `rgba(r, g, b, a)` (alpha rounded like browsers: 2 decimals when that round-trips
@@ -406,7 +408,7 @@ pub(crate) fn color(c: &Comp) -> Option<String> {
     match &c.tok {
         Tok::Ident(s) => {
             let l = s.to_ascii_lowercase();
-            if l == "transparent" || l == "currentcolor" || SYSTEM_COLORS.contains(&l.as_str()) {
+            if l == "transparent" || l == "currentcolor" || SYSTEM_COLORS.iter().any(|(n, _)| *n == l) {
                 return Some(l);
             }
             cssparser::color::parse_named_color(&l).ok().map(|_| l)
@@ -454,6 +456,24 @@ pub(crate) fn color(c: &Comp) -> Option<String> {
         }
         _ => None,
     }
+}
+
+/// The computed value of a specified `<color>`/`<paint>` keyword (`v` is already normalised by
+/// [`color`]): named and system colours become `rgb()`, `transparent` `rgba(0, 0, 0, 0)`. Like jsdom 30,
+/// any other bare keyword on a colour property (`auto`, `none`, `invert`) also computes to
+/// `rgba(0, 0, 0, 0)`. None leaves the value as specified (`rgb()` already, functions, `url()`, ...).
+/// `currentcolor` is resolved by the cascade before this.
+pub(crate) fn computed_color(v: &str) -> Option<String> {
+    if v.is_empty() || !v.bytes().all(|b| b.is_ascii_alphabetic() || b == b'-') {
+        return None;
+    }
+    if let Some((_, [r, g, b])) = SYSTEM_COLORS.iter().find(|(n, _)| *n == v) {
+        return Some(fmt_rgba(*r, *g, *b, 1.0));
+    }
+    Some(match cssparser::color::parse_named_color(v) {
+        Ok((r, g, b)) => fmt_rgba(r, g, b, 1.0),
+        Err(()) => fmt_rgba(0, 0, 0, 0.0),
+    })
 }
 
 // ---------------------------------------------------------------------------------- grammars

@@ -1337,6 +1337,6 @@ nothing here reads or authors the tree beyond what public members already expose
   computed, so it never hides.
 - **Measured.** No parity test selects these (their WPT DIR, css/cssom-view, is outside the selection);
   `test/contract/observers.test.mjs` runs against happy-dom and asserts jsdom has none. `e2e/libraries` without
-  shims: rsdom 13 -> 15 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
+  shims: rsdom 14 -> 16 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
   `no-pointer-capture` are jsdom-only causes now. Not part of the item: `document.elementFromPoint` (ROADMAP "Not
   planned"; ProseMirror's mousedown handler still needs it on jsdom and rsdom).

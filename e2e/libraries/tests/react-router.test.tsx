@@ -35,7 +35,7 @@ describe('react-router', () => {
     expect(router.state.location.pathname).toBe('/users/7')
   })
 
-  test('BrowserRouter: pushState navigation and back button', async () => {
+  test('BrowserRouter: pushState navigation, back and forward buttons', async () => {
     const user = userEvent.setup()
     window.history.replaceState(null, '', '/')
     function Home() {
@@ -57,5 +57,8 @@ describe('react-router', () => {
     window.history.back()
     expect(await screen.findByRole('button', { name: 'Open settings' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/')
+    window.history.forward()
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?tab=2')
   })
 })

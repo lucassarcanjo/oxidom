@@ -60,6 +60,7 @@ allocations below still hold.
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
+| `lib/history.cjs` | session history (DESIGN §23) | facade only; one `SessionHistory` per browsing context (`ctx.history`), driven by `History` and `Location` in `window.cjs` |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
 

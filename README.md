@@ -51,8 +51,8 @@ to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-19 rsdom
 jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) has the current numbers, broken down
 by roadmap item.
 
-The three remaining library failures come from missing APIs: ShadowRoot (MUI), custom elements and
-`attachShadow` (lit), and history traversal (react-router). Closing them is
+The two remaining library failures come from missing APIs: ShadowRoot (MUI), and custom elements and
+`attachShadow` (lit). Closing them is
 [Stage 1 of the roadmap](docs/ROADMAP.md#stage-1-close-the-measured-library-gaps) (custom elements are Stage 4).
 Not supported today: Shadow DOM, custom elements, iframes, script execution, layout, CSSOM rule objects,
 synchronous XMLHttpRequest.

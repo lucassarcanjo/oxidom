@@ -65,7 +65,9 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
       11 -> 14 of 20; lit now stops at custom elements and `attachShadow`.
 - [ ] **ShadowRoot + `attachShadow`**, without retargeting (M) `shadow-root`. Unblocks MUI Modal and Dialog; first step
       for lit.
-- [ ] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S) `history`. react-router.
+- [x] **Session history traversal**: `back`, `forward`, `go` with `popstate` (S) `history`. react-router. Done
+      2026-10-20 (DESIGN §23): jsdom's queued traversal, popstate/hashchange order and entry bookkeeping, 13
+      contract cases on all three DOMs; react-router's BrowserRouter back/forward test passes.
 - [x] **XMLHttpRequest** (M) `xhr`. axios with the XHR adapter. Done 2026-10-19 (DESIGN §21): all 31 suite files at
       parity, libraries 14 -> 15 of 20 (axios). Asynchronous only: a synchronous `send()` throws NetworkError, the
       way a failed synchronous request does in jsdom.

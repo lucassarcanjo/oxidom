@@ -21,12 +21,6 @@ export const CAUSES = [
     evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class) and has no shadowRoot (rsdom has no attachShadow). Probe: typeof customElements / Element.prototype.attachShadow === "undefined" only in rsdom (diag-facts). ROADMAP Stage 1 ShadowRoot, Stage 4 custom elements.',
   },
   {
-    id: 'rsdom-history-traversal-noop', category: 'missing-behaviour', doms: ['rsdom'],
-    title: 'rsdom History.back()/forward()/go() are no-ops: no session history, no popstate',
-    re: /Unable to find role="button" and name "Open settings"/, file: /react-router/,
-    evidence: 'pushState works (pathname assertion passes) but after history.back() the route never changes. packages/rsdom/lib/window.cjs History: `back() {}` `forward() {}` `go() {}`. diag-facts: pushState+back -> popstate fired=false, pathname stays /b (jsdom, happy-dom: fired=true, /a).',
-  },
-  {
     id: 'rsdom-selection-stub', category: 'wrong-behaviour', doms: ['rsdom'],
     title: 'rsdom Selection is a stub: collapse()/setBaseAndExtent() set anchor/focus but create no Range (rangeCount 0), so getRangeAt(0) throws',
     re: /getRangeAt.*not a valid index/,

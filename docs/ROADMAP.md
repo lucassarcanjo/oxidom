@@ -96,7 +96,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [ ] `document.createEvent`, `init*Event` and the missing event classes (S) `events`.
 - [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
 - [ ] FileReader with DOM Blob and File (S) `file-api`.
-- [ ] Web Storage named properties (S) `storage`.
+- [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
+      named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
+      gap 1,205 -> 0.
 - [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
 - [ ] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`.
 - [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.

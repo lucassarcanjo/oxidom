@@ -1256,3 +1256,32 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
   captured fetch, the msw 3 and msw 2 contracts emulated without msw, sync `send()`, fake timers and the close
   hook; `test/fixtures/vitest-env/xhr-leak.spec.mjs` leaves a request in flight in all four vitest-env fixture runs (a
   smoke test: it does not fail when the teardown abort is removed; the native teardown test does).
+
+## 26. Web Storage named properties (ROADMAP Stage 3, 2026-10)
+
+Facade only (`lib/window.cjs`, the Storage block): the items are window state, not DOM state (CONTRIBUTING §7).
+Storage is a WebIDL legacy platform object with a named getter, setter and deleter and no
+[LegacyOverrideBuiltIns], so `localStorage.foo = 'x'`, `'foo' in localStorage`, `delete localStorage.foo`,
+`Object.keys`, spreading and `JSON.stringify` all go through the items. A port of jsdom's generated wrapper
+(`node_modules/jsdom/lib/generated/idl/Storage.js`) and of `refs/jsdom/lib/jsdom/living/webstorage/Storage-impl.js`.
+
+- **One Proxy per Storage.** `createStorage()` makes an ordinary target (`new Storage(rt.TOKEN)`, prototype
+  `Storage.prototype`) and returns a Proxy over it with the WebIDL traps: [[GetOwnProperty]] and [[Get]] show an
+  item only when no own or inherited property of that name exists (so `setItem('getItem', ...)` never hides the
+  method, and a key set on `Storage.prototype` hides the item), [[Set]] with the proxy as receiver and
+  [[DefineOwnProperty]] of a data property store a stringified item (an accessor descriptor is refused),
+  [[Delete]] removes it, [[OwnPropertyKeys]] lists the keys first, and [[PreventExtensions]] fails. Symbols always
+  go to the target. Items live in a `Map` in a side WeakMap keyed by both the target (what the traps see) and the
+  proxy (what methods see as `this`), which also serves as the brand check (`isStorage`, used by StorageEvent's
+  `storageArea` conversion). The cost is the Proxy on every property read of the two storage objects; nothing else
+  is touched.
+- **Quota.** jsdom's default `storageQuota`: 5,000,000 UTF-16 code units of keys plus values per area; going over
+  throws a `QuotaExceededError`, a DOMException subclass (code 22) with null `quota` and `requested`, as jsdom's
+  does. The global is new.
+- **One area per window and kind.** jsdom shares an area between the windows of one origin inside one JSDOM
+  (frames) and fires `storage` events at the others; rsdom has no frames, so each window has its own two areas and
+  no `storage` event is ever fired. `StorageEvent.initStorageEvent` exists (the WPT file is in this scope), with the
+  dispatch check the other `init*Event` methods use.
+
+`test/contract/storage.test.mjs` runs on all three DOMs (happy-dom 21 pinned where it has no named-property
+semantics); the parity scope is WPT `webstorage/**`, 25 of 25 files at parity.

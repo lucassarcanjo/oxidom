@@ -177,7 +177,7 @@ if (result.counterfactuals) {
 }
 md.push('', '## Shims ("polyfills")', '', 'Only shims that library docs or the Jest docs tell jsdom users to add are allowed: `matchMedia`, `ResizeObserver`, `Element#scrollIntoView`, and `Element#hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`. Each one is installed only when the API is missing. The two "Testing in JSDom" READMEs of tabbable and focus-trap say to pass `displayCheck: \'none\'`, and the tests do that for every DOM. The shims each DOM actually needed:', '')
 for (const d of DOMS) md.push(`- ${d}: ${probes[d].length ? probes[d].join(', ') : 'none (all present natively)'}`)
-md.push('', 'Without shims, Radix Select and Headless UI fail on jsdom and on rsdom. happy-dom needs no shims.', '')
+md.push('', 'Without shims, Radix Select and Headless UI fail on jsdom. happy-dom and rsdom (since its inert observers, DESIGN §24) need no shims.', '')
 if (census) {
   md.push('## Static census: DOM APIs referenced by the 20 libraries', '', 'Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its dependency closure, excluding react and react-dom. "Used by" means the identifier appears in the code. It does not mean a test executed it. The Range rows also require `createRange` or `getRangeAt` in the same file, which approximates the receiver. "Native" is measured inside each Vitest environment with no shims (`tests/_env-probe.test.ts`, `LIBS_POLYFILLS=0`).', '', '| API | area | used by (of 20) | jsdom | happy-dom | rsdom |', '|---|---|---|---|---|---|')
   const yn = (v) => (v === true ? 'yes' : v === false ? '**no**' : 'n/a')

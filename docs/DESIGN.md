@@ -1296,6 +1296,51 @@ touch it, including jsdom's timing, which tests written against jsdom depend on.
   `close()` cancels a queued traversal. `e2e/libraries`: react-router's BrowserRouter `back()` and `forward()` test
   passes.
 
+## 24. Inert observers and scrolling APIs (ROADMAP Stage 1, 2026-10)
+
+`lib/observers.cjs`, facade only, installed last (after `xhr`). jsdom has none of these, so test setups shim them;
+rsdom ships them so that those setups, and libraries that call them unguarded, work without shims. No Rust state:
+nothing here reads or authors the tree beyond what public members already expose.
+
+- **Observers never fire.** `ResizeObserver` and `IntersectionObserver` validate their arguments as the specs say
+  (callback, `observe(Element)`, the `box` enum; `root`, `rootMargin`/`scrollMargin` parsed to four px or %
+  values with SyntaxError otherwise, `threshold` sorted, each in [0, 1] or RangeError, frozen `thresholds`) and keep
+  their targets, but no callback is ever queued and `takeRecords()` is `[]`. The alternative, one delivery of
+  zero-size entries per `observe()`, was rejected on the evidence of `e2e/libraries`: the shims the libraries' docs
+  prescribe (`tests/setup.ts`) and happy-dom are both inert, every library in the study passes with them, and none
+  waits for a first callback. A zero-size first entry is worse than none for code that hides content until it
+  measures a non-zero size (Radix `use-size`, floating-ui `autoUpdate`, virtualisers), and an
+  `isIntersecting: false` entry would tell lazy-loaders the target is off-screen. `ResizeObserverEntry`,
+  `ResizeObserverSize` (illegal constructors) and `IntersectionObserverEntry` (constructible from its init
+  dictionary, rects as plain read-only objects until ROADMAP `geometry` adds DOMRect) exist for feature detection:
+  the w3c IntersectionObserver polyfill installs itself unless `'intersectionRatio' in
+  IntersectionObserverEntry.prototype`.
+- **A user's polyfill wins.** The interface objects are registered in `rt.classes`, which `makeWindow` installs as
+  writable, configurable, non-enumerable window members, so `window.ResizeObserver = Mock` (or
+  `globalThis.ResizeObserver = ...` in the Vitest environment) replaces them; the Element members are ordinary
+  writable prototype methods, so `Element.prototype.scrollIntoView = vi.fn()` works too. A setup that installs its
+  shim only when the API is missing (`tests/setup.ts`) now uses rsdom's.
+- **Scrolling.** `scrollIntoView` is a no-op. `scroll`/`scrollTo`/`scrollBy` take the `(x, y)` and options forms,
+  normalise non-finite values to 0 and write through the `scrollTop`/`scrollLeft` setters (area B keeps the last
+  value assigned, as jsdom does), so a scroll followed by a read gives back what was asked; a single non-object
+  argument is a TypeError, as in browsers. `behavior: 'smooth'` is instant. No `scroll` event fires.
+- **Pointer capture.** One `Map(pointerId -> element)` per document (a WeakMap keyed by the document): setting
+  capture moves it from any other element, `releasePointerCapture` only releases the holder's, and a disconnected
+  holder has none (checked lazily in `hasPointerCapture`, the spec's implicit release on removal).
+  `setPointerCapture` on a disconnected element throws InvalidStateError. No pointer is tracked, so every
+  pointerId is treated as active (no NotFoundError), and `gotpointercapture`/`lostpointercapture` are not fired.
+  happy-dom keeps a per-element set without these rules.
+- **`checkVisibility`** answers from `getComputedStyle` (area A): false when disconnected or in a document without a
+  browsing context, when the element is `display: none` or `display: contents` (no box), or an ancestor is
+  `display: none`; `opacityProperty`/`checkOpacity` add inclusive-ancestor `opacity: 0`, and
+  `visibilityProperty`/`checkVisibilityCSS` add the element's own computed `visibility`. `content-visibility` is not
+  computed, so it never hides.
+- **Measured.** No parity test selects these (their WPT DIR, css/cssom-view, is outside the selection);
+  `test/contract/observers.test.mjs` runs against happy-dom and asserts jsdom has none. `e2e/libraries` without
+  shims: rsdom 14 -> 16 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
+  `no-pointer-capture` are jsdom-only causes now. Not part of the item: `document.elementFromPoint` (ROADMAP "Not
+  planned"; ProseMirror's mousedown handler still needs it on jsdom and rsdom).
+
 ---
 
 ## 26. Web Storage named properties (ROADMAP Stage 3, 2026-10)

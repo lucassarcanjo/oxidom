@@ -3311,41 +3311,6 @@ uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.di
 uievents/legacy/Event-subclasses-init.html: [fail, "assert_true: wrong value"]
 uievents/textInput/api.html: [fail, "missing method: .createEvent()"]
 uievents/ui_event_pseudo_target.html: [fail, "assert_true: wrong value"]
-webstorage/defineProperty.window.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
-webstorage/event_initstorageevent.window.html: [fail, "missing method: .initStorageEvent()"]
-webstorage/missing_arguments.window.html: [fail, "assert_true: wrong value"]
-webstorage/set.window.html: [fail, "assert_equals: wrong value"]
-webstorage/storage_builtins.window.html: [fail, "assert_array_equals: wrong value"]
-webstorage/storage_clear.window.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
-webstorage/storage_enumerate.window.html: [fail, "assert_equals: wrong value"]
-webstorage/storage_getitem.window.html:
-  "Named access to localStorage should be correct": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Named access to sessionStorage should be correct": [fail, "assert_equals: got undefined (missing attribute/API)"]
-webstorage/storage_in.window.html:
-  "The in operator in localStorage: method access": [fail, "assert_false: wrong value"]
-  "The in operator in sessionStorage: method access": [fail, "assert_false: wrong value"]
-webstorage/storage_indexing.window.html:
-  "Getting existing number-valued properties on localStorage": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Getting existing number-valued properties on sessionStorage": [fail, "assert_equals: got undefined (missing attribute/API)"]
-webstorage/storage_length.window.html:
-  "localStorage.length (method access)": [fail, "assert_equals: wrong value"]
-  "sessionStorage.length (method access)": [fail, "assert_equals: wrong value"]
-webstorage/storage_local_quota_independent_from_session.window.html: [fail, "assert_throws_quotaexceedederror: wrong value"]
-webstorage/storage_local_setitem_quotaexceedederr.window.html: [fail, "assert_throws_quotaexceedederror: wrong value"]
-webstorage/storage_removeitem.window.html:
-  "delete localStorage[]": [fail, "assert_equals: wrong value"]
-  "delete sessionStorage[]": [fail, "assert_equals: wrong value"]
-  "localStorage.removeItem(null)": [fail, "assert_true: wrong value"]
-  "localStorage.removeItem(undefined)": [fail, "assert_true: wrong value"]
-  "sessionStorage.removeItem(null)": [fail, "assert_true: wrong value"]
-  "sessionStorage.removeItem(undefined)": [fail, "assert_true: wrong value"]
-webstorage/storage_session_quota_independent_from_local.window.html: [fail, "assert_throws_quotaexceedederror: wrong value"]
-webstorage/storage_session_setitem_quotaexceedederr.window.html: [fail, "assert_throws_quotaexceedederror: wrong value"]
-webstorage/storage_setitem.window.html: [fail, "assert_equals: wrong value", {pass: 2}]
-webstorage/storage_string_conversion.window.html: [fail, "assert_equals: wrong value"]
-webstorage/storage_supported_property_names.window.html:
-  "Object.getOwnPropertyNames on localStorage storage with empty collection": [fail, "assert_array_equals: wrong value"]
-  "Object.getOwnPropertyNames on sessionStorage storage with empty collection": [fail, "assert_array_equals: wrong value"]
 xhr/formdata/constructor-submitter-coordinate.html: [timeout, "harness TIMEOUT: (no message)"]
 xhr/progressevent-constructor.html:
   "Decimal number test.": [fail, "assert_equals: wrong value"]

@@ -2876,9 +2876,6 @@ shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attri
 shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-012.html: [fail, "assert_true: wrong value"]
 shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-013.html: [fail, "assert_true: wrong value"]
 shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-004.html: [fail, "assert_true: wrong value"]
-shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-006.html:
-  "A_10_01_02_06_01_T02": [fail, "missing method: .elementFromPoint()"]
-shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-007.html: [fail, "missing method: .elementFromPoint()"]
 shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-010.html: [fail, "assert_true: wrong value"]
 shadow-dom/untriaged/events/event-dispatch/test-002.html: [fail, "assert_true: wrong value"]
 shadow-dom/untriaged/events/event-retargeting/test-003.html: [fail, "assert_true: wrong value"]

@@ -9,6 +9,7 @@
 
 const { N, V, F, M, K, TOKEN, checkId, afterAlloc, mutated, check, define } = require('./runtime.cjs');
 const { envGen, alive } = require('./memo.cjs');
+const { hitTesting } = require('./observers.cjs');
 
 /** `ShadowRootMode` wire values (src/shadow.rs `mode`). */
 const MODE_OPEN = 0;
@@ -109,6 +110,8 @@ function install(rt, dom) {
   }
   Object.defineProperty(ShadowRoot.prototype, Symbol.toStringTag, { value: 'ShadowRoot', configurable: true });
   rt.classes.ShadowRoot = ShadowRoot;
+  // DocumentOrShadowRoot hit testing (lib/observers.cjs, DESIGN §24): no boxes, so no hits.
+  define(ShadowRoot, hitTesting('ShadowRoot'));
 
   define(Element, {
     attachShadow(init) {

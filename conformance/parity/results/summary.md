@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1588 | 162751 | 86814 | 53.3% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 129 | 2578 | 2178 | 84.5% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 744 | 41.8% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1636 | 162751 | 87417 | 53.7% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2188 | 84.9% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 187 | 30.5% |
-| **all** | **2615** | **1723** | **167724** | **89923** | **53.6%** |
+| **all** | **2615** | **1773** | **167724** | **90539** | **54.0%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -22,26 +22,26 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | stage | item | files | files at parity | gap (subtests) | parity | main causes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | 1 | TreeWalker / NodeIterator / NodeFilter | 17 | 17 | 0 | 100.0% |  |
-| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 1 | 512 | 0.6% | missing method: .attachShadow() (500); harness ERROR: missing global: customElements (6); assert_true: wrong value (4) |
+| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 23 | 7 | 98.6% | harness ERROR: missing global: customElements (6); assert_true: wrong value (1) |
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no tests selected |  |
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 17 | 2 | 427 | 30.5% | rsdom adapter: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
-| 3 | Selection backed by real Ranges | 64 | 41 | 19946 | 40.5% | assert_equals: wrong value (17706); Selection.getRangeAt() throws: … is not a valid index. (2226); missing method: .attachShadow() (11) |
-| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 131 | 710 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
-| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 205 | 3150 | 19.4% | assert_equals: wrong value (1897); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 71 | 168 | 69.4% | missing method: .createEvent() (62); missing method: .attachShadow() (26); assert_array_equals: wrong value (22) |
-| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 215 | 337 | 90.5% | assert_equals: got undefined (missing attribute/API) (96); missing method: .stepUp() (70); assert_equals: wrong value (32) |
+| 3 | Selection backed by real Ranges | 64 | 41 | 19945 | 40.5% | assert_equals: wrong value (17712); Selection.getRangeAt() throws: … is not a valid index. (2230); assert_throws_dom: did not throw (2) |
+| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 132 | 709 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
+| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 206 | 3147 | 19.5% | assert_equals: wrong value (1909); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 73 | 161 | 70.7% | missing method: .createEvent() (62); assert_array_equals: wrong value (23); assert_equals: wrong value (19) |
+| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 217 | 318 | 91.0% | assert_equals: got undefined (missing attribute/API) (82); missing method: .stepUp() (70); assert_equals: wrong value (32) |
 | 3 | FileReader with DOM Blob and File | 37 | 16 | 137 | 69.8% | missing global: FileReader (123); assert_equals: wrong value (6); assert_true: wrong value (4) |
 | 3 | Web Storage named properties | 25 | 6 | 1205 | 5.5% | assert_equals: wrong value (1158); assert_equals: got undefined (missing attribute/API) (18); assert_true: wrong value (14) |
-| 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8869 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (326) |
-| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 9 | 36987 | 8.4% | assert_equals: wrong value (13856); missing method: .compareBoundaryPoints() (9315); missing method: .isPointInRange() (5672) |
+| 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8866 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (323) |
+| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 11 | 36983 | 8.4% | assert_equals: wrong value (13856); missing method: .compareBoundaryPoints() (9315); missing method: .isPointInRange() (5672) |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 18 | 794 | 14.0% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom adapter: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 734 | 1152 | 95.3% | assert_equals: wrong value (199); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 49 | 810 | 3.7% | missing method: .attachShadow() (740); assert_true: wrong value (39); harness ERROR: missing method: .attachShadow() (21) |
-| 4 | Custom elements and customElements | 147 | 51 | 2995 | 0.2% | missing global: customElements (2623); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 741 | 1125 | 95.4% | assert_equals: wrong value (203); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 83 | 261 | 69.0% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (42) |
+| 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
 | 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 75 | 82.4% | TIMEOUT: Timeout of …ms exceeded (33); read of undefined (.document) (9); assert_equals: wrong value (6) |

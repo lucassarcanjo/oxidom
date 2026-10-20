@@ -501,7 +501,7 @@ impl Env {
         if let Some(c) = self.sel.get(sel) {
             // the id map is case-sensitive: quirks-mode documents match ids ASCII-case-insensitively
             if !c.id_only.is_none()
-                && self.rec(root).meta & meta::CONNECTED != 0
+                && self.in_document_tree(root)
                 && adapter::quirks_of(self, root) != QuirksMode::Quirks
             {
                 self.ids_by_id_map(root, c.id_only, first, &mut ids);
@@ -769,7 +769,7 @@ impl Env {
         if id.is_none() || r.meta & meta::KIND_MASK == 0 {
             return 0;
         }
-        if r.meta & meta::CONNECTED != 0 {
+        if self.in_document_tree(root) {
             let Some(doc) = self.doc_data(r.owner) else { return 0 };
             let Some(cands) = doc.id_map.get(&id) else { return 0 };
             let in_root = |c: NodeId| root == doc.id || self.is_inclusive_ancestor(root, c) && c != root;

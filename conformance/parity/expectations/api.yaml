@@ -203,5 +203,5 @@ api/virtual-console.js:
   "API: virtual consoles > proxying console methods when using forwardTo() > should pass through arguments to trace": [fail, "read of undefined (.trace)"]
   "API: virtual consoles > proxying console methods when using forwardTo() > should pass through arguments to warn": [fail, "read of undefined (.warn)"]
   "API: virtual consoles > should bubble up messages from iframes": [fail, "read of undefined (.log)"]
-  "API: virtual consoles > should not repeat insertion steps for light children inserted by an error listener": [fail, "missing method: .attachShadow()"]
+  "API: virtual consoles > should not repeat insertion steps for light children inserted by an error listener": [fail, "Expected values to be strictly deep-equal: + actual - expected + [] - [ - …, - …, - …, - ……"]
   "API: virtual consoles > should send output only to the appropriate window": [fail, "read of undefined (.log)"]

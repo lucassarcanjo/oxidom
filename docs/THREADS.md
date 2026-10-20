@@ -8,7 +8,7 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 
 | thread | roadmap item (`roadmap.yaml` id) | branch | DESIGN section | status |
 | --- | --- | --- | --- | --- |
-| shadow-root | ShadowRoot + `attachShadow`, without retargeting (`shadow-root`) | `parity/shadow-root` | §22 | in progress |
+| shadow-root | ShadowRoot + `attachShadow`, without retargeting (`shadow-root`) | `parity/shadow-root` | §22 | done |
 | history | Session history traversal (`history`) | `parity/history` | §23 | done |
 | observers | No-op observers and scrolling APIs (`observers`) | `parity/observers` | §24 | in progress |
 | ranges | Range comparison and stringification, then live mutation (`ranges`) | `parity/ranges` | §25 | in progress |

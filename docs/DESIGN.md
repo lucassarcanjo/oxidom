@@ -1259,6 +1259,86 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
 
 ---
 
+## 22. ShadowRoot and attachShadow, without retargeting (ROADMAP Stage 1, 2026-10)
+
+`src/shadow.rs` (state and validation) and `lib/shadow.cjs` (the interface), plus small hooks in the child-list
+module, `dom.cjs` and `events.cjs`. A port of `refs/jsdom/lib/jsdom/living/nodes/ShadowRoot-impl.js`, the
+`attachShadow` / `shadowRoot` members of `Element-impl.js` and `DocumentOrShadowRoot-impl.js`. Event retargeting,
+slots, scoped styles and declarative shadow DOM are Stage 4 (`shadow-dom`).
+
+- **Data model.** A shadow root is a DocumentFragment record with `meta::SHADOW` (bit 20, claimed in CONTRIBUTING
+  §2); its `payload` is its host, as a template-contents fragment's payload is its `<template>`, its node document
+  is the host's, and it has no parent. The host carries the same bit (the kind tells them apart) and its root in
+  `ElementExt.shadow`, so `Element.shadowRoot` is one table read on every element that hosts nothing, and one
+  native call (`shadowRootOf`) on a host. The mode lives in `Env.shadow` (a map by root id). `materialize` picks the
+  `ShadowRoot` class from the bit, so wrapper identity and the zero-FFI link getters work unchanged.
+- **jsdom's surface, not more.** jsdom 30 implements `ShadowRootInit { required ShadowRootMode mode }` only, plus
+  `mode`, `host`, `innerHTML` and `activeElement`; rsdom matches it. `delegatesFocus`, `clonable`, `serializable`,
+  `slotAssignment`, `getHTML()` and `adoptedStyleSheets` are absent in both (lit falls back to `<style>` elements,
+  as under jsdom). Validation is jsdom's: HTML namespace, one of the 18 valid host names or a valid custom element
+  name (the PCENChar grammar of `is-potential-custom-element-name`, minus the reserved names), not already a host;
+  `disabledFeatures` waits for custom elements. `cloneNode` / `importNode` of a shadow root throw NotSupportedError,
+  `adoptNode` HierarchyRequestError, a cloned host has no shadow root.
+- **Connected vs in a document tree.** `CONNECTED` keeps meaning DOM "connected" (shadow-including root is a
+  document): connect, disconnect and adopt walk shadow-including descendants (a work list, so the 999-deep nesting
+  of WPT `build-deep-detached-shadow-then-append-text.html` costs no native stack), so `isConnected`, focus, the
+  focus fixup on removal and the style hooks need no change. The document's id map holds elements *in a document
+  tree* only: `Env::in_document_tree` gates the map in the connect pass, in id attribute changes, in
+  `getElementById` and in the `#id` fast path of `querySelector(All)`, so neither `document.getElementById`, `#id`
+  queries nor window named properties see shadow trees, and `ShadowRoot.getElementById` walks its own tree. As in
+  jsdom, a connected `<style>` in a shadow tree still joins `document.styleSheets` (jsdom fails the `styleSheets`
+  cases of `ShadowRoot-interface.html` too).
+- **Host-including ancestors** continue from a shadow root to its host (`is_host_including_inclusive_ancestor`), so
+  a host cannot be inserted into its own shadow tree. `getRootNode({ composed: true })` and DOM "retarget" walk the
+  table and ask `shadowHost` once per shadow boundary.
+- **Events.** The event path follows a shadow root's "get the parent": a composed event continues from the root to
+  its host; a non-composed one stops at the target's own shadow root. There is no retargeting: `event.target` stays
+  the original target at every listener (jsdom shows the host to listeners outside the shadow tree, and invokes a
+  host's listeners at AT_TARGET), asserted as a divergence in `test/contract/shadow-root.test.mjs`; happy-dom 21 does
+  not retarget either. `Document.activeElement` and `ShadowRoot.activeElement` do retarget, as jsdom's
+  DocumentOrShadowRoot does: focus inside a shadow tree reports the host to the document.
+- **Cost of the unused feature.** Until an env's first `attachShadow`, connect and disconnect run their old loops
+  (one `ShadowState::any` test each) and `Document.activeElement` skips the retarget walk: `lib/shadow.cjs` records
+  the env generation of the last successful `attachShadow` (only that native creates shadow roots and nodes are
+  never reclaimed, so the guard is exact for the env's lifetime, §20 "Env lifetime"). Once an env has a shadow root,
+  the connect pass walks to the inserted node's root once per insertion and `document.activeElement` walks from the
+  focused element to its root.
+- **Cost, measured** (2026-10-20, Node 22.22, 4 vCPUs; medians of 10 fresh processes, each the median of 7 samples;
+  `main` = the addon and facade before this change, a page 20 levels deep):
+
+  | metric | main | this change | with a shadow root in the env | jsdom | happy-dom |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | createElement + appendChild + removeChild, depth 20 (ns) | 655 | 665 | 758 | 4639 | 1878 |
+  | `document.activeElement`, focused input (ns) | 9 | 7 | 43 | 218 | 8 |
+  | `getRootNode()`, depth 21 (ns) | 37 | 43 | 44 | 128 | 5 |
+  | dispatch a bubbling event, depth 21 (ns) | 594 | 688 | 644 | 8470 | 12129 |
+  | `element.shadowRoot` on a non-host (ns) | 4 | 5 | 5 | 31 | 9 |
+  | `attachShadow` on a fresh div (ns) | | 1049 | | 2484 | 1213 |
+  | createElement + appendChild + removeChild inside a connected shadow tree (ns) | | 607 | | 6534 | 1458 |
+  | `getRootNode({ composed: true })` from a shadow tree (ns) | | 92 | | 253 | 6 |
+  | `host.shadowRoot` (ns) | | 31 | | 54 | 7 |
+  | `document.activeElement`, focus inside a shadow tree (ns) | | 99 | | 497 | 14 |
+  | dispatch a composed event from a shadow tree, 27-node path (ns) | | 899 | | 13081 | 14638 |
+  | remove + append a host with a 7-node shadow tree (ns) | | 314 | | 8593 | 2390 |
+
+  Process-to-process ranges overlap for every main / this-change pair (the mutate and dispatch rows vary 500-1100 ns
+  between processes); the one cost a shadow root adds is `document.activeElement`'s root walk (9 -> 43 ns).
+- **Verification.** Parity `--item shadow-root`: 23 of 25 files at parity (1 before), gap 512 -> 7 subtests. The 7:
+  6 in `Element-interface-attachShadow-custom-element.html` need `customElements` (Stage 4) and
+  `upper-boundary-encapsulation/test-011.html` needs an iframe (Stage 4 `browsing-contexts`). Across the suite 68
+  files progressed and none regressed: Stage 4 `shadow-dom` 3.7% -> 69.0% (49 -> 83 files at parity), `events` 69.4%
+  -> 70.7%, overall 53.6% -> 54.0%. 70 expectation entries whose kept reason still said "missing method:
+  .attachShadow()" were re-recorded with their current first failure (none lost a passing subtest). The
+  `upper-boundary-encapsulation` form cases also needed `HTMLObjectElement.form` (`<object>` was already a listed
+  element in `src/forms/mod.rs`; one line in `forms.cjs`). `test/contract/shadow-root.test.mjs` (11 cases on all three
+  DOMs, happy-dom pinned where it diverges) covers what libraries do: MUI's `getRootNode() instanceof ShadowRoot`,
+  focus and `activeElement`, events reaching document listeners, the id map and selectors, adoption, cloning,
+  innerHTML and MutationObserver scope; `test/native/shadow.test.mjs` the meta-bit protocol and the env-generation
+  guard across `rt.reset()`; `src/shadow.rs` unit tests the Rust walks (2,000 nested shadow trees). `e2e/libraries`:
+  @mui/material passes (Modal and Dialog), 16 -> 17 of 20 libraries; lit now stops at custom elements only.
+
+---
+
 ## 23. Session history traversal (ROADMAP Stage 1, 2026-10)
 
 Facade only, no Rust: the entry list is browsing-context state, not DOM state. `lib/history.cjs` holds

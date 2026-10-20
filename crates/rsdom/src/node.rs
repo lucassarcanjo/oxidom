@@ -61,6 +61,8 @@ pub mod meta {
     pub const TEMPLATE_CONTENT: u32 = 1 << 15;
     /// Bits 16..31 are free for area owners; claim them in this module (one line each) to avoid clashes.
     pub const FREE_SHIFT: u32 = 16;
+    /// Shadow root (on a DocumentFragment) or shadow host (on an element); crate::shadow, DESIGN §22.
+    pub const SHADOW: u32 = 1 << 20;
 }
 
 /// `NodeRec.state` bits (owned by forms.rs / focus.rs; layout fixed by DESIGN §2.2).
@@ -177,6 +179,8 @@ pub struct ElementExt {
     pub form: Option<Box<crate::forms::FormState>>,
     /// Computed-style memo (area A, style/).
     pub cs: crate::style::CsMemo,
+    /// Shadow root of this host (crate::shadow; 0 = none).
+    pub shadow: NodeId,
 }
 
 const _: () = assert!(size_of::<ElementData>() <= 112);

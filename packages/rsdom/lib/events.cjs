@@ -1038,9 +1038,29 @@ const PopStateEvent = simpleEvent('PopStateEvent', Event, [['state', null, any]]
 const PageTransitionEvent = simpleEvent('PageTransitionEvent', Event, [['persisted', false, bool]]);
 const HashChangeEvent = simpleEvent('HashChangeEvent', Event, [['oldURL', '', str], ['newURL', '', str]]);
 const ClipboardEvent = simpleEvent('ClipboardEvent', Event, [['clipboardData', null, any]]);
-const StorageEvent = simpleEvent('StorageEvent', Event, [['key', null, (v) => (v === null ? null : str(v))],
-  ['oldValue', null, (v) => (v === null ? null : str(v))], ['newValue', null, (v) => (v === null ? null : str(v))],
-  ['url', '', str], ['storageArea', null, any]]);
+const nullableStr = (v) => (v === null ? null : str(v));
+/** `Storage?` (DESIGN §26): window.cjs owns the Storage brand; required lazily (it installs after this file). */
+const storageArea = (v, k) => {
+  if (v === null || require('./window.cjs').isStorage(v)) return v;
+  throw new TypeError(`Failed to convert '${k}' to 'Storage'.`);
+};
+const StorageEvent = simpleEvent('StorageEvent', Event, [['key', null, nullableStr], ['oldValue', null, nullableStr],
+  ['newValue', null, nullableStr], ['url', '', str], ['storageArea', null, storageArea]]);
+// refs/jsdom/lib/jsdom/living/events/StorageEvent-impl.js
+StorageEvent.prototype.initStorageEvent = {
+  initStorageEvent(type, bubbles = false, cancelable = false, key = null, oldValue = null, newValue = null, url = '', area = null) {
+    const vals = STATE.get(this);
+    if (vals === undefined) throw new TypeError('Illegal invocation');
+    if (arguments.length < 1) throw new TypeError("Failed to execute 'initStorageEvent' on 'StorageEvent': 1 argument required, but only 0 present.");
+    if (this.eventPhase !== 0) return;
+    this.initEvent(type, bubbles, cancelable);
+    vals[0] = key === undefined || key === null ? null : str(key);
+    vals[1] = oldValue === undefined || oldValue === null ? null : str(oldValue);
+    vals[2] = newValue === undefined || newValue === null ? null : str(newValue);
+    vals[3] = str(url);
+    vals[4] = area === undefined ? null : storageArea(area, 'storageArea');
+  },
+}.initStorageEvent;
 
 // ============================================================================== EventTarget API
 

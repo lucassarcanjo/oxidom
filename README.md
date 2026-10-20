@@ -47,7 +47,7 @@ Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md))
 
 The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
 rsdom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
-to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-19 rsdom passed 53.6% of the subtests
+to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-20 rsdom passed 54.3% of the subtests
 jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) has the current numbers, broken down
 by roadmap item.
 

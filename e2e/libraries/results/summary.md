@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs rsdom
 
-Generated 2026-10-19T22:22:13.307Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
+Generated 2026-10-20T14:58:28.471Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -13,7 +13,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | polyfills-rsdom | 41 | 35 | 0 | 6 | 15/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-rsdom | 41 | 32 | 2 | 7 | 13/20 |
+| nopolyfills-rsdom | 41 | 35 | 0 | 6 | 15/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -25,14 +25,14 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | @floating-ui/react | @floating-ui/react@0.27.20 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | focus-trap + tabbable | focus-trap@8.2.3<br>tabbable@6.5.0 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | framer-motion | framer-motion@14.3.0 | 2 | pass 2/2 | error* 2/2 | pass 2/2 | pass / error* / pass |
-| @headlessui/react | @headlessui/react@2.2.10 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | error* / pass / error* |
+| @headlessui/react | @headlessui/react@2.2.10 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | error* / pass / pass |
 | lexical | lexical@0.52.0<br>@lexical/react@0.52.0 | 2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** / **FAIL** / **FAIL** |
 | lit | lit@3.3.3 | 2 | pass 2/2 | pass 2/2 | **FAIL** 0/2 | pass / pass / **FAIL** |
 | @mui/material | @mui/material@9.5.0<br>@emotion/react@11.14.0<br>@emotion/styled@11.14.1 | 3 | pass 3/3 | pass 3/3 | **FAIL** 2/3 | pass / pass / **FAIL** |
 | axios | axios@1.20.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | msw | msw@3.0.3 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | @radix-ui/react-dialog | @radix-ui/react-dialog@1.3.1 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
-| @radix-ui/react-select | @radix-ui/react-select@2.4.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | **FAIL** / pass / **FAIL** |
+| @radix-ui/react-select | @radix-ui/react-select@2.4.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | **FAIL** / pass / pass |
 | @radix-ui/react-dropdown-menu | @radix-ui/react-dropdown-menu@2.2.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
 | @radix-ui/react-tabs | @radix-ui/react-tabs@1.2.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
 | react-aria-components | react-aria-components@1.22.1 | 3 | pass 3/3 | **FAIL** 2/3 | pass 3/3 | pass / **FAIL** / pass |
@@ -96,13 +96,13 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 
 ### Element#hasPointerCapture missing; Radix Select trigger pointerdown throws (only without the documented shim)
 
-- **DOM(s):** jsdom, rsdom. **Category:** missing-api (documented shim). **Libraries hit:** @radix-ui/react-select (no-shim run only)
-- **Evidence:** Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively.
+- **DOM(s):** jsdom. **Category:** missing-api (documented shim). **Libraries hit:** @radix-ui/react-select (no-shim run only)
+- **Evidence:** Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively, rsdom since 2026-10-20 (packages/rsdom/lib/observers.cjs).
 
 ### ResizeObserver missing; Headless UI element-movement tracking throws (only without the documented shim)
 
-- **DOM(s):** jsdom, rsdom. **Category:** missing-api (documented shim). **Libraries hit:** @headlessui/react (no-shim run only)
-- **Evidence:** Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively.
+- **DOM(s):** jsdom. **Category:** missing-api (documented shim). **Libraries hit:** @headlessui/react (no-shim run only)
+- **Evidence:** Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively, rsdom since 2026-10-20 (inert, packages/rsdom/lib/observers.cjs).
 
 Every failing test and every unhandled error, in all six runs, maps to one of the causes above (`unexplained` is empty).
 
@@ -122,9 +122,9 @@ Only shims that library docs or the Jest docs tell jsdom users to add are allowe
 
 - jsdom: matchMedia, ResizeObserver, scrollIntoView, hasPointerCapture, setPointerCapture, releasePointerCapture
 - happy-dom: none (all present natively)
-- rsdom: ResizeObserver, scrollIntoView, hasPointerCapture, setPointerCapture, releasePointerCapture
+- rsdom: none (all present natively)
 
-Without shims, Radix Select and Headless UI fail on jsdom and on rsdom. happy-dom needs no shims.
+Without shims, Radix Select and Headless UI fail on jsdom. happy-dom and rsdom (since its inert observers, DESIGN §24) need no shims.
 
 ## Static census: DOM APIs referenced by the 20 libraries
 
@@ -138,18 +138,18 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | MutationObserver | observers | 12 | yes | yes | yes |
 | ShadowRoot (global) | shadow-dom | 11 | yes | yes | **no** |
 | offsetWidth/offsetHeight/offsetParent | geometry | 11 | yes | yes | yes |
-| IntersectionObserver | observers | 11 | **no** | yes | **no** |
-| scrollIntoView | geometry | 10 | **no** | yes | **no** |
+| IntersectionObserver | observers | 11 | **no** | yes | yes |
+| scrollIntoView | geometry | 10 | **no** | yes | yes |
 | visualViewport | geometry | 10 | **no** | **no** | **no** |
-| ResizeObserver | observers | 10 | **no** | yes | **no** |
+| ResizeObserver | observers | 10 | **no** | yes | yes |
 | inert | html | 10 | **no** | yes | **no** |
 | CSS.supports/CSS.escape | css | 10 | yes | yes | yes |
 | composedPath | shadow-dom | 9 | yes | yes | yes |
 | Element#getClientRects | geometry | 9 | yes | yes | yes |
 | getSelection | editing | 8 | yes | yes | yes |
 | isContentEditable | editing | 8 | **no** | yes | yes |
-| Element#scrollTo | geometry | 8 | **no** | yes | **no** |
-| checkVisibility | geometry | 8 | **no** | yes | **no** |
+| Element#scrollTo | geometry | 8 | **no** | yes | yes |
+| checkVisibility | geometry | 8 | **no** | yes | yes |
 | createTreeWalker | traversal | 7 | yes | yes | yes |
 | NodeFilter | traversal | 7 | yes | yes | yes |
 | assignedNodes/assignedElements | shadow-dom | 6 | yes | yes | **no** |
@@ -163,7 +163,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | caretRangeFromPoint/caretPositionFromPoint | editing | 4 | **no** | **no** | **no** |
 | Range#getBoundingClientRect | geometry | 4 | **no** | yes | yes |
 | elementFromPoint | geometry | 4 | **no** | yes | **no** |
-| setPointerCapture/hasPointerCapture | events | 4 | **no** | yes | **no** |
+| setPointerCapture/hasPointerCapture | events | 4 | **no** | yes | yes |
 | DataTransfer | events | 4 | **no** | yes | **no** |
 | fetch | network | 4 | yes | yes | yes |
 | getAnimations | animation | 3 | **no** | yes | **no** |
@@ -187,7 +187,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **rsdom** (23 APIs): ShadowRoot (global) (11), IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), Element#scrollTo (8), checkVisibility (8), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1), history traversal fires popstate (1)
+- **rsdom** (17 APIs): ShadowRoot (global) (11), visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1), history traversal fires popstate (1)
 
 ## Caveats
 

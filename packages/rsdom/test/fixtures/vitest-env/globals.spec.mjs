@@ -120,9 +120,18 @@ test('React feature-detection prerequisites', () => {
 });
 
 test('unimplemented names are not defined', () => {
-  for (const k of ['customElements', 'ResizeObserver', 'IntersectionObserver', 'DataTransfer', 'requestIdleCallback']) {
+  for (const k of ['customElements', 'DataTransfer', 'requestIdleCallback']) {
     expect(k in globalThis, k).toBe(false);
   }
+});
+
+test("observers are globals a test's own polyfill replaces (DESIGN §24)", () => {
+  expect(typeof ResizeObserver).toBe('function');
+  expect(window.IntersectionObserver).toBe(IntersectionObserver);
+  const Mine = class {};
+  globalThis.ResizeObserver = Mine;
+  expect(window.ResizeObserver).toBe(Mine);
+  expect(new ResizeObserver()).toBeInstanceOf(Mine);
 });
 
 test('diagnostics handle', () => {

@@ -63,15 +63,15 @@ export const CAUSES = [
     evidence: 'Unhandled Rejection AbortError from happy-dom/lib/animation/Animation.js:161 via motion-dom NativeAnimation.cancel (framer-motion uses WAAPI only where element.animate exists, i.e. only in happy-dom). Web Animations "cancel an animation" step 1.3 sets [[PromiseIsHandled]] on the rejected promise. Assertions pass; Vitest still fails the run (exit 1).',
   },
   {
-    id: 'no-pointer-capture', category: 'missing-api (documented shim)', doms: ['jsdom', 'rsdom'],
+    id: 'no-pointer-capture', category: 'missing-api (documented shim)', doms: ['jsdom'],
     title: 'Element#hasPointerCapture missing; Radix Select trigger pointerdown throws (only without the documented shim)',
     re: /hasPointerCapture is not a function|Unable to find role="option" and name "Banana"/,
-    evidence: 'Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively.',
+    evidence: 'Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively, rsdom since 2026-10-20 (packages/rsdom/lib/observers.cjs).',
   },
   {
-    id: 'no-resizeobserver', category: 'missing-api (documented shim)', doms: ['jsdom', 'rsdom'],
+    id: 'no-resizeobserver', category: 'missing-api (documented shim)', doms: ['jsdom'],
     title: 'ResizeObserver missing; Headless UI element-movement tracking throws (only without the documented shim)',
     re: /ResizeObserver is not defined/,
-    evidence: 'Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively.',
+    evidence: 'Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively, rsdom since 2026-10-20 (inert, packages/rsdom/lib/observers.cjs).',
   },
 ]

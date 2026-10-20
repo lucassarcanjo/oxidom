@@ -16,11 +16,13 @@
 // are own members of the input and textarea prototypes. Internal code never reads `element.value`.
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 const events = require('./events.cjs');
 const { installIndices, liveQueryCollection, staticNodeListFromIds, ListIterator, HTMLCollection } = require('./collections.cjs');
 
+const { MEMO, NODE, nodeVersion, deps, envGen, alive } = require('./memo.cjs');
+
 const { N, V, F, M, K, S, EPI, W, NS } = rt;
-const MEMO = rt.flags.MEMO;
 
 function wrap(id) {
   if (id === 0) return null;
@@ -28,17 +30,8 @@ function wrap(id) {
   return w !== undefined ? w : rt.wrap(id);
 }
 
-/** Input type names indexed by the Rust type code (src/forms/types.rs `ty`). */
-const INPUT_TYPES = [
-  'text', 'hidden', 'search', 'tel', 'url', 'email', 'password', 'date', 'month', 'week', 'time',
-  'datetime-local', 'number', 'range', 'color', 'checkbox', 'radio', 'file', 'submit', 'image', 'reset', 'button',
-];
-const T_HIDDEN = 1;
-const T_FILE = 17;
-const T_SUBMIT = 18;
-const T_IMAGE = 19;
-const T_RESET = 20;
-const T_BUTTON = 21;
+/** Input type names indexed by the Rust type code, and the codes (generated from src/forms/types.rs). */
+const { NAMES: INPUT_TYPES, TY } = require('./generated/input-types.cjs');
 
 /** Validity bits (src/forms/mod.rs `vbits`). */
 const VB = {
@@ -49,7 +42,7 @@ const VB = {
 const FAIL_MASK = 0x3ff;
 
 const A = {};
-for (const n of ['input', 'textarea', 'select', 'option', 'body', 'html', 'base', 'fieldset', 'legend', 'details', 'summary', 'a', 'area', 'img', 'svg', 'button', 'datalist', 'object']) {
+for (const n of ['input', 'textarea', 'select', 'option', 'body', 'html', 'base', 'fieldset', 'legend', 'details', 'summary', 'a', 'area', 'img', 'svg']) {
   A[n] = rt.lookupAtom(n);
 }
 
@@ -190,7 +183,10 @@ function reflectULong(C, prop, attr, dflt, positive = false) {
 
 // ------------------------------------------------------------------------------------------- URLs
 
+/** Base URL memo per document: { k: stamp of BASE_DEPS, u: document URL, b: base URL }. */
 const BASE = new WeakMap();
+/** Which `<base href>` applies can change with any child-list or attribute change. */
+const BASE_DEPS = deps('TREE', 'ATTR');
 const URL_CACHE = new Map();
 rt.onReset(() => URL_CACHE.clear());
 
@@ -198,9 +194,8 @@ rt.onReset(() => URL_CACHE.clear());
 function baseURL(doc) {
   if (doc === null) return 'about:blank';
   const url = doc.URL;
-  const key = V.EP[EPI.TREE] * 0x1000 + (V.EP[EPI.ATTR] & 0xfff);
   const m = BASE.get(doc);
-  if (m !== undefined && m.k === key && m.u === url) return m.b;
+  if (m !== undefined && m.u === url && BASE_DEPS.fresh(m.k)) return m.b;
   let b = url;
   const root = doc.documentElement;
   if (root !== null) {
@@ -221,7 +216,12 @@ function baseURL(doc) {
       n = nextInSubtree(n, stop);
     }
   }
-  BASE.set(doc, { k: key, u: url, b });
+  if (m === undefined) BASE.set(doc, { k: BASE_DEPS.stamp(), u: url, b });
+  else {
+    BASE_DEPS.stamp(m.k);
+    m.u = url;
+    m.b = b;
+  }
   return b;
 }
 
@@ -305,8 +305,8 @@ class DOMTokenList {
 
   #sync() {
     const el = this.#el;
-    const v = V.T[V.off(el._i) + F.ATTR_VER];
-    if (v !== this.#ver || !MEMO) {
+    const v = nodeVersion(el._i, NODE.ATTRS);
+    if (!MEMO || v !== this.#ver) {
       this.#ver = v;
       this.#tokens = parseTokens(el.getAttribute(this.#attr));
     }
@@ -532,7 +532,7 @@ function makeDataset(el) {
 /** API value of input / textarea (memoised by FORM_VER). */
 function memoValue(el) {
   const id = el._i;
-  const fv = V.T[V.off(id) + F.FORM_VER];
+  const fv = nodeVersion(id, NODE.FORM);
   const s = el._vm;
   if (MEMO && s !== null && s.fv === fv) return s.val;
   const v = N.valueGet(id);
@@ -553,7 +553,7 @@ function setValue(el, v) {
     // Lone surrogates become U+FFFD in Rust's UTF-8 storage: memoise only what Rust really holds.
     if (MEMO && v.isWellFormed()) {
       const s = bs(el);
-      s.fv = V.T[V.off(id) + F.FORM_VER];
+      s.fv = nodeVersion(id, NODE.FORM);
       s.val = v;
     }
   } else if (c !== 0) rt.check(c);
@@ -562,7 +562,7 @@ function setValue(el, v) {
 /** Selection memo (start, end, dir) or null when the selection API does not apply. */
 function selection(el) {
   const id = el._i;
-  const fv = V.T[V.off(id) + F.FORM_VER];
+  const fv = nodeVersion(id, NODE.FORM);
   const s = bs(el);
   if (!(MEMO && s.sv === fv)) {
     if (N.selGet(id) === 0) {
@@ -679,7 +679,7 @@ function validityBits(el) {
       const re = patternRegExp(el.getAttribute('pattern'));
       if (re !== null) {
         const v = N.valueGet(id);
-        const multiple = inputTypeOf(id) === 5 && el.hasAttribute('multiple');
+        const multiple = inputTypeOf(id) === TY.EMAIL && el.hasAttribute('multiple');
         const ok = multiple ? v.split(',').map((s) => s.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, '')).every((s) => re.test(s)) : re.test(v);
         if (!ok) b |= VB.PATTERN_MISMATCH;
       }
@@ -810,10 +810,8 @@ const Labelable = {
 
 // =============================================================================== collections
 
-/** Key of live area-B collections: EP[REC] changes with any record write (tree, attributes, form state). */
-function recKey() {
-  return V.EP[EPI.REC];
-}
+/** Live area-B collections depend on EP[REC]: it changes with any record write (tree, attributes, form state). */
+const REC_DEPS = deps('REC');
 
 function idsToWrappers(ids) {
   const a = new Array(ids.length);
@@ -875,14 +873,14 @@ rt.classes.HTMLOptionsCollection = HTMLOptionsCollection;
 class RadioNodeList extends rt.classes.NodeList {
   get value() {
     for (const el of this) {
-      if (isHtml(el._i, A.input) && inputTypeOf(el._i) === 16 && el.checked) return el.value;
+      if (isHtml(el._i, A.input) && inputTypeOf(el._i) === TY.RADIO && el.checked) return el.value;
     }
     return '';
   }
 
   set value(v) {
     for (const el of this) {
-      if (isHtml(el._i, A.input) && inputTypeOf(el._i) === 16 && el.value === v) {
+      if (isHtml(el._i, A.input) && inputTypeOf(el._i) === TY.RADIO && el.value === v) {
         el.checked = true;
         return;
       }
@@ -975,7 +973,7 @@ let coverOptionIndices = null;
 
 function liveIds(Proto, owner, native) {
   const id = owner._i;
-  const c = liveQueryCollection({ key: recKey, items: () => idsToWrappers(rt.outIds(native(id))) });
+  const c = liveQueryCollection({ deps: REC_DEPS, items: () => idsToWrappers(rt.outIds(native(id))) });
   if (Proto !== null) Object.setPrototypeOf(c, Proto.prototype);
   OWNER.set(c, owner);
   return c;
@@ -1012,7 +1010,8 @@ rt.classes.FileList = FileList;
 // ========================================================================================= focus
 
 function currentFocus(doc) {
-  if (doc === rt.defaultDocument) return V.EP[EPI.FOCUS];
+  // Rust's main document is the current browsing context's (lib/context.cjs): EP[FOCUS] mirrors its focus.
+  if (doc === context.currentDocument()) return V.EP[EPI.FOCUS];
   return N.focusedOf(doc._i);
 }
 
@@ -1084,7 +1083,7 @@ const HTMLOrSVG = {
     if (v === null) {
       const ns = this.namespaceURI;
       const ln = this.localName;
-      if (ns === NS.HTML && (TABINDEX_ZERO.has(ln) || (ln === 'summary' && isSummaryForDetails(this)))) return 0;
+      if (ns === NS.HTML && (TABINDEX_ZERO.has(ln) || (ln === 'summary' && N.isSummaryForDetails(this._i)))) return 0;
       if (ns === NS.SVG && ln === 'a') return 0;
       return -1;
     }
@@ -1102,23 +1101,11 @@ const HTMLOrSVG = {
   ...FocusMembers,
 };
 
-function isSummaryForDetails(el) {
-  const p = el.parentNode;
-  if (p === null || !(p instanceof rt.classes.Element) || p.localName !== 'details') return false;
-  for (let c = p.firstElementChild; c !== null; c = c.nextElementSibling) if (c.localName === 'summary') return c === el;
-  return false;
-}
-
 // ================================================================================ form submission
 
+/** HTML "submit button" (src/forms/element_state.rs `is_submit_button`); false for non-elements. */
 function isSubmitButton(el) {
-  if (!(el instanceof rt.classes.HTMLElement)) return false;
-  const id = el._i;
-  if (isHtml(id, A.input)) {
-    const t = inputTypeOf(id);
-    return t === T_SUBMIT || t === T_IMAGE;
-  }
-  return el.localName === 'button' && N.buttonType(id) === T_SUBMIT;
+  return el instanceof rt.classes.HTMLElement && N.isSubmitButton(el._i);
 }
 
 /** HTMLFormElement "statically validate the constraints" + interactive part (fires `invalid`). */
@@ -1149,27 +1136,16 @@ function formEntries(form, submitter = null) {
     if (!isSubmitButton(submitter)) throw new TypeError("Failed to construct 'FormData': The specified element is not a submit button.");
     if (submitter.form !== form) throw rt.domError(2, "Failed to construct 'FormData': The specified element is not owned by this form element.");
   } else submitter = null;
-  const ids = rt.outIds(N.formSubmittables(form._i));
+  // Rust filters the controls (datalist, disabled, other buttons, unchecked checkboxes / radios, object:
+  // src/forms/mod.rs `entry_list_controls`); the facade owns the FileList and builds the entries.
+  const ids = rt.outIds(N.formEntryControls(form._i, submitter === null ? 0 : submitter._i));
   const out = [];
   for (let k = 0; k < ids.length; k++) {
     const id = ids[k];
-    let inDatalist = false;
-    for (let p = V.T[V.off(id) + F.PARENT]; p > 0; p = V.T[V.off(p) + F.PARENT]) {
-      if (isHtml(p, A.datalist)) {
-        inDatalist = true;
-        break;
-      }
-    }
-    if (inDatalist || N.isDisabled(id)) continue;
     const el = wrap(id);
-    const isInput = isHtml(id, A.input);
-    const t = isInput ? inputTypeOf(id) : -1;
-    const isButton = isHtml(id, A.button) || t === T_SUBMIT || t === T_IMAGE || t === T_RESET || t === T_BUTTON;
-    if (isButton && el !== submitter) continue;
-    if ((t === 15 || t === 16) && (V.T[V.off(id) + F.STATE] & S.CHECKED) === 0) continue;
-    if (isHtml(id, A.object)) continue;
+    const t = isHtml(id, A.input) ? inputTypeOf(id) : -1;
     const name = el.getAttribute('name');
-    if (t === T_IMAGE) {
+    if (t === TY.IMAGE) {
       const prefix = name ? `${name}.` : '';
       out.push([`${prefix}x`, '0'], [`${prefix}y`, '0']);
       continue;
@@ -1178,9 +1154,9 @@ function formEntries(form, submitter = null) {
     if (isHtml(id, A.select)) {
       const opts = rt.outIds(N.selectOptions(id));
       for (const o of opts) if ((V.T[V.off(o) + F.STATE] & S.SELECTED) !== 0) out.push([name, N.valueGet(o)]);
-    } else if (t === 15 || t === 16) {
+    } else if (t === TY.CHECKBOX || t === TY.RADIO) {
       out.push([name, el.getAttribute('value') ?? 'on']);
-    } else if (t === T_FILE) {
+    } else if (t === TY.FILE) {
       const files = el.files;
       if (files === null || files.length === 0) out.push([name, new File([], '', { type: 'application/octet-stream' })]);
       else for (let i = 0; i < files.length; i++) out.push([name, files.item(i)]);
@@ -1220,10 +1196,10 @@ function runUaTasks() {
     const el = rt.wrap(id);
     if (TOGGLE_PENDING.has(el)) continue;
     TOGGLE_PENDING.add(el);
-    const envGen = rt.envGen;
+    const gen = envGen();
     setImmediate(() => {
       TOGGLE_PENDING.delete(el);
-      if (el._i !== 0 && rt.envGen === envGen) events.fire(el, 'toggle', {});
+      if (el._i !== 0 && alive(gen)) events.fire(el, 'toggle', {});
     });
   }
 }
@@ -1380,7 +1356,7 @@ function install(_rt, dom) {
       this.setAttribute('type', v);
     },
     get value() {
-      if (inputTypeOf(this._i) === T_FILE) {
+      if (inputTypeOf(this._i) === TY.FILE) {
         const f = bs(this).files;
         return f !== null && f.length > 0 ? `C:\\fakepath\\${f.item(0).name}` : '';
       }
@@ -1388,7 +1364,7 @@ function install(_rt, dom) {
     },
     set value(v) {
       v = strNullEmpty(v);
-      if (inputTypeOf(this._i) === T_FILE) {
+      if (inputTypeOf(this._i) === TY.FILE) {
         if (v !== '') rt.check(6, "Failed to set the 'value' property on 'HTMLInputElement': This input element accepts a filename, which may only be programmatically set to the empty string.");
         bs(this).files?._clear();
         return;
@@ -1421,12 +1397,12 @@ function install(_rt, dom) {
       this.value = Number.isNaN(n) ? '' : String(n);
     },
     get files() {
-      if (inputTypeOf(this._i) !== T_FILE) return null;
+      if (inputTypeOf(this._i) !== TY.FILE) return null;
       const s = bs(this);
       return s.files ?? (s.files = new FileList(rt.TOKEN));
     },
     set files(v) {
-      if (inputTypeOf(this._i) === T_FILE && v !== null && v !== undefined) bs(this).files = v;
+      if (inputTypeOf(this._i) === TY.FILE && v !== null && v !== undefined) bs(this).files = v;
     },
     get list() {
       const id = this.getAttribute('list');
@@ -1463,6 +1439,7 @@ function install(_rt, dom) {
     },
     set value(v) {
       setValue(this, strNullEmpty(v));
+      rt.mutated();
     },
     get defaultValue() {
       return N.childText(this._i);
@@ -1498,7 +1475,8 @@ function install(_rt, dom) {
       return N.valueGet(this._i);
     },
     set value(v) {
-      N.valueSet(this._i, strNullEmpty(v));
+      rt.check(N.valueSet(this._i, strNullEmpty(v)));
+      rt.mutated();
     },
     get options() {
       return optionsOf(this);
@@ -1593,7 +1571,7 @@ function install(_rt, dom) {
   /** `new Option(text, value, defaultSelected, selected)` (legacy factory function). */
   function OptionFactory(text = '', value = undefined, defaultSelected = false, selected = false) {
     if (new.target === undefined) throw new TypeError("Failed to construct 'Option': Please use the 'new' operator.");
-    const doc = rt.defaultDocument;
+    const doc = context.currentDocument();
     if (doc === null) throw new TypeError('rsdom: no document');
     const o = doc.createElement('option');
     text = str(text);
@@ -1842,7 +1820,7 @@ function install(_rt, dom) {
   /** `new Image(width, height)` (legacy factory function). */
   function ImageFactory(width = undefined, height = undefined) {
     if (new.target === undefined) throw new TypeError("Failed to construct 'Image': Please use the 'new' operator.");
-    const doc = rt.defaultDocument;
+    const doc = context.currentDocument();
     if (doc === null) throw new TypeError('rsdom: no document');
     const img = doc.createElement('img');
     if (width !== undefined) img.setAttribute('width', String(Number(width) >>> 0));

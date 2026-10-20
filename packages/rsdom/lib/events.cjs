@@ -10,17 +10,19 @@
 //
 // Window: the window object (`globalThis` under Vitest, a plain object from createWindow()) is not a Node.
 // `installWindow(win, document)` creates a hidden WindowTarget holding its listeners, defines
-// addEventListener / removeEventListener / dispatchEvent / `event` / on* accessors on `win`, and links it
-// as the last entry of every event path through `document` (except `load`).
+// addEventListener / removeEventListener / dispatchEvent / `event` / on* accessors on `win`, and stores it
+// on the document's browsing context (lib/context.cjs, `ctx.wt`): the last entry of every event path
+// through `document` (except `load`).
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 
 const { V, F, M, K, W } = rt;
 const N = rt.N;
 
 /** Atoms used here (static atoms: their ids are stable for the process). */
 const A = {};
-for (const n of ['input', 'button', 'label', 'a', 'area', 'summary', 'details', 'body', 'frameset', 'html', 'open']) {
+for (const n of ['input', 'button', 'label', 'a', 'area', 'summary', 'body', 'frameset', 'html', 'open']) {
   A[n] = rt.lookupAtom(n);
 }
 
@@ -35,8 +37,8 @@ function wrap(id) {
   return w !== undefined ? w : rt.wrap(id);
 }
 
-/** Input type codes (src/forms/types.rs `ty`). */
-const TY = { CHECKBOX: 15, RADIO: 16, SUBMIT: 18, IMAGE: 19, RESET: 20, BUTTON: 21 };
+/** Input type codes (generated from src/forms/types.rs `ty`). */
+const { TY } = require('./generated/input-types.cjs');
 
 // ============================================================================== WebIDL conversions
 
@@ -247,14 +249,14 @@ class Event {
           last = p;
         }
         if ((V.T[V.off(last) + F.META] & M.KIND) === K.DOCUMENT) {
-          const wt = wrap(last)._wt;
-          if (wt !== undefined) {
+          const wt = windowTargetOf(wrap(last));
+          if (wt !== null) {
             win = wt;
             if (type !== 'load') path.push(wt);
           }
         } else {
           const od = wrap(V.T[V.off(id) + F.OWNER]);
-          if (od !== null && od._wt !== undefined) win = od._wt;
+          if (od !== null) win = windowTargetOf(od);
         }
       } else if (target instanceof WindowTarget) {
         win = target;
@@ -1115,10 +1117,16 @@ function pub(item) {
   return item instanceof WindowTarget ? item.window : item;
 }
 
-/** The WindowTarget of the facade's default document (for plain EventTargets). */
+/** The WindowTarget of `doc`'s browsing context (lib/context.cjs), or null (no context, or no window yet). */
+function windowTargetOf(doc) {
+  const c = doc._ctx;
+  return c === undefined ? null : c.wt;
+}
+
+/** The WindowTarget of the current browsing context (for plain EventTargets). */
 function defaultWindowTarget() {
-  const d = rt.defaultDocument;
-  return d !== null && d._wt !== undefined ? d._wt : null;
+  const c = context.current();
+  return c === null ? null : c.wt;
 }
 
 /** jsdom `defaultPassiveValue`: wheel/touch listeners on window, document, html, body default to passive. */
@@ -1241,7 +1249,7 @@ const EventTargetMethods = {
 function reportException(win, error) {
   // Accept the public window too (window.cjs reports rAF / MutationObserver callback errors with it): resolve
   // its hidden WindowTarget so no `reporting` flag lands on the global object.
-  if (win !== null && !(win instanceof WindowTarget)) win = WINDOW_TARGETS.get(win) ?? null;
+  if (win !== null && !(win instanceof WindowTarget)) win = context.ofWindow(win)?.wt ?? null;
   if (win !== null && !win.reporting) {
     win.reporting = true;
     let ev;
@@ -1348,12 +1356,8 @@ function activationBehavior(el, ev, packed) {
   } else if (a === A.label) {
     labelActivation(el, ev);
   } else if (a === A.summary) {
-    const p = V.T[V.off(id) + F.PARENT];
-    if (p === 0 || !isHtml(p, A.details)) return;
-    let c = V.T[V.off(p) + F.FIRST];
-    while (c > 0 && !isHtml(c, A.summary)) c = V.T[V.off(c) + F.NEXT];
-    if (c !== id) return;
-    const details = wrap(p);
+    if (!N.isSummaryForDetails(id)) return;
+    const details = wrap(V.T[V.off(id) + F.PARENT]);
     if (details.hasAttribute('open')) details.removeAttribute('open');
     else details.setAttribute('open', '');
   }
@@ -1374,7 +1378,7 @@ function isInteractive(n) {
     case 'object':
       return n.hasAttribute('usemap');
     case 'input':
-      return inputType(n._i) !== 1;
+      return inputType(n._i) !== TY.HIDDEN;
     case 'button':
     case 'details':
     case 'embed':
@@ -1454,7 +1458,7 @@ function handlerTarget(obj, type) {
     const a = V.T[V.off(obj._i) + F.LOCAL];
     if ((a === A.body || a === A.frameset) && isHtml(obj._i, a) && (WINDOW_EVENT_SET.has(type) || BODY_REFLECT.has(type))) {
       const doc = obj.ownerDocument;
-      return doc !== null && doc._wt !== undefined ? doc._wt : null;
+      return doc !== null ? windowTargetOf(doc) : null;
     }
   }
   return obj;
@@ -1510,17 +1514,15 @@ function defineHandlers(target, names, receiver = null) {
 
 /**
  * Makes `win` (the window object: globalThis in the Vitest environment, or createWindow()'s object) an event
- * target linked to `document`: listener methods, `event`, `on*` handlers. Idempotent; returns the hidden
- * WindowTarget. AREA C calls this from its window setup.
+ * target linked to `document`, a browsing-context document (lib/context.cjs): listener methods, `event`,
+ * `on*` handlers. Idempotent; returns the hidden WindowTarget (also `ctx.wt`). AREA C calls this from its
+ * window setup.
  */
-/** public window -> its WindowTarget (for reportException called with the public window). */
-const WINDOW_TARGETS = new WeakMap();
-
 function installWindow(win, document) {
-  if (document._wt !== undefined && document._wt.window === win) return document._wt;
+  const ctx = document._ctx;
+  if (ctx.wt !== null && ctx.wt.window === win) return ctx.wt;
   const wt = new WindowTarget(win, document);
-  document._wt = wt;
-  WINDOW_TARGETS.set(win, wt);
+  ctx.wt = wt;
   const methods = {
     addEventListener(type, callback, options) {
       // eslint-disable-next-line prefer-rest-params

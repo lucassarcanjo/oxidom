@@ -5,6 +5,7 @@ use crate::error::{Code, DomError, DomResult, code};
 use crate::node::kind;
 use crate::string::Str;
 use crate::table::NodeId;
+use crate::tree::Records;
 
 impl Env {
     /// DOM "replace data" with UTF-16 offsets.
@@ -47,7 +48,7 @@ impl Env {
         let parent = self.rec(id).parent;
         if parent != 0 {
             let next = self.rec(id).next;
-            self.insert(new, parent, next, false);
+            self.insert(new, parent, next, Records::Queue);
         }
         self.replace_data(id, off16, len - off16, "")?;
         Ok(new)
@@ -64,7 +65,7 @@ impl Env {
             let len = self.char_data(n).map_or(0, |s| s.utf16_len());
             if len == 0 {
                 let after = self.next_skipping_children(n, root);
-                self.remove(n, false);
+                self.remove(n, Records::Queue);
                 n = after;
                 continue;
             }
@@ -83,7 +84,7 @@ impl Env {
             let mut c = self.rec(n).next;
             while c != 0 && self.kind(c) == kind::TEXT {
                 let nx = self.rec(c).next;
-                self.remove(c, false);
+                self.remove(c, Records::Queue);
                 c = nx;
             }
             n = self.next_in_subtree(n, root);

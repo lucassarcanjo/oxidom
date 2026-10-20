@@ -12,11 +12,13 @@
 //   _ch = DATA_VER the memo was read at, _at = the memoized data string.
 
 const rt = require('./runtime.cjs');
+const context = require('./context.cjs');
 const interfaces = require('./generated/interfaces.cjs');
 const {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeListFromIds, ListIterator, installIndices,
   coverIndices,
 } = require('./collections.cjs');
+const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
 
 const { N, V, EPI, F, M, K, NSC, NS, W, TOKEN } = rt;
 const {
@@ -233,8 +235,9 @@ class Node extends EventTarget {
     afterAlloc();
     const w = wrap(id);
     if (this instanceof Document) {
-      // Document cloning steps: URL and content type travel with the clone (kept on the wrapper).
-      if (this._url !== undefined) w._url = this._url;
+      // Document cloning steps: URL and content type travel with the clone (kept on the wrapper; a clone
+      // has no browsing context).
+      w._url = this.URL;
       if (this._ct !== undefined) w._ct = this._ct;
     }
     return w;
@@ -372,7 +375,7 @@ const ParentNode = {
     return this._ch ?? (this._ch = liveChildren(this._i));
   },
   get firstElementChild() {
-    for (let c = V.T[V.off(this._i) + F.FIRST]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) return wrap(c);
       c = V.T[o + F.NEXT];
@@ -380,7 +383,7 @@ const ParentNode = {
     return null;
   },
   get lastElementChild() {
-    for (let c = V.T[V.off(this._i) + F.LAST]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.LAST]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) return wrap(c);
       c = V.T[o + F.PREV];
@@ -389,7 +392,7 @@ const ParentNode = {
   },
   get childElementCount() {
     let n = 0;
-    for (let c = V.T[V.off(this._i) + F.FIRST]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) n++;
       c = V.T[o + F.NEXT];
@@ -431,7 +434,7 @@ const ChildNode = {
     const parent = V.T[V.off(this._i) + F.PARENT];
     if (parent === 0) return;
     let prev = V.T[V.off(this._i) + F.PREV];
-    while (prev !== 0 && inArgs(prev, nodes)) prev = V.T[V.off(prev) + F.PREV];
+    while (prev > 0 && inArgs(prev, nodes)) prev = V.T[V.off(prev) + F.PREV];
     const node = convertNodes(this, nodes, 'before');
     const ref = prev === 0 ? V.T[V.off(parent) + F.FIRST] : V.T[V.off(prev) + F.NEXT];
     check(N.insertBefore(parent, node, ref));
@@ -441,7 +444,7 @@ const ChildNode = {
     const parent = V.T[V.off(this._i) + F.PARENT];
     if (parent === 0) return;
     let next = V.T[V.off(this._i) + F.NEXT];
-    while (next !== 0 && inArgs(next, nodes)) next = V.T[V.off(next) + F.NEXT];
+    while (next > 0 && inArgs(next, nodes)) next = V.T[V.off(next) + F.NEXT];
     const node = convertNodes(this, nodes, 'after');
     check(N.insertBefore(parent, node, next));
     mutated();
@@ -450,7 +453,7 @@ const ChildNode = {
     const parent = V.T[V.off(this._i) + F.PARENT];
     if (parent === 0) return;
     let next = V.T[V.off(this._i) + F.NEXT];
-    while (next !== 0 && inArgs(next, nodes)) next = V.T[V.off(next) + F.NEXT];
+    while (next > 0 && inArgs(next, nodes)) next = V.T[V.off(next) + F.NEXT];
     const node = convertNodes(this, nodes, 'replaceWith');
     if (V.T[V.off(this._i) + F.PARENT] === parent) check(N.replaceChild(parent, node, this._i));
     else check(N.insertBefore(parent, node, next));
@@ -465,7 +468,7 @@ const ChildNode = {
 
 const NonDocumentTypeChildNode = {
   get previousElementSibling() {
-    for (let c = V.T[V.off(this._i) + F.PREV]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.PREV]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) return wrap(c);
       c = V.T[o + F.PREV];
@@ -473,7 +476,7 @@ const NonDocumentTypeChildNode = {
     return null;
   },
   get nextElementSibling() {
-    for (let c = V.T[V.off(this._i) + F.NEXT]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.NEXT]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) return wrap(c);
       c = V.T[o + F.NEXT];
@@ -491,7 +494,7 @@ class Document extends Node {
       const id = N.createDocument(1, null);
       afterAlloc();
       const d = materializeAs(id, Document);
-      d._url = rt.defaultDocument?.URL ?? 'about:blank';
+      d._url = context.currentDocument()?.URL ?? 'about:blank';
       return d;
     }
     super(t);
@@ -512,7 +515,7 @@ class Document extends Node {
   set textContent(_v) {}
 
   get documentElement() {
-    for (let c = V.T[V.off(this._i) + F.FIRST]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.ELEMENT) return wrap(c);
       c = V.T[o + F.NEXT];
@@ -521,7 +524,7 @@ class Document extends Node {
   }
 
   get doctype() {
-    for (let c = V.T[V.off(this._i) + F.FIRST]; c !== 0; ) {
+    for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {
       const o = V.off(c);
       if ((V.T[o + F.META] & M.KIND) === K.DOCTYPE) return wrap(c);
       c = V.T[o + F.NEXT];
@@ -533,7 +536,7 @@ class Document extends Node {
   _rootChild(a1, a2 = -1) {
     const root = this.documentElement;
     if (root === null || !isHtml(root._i, A.html)) return null;
-    for (let c = V.T[o_(root) + F.FIRST]; c !== 0; c = V.T[V.off(c) + F.NEXT]) {
+    for (let c = V.T[o_(root) + F.FIRST]; c > 0; c = V.T[V.off(c) + F.NEXT]) {
       if (isHtml(c, a1) || isHtml(c, a2)) return wrap(c);
     }
     return null;
@@ -589,7 +592,9 @@ class Document extends Node {
   }
 
   get URL() {
-    return this._url ?? 'about:blank';
+    // A browsing-context document reads its context's URL (lib/context.cjs, the only copy); others keep theirs.
+    const c = this._ctx;
+    return c !== undefined ? c.url.href : (this._url ?? 'about:blank');
   }
 
   get documentURI() {
@@ -597,7 +602,7 @@ class Document extends Node {
   }
 
   get defaultView() {
-    return this._win ?? null;
+    return this._ctx?.window ?? null;
   }
 
   get compatMode() {
@@ -742,7 +747,7 @@ tag(XMLDocument);
 class DocumentFragment extends Node {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createDocumentFragment();
     }
@@ -804,8 +809,8 @@ define(DocumentType, ChildNode);
  */
 function charData(n) {
   const id = n._i;
-  const ver = V.T[V.off(id) + F.DATA_VER];
-  if (n._ch === ver && MEMO) return n._at;
+  const ver = nodeVersion(id, NODE.DATA);
+  if (MEMO && n._ch === ver) return n._at;
   const s = N.dataGet(id);
   if (MEMO && id !== 0) {
     n._ch = ver;
@@ -813,7 +818,6 @@ function charData(n) {
   }
   return s;
 }
-const MEMO = rt.flags.MEMO;
 
 class CharacterData extends Node {
   get data() {
@@ -881,7 +885,7 @@ define(CharacterData, NonDocumentTypeChildNode);
 class Text extends CharacterData {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createTextNode(t === undefined ? '' : t);
     }
@@ -905,9 +909,9 @@ class Text extends CharacterData {
 
   get wholeText() {
     let first = this._i;
-    for (let p = V.T[V.off(first) + F.PREV]; p !== 0 && isTextKind(p); p = V.T[V.off(p) + F.PREV]) first = p;
+    for (let p = V.T[V.off(first) + F.PREV]; p > 0 && isTextKind(p); p = V.T[V.off(p) + F.PREV]) first = p;
     let s = '';
-    for (let c = first; c !== 0 && isTextKind(c); c = V.T[V.off(c) + F.NEXT]) s += charData(wrap(c));
+    for (let c = first; c > 0 && isTextKind(c); c = V.T[V.off(c) + F.NEXT]) s += charData(wrap(c));
     return s;
   }
 
@@ -931,7 +935,7 @@ tag(CDATASection);
 class Comment extends CharacterData {
   constructor(t = undefined) {
     if (t !== TOKEN) {
-      const doc = rt.defaultDocument;
+      const doc = context.currentDocument();
       if (doc === null) illegal();
       return doc.createComment(t === undefined ? '' : t);
     }
@@ -1223,8 +1227,8 @@ class NamedNodeMap {
 
   _sync() {
     const el = this.#e;
-    const ver = V.T[o_(el) + F.ATTR_VER];
-    if (ver === this.#v && el._i !== 0) return;
+    const ver = nodeVersion(el._i, NODE.ATTRS);
+    if (MEMO && ver === this.#v && el._i !== 0) return;
     this.#v = ver;
     const values = N.attrsAll(el._i);
     // OUT = [n, (qname, ns, prefix, local, start16, len16) x n]; EP[OUT_NEED] != 0 means it overflowed.
@@ -1321,21 +1325,21 @@ function isHtml(id, a) {
 /** First element (preorder, excluding `root`) satisfying `pred`. */
 function firstDescendant(root, pred) {
   let n = V.T[V.off(root) + F.FIRST];
-  while (n !== 0) {
+  while (n > 0) {
     const o = V.off(n);
     if ((V.T[o + F.META] & M.KIND) === K.ELEMENT && pred(n)) return n;
     let next = V.T[o + F.FIRST];
-    if (next === 0) {
+    if (!(next > 0)) {
       let c = n;
-      while (c !== root && c !== 0) {
+      while (c !== root && c > 0) {
         const co = V.off(c);
-        if (V.T[co + F.NEXT] !== 0) {
+        if (V.T[co + F.NEXT] > 0) {
           next = V.T[co + F.NEXT];
           break;
         }
         c = V.T[co + F.PARENT];
       }
-      if (c === root || c === 0) next = 0;
+      if (c === root || !(c > 0)) next = 0;
     }
     n = next;
   }
@@ -1464,7 +1468,7 @@ class Element extends Node {
     if (a === 0) return null;
     const id = this._i;
     if (!MEMO || id === 0) return N.getAttr(id, a);
-    const ver = V.T[V.off(id) + F.ATTR_VER];
+    const ver = nodeVersion(id, NODE.ATTRS);
     const st = this._at;
     if (st !== null && st.v === ver) {
       const m = st.m;
@@ -1487,7 +1491,7 @@ class Element extends Node {
     if (a === 0) return false;
     const id = this._i;
     if (!MEMO || id === 0) return N.hasAttr(id, a);
-    const ver = V.T[V.off(id) + F.ATTR_VER];
+    const ver = nodeVersion(id, NODE.ATTRS);
     const st = this._at;
     if (st !== null && st.v === ver) {
       const m = st.m;
@@ -1910,7 +1914,7 @@ class DOMParser {
     const id = checkId(N.parseDocument(String(string)));
     afterAlloc();
     const d = wrap(id);
-    d._url = rt.defaultDocument?.URL ?? 'about:blank';
+    d._url = context.currentDocument()?.URL ?? 'about:blank';
     return d;
   }
 }
@@ -1918,7 +1922,7 @@ tag(DOMParser);
 
 /** Basic Range (DESIGN §4.1): boundary points + createContextualFragment (RTL asFragment). */
 class Range {
-  constructor(doc = rt.defaultDocument) {
+  constructor(doc = context.currentDocument()) {
     if (!(doc instanceof Document)) illegal();
     this.startContainer = doc;
     this.startOffset = 0;
@@ -2014,7 +2018,7 @@ for (const [k, v] of Object.entries({ START_TO_START: 0, START_TO_END: 1, END_TO
 
 function indexOf(node) {
   let i = 0;
-  for (let c = V.T[o_(node) + F.PREV]; c !== 0; c = V.T[V.off(c) + F.PREV]) i++;
+  for (let c = V.T[o_(node) + F.PREV]; c > 0; c = V.T[V.off(c) + F.PREV]) i++;
   return i;
 }
 

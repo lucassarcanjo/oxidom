@@ -57,8 +57,8 @@ allocations below still hold.
 | `src/{lib,ffi,env,table,chunk,atoms,string,node,error,dom,tree,attrs,text,parse,serialize,hooks}.rs`, `build.rs` | foundation | the hot paths and the JS contract; keep changes small, isolated (append rather than reorder) and called out in the commit message |
 | `lib/{runtime,dom,collections,native,index}.cjs` | foundation | extend through `install(rt, dom)` instead of editing |
 | `src/select/**`, `src/style/**`, `lib/select.cjs`, `lib/style.cjs` | **A** selectors, inline style, getComputedStyle | |
-| `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | |
-| `src/mo.rs`, `lib/mo.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** window, globals, Vitest environment, MutationObserver, bench harness | |
+| `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
+| `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
 | `test/contract/<area>*.test.mjs`, `test/native/<area>*.test.mjs`, `bench/micro/<area>*.mjs` | the area | new files per feature |
@@ -134,6 +134,7 @@ State slots that already exist for each area (fill in the structs in your module
 | `Env.forms`, `ElementExt.form` | `forms::FormsState`, `forms::FormState` | B |
 | `Env.focus`, `DocData.focused`, `state::FOCUSED`, `EP[FOCUS]` | `focus::FocusState` | B |
 | `Env.mo`, `DocData.observers`, `meta::OBSERVED`, `EP[MO_PENDING]` | `mo::MoState` | C |
+| `Env.traversal` (NodeIterator pointers, moved by `Env::remove`) | `traversal::TraversalState` | traversal (`lib/traversal.cjs`) |
 
 Add per-element fields to `ElementExt` (boxed, allocated on demand), never to `ElementData` (kept small: fresh
 memory per element is the dominant creation cost in this VM, ~2 µs per first-touched 4 KiB page).
@@ -144,15 +145,19 @@ Mutation paths call these hooks (see `src/hooks.rs`); implement the functions in
 |---|---|
 | `style::on_node_connected` / `forms::on_node_connected` | for each inclusive descendant of a subtree that became connected |
 | `focus::on_node_disconnected` (implemented: focus fixup) / `style::…` / `forms::…` | each inclusive descendant of a subtree that became disconnected |
-| `style::on_children_changed` / `forms::on_children_changed` | once per child-list change of a parent (after `child_ver`/`EP[TREE]` bump) |
+| `style::on_children_changed` / `forms::on_children_changed` | DOM "children changed steps": after each insert or remove step on a parent (after `child_ver`/`EP[TREE]` bump). Replace-all runs them once per removed child and once for the insertion, as jsdom does (a `<select>` resets its selectedness at every option insertion and removal); a `FreshTree` runs them once per parent when it finishes |
 | `style::on_attr_changed` / `forms::on_attr_changed` | after every attribute set/remove, incl. same-value sets (after `attr_ver`/`EP[ATTR]` bump); a same-value set of `class`/`id`/`style`/`type`/`hidden`/`open`/`popover` only calls `forms::on_attr_changed` and queues the MO record (`hook_attr_same_value`: no bump, no style hook) |
 | `style::on_char_data_changed` / `forms::on_char_data_changed` | after Text/Comment/PI data changes (after `EP[TEXT]` bump and the node's `DATA_VER` update) |
 | `forms::on_cloned` | cloning steps (`cloneNode`/`importNode`) per element |
-| `mo::queue_child_list` / `queue_attribute` / `queue_char_data` | at the spec'd record points; they must return immediately when `DocData.observers == 0`. `queue_char_data`'s `old` is only filled when `mo::active(target)` (replaceData skips the copy otherwise): keep `active` and the queue functions consistent |
+| `mo::queue_child_list` / `queue_attribute` / `queue_char_data` | at the spec'd record points; they must return immediately when no observer is registered (`e.mo.nregs == 0`). `queue_char_data`'s `old` is only filled when `mo::active(target)` (replaceData skips the copy otherwise): keep `active` and the queue functions consistent |
 
 `style::on_attr_changed` / `on_children_changed` currently bump `EP[STYLE]` with the DESIGN §8.2 default rules;
-area A refines them. Parser inserts link nodes raw and then run ONE tree operation (`replace_all`, `replace_child`,
-`pre_insert`), so hooks see one children-changed per innerHTML set and the connected pass covers the new subtree.
+area A refines them. All child-list changes go through the child-list module in `src/tree.rs` (DESIGN §17): the
+`insert` / `remove` primitives and the operations composed from them, and `FreshTree` for nodes created inside the
+same native call (document creation, cloning). The parser links nodes raw, settles them with `hook_parsed`, then
+runs ONE tree operation (`replace_all`, `replace_child`, `pre_insert`) or `FreshTree::take_linked` (documents), so
+per-node hooks never fire for parsed nodes and the connected pass covers the new subtree. Do not link nodes into a
+tree any other way.
 
 Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.children_vec(p)`,
 `e.is_inclusive_ancestor`, `e.tree_order(a, b)`, `e.get_element_by_id(root, atom)`, `e.get_attr(el, atom)`,
@@ -170,12 +175,19 @@ select -> style -> forms -> events -> mo -> window -> xhr, after the core classe
   (`lookupAtom` (no intern, 0 = unknown), `internAtom`, `elementAtom`, `attrNameAtom`, `atomName`, `upperAtom`),
   `define(C, obj)` (copies getters/setters/methods non-enumerably onto `C.prototype`), `classes` (registry of
   every interface constructor; window.cjs exposes all of them), `flags` (`SHARED`, `MEMO`, `PREFILTER`),
-  `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument`.
+  `onReset(fn)`, `setMoPendingHandler(fn)`, `setDOMException(ctor)`, `defaultDocument` (read-only: the
+  current browsing context's document).
+- Browsing contexts (`lib/context.cjs`, DESIGN §18): `context.open(options)` makes a window + document,
+  `ctx.close()` tears it down (timers, error routing, restored globals), `rt.reset()` closes them all. Code
+  that needs "the window" without a node to ask (constructors such as `new Text()`, plain EventTargets,
+  callback error reporting) uses `context.currentDocument()` / `context.current()`; a document's window is
+  `doc._ctx` (`ctx.window`, `ctx.wt`, `ctx.url`). Timers a window starts go through `ctx.setTimer` so
+  `close()` cancels them.
 - `dom` (`lib/dom.cjs` exports): every core class, `wrap`, `nodeArg(v, method)` (argument validation),
   `convertNodes`, `staticNodeListFromIds`, `isHtml(id, atom)`, `firstDescendant`, `attrLookup` / `attrSetAtom`,
   `reflectString` / `reflectBool` / `reflectLong` / `defineAccessor`, mixins `ParentNode`, `ChildNode`,
   `NonDocumentTypeChildNode`; collections: `require('./collections.cjs')` (`liveQueryCollection(src)` for
-  getElementsBy*).
+  getElementsBy*); memos: `require('./memo.cjs')` (below).
 - New interfaces: plain classes; constructors that must not be user-constructible check `rt.TOKEN`; set
   `Symbol.toStringTag` and register in `rt.classes[name]` (exact `constructor.name` matters for pretty-format).
 - Read node facts with zero FFI: `const o = rt.V.off(id); rt.V.T[o + rt.F.STATE]`. Never keep `V.T` in a
@@ -184,12 +196,13 @@ select -> style -> forms -> events -> mo -> window -> xhr, after the core classe
 - Character data: record word 11 is `F.DATA_VER` (the `attr_ver` slot of elements), changed by every data
   change. CharacterData wrappers memoize `data` in `_at` keyed by `_ch` (they have no children/attributes).
 - Never write `rt.W` directly (it is kept dense); use `rt.wrap(id)`. `rt.reset()` neuters every wrapper
-  (`_i = 0`) and bumps `rt.V.envGen`; JS caches keyed by ids or dynamic atoms must be cleared in
-  `rt.onReset`, and objects that cache ids should compare `V.envGen` (the core collections do).
+  (`_i = 0`) and bumps the env generation; JS caches keyed by ids or dynamic atoms must be cleared in
+  `rt.onReset`, and objects that cache ids record `memo.envGen()` and check `memo.alive(gen)` (the core
+  collections do).
 - Collections: live lists have NO own numeric properties (index getters live on the prototype, always
   current); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
-  (Vitest `toEqual` compares own entries). `liveQueryCollection({ key, items })`: `items()` may return any
-  iterable. `_sync()` still exists on every collection.
+  (Vitest `toEqual` compares own entries). `liveQueryCollection({ deps, items })`: `deps` is a
+  `memo.deps(...)` set, `items()` may return any iterable. `_sync()` still exists on every collection.
 - Attr wrappers are cached per element by (namespace atom, local atom) in `el._at.map` (key `local` for no
   namespace, `"ns:local"` otherwise).
 - `rt.define` gives WebIDL descriptors: public (non-`_`) names are enumerable, `_x` and symbols are not;
@@ -197,8 +210,11 @@ select -> style -> forms -> events -> mo -> window -> xhr, after the core classe
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
-- Every JS memo must be validated by a Rust-written counter (`child_ver`, `attr_ver`, `form_ver`, `EP[*]`) and
-  have an ablation switch (`rt.flags.MEMO` / `PREFILTER`).
+- Every JS memo goes through `lib/memo.cjs` (DESIGN §20): it is validated by Rust-written counters, per node
+  (`nodeVersion(id, NODE.ATTRS | DATA | CHILDREN | FORM)`) or on the epoch page (`deps('TREE', 'ATTR', ...)`:
+  `stamp()` / `fresh(stamp)` compare slot by slot; never pack counters into one number), and it is off when
+  the module's `MEMO` (or `PREFILTER`) switch is. test/native/memo.test.mjs runs one scenario per memo kind
+  with memos on and off: extend it with a new memo.
 - Do not add per-instance fields in constructors (hidden-class stability); use the reserved wrapper fields
   (§2 table) or a side `Map`/`WeakMap`.
 

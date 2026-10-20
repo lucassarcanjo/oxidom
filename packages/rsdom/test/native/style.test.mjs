@@ -44,7 +44,7 @@ describe('style: STYLE epoch', () => {
     }
   });
 
-  it('with author sheets, class / id and selected attributes bump it; EP[13] tracks state selectors', () => {
+  it('with author sheets, class / id and selected attributes bump it; EP[STYLE_DEP] tracks state selectors', () => {
     const { document } = createWindow();
     document.head.innerHTML = '<style>.on { display: none } [data-x] { visibility: hidden }</style>';
     document.body.innerHTML = '<div id=x></div>';
@@ -59,10 +59,10 @@ describe('style: STYLE epoch', () => {
     s = STYLE();
     x.setAttribute('data-y', '1');
     expect(STYLE()).toBe(s);
-    expect(rt.V.EP[13]).toBe(0);
+    expect(rt.V.EP[rt.EPI.STYLE_DEP]).toBe(0);
     document.head.firstChild.textContent = 'input:checked { display: none }';
     rt.getComputedStyle(x);
-    expect(rt.V.EP[13]).toBe(1);
+    expect(rt.V.EP[rt.EPI.STYLE_DEP]).toBe(1);
   });
 });
 

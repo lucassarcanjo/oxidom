@@ -6,18 +6,13 @@
 // to a filter or return. A filter callback may run arbitrary code (including node creation, which can replace
 // the table), so links are re-read through `V.off()` after every call, never cached.
 //
-// NodeIterator pre-removing steps (DOM §6.1) must run before every removal, and removals happen inside natives
-// (removeChild, the replace-all behind innerHTML / textContent, normalize, ...), which never call into JS
-// (CONTRIBUTING §7.1). The first createNodeIterator() in a process wraps those natives on `rt.N`: each wrapper
-// works out from its arguments which nodes the call removes, in order, runs the steps for the live iterators of
-// their documents against a virtual view of the tree in which the earlier removals of the same call already
-// happened, and puts the iterators back for the removals a failing native did not do. Until then the natives are
-// untouched, so the feature costs nothing on the mutation paths of code that never creates a NodeIterator, and
-// afterwards one Map lookup per call in documents without iterators.
+// NodeIterator pre-removing steps (DOM §6.1) run in Rust, inside every removal step of the child-list module
+// (src/traversal.rs). An iterator's reference and candidate pointers live in a buffer both sides share: this
+// file walks and writes them with zero FFI, and the removal natives move them.
 
 const rt = require('./runtime.cjs');
 
-const { N, V, F, M, K, TOKEN } = rt;
+const { N, V, F, M, TOKEN } = rt;
 
 let dom = null;
 
@@ -37,7 +32,6 @@ const lastOf = (id) => V.T[V.off(id) + F.LAST];
 const nextOf = (id) => V.T[V.off(id) + F.NEXT];
 const prevOf = (id) => V.T[V.off(id) + F.PREV];
 const typeOf = (id) => V.T[V.off(id) + F.META] & M.KIND;
-const docOf = (id) => V.T[V.off(id) + F.OWNER];
 
 // ---------------------------------------------------------------------------------------------- filter
 
@@ -264,11 +258,43 @@ class TreeWalker {
 // ---------------------------------------------------------------------------------------- NodeIterator
 
 /**
- * Live iterators' states by the node document of their root at creation: doc id -> Set of WeakRefs (an
- * iterator nobody holds stops costing anything once collected). The pre-removing steps of a removal run for
- * the iterators of the removed node's document only (DOM §6.1), and a document without iterators skips them.
+ * Iterator pointer words shared with Rust (src/traversal.rs, DESIGN §16): slot `h - 1` of handle `h` holds
+ * [reference, candidate], each packed `id << 1 | pointer before` (candidate 0 = not traversing). This file
+ * reads and writes them with zero FFI between natives; the removal natives move them (pre-removing steps).
+ * A length-tracking view over a resizable ArrayBuffer: a resize keeps the data pointer, and `iterBind` tells
+ * Rust the new length. Bound once per env (a reset drops the binding with the env).
  */
-const live = new Map();
+const SLOT_WORDS = 2;
+const IT_MAX_BYTES = 1 << 22; // 524,288 live iterators
+let IT = null;
+let itBoundGen = -1;
+
+/** Makes room for handle `h`'s slot and (re)binds the buffer when it grew or the env is new. */
+function itSlot(h) {
+  if (IT === null) IT = new Uint32Array(new ArrayBuffer(64 * SLOT_WORDS * 4, { maxByteLength: IT_MAX_BYTES }));
+  const buf = IT.buffer;
+  const need = h * SLOT_WORDS * 4;
+  let grew = false;
+  if (buf.byteLength < need) {
+    if (need > IT_MAX_BYTES) throw new RangeError('rsdom: too many live NodeIterators');
+    buf.resize(Math.min(IT_MAX_BYTES, Math.max(need, buf.byteLength * 2)));
+    grew = true;
+  }
+  if (grew || itBoundGen !== V.envGen) {
+    N.iterBind(buf);
+    itBoundGen = V.envGen;
+  }
+  return (h - 1) * SLOT_WORDS;
+}
+
+/**
+ * Frees an iterator's Rust registration once JS no longer holds it. A FinalizationRegistry is fine here (DESIGN
+ * §0 rejects them for node wrappers, which are hot and carry expandos); a stale callback from a reset env must
+ * not free a handle of the new one.
+ */
+const registry = new FinalizationRegistry(({ h, gen }) => {
+  if (gen === V.envGen) N.iterFree(h);
+});
 
 class NodeIterator {
   #s;
@@ -276,18 +302,12 @@ class NodeIterator {
   constructor(t = undefined, root = undefined, whatToShow = 0, filter = null) {
     if (t !== TOKEN) illegal();
     const s = makeState(root, whatToShow, filter);
-    s.ref = s.rootId; // reference node id (0 = the root itself is an Attr)
-    s.before = true; // pointer before reference
-    s.candRef = 0; // candidate reference while traversing (0 = none)
-    s.candBefore = false;
+    s.h = N.iterNew(s.rootId);
+    s.o = itSlot(s.h);
+    IT[s.o] = (s.rootId << 1) | 1; // reference = root, pointer before it
+    IT[s.o + 1] = 0;
     this.#s = s;
-    // an Attr root has no descendants and no parent, so no removal ever moves its iterator: not registered
-    if (s.rootId > 0) {
-      const doc = docOf(s.rootId);
-      let its = live.get(doc);
-      if (its === undefined) live.set(doc, (its = new Set()));
-      its.add(new WeakRef(s));
-    }
+    registry.register(this, { h: s.h, gen: s.gen });
   }
 
   get root() {
@@ -304,12 +324,14 @@ class NodeIterator {
 
   get referenceNode() {
     const s = this.#s;
-    // from a reset env: the (neutered) root, not whichever node of the new env got the id
-    return s.ref === 0 || s.gen !== V.envGen ? s.root : rt.wrap(s.ref);
+    if (s.gen !== V.envGen) return s.root;
+    const ref = IT[s.o] >>> 1;
+    return ref === 0 ? s.root : rt.wrap(ref);
   }
 
   get pointerBeforeReferenceNode() {
-    return this.#s.before;
+    const s = this.#s;
+    return s.gen !== V.envGen || (IT[s.o] & 1) !== 0;
   }
 
   nextNode() {
@@ -344,253 +366,58 @@ function preceding(id, root) {
   return n;
 }
 
-/** DOM "traverse" for NodeIterator (refs/jsdom/lib/jsdom/living/traversal/NodeIterator-impl.js). */
+/**
+ * DOM "traverse" for NodeIterator (refs/jsdom/lib/jsdom/living/traversal/NodeIterator-impl.js). A filter
+ * callback can remove nodes, and the pre-removing steps then move the candidate as well as the reference, so
+ * around each callback the candidate sits in the shared slot and is read back after it. A traversal re-entered
+ * from its own filter throws InvalidStateError at its filter call and puts the outer candidate back.
+ */
 function traverse(s, next) {
   if (s.gen !== V.envGen) return null;
+  const o = s.o;
+  const user = s.filter !== null;
   // a call re-entered from the filter (it throws, or finds nothing) leaves the outer call's candidate as it was
-  const outerRef = s.candRef;
-  const outerBefore = s.candBefore;
-  s.candRef = s.ref;
-  s.candBefore = s.before;
+  const outer = IT[o + 1];
+  let cand = IT[o] >>> 1;
+  let candBefore = (IT[o] & 1) !== 0;
   let result = -1;
   for (;;) {
     if (next) {
-      if (!s.candBefore) {
-        const f = following(s.candRef, s.rootId);
+      if (!candBefore) {
+        const f = following(cand, s.rootId);
         if (f === 0) break;
-        s.candRef = f;
+        cand = f;
       }
-      s.candBefore = false;
+      candBefore = false;
     } else {
-      if (s.candBefore) {
-        const p = preceding(s.candRef, s.rootId);
+      if (candBefore) {
+        const p = preceding(cand, s.rootId);
         if (p === 0) break;
-        s.candRef = p;
+        cand = p;
       }
-      s.candBefore = true;
+      candBefore = true;
     }
-    const node = s.candRef;
+    const node = cand;
     let r;
+    if (user) IT[o + 1] = (cand << 1) | (candBefore ? 1 : 0);
     try {
       r = filterNode(s, node);
-    } catch (e) {
-      s.candRef = outerRef;
-      s.candBefore = outerBefore;
-      throw e;
+    } finally {
+      if (user) {
+        const c = IT[o + 1];
+        cand = c >>> 1;
+        candBefore = (c & 1) !== 0;
+        IT[o + 1] = outer;
+      }
     }
     if (r === FILTER_ACCEPT) {
-      // a removal during the filter callback may have moved the candidate (pre-removing steps)
-      s.ref = s.candRef;
-      s.before = s.candBefore;
+      IT[o] = (cand << 1) | (candBefore ? 1 : 0);
       result = node;
       break;
     }
   }
-  s.candRef = outerRef;
-  s.candBefore = outerBefore;
   if (result === -1) return null;
   return result === 0 ? s.root : rt.wrap(result);
-}
-
-// ------------------------------------------------------------------------ NodeIterator pre-removing steps
-
-// Virtual tree: links that skip nodes already removed earlier in the same native call (`gone`).
-function nextKept(id, gone) {
-  let n = nextOf(id);
-  while (n > 0 && gone.has(n)) n = nextOf(n);
-  return n > 0 ? n : 0;
-}
-function prevKept(id, gone) {
-  let n = prevOf(id);
-  while (n > 0 && gone.has(n)) n = prevOf(n);
-  return n > 0 ? n : 0;
-}
-function lastKeptDescendant(id, gone) {
-  for (;;) {
-    let c = lastOf(id);
-    while (c > 0 && gone.has(c)) c = prevOf(c);
-    if (!(c > 0)) return id;
-    id = c;
-  }
-}
-function isInclusiveAncestor(a, b) {
-  for (let n = b; n > 0; n = parentOf(n)) if (n === a) return true;
-  return false;
-}
-
-/**
- * The new [reference, pointerBefore] of one pointer when `removed` is removed (DOM §6.1, as jsdom does it), or
- * null when it does not move. `leaf`: `removed` has no children, so only a pointer at `removed` itself moves
- * (one comparison per iterator for the common single-node removal, however many iterators are alive).
- */
-function adjustPointer(s, ref, before, removed, gone, leaf) {
-  if (ref === 0 || (leaf ? ref !== removed : !isInclusiveAncestor(removed, ref)) || isInclusiveAncestor(removed, s.rootId)) {
-    return null;
-  }
-  if (before) {
-    for (let n = removed; n > 0 && n !== s.rootId; n = parentOf(n)) {
-      const sibling = nextKept(n, gone);
-      if (sibling > 0) return [sibling, true];
-    }
-  }
-  const prev = prevKept(removed, gone);
-  return [prev > 0 ? lastKeptDescendant(prev, gone) : parentOf(removed), false];
-}
-
-/**
- * Runs the pre-removing steps of the live iterators of each removed node's document for `nodes` (removed in
- * that order by one native call). Returns the iterators it moved with their previous pointers and the index in
- * `nodes` of the removal that moved them (to undo removals a call that then fails did not do), or null.
- */
-function preRemove(nodes) {
-  const gone = new Set();
-  let undo = null;
-  for (let i = 0; i < nodes.length; i++) {
-    const removed = nodes[i];
-    if (gone.has(removed) || !(parentOf(removed) > 0)) continue;
-    const doc = docOf(removed);
-    const its = live.get(doc);
-    if (its !== undefined) {
-      const leaf = !(firstOf(removed) > 0);
-      for (const w of its) {
-        const s = w.deref();
-        if (s === undefined) {
-          its.delete(w);
-          continue;
-        }
-        const r = adjustPointer(s, s.ref, s.before, removed, gone, leaf);
-        const c = s.candRef === 0 ? null : adjustPointer(s, s.candRef, s.candBefore, removed, gone, leaf);
-        if (r === null && c === null) continue;
-        (undo ??= []).push([s, s.ref, s.before, s.candRef, s.candBefore, i]);
-        if (r) [s.ref, s.before] = r;
-        if (c) [s.candRef, s.candBefore] = c;
-      }
-      if (its.size === 0) live.delete(doc);
-    }
-    gone.add(removed);
-  }
-  return undo;
-}
-
-/**
- * Puts back the pointers `preRemove` moved for the removals a failed native did not do. A native that fails has
- * done a prefix of its removal list (convert-nodes-into-a-node moves the nodes into its fragment one at a time
- * and stops at the first invalid one; the other natives validate before removing anything), so those are the
- * removals from the first listed node still under the parent it had before the call.
- */
-function restoreNotRemoved(undo, nodes, parents) {
-  rt.afterAlloc(); // nodesToNode / replaceChildren create their fragment before they fail
-  let k = 0;
-  while (k < nodes.length && parentOf(nodes[k]) !== parents[k]) k++;
-  // newest first: an iterator moved by several removals ends at its pointers from before the first undone one
-  for (let i = undo.length - 1; i >= 0 && undo[i][5] >= k; i--) {
-    const [s, ref, before, candRef, candBefore] = undo[i];
-    s.ref = ref;
-    s.before = before;
-    s.candRef = candRef;
-    s.candBefore = candBefore;
-  }
-}
-
-function children(id) {
-  const out = [];
-  for (let c = firstOf(id); c > 0; c = nextOf(c)) out.push(c);
-  return out;
-}
-
-/** Nodes that inserting `node` removes: a fragment's children, or the node itself if it has a parent. */
-function moved(node) {
-  if (typeOf(node) === K.FRAGMENT) return children(node);
-  return parentOf(node) > 0 ? [node] : [];
-}
-
-/** Text nodes normalize() removes, in tree order: empty exclusive Text nodes and the rest of each run. */
-function normalizeRemovals(root) {
-  const out = [];
-  const gone = new Set();
-  let n = following(root, root);
-  while (n > 0) {
-    if (typeOf(n) === K.TEXT && !gone.has(n)) {
-      if (N.dataLen(n) === 0) {
-        out.push(n);
-        gone.add(n);
-      } else {
-        for (let c = nextOf(n); c > 0 && typeOf(c) === K.TEXT; c = nextOf(c)) {
-          out.push(c);
-          gone.add(c);
-        }
-      }
-    }
-    n = following(n, root);
-    while (n > 0 && gone.has(n)) n = following(n, root);
-  }
-  return out;
-}
-
-/** The parent whose children an innerHTML set replaces (a template's contents). */
-function innerHTMLTarget(id) {
-  const w = rt.wrap(id);
-  return w instanceof rt.classes.HTMLTemplateElement ? w.content._i : id;
-}
-
-const isParent = (id) => {
-  const t = typeOf(id);
-  return t === K.ELEMENT || t === K.FRAGMENT;
-};
-
-/** Whether node `id`'s document has live iterators. */
-const watched = (id) => live.has(docOf(id));
-
-/**
- * native -> (a, b, c, outIds) => the node ids the call removes, in removal order (a, b, c: the native's
- * arguments; outIds: the node list replaceChildren / nodesToNode read from OUT). Each first tests the documents
- * of the nodes the call may remove and returns [] when none has a live iterator, before listing anything.
- */
-const REMOVALS = {
-  insertBefore: (a, b) => (watched(b) ? moved(b) : []),
-  appendChild: (a, b) => (watched(b) ? moved(b) : []),
-  removeChild: (a, b) => (parentOf(b) === a && watched(b) ? [b] : []),
-  replaceChild: (a, b, c) => (watched(c) || watched(b) ? (parentOf(c) === a ? [c] : []).concat(moved(b)) : []),
-  remove: (a) => (watched(a) ? [a] : []),
-  adopt: (a, b) => (typeOf(b) !== K.FRAGMENT && watched(b) ? [b] : []),
-  replaceChildren: (a, b, c, ids) => (watched(a) || ids.some(watched) ? ids.flatMap(moved).concat(children(a)) : []),
-  nodesToNode: (a, b, c, ids) => (ids.some(watched) ? ids.flatMap(moved) : []),
-  normalize: (a) => (watched(a) ? normalizeRemovals(a) : []),
-  textContentSet: (a) => (isParent(a) && watched(a) ? children(a) : []),
-  innerHTMLSet: (a) => {
-    const t = innerHTMLTarget(a); // a template's contents are in another document
-    return watched(t) ? children(t) : [];
-  },
-  outerHTMLSet: (a) => (watched(a) ? [a] : []),
-};
-const READS_OUT = new Set(['replaceChildren', 'nodesToNode']);
-
-let patched = false;
-
-function patchNatives() {
-  if (patched) return;
-  patched = true;
-  for (const name of Object.keys(REMOVALS)) {
-    const orig = N[name];
-    const removals = REMOVALS[name];
-    const readsOut = READS_OUT.has(name);
-    // Every removal native takes at most 3 arguments; napi reads its own count and ignores the rest.
-    N[name] = function (a, b, c) {
-      if (live.size === 0) return orig.call(N, a, b, c);
-      // copy the OUT input first: record reads in fallback mode (RSDOM_SHARED=0) reuse OUT
-      const ids = readsOut ? Array.from(V.OUT.subarray(0, b)) : null;
-      const nodes = removals(a, b, c, ids);
-      const undo = nodes.length === 0 ? null : preRemove(nodes);
-      // the parents before the call tell which removals a failed native did (restoreNotRemoved)
-      const parents = undo === null ? null : nodes.map(parentOf);
-      if (readsOut) rt.writeOut(ids);
-      const r = orig.call(N, a, b, c);
-      if (undo !== null && (name === 'nodesToNode' ? r === 0 : typeof r === 'number' && r !== 0)) {
-        restoreNotRemoved(undo, nodes, parents);
-      }
-      return r;
-    };
-  }
 }
 
 // ------------------------------------------------------------------------------------------ NodeFilter
@@ -638,12 +465,9 @@ function install(_rt, d) {
     },
     createNodeIterator(root, whatToShow = 0xffffffff, filter = null) {
       if (arguments.length < 1) throw new TypeError("Failed to execute 'createNodeIterator' on 'Document': 1 argument required, but only 0 present.");
-      const it = new NodeIterator(TOKEN, nodeRoot(root, 'createNodeIterator'), whatToShow >>> 0, filterArg(filter, 'createNodeIterator'));
-      patchNatives();
-      return it;
+      return new NodeIterator(TOKEN, nodeRoot(root, 'createNodeIterator'), whatToShow >>> 0, filterArg(filter, 'createNodeIterator'));
     },
   });
-  rt.onReset(() => live.clear());
 }
 
 module.exports = { install, NodeFilter, TreeWalker, NodeIterator };

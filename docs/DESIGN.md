@@ -562,7 +562,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 - Option selectedness and dirtiness, select single-selection exclusivity, `selectedIndex` of -1 when nothing matches.
 - Radio groups keyed by (name, form owner, tree).
 - Selection offsets in UTF-16, moving to the end when the value changes.
-- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern, minlength/maxlength and number range, which fires a cancelable `invalid` event from JS.
+- Labels: `for=` plus the wrapping label. Form owner, `form.elements`, fieldset disabled, and `checkValidity` for required, email, pattern and number range, which fires a cancelable `invalid` event from JS. minlength/maxlength only affect `:valid` / `:invalid`, as in jsdom (§19).
 
 **Internal reads never go through `element.value`.** React redefines `value` on each instance. Rust reads its own `FormState`.
 
@@ -969,6 +969,8 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   generated at build time (~0.8 ms per worker, paid by the first `csCore`), lazy CSS accessors (would only move
   cost from the environment phase into the first style access).
 
+---
+
 ## 16. Traversal: TreeWalker, NodeIterator, NodeFilter (ROADMAP Stage 1, 2026-10)
 
 `lib/traversal.cjs`, a facade-only module installed before the area modules. It ports
@@ -980,51 +982,43 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   one. Attr roots, the only nodes without a table id, are id 0: a walker at an Attr returns null from every step
   and a NodeIterator over one returns the root itself. Measured over a 4096-node tree (`bench/micro`, case
   `traversal`): `TreeWalker(SHOW_ELEMENT).nextNode()` 24 ns/node (jsdom 106, happy-dom 45), with an object
-  `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 22 ns/node.
+  `acceptNode` filter 40 ns/node (jsdom 338, happy-dom 46), `NodeIterator.nextNode()` 24 ns/node (jsdom 112, happy-dom 45).
 - **Filter protocol** (WebIDL callback interface): a function is called with `this` undefined; otherwise
   `acceptNode` is read on every call and must be callable (TypeError); the result is converted to unsigned short
   as part of the call, so re-entering a traversal from the filter or from a `valueOf()` that conversion runs
   throws InvalidStateError; the re-entered NodeIterator traversal leaves the outer one's candidate alone (jsdom
   30 clears it, so the outer call then sets a null reference); filter exceptions propagate unchanged. A filter may
   set `currentNode`: `firstChild()` / `lastChild()` compare with the walker's current node as it is at each step.
-- **NodeIterator pre-removing steps (DOM §6.1).** Removals run inside natives (removeChild, the replace-all of
-  `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or `adoptNode`), and Rust never
-  calls JS (§0). The first `createNodeIterator()` in a process therefore wraps the twelve removal natives on
-  `rt.N` (the facade calls them as `N.name(...)`, so wrapping the property is enough). A wrapper derives from the
-  native's arguments which nodes the call removes, in removal order (a fragment's children, a moved node's old
-  position, the children a replace-all drops, the text nodes `normalize` merges), runs the steps for the live
-  iterators of each removed node's document against a virtual tree in which the call's earlier removals already
-  happened (a `gone` set skipped by sibling and last-descendant lookups), and calls the native. A native that
-  returns an error code has done a prefix of its removals: convert-nodes-into-a-node (`nodesToNode`, the first
-  step of `replaceChildren`) moves its nodes into the new fragment one at a time and stops at the first invalid
-  one (a doctype, say), and every other native validates before removing anything. So the wrapper records each
-  listed node's parent before the call and, on failure, puts back (newest first) the pointers moved for the
-  removals from the first node still under its old parent. `replaceChildren` / `nodesToNode` read their node
-  lists from OUT, which record reads overwrite in fallback mode, so the wrapper copies the list first and writes
-  it back before the call.
-  - Registry: WeakRefs to the iterators' states, in one set per document, keyed by the node document of the
-    root at creation (the spec runs the steps of "each NodeIterator whose root's node document is node's node
-    document"; jsdom keys by the document `createNodeIterator` was called on). Each wrapper first reads the
-    documents of the nodes the call may remove (`F.OWNER`) and calls the native straight away when none has an
-    iterator. Edge case: an iterator whose root is later adopted into another document stays under the old one,
-    so removals in the new document do not move it (jsdom behaves the same; the spec would move it). Within one
-    call the documents are read before the call: when a call moves a node to another document and then removes a
-    descendant of it, the iterators rooted in that node are still checked, as the spec says (jsdom skips them).
-  - Cost: nothing until a NodeIterator exists (no wrapper is installed): create + append + remove 0.75 us.
-    Afterwards, one map lookup per node a removal native may remove, in documents without iterators (0.84 us
-    with an iterator on another document; `replaceChildren` / `nodesToNode` also copy their node list out of OUT
-    first, because fallback-mode record reads reuse OUT); with one on the same document, 0.96 us (jsdom 5.7 us, happy-dom 3.0 us, which does no
-    fix-up). The steps are O(iterators of the document) per removal, as in jsdom; a childless removed
-    node is checked with one comparison per iterator. A dropped iterator stays registered until a GC collects its
-    state, which is no earlier than the end of the current job and, since rsdom keeps nodes off the JS heap and
-    major GCs are rare, often much later. Keying by document confines that to its own document. In a
+- **NodeIterator pre-removing steps (DOM §6.1).** Rust registers every live iterator (`src/traversal.rs`,
+  `Env.traversal`: its root by handle) and the child-list module runs the pre-removing steps inside every
+  removal step, before unlinking (§17; DOM §4.2.3 "remove" step 4). So every removal path (removeChild, the
+  replace-all of `innerHTML` / `textContent` / `replaceChildren`, `normalize`, moves by insertion or
+  `adoptNode`) adjusts the pointers against the real tree, in removal order, and only when the removal
+  happens. A removal adjusts the iterators whose root's node document is the removed node's, checked at
+  removal time, as the spec says (jsdom keeps them on the document `createNodeIterator()` was called on and
+  fails WPT `NodeIterator-removal.html` for iterators over another document's nodes). An iterator whose root
+  is adopted into another document is moved by removals there from then on, as the spec says (jsdom does not).
+  - **Shared pointer words.** An iterator's reference and candidate pointers live in a JS-owned resizable
+    ArrayBuffer that Rust pins like OUT (§3.4; `iterBind`, again after each resize): two words per handle, each
+    packed `id << 1 | pointer before`, candidate 0 = not traversing. The facade walks the node table and reads
+    and writes its slot with zero FFI; around each filter callback (the only user code that can remove nodes
+    mid-walk) the candidate sits in the slot so a removal moves it. The words are iterator state, not DOM state,
+    and Rust treats them as untrusted input (unknown ids never match, a slot past the buffer is skipped). A
+    FinalizationRegistry frees an iterator's registration once JS drops it (a stale callback from a reset env
+    is ignored).
+  - **Per-document buckets.** Iterators are bucketed by their root's node document, so a removal looks only at
+    its own document's iterators (one hash lookup), and a cross-document adoption re-buckets those whose root
+    moved (template contents included). A dropped iterator stays in its bucket until a GC runs the
+    FinalizationRegistry callback, which can be much later (rsdom keeps nodes off the JS heap); the buckets
+    confine that to its own document.
+  - Cost: one emptiness test per removal while no iterator is alive. `NodeIterator.nextNode()` 27 ns/node;
+    create + append + remove with one live iterator on the same document 0.7-0.9 us (jsdom 6.2 us). In a
     DOMPurify-style loop (each call parses into a fresh document, walks it with a NodeIterator and removes
-    nodes), 2,000 calls cost 0.1 ms each (fallback mode 0.13 ms), flat. Before the per-document registry they
-    rose from 0.5 to 5 ms (fallback mode 3 to 24 ms); jsdom stays at 0.7 to 1 ms. After 2,000 such dropped
-    iterators, an append + remove of a non-leaf element in the main document costs 3.6 us (before: 251 us). On
-    the iterator's own document a dropped iterator still counts: after 5,000 created and dropped in one loop, a
-    create + append + remove costs 210 us (jsdom 412 us), and after one, `normalize()` over 10k nodes costs
-    0.5 to 0.7 ms instead of 0.18 ms (it lists the text nodes it merges in JS).
+    nodes), 2,000 calls cost 0.15 ms each (fallback mode 0.2 ms), flat (jsdom 1.4-1.6 ms); afterwards an
+    append + remove of a non-leaf element in the main document costs 2.2 us.
+  - This replaced a first version that wrapped the twelve removal natives in JS and predicted from their
+    arguments which nodes each call removes (a second copy of the removal rules), with a virtual tree for a
+    call's earlier removals and an undo for calls that then failed validation.
 - **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
   `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
   that are rsdom-specific (innerHTML / outerHTML, textContent, replaceChildren, normalize, replaceChild,
@@ -1033,9 +1027,126 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   Dialog, Headless UI and react-aria now pass; lit gets past import and stops at custom elements /
   `attachShadow`.
 
-## 21. XMLHttpRequest (ROADMAP Stage 1, 2026-10)
+---
 
-(§17-§20 are reserved for the sections of the foundation refactor in #3.)
+## 17. The child-list module (2026-10)
+
+Every change to a child list goes through `src/tree.rs`:
+
+- **The DOM primitives `insert` and `remove`** own one step's bookkeeping, in spec order (DOM §4.2.3): adoption,
+  linking, the connect / disconnect pass (CONNECTED bits, the document id map, the per-node connectivity hooks),
+  the childList MutationObserver record and the children-changed steps (`child_ver` / `EP[TREE]` and the area
+  hooks in `src/hooks.rs`). Their `Records` argument is the spec's "suppress observers flag": replace-a-child
+  and replace-all suppress the per-step records and queue one merged record. Range and NodeIterator fix-up
+  steps, when they arrive, go into these two functions.
+- **Children-changed steps run once per step, not once per operation.** Replace-all removes each child and then
+  inserts, so it runs them once per removed child and once for the insertion. This is the DOM algorithm and
+  jsdom's behaviour, and it is observable: a `<select>` resets its selectedness at every option removal, so
+  after `select.textContent = ''` the options that were auto-selected on the way out stay `selected`
+  (`test/contract/child-list.test.mjs`). The cost is O(n) per step for a `<select>` (§15.2), as in jsdom.
+- **`FreshTree`** is the only quiet path, for nodes created inside the current native call (`createDocument`'s
+  skeleton, `cloneNode`). Nothing outside the call can reach these nodes, so appends queue no record; appends into a
+  connected parent connect at once; the children-changed steps run once per parent in `finish`, after the subtree
+  is complete. jsdom clones bottom-up, so its insertion steps always see complete subtrees: a cloned `<select>`
+  resets against all of its options. Before this, clones skipped the children-changed steps entirely and a cloned
+  `<select>` kept `selectedIndex` -1 (or several selected options).
+- **The HTML parser** links its own nodes (the tree builder reparents while parsing), then `hook_parsed` settles
+  their form state, and the result enters the tree through one ordinary operation (fragment parsing) or
+  `FreshTree::take_linked` (`parseDocument`).
+
+---
+
+## 18. Browsing contexts (lib/context.cjs)
+
+A **browsing context** is one window: its window object, its document, the document's URL, the timers the
+window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and
+`createWindow()`, the Vitest environment (§12) and a future `JSDOM` class are adapters over `open()`.
+
+- **Current context.** An Env (§2.1) holds any number of open contexts, but rsdom has one set of interface
+  objects per Env (`rt.classes`), not one per window. Whatever needs "the window" without a node to ask
+  resolves through the current context: `new Text()` / `Comment` / `DocumentFragment` / `Range` / `Option` /
+  `Image`, the URL of `new Document()` and `DOMParser` documents, the focus fast path (Rust's main document is
+  the current document, so `EP[FOCUS]` mirrors its focus), plain-EventTarget dispatch and MutationObserver
+  callback errors. `open()` makes the new context current (unless `main: false`); `close()` of the current
+  context makes the previous open one current again and re-points `setMainDocument`. `rt.defaultDocument` is
+  a read-only view of the current document.
+- **Links.** A context document's `_ctx` wrapper field is the only document -> window link (`defaultView`,
+  `location`, `getSelection`, the event path's WindowTarget `ctx.wt`); `context.ofWindow(win)` is the reverse.
+  Documents without a window (`createHTMLDocument`, `new Document()`, `DOMParser`, clones) keep `_url`.
+- **URL.** `ctx.url` is the only copy: `document.URL`, `location` and `history` read it, and fragment
+  navigation and `pushState` / `replaceState` replace it.
+- **Teardown.** `close()` cancels the context's timers (animation frames, hashchange tasks), runs what was
+  installed over the window in reverse order (Vitest's error routing, then the saved global descriptors) and
+  forgets the context. `rt.reset()` closes every open context, newest first (§11 Teardown: the Vitest
+  environment calls `ctx.close()` and then `rt.reset()`).
+
+---
+
+## 19. Element state: one home for the HTML control predicates (2026-10)
+
+The questions "is this control disabled", "what is its type", "is it a submit button", "is this the summary of
+its details", "is it valid" were answered in several places: selector matching (`select/adapter.rs`), the
+forms algorithms, focusability (`focus.rs`) and the facade (`forms.cjs`, `events.cjs`). The copies had drifted
+(two fieldset walks, four input-type tables, a `<summary>` test that counted non-HTML summaries, two
+non-negative-integer parsers that disagreed with jsdom on `-0` and on overflow). They now live in
+`src/forms/element_state.rs`, one implementation each, as free functions over `&Env`:
+
+- `input_type` / `input_type_name` (the state bits, never the attribute string), `button_type`;
+- `is_disabled` (jsdom `isDisabled`: focus, `click()`, activation, validation, the entry list) and
+  `matches_disabled` / `is_disableable` (dom-selector's `:disabled` / `:enabled`), sharing one fieldset /
+  legend walk;
+- `is_button`, `is_submit_button` (normalized type) and `is_default_button_candidate` (dom-selector's
+  `:default`, raw case-sensitive `type`);
+- `is_summary_for_parent_details` (HTML-only, like jsdom's `firstChildWithLocalName`);
+- `parse_non_negative_integer` (jsdom's `parseNonNegativeInteger`: `-0` is 0, overflow saturates);
+- `validity_bits` (the `ValidityState` bits; the ECMAScript parts stay `CHECK_*` flags for the facade, §7) and
+  `matches_valid` / `subtree_matches_valid` (dom-selector's `:valid` / `:invalid`, which replace the answer
+  with a `maxlength` / `minlength` length check: jsdom's `validity` never reports tooLong / tooShort, so the
+  two disagree there in jsdom too);
+- `has_datalist_ancestor`.
+
+Where jsdom answers one question two ways (its selector engine and its element implementations), both answers
+are named functions in this module, each citing its source; consumers pick one by name instead of carrying a
+private copy. The adapter keeps only the selector-engine rules nothing else asks (`:read-only`, `:required`,
+`:placeholder-shown`, `:indeterminate` for radios, `:dir`, `:lang`).
+
+The facade reads the input type codes and names from `lib/generated/input-types.cjs`, which build.rs writes
+from `types.rs` after checking that the `ty` constants and `TYPE_NAMES` agree. FormData's control filter
+(datalist, disabled, other buttons, unchecked checkboxes / radios, `<object>`) is one native,
+`formEntryControls(form, submitter)`; the facade only turns the controls into entries (it owns the FileList).
+Natives: `isDisabled`, `validity`, `buttonType`, `isSubmitButton`, `isSummaryForDetails`.
+
+---
+
+## 20. Facade memo protocol (2026-10)
+
+Invariant 2 (§0) allows JS to memoise Rust answers only, each memo validated by a Rust-written counter and
+behind an ablation flag (§12). Until this section, every memo re-implemented that protocol by hand: about 17 sites,
+three key formulas for "these epoch slots are unchanged" (`TREE + ATTR`, the lossy `TREE * 0x1000 + (ATTR & 0xfff)`
+that returned a stale base URL after exactly 4096 attribute writes, and a recommended but non-monotonic
+`TREE ^ ATTR`), seven memos without the `RSDOM_NO_MEMO` switch, and two spellings of the env generation.
+
+`lib/memo.cjs` now owns the protocol; a call site only says what its memo depends on and how to recompute it:
+
+- **Switches.** `MEMO` and `PREFILTER` (read once from `rt.flags`). Every memo, including live-collection cursors,
+  element counts and query caches, recomputes on every read when its switch is off.
+- **Per-node counters.** `NODE.ATTRS` / `DATA` / `CHILDREN` / `FORM` name the record words Rust rewrites
+  (`attr_ver`, the character-data `DATA_VER`, `child_ver`, `form_ver`); `nodeVersion(id, word)` is one table read.
+  The hottest memos (getAttribute / hasAttribute, `data`, input `value`; §15.2) keep their single compare inline.
+- **Epoch-page dependencies.** `deps('TREE', 'ATTR', ...)` names a set of up to five EP slots. A stamp is a plain-array copy
+  of those slots plus the env generation; `fresh(stamp, n)` compares the first `n` slots one by one (exact, no
+  packing) and fails for a stamp from an older env, so a reset can never revive a memo. Slots are ordered from
+  always-needed to conditionally-needed: the qSA memo stamps TREE, ATTR, TEXT, FORM, REC and checks 2, 3 or 5 of
+  them by the selector's flags (§6.3); the computed-style core stamps STYLE, REC, FORM and checks REC and FORM only
+  while `EP[STYLE_DEP]` (slot 13, now named in `EPI`) says author sheets select on state (§8.2).
+- **Env lifetime.** Objects that cache ids record `envGen()` and test `alive(gen)`.
+
+`test/native/memo.test.mjs` runs one scenario that fills and invalidates every memo kind with memos on and off
+(child processes) and asserts identical, literal results, plus the base-URL collision regression.
+
+---
+
+## 21. XMLHttpRequest (ROADMAP Stage 1, 2026-10)
 
 Two facade modules, no Rust: XHR state is facade state, not DOM state (CONTRIBUTING §7), and the only DOM objects
 it creates are `responseXML` documents, through DOMParser. `lib/xhr.cjs` (loaded with the other areas, installed

@@ -4,9 +4,9 @@
 // ROADMAP Stage 2, and this file is the smallest surface the suites need, not a design for it.
 //
 // What it maps:
-// - `new JSDOM(input, { url, contentType, beforeParse, ... })`: a full-document parse (rsdom's parseDocument
-//   native, the same one DOMParser uses), wrapped in a window built by window.cjs's makeWindow. Each instance
-//   becomes rsdom's main document, like `createWindow()` does. jsdom's default URL is about:blank.
+// - `new JSDOM(input, { url, contentType, beforeParse, ... })`: a browsing context (lib/context.cjs, DESIGN
+//   §18) opened on a full-document parse of `input` (`source`, the parseDocument native DOMParser uses too).
+//   Each instance becomes the current context, like `createWindow()` does. jsdom's default URL is about:blank.
 //   jsdom calls `beforeParse` before parsing, with an empty document; rsdom only parses into a new document, so
 //   the parsed nodes are taken out of it for the call and put back after it.
 // - Option checks and defaults are jsdom's (refs/jsdom/lib/api.js: url, referrer, runScripts, virtualConsole,
@@ -17,8 +17,7 @@
 // - `serialize()`, `JSDOM.fragment()`, `fromFile()`, `fromURL()` (undici's fetch with jsdom's Accept / Referer
 //   headers and `resources.dispatcher`; no cookies, no user agent), `reconfigure({ windowTop, url })`;
 //   `nodeLocation()` / `getInternalVMContext()` throw as jsdom does when the option is off.
-//   `reconfigure({ url })` changes document.URL only: rsdom's window keeps its URL (location, origin) in
-//   window.cjs's private state, which has no setter.
+//   `reconfigure({ url })` replaces the context's URL, which document.URL, location and history all read.
 // - `VirtualConsole` (an EventEmitter rsdom never writes to), `CookieJar` (tough-cookie's), `toughCookie`.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -27,8 +26,7 @@ const { pathToFileURL } = require('node:url');
 
 const PKG = path.resolve(__dirname, '../../../packages/rsdom/lib');
 const facade = require(path.join(PKG, 'index.cjs'));
-const { makeWindow } = require(path.join(PKG, 'window.cjs'));
-const events = require(path.join(PKG, 'events.cjs'));
+const context = require(path.join(PKG, 'context.cjs'));
 const { rt } = facade;
 
 const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|image\/svg\+xml|[^/]+\/[^;]*\+xml)$/;
@@ -64,7 +62,7 @@ try {
 }
 
 class JSDOM {
-  #window;
+  #ctx;
   #virtualConsole;
   #cookieJar;
 
@@ -90,25 +88,19 @@ class JSDOM {
       throw new TypeError('virtualConsole must be an instance of VirtualConsole');
     }
 
-    const id = rt.checkId(rt.N.parseDocument(decode(input)));
-    rt.afterAlloc();
-    const document = rt.wrap(id);
-    document._url = url;
-    rt.N.setMainDocument(id);
-    rt.defaultDocument = document;
-    const window = makeWindow(rt, facade.dom, document, { url });
-    events.installWindow(window, document);
+    const ctx = context.open({ url, source: decode(input) });
     if (options.beforeParse !== undefined) {
+      const { document } = ctx;
       const nodes = [...document.childNodes];
       for (const n of nodes) document.removeChild(n);
-      options.beforeParse(window);
+      options.beforeParse(ctx.window);
       for (const n of nodes) document.appendChild(n);
     }
-    this.#window = window;
+    this.#ctx = ctx;
   }
 
   get window() {
-    return this.#window;
+    return this.#ctx.window;
   }
 
   get virtualConsole() {
@@ -121,7 +113,7 @@ class JSDOM {
 
   serialize() {
     let out = '';
-    for (const n of this.#window.document.childNodes) {
+    for (const n of this.#ctx.document.childNodes) {
       if (n.nodeType === 10) out += `<!DOCTYPE ${n.name}>`;
       else if (n.nodeType === 8) out += `<!--${n.data}-->`;
       else if (n.nodeType === 7) out += `<?${n.target} ${n.data}>`;
@@ -140,7 +132,7 @@ class JSDOM {
 
   reconfigure(settings) {
     if ('windowTop' in settings) {
-      Object.defineProperty(this.#window, 'top', { value: settings.windowTop, configurable: true, writable: true });
+      Object.defineProperty(this.#ctx.window, 'top', { value: settings.windowTop, configurable: true, writable: true });
     }
     if ('url' in settings) {
       let href;
@@ -149,7 +141,7 @@ class JSDOM {
       } catch {
         throw new TypeError(`Could not parse "${settings.url}" as a URL`);
       }
-      this.#window.document._url = href;
+      this.#ctx.setURL(new URL(href));
     }
   }
 

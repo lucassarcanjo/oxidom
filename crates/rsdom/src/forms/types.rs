@@ -6,7 +6,8 @@
 use std::borrow::Cow;
 
 /// Normalized `<input type>` (stored in `NodeRec.state` bits 8-12; `TEXT = 0` so a fresh input needs no
-/// initialisation). The order is part of the JS contract (`INPUT_TYPES` in packages/rsdom/lib/forms.cjs).
+/// initialisation). build.rs checks these against [`TYPE_NAMES`] and generates both for the facade
+/// (`lib/generated/input-types.cjs`); keep one `pub const NAME: u32 = N;` per line.
 pub mod ty {
     /// text (also every unknown / missing type)
     pub const TEXT: u32 = 0;

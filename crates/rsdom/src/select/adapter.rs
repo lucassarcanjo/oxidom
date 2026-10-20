@@ -23,6 +23,7 @@ use selectors::{Element, OpaqueElement};
 
 use crate::atoms::{Atom, Interner, atom};
 use crate::env::Env;
+use crate::forms::element_state;
 use crate::node::{Quirks, kind, meta, state};
 use crate::table::NodeId;
 
@@ -702,31 +703,6 @@ impl Borrow<str> for SVal {
 // Semantics follow jsdom 30's selector engine (@asamuzakjp/dom-selector, the parity oracle), which in a
 // few places reads the RAW `type` attribute (case-sensitive) rather than the normalized type.
 
-const INPUT_TYPES: &[&str] = &[
-    "hidden",
-    "text",
-    "search",
-    "tel",
-    "url",
-    "email",
-    "password",
-    "date",
-    "month",
-    "week",
-    "time",
-    "datetime-local",
-    "number",
-    "range",
-    "color",
-    "checkbox",
-    "radio",
-    "file",
-    "submit",
-    "image",
-    "reset",
-    "button",
-];
-
 /// dom-selector `INPUT_TEXT`.
 const INPUT_TEXT: &[&str] = &["email", "password", "search", "tel", "text", "url"];
 /// dom-selector `INPUT_EDIT` (date types, text types, number).
@@ -745,71 +721,9 @@ const INPUT_EDIT: &[&str] = &[
     "number",
 ];
 
-/// The input's normalized type (`input.type`): a known type lowercased, otherwise "text".
-pub fn input_type(e: &Env, el: NodeId) -> &'static str {
-    let t = e.get_attr(el, atom::TYPE).map(|s| s.as_str()).unwrap_or("");
-    INPUT_TYPES.iter().find(|x| x.eq_ignore_ascii_case(t)).copied().unwrap_or("text")
-}
-
 /// The raw `type` attribute (None if absent).
 fn raw_type(e: &Env, el: NodeId) -> Option<&str> {
     e.get_attr(el, atom::TYPE).map(|s| s.as_str())
-}
-
-/// HTML "actually disabled" (button/input/select/textarea/optgroup/option/fieldset), derived from
-/// attributes: own `disabled`, an ancestor `<fieldset disabled>` (unless inside its first `<legend>`),
-/// `<option>` in a disabled `<optgroup>`. Area B may reuse this for focusability / form submission.
-pub fn is_actually_disabled(e: &Env, el: NodeId) -> bool {
-    let r = e.rec(el);
-    if r.meta & (meta::KIND_MASK | meta::NS_MASK) != kind::ELEMENT {
-        return false;
-    }
-    match Atom(r.local) {
-        atom::OPTION => {
-            if r.meta & meta::DISABLED_ATTR != 0 {
-                return true;
-            }
-            let p = r.parent;
-            e.is_html_elem(p, atom::OPTGROUP) && e.rec(p).meta & meta::DISABLED_ATTR != 0
-        }
-        atom::OPTGROUP => r.meta & meta::DISABLED_ATTR != 0,
-        atom::BUTTON | atom::INPUT | atom::SELECT | atom::TEXTAREA | atom::FIELDSET => {
-            r.meta & meta::DISABLED_ATTR != 0 || in_disabled_fieldset(e, el)
-        }
-        _ => false,
-    }
-}
-
-/// True if `el` descends from a disabled `<fieldset>` and is not inside that fieldset's first `<legend>`.
-fn in_disabled_fieldset(e: &Env, el: NodeId) -> bool {
-    let mut child = el;
-    let mut p = e.rec(el).parent;
-    while p != 0 {
-        let pr = e.rec(p);
-        if pr.meta & meta::KIND_MASK != kind::ELEMENT {
-            return false;
-        }
-        if pr.meta & meta::DISABLED_ATTR != 0
-            && e.is_html_elem(p, atom::FIELDSET)
-            && !(e.is_html_elem(child, atom::LEGEND) && first_legend_child(e, p) == child)
-        {
-            return true;
-        }
-        child = p;
-        p = pr.parent;
-    }
-    false
-}
-
-fn first_legend_child(e: &Env, fs: NodeId) -> NodeId {
-    let mut c = e.rec(fs).first;
-    while c != 0 {
-        if e.is_html_elem(c, atom::LEGEND) {
-            return c;
-        }
-        c = e.rec(c).next;
-    }
-    0
 }
 
 /// Value emptiness of a text control, for `:placeholder-shown` (the control's current API value, area B).
@@ -822,58 +736,6 @@ pub fn control_value_is_empty(e: &Env, el: NodeId) -> bool {
 #[inline]
 pub fn control_value_len(e: &Env, el: NodeId) -> u32 {
     e.value_len16(el)
-}
-
-/// Constraint validity of one button/input/select/textarea, as dom-selector computes it for
-/// `:valid`/`:invalid`: `validity.valid` (area B's validity bits), then for input/textarea a
-/// non-negative `maxlength` REPLACES that answer with `maxLength >= value.length`, and a valid result is
-/// further checked against `minlength`.
-///
-/// Rust cannot evaluate the ECMAScript parts of validity (`pattern`, URL parsing for `type=url`, the
-/// FileList of `type=file required`); those flags are reported to the facade as `CHECK_*` bits and are
-/// treated as passing here (documented divergence: `:invalid` misses patternMismatch / url typeMismatch).
-pub fn control_is_valid(e: &Env, el: NodeId) -> bool {
-    use crate::forms::vbits;
-    const FAIL_MASK: u32 = vbits::VALUE_MISSING
-        | vbits::TYPE_MISMATCH
-        | vbits::PATTERN_MISMATCH
-        | vbits::TOO_LONG
-        | vbits::TOO_SHORT
-        | vbits::RANGE_UNDERFLOW
-        | vbits::RANGE_OVERFLOW
-        | vbits::STEP_MISMATCH
-        | vbits::BAD_INPUT
-        | vbits::CUSTOM_ERROR;
-    let mut valid = e.validity(el) & FAIL_MASK == 0;
-    if e.is_html_elem(el, atom::INPUT) || e.is_html_elem(el, atom::TEXTAREA) {
-        // `maxLength` / `minLength` reflection: rules for parsing non-negative integers, else -1.
-        let attr_len =
-            |a: Atom| -> Option<u32> { e.get_attr(el, a).and_then(|v| parse_non_negative(v.as_str())) };
-        let (max, min) = (attr_len(atom::MAXLENGTH), attr_len(atom::MINLENGTH));
-        if max.is_some() || min.is_some() {
-            let len = control_value_len(e, el);
-            if let Some(max) = max {
-                valid = max >= len;
-            }
-            if valid && let Some(min) = min {
-                valid = min <= len;
-            }
-        }
-    }
-    valid
-}
-
-/// HTML "rules for parsing non-negative integers" (leading ASCII whitespace, optional `+`, digits).
-fn parse_non_negative(v: &str) -> Option<u32> {
-    let t = v.trim_start_matches([' ', '\t', '\n', '\x0c', '\r']);
-    let t = t.strip_prefix('+').unwrap_or(t);
-    let end = t.bytes().position(|b| !b.is_ascii_digit()).unwrap_or(t.len());
-    if end == 0 {
-        return None;
-    }
-    let n: u64 =
-        t[..end].bytes().fold(0u64, |acc, b| (acc * 10 + u64::from(b - b'0')).min(u64::from(u32::MAX)));
-    if n > i32::MAX as u64 { None } else { Some(n as u32) }
 }
 
 fn is_content_editable(e: &Env, el: NodeId) -> bool {
@@ -898,7 +760,7 @@ fn is_content_editable(e: &Env, el: NodeId) -> bool {
 /// contenteditable.
 fn is_read_only(e: &Env, el: NodeId, l: Atom) -> bool {
     if l == atom::INPUT || l == atom::TEXTAREA {
-        if l == atom::TEXTAREA || INPUT_EDIT.contains(&input_type(e, el)) {
+        if l == atom::TEXTAREA || INPUT_EDIT.contains(&element_state::input_type_name(e, el)) {
             return e.has_attr(el, atom::READONLY) || e.rec(el).meta & meta::DISABLED_ATTR != 0;
         }
         return true;
@@ -1037,7 +899,7 @@ fn is_rtl(e: &Env, el: NodeId) -> bool {
             Some(_) => {
                 let mut text = String::new();
                 if html && l == atom::INPUT {
-                    let t = input_type(e, c);
+                    let t = element_state::input_type_name(e, c);
                     if DIR_AUTO_INPUT.contains(&t) {
                         e.value_into(c, &mut text);
                     } else if DIR_LTR_INPUT.contains(&t) {
@@ -1071,7 +933,9 @@ fn is_rtl(e: &Env, el: NodeId) -> bool {
                     return text_is_rtl(t);
                 }
             }
-            None if html && l == atom::INPUT && input_type(e, c) == "tel" => return false,
+            None if html && l == atom::INPUT && element_state::input_type_name(e, c) == "tel" => {
+                return false;
+            }
             None if html && l == atom::BDI => {
                 let mut text = String::new();
                 subtree_text(e, c, &mut text);
@@ -1094,15 +958,6 @@ fn ancestor_form(e: &Env, el: NodeId) -> NodeId {
         c = e.rec(c).parent;
     }
     0
-}
-
-/// dom-selector's default-button test: `<button>` unless its raw type is reset/button; `<input>` whose
-/// raw type is image/submit.
-fn is_default_button_candidate(e: &Env, el: NodeId) -> bool {
-    if e.is_html_elem(el, atom::BUTTON) {
-        return !matches!(raw_type(e, el), Some("reset" | "button"));
-    }
-    e.is_html_elem(el, atom::INPUT) && matches!(raw_type(e, el), Some("image" | "submit"))
 }
 
 /// dom-selector `:indeterminate` for radios: no radio with the same (non-empty) name in the nearest
@@ -1143,27 +998,11 @@ fn radio_group_unchecked(e: &Env, el: NodeId) -> bool {
     true
 }
 
-/// dom-selector `:valid`/`:invalid` for form / fieldset: all descendant controls valid.
-fn subtree_valid(e: &Env, root: NodeId) -> bool {
-    let mut n = e.next_in_subtree(root, root);
-    while n != 0 {
-        let r = e.rec(n);
-        if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
-            && matches!(Atom(r.local), atom::BUTTON | atom::INPUT | atom::SELECT | atom::TEXTAREA)
-            && !control_is_valid(e, n)
-        {
-            return false;
-        }
-        n = e.next_in_subtree(n, root);
-    }
-    true
-}
-
 /// dom-selector `isFocusVisible` (editable inputs, textarea, contenteditable): rsdom does not track
 /// keyboard modality, so `:focus-visible` = focused and one of these.
 fn focus_visible_type(e: &Env, el: NodeId, l: Atom) -> bool {
     match l {
-        atom::INPUT => INPUT_EDIT.contains(&input_type(e, el)),
+        atom::INPUT => INPUT_EDIT.contains(&element_state::input_type_name(e, el)),
         atom::TEXTAREA => true,
         _ => is_content_editable(e, el),
     }
@@ -1184,18 +1023,9 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
                 _ => false,
             }
         }
-        PseudoClass::Disabled => html && is_actually_disabled(e, el),
+        PseudoClass::Disabled => element_state::matches_disabled(e, el),
         PseudoClass::Enabled => {
-            html && matches!(
-                l,
-                atom::BUTTON
-                    | atom::INPUT
-                    | atom::SELECT
-                    | atom::TEXTAREA
-                    | atom::OPTGROUP
-                    | atom::OPTION
-                    | atom::FIELDSET
-            ) && !is_actually_disabled(e, el)
+            element_state::is_disableable(e, el) && !element_state::matches_disabled(e, el)
         }
         PseudoClass::Focus => r.state & state::FOCUSED != 0,
         PseudoClass::FocusVisible => r.state & state::FOCUSED != 0 && html && focus_visible_type(e, el, l),
@@ -1236,7 +1066,7 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
         PseudoClass::Indeterminate => {
             html && match l {
                 atom::PROGRESS => !e.has_attr(el, atom::VALUE),
-                atom::INPUT => match input_type(e, el) {
+                atom::INPUT => match element_state::input_type_name(e, el) {
                     "checkbox" => r.state & state::INDETERMINATE != 0,
                     "radio" => radio_group_unchecked(e, el),
                     _ => false,
@@ -1253,14 +1083,14 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
                 {
                     true
                 }
-                atom::INPUT | atom::BUTTON if is_default_button_candidate(e, el) => {
+                atom::INPUT | atom::BUTTON if element_state::is_default_button_candidate(e, el) => {
                     let form = ancestor_form(e, el);
                     if form == 0 {
                         return false;
                     }
                     let mut n = e.next_in_subtree(form, form);
                     while n != 0 {
-                        if e.is_element(n) && is_default_button_candidate(e, n) {
+                        if e.is_element(n) && element_state::is_default_button_candidate(e, n) {
                             return n == el;
                         }
                         n = e.next_in_subtree(n, form);
@@ -1281,8 +1111,10 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
         PseudoClass::Valid | PseudoClass::Invalid => {
             let valid = match l {
                 _ if !html => return false,
-                atom::BUTTON | atom::INPUT | atom::SELECT | atom::TEXTAREA => control_is_valid(e, el),
-                atom::FORM | atom::FIELDSET => subtree_valid(e, el),
+                atom::BUTTON | atom::INPUT | atom::SELECT | atom::TEXTAREA => {
+                    element_state::matches_valid(e, el)
+                }
+                atom::FORM | atom::FIELDSET => element_state::subtree_matches_valid(e, el),
                 _ => return false,
             };
             valid == matches!(pc, PseudoClass::Valid)

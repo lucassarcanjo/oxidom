@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1733 | 162751 | 125795 | 77.3% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1753 | 162751 | 145737 | 89.5% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 137 | 2578 | 2260 | 87.7% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 749 | 42.1% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1876** | **167724** | **128992** | **76.9%** |
+| **all** | **2615** | **1896** | **167724** | **148934** | **88.8%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -27,7 +27,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 17 | 2 | 426 | 30.6% | rsdom adapter: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
-| 3 | Selection backed by real Ranges | 64 | 42 | 19944 | 40.5% | assert_equals: wrong value (17711); Selection.getRangeAt() throws: … is not a valid index. (2230); assert_throws_dom: did not throw (2) |
+| 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 132 | 709 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 206 | 3147 | 19.5% | assert_equals: wrong value (1909); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 97 | 63 | 88.5% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); cssom: insertRule / cssRules (2) |

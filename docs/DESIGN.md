@@ -1601,3 +1601,42 @@ uievents: 97 of 108 files at parity; the remaining gap belongs to other items, a
 content-attribute event handlers (`onclick="..."` needs script compilation, `browsing-contexts`), shadow-tree
 retargeting and slots (`shadow-dom`), CSSOM and resolved `em` (`cssom`, `computed-values`), `customElements`,
 and the `isTrusted` decision above.
+
+---
+
+## 29. Selection backed by real Ranges (ROADMAP Stage 3, 2026-10)
+
+`lib/selection.cjs`, facade only: a port of `refs/jsdom/lib/jsdom/living/selection/Selection-impl.js` over the
+Range of §25. It replaces the anchor/focus stub that lived in `lib/window.cjs`, which kept four fields and no Range,
+so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a contenteditable.
+
+- **One Range plus a direction.** A Selection is empty or holds one `Range` and a direction (forwards, backwards,
+  directionless). `anchorNode` / `focusNode` and their offsets are that range's start and end, swapped when the
+  direction is backwards; they are read from the range on every access, never copied. `addRange` keeps the
+  caller's object (a range rooted in the selection's document, and only while the selection is empty), so
+  `getRangeAt(0)` returns it and a later `setStart` / `setEnd` on it moves the selection. `collapse`,
+  `setPosition`, `collapseToStart` / `End`, `extend`, `setBaseAndExtent` and `selectAllChildren` build a new Range,
+  as jsdom does, so a range the page held stops being the selection's. Nodes outside the document are ignored
+  silently; the error types and their order follow jsdom.
+- **Range internals.** `range.cjs` exports `internal` (the boundary accessors, `newRange`, the checked boundary
+  setters, `compareBP`, `nodeLength`, `rootKey`), so a Selection reads its boundaries and compares points without
+  going through the public getters, which a page may have replaced. A Range object stays a Range; there is no Selection-only
+  subclass.
+- **selectionchange.** Setting the range to one with different boundary points (or to or from none) queues a task
+  on `ctx.queueTask` that fires a non-bubbling `selectionchange` at the document, one task per change, like jsdom's
+  `_queueATask` (no "has scheduled selectionchange event" coalescing, which jsdom lacks too).
+- **jsdom quirks kept.** `containsNode(node, true)` is jsdom's "starts before the node or ends after it", true for
+  a node wholly after the range; full containment compares strictly. `deleteFromDocument` is the range's
+  `deleteContents`.
+- **State.** One Selection per document of a browsing context (`doc._sel`, created on first `getSelection()`);
+  `document.getSelection()` is null without a browsing context. No Rust state of its own: a selection is never
+  read by selector matching or the parser, and its boundaries are its Range's (§25).
+- **Live through the Range.** The ranges are created with `newRange` (§25's live slots), so a mutation that
+  moves a range's boundary points moves the selection too: removing a selected editing host collapses the selection
+  where the host was, as in jsdom.
+- **Verification.** Parity `--item selection`: 42 -> 62 of 64 files at parity, gap 19,944 -> 2 subtests (overall
+  parity 76.9% -> 88.8%). The 2 left are `addRange.htm` and `collapse.htm`, where jsdom runs `window.onload` twice
+  and so reports a second, duplicate-named subtest. Two files now fail where jsdom fails too (`containsNode` on
+  nodes outside the flat tree, `content-visibility: hidden` text). `test/contract/selection.test.mjs` runs the API
+  on all three DOMs. In `e2e/libraries`, Lexical typing passes on rsdom (it fails on jsdom and happy-dom: no
+  `getTargetRanges`); tiptap's assertions pass, with one unhandled error from the missing `elementFromPoint`.

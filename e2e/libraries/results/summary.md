@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs rsdom
 
-Generated 2026-10-20T15:41:06.871Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
+Generated 2026-10-20T17:00:17.392Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -10,10 +10,10 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 |---|---|---|---|---|---|
 | polyfills-jsdom | 41 | 39 | 0 | 2 | 18/20 |
 | polyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| polyfills-rsdom | 41 | 37 | 0 | 4 | 17/20 |
+| polyfills-rsdom | 41 | 38 | 1 | 2 | 18/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-rsdom | 41 | 37 | 0 | 4 | 17/20 |
+| nopolyfills-rsdom | 41 | 38 | 1 | 2 | 18/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -26,7 +26,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | focus-trap + tabbable | focus-trap@8.2.3<br>tabbable@6.5.0 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | framer-motion | framer-motion@14.3.0 | 2 | pass 2/2 | error* 2/2 | pass 2/2 | pass / error* / pass |
 | @headlessui/react | @headlessui/react@2.2.10 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | error* / pass / pass |
-| lexical | lexical@0.52.0<br>@lexical/react@0.52.0 | 2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** / **FAIL** / **FAIL** |
+| lexical | lexical@0.52.0<br>@lexical/react@0.52.0 | 2 | **FAIL** 1/2 | **FAIL** 1/2 | pass 2/2 | **FAIL** / **FAIL** / pass |
 | lit | lit@3.3.3 | 2 | pass 2/2 | pass 2/2 | **FAIL** 0/2 | pass / pass / **FAIL** |
 | @mui/material | @mui/material@9.5.0<br>@emotion/react@11.14.0<br>@emotion/styled@11.14.1 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | axios | axios@1.20.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
@@ -40,7 +40,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | react-router | react-router@8.4.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | react-select | react-select@5.10.2 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | @tanstack/react-table | @tanstack/react-table@9.3.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
-| @tiptap/react | @tiptap/react@3.32.0<br>@tiptap/starter-kit@3.32.0 | 2 | **FAIL** 1/2 | pass 2/2 | **FAIL** 1/2 | **FAIL** / pass / **FAIL** |
+| @tiptap/react | @tiptap/react@3.32.0<br>@tiptap/starter-kit@3.32.0 | 2 | **FAIL** 1/2 | pass 2/2 | error* 2/2 | **FAIL** / pass / error* |
 
 ## Root causes (each one verified)
 
@@ -59,11 +59,6 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 - **DOM(s):** rsdom. **Category:** missing-api. **Libraries hit:** lit
 - **Evidence:** Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in rsdom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.
 
-### rsdom Selection is a stub: collapse()/setBaseAndExtent() set anchor/focus but create no Range (rangeCount 0), so getRangeAt(0) throws
-
-- **DOM(s):** rsdom. **Category:** wrong-behaviour. **Libraries hit:** lexical, @tiptap/react
-- **Evidence:** IndexSizeError from packages/rsdom/lib/window.cjs Selection.getRangeAt, called by @testing-library/user-event event/selection/getInputRange.js when typing into any contenteditable. diag-facts: after collapse(text,1) rangeCount=0 in rsdom (1 in jsdom/happy-dom). Spec: collapse() must set a new collapsed range.
-
 ### document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor
 
 - **DOM(s):** jsdom, rsdom. **Category:** missing-api. **Libraries hit:** @tiptap/react
@@ -77,7 +72,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 ### InputEvent#getTargetRanges missing, so Lexical disables its beforeinput path; its mutation fallback reverts the bare text node user-event inserts (user-event sends input with data=null)
 
 - **DOM(s):** jsdom, happy-dom. **Category:** missing-api+tooling. **Libraries hit:** lexical
-- **Evidence:** lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (rsdom already has it, but fails on the Selection stub).
+- **Evidence:** lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (rsdom has it; since its Selection holds a real Range, 2026-10-20, Lexical typing passes there).
 
 ### happy-dom: `document instanceof window.Document` is false (per-window Document subclass); react-aria isFocusWithin() returns false and useDialog steals focus from the autoFocus field
 
@@ -107,8 +102,8 @@ Each check re-runs a failing scenario after shimming only the API named as the r
 
 | scenario | jsdom | happy-dom | rsdom |
 |---|---|---|---|
-| with getTargetRanges shimmed before lexical loads, user-event typing reaches the editor | pass, then unhandled: TypeError: range.getBoundingClientRect is not a function | pass | fail (rsdom-selection-stub) |
-| with those three shimmed (zero rects / null), click + type updates the editor and fires onUpdate | pass | pass | fail (rsdom-selection-stub) |
+| with getTargetRanges shimmed before lexical loads, user-event typing reaches the editor | pass, then unhandled: TypeError: range.getBoundingClientRect is not a function | pass | pass |
+| with those three shimmed (zero rects / null), click + type updates the editor and fires onUpdate | pass | pass | pass |
 | with Symbol.hasInstance fixed on window.Document, the autoFocus field keeps focus | pass | pass | pass |
 
 ## Shims ("polyfills")
@@ -153,7 +148,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | PointerEvent | events | 5 | yes | yes | yes |
 | CSSStyleSheet#insertRule | css | 5 | yes | yes | **no** |
 | createRange | editing | 4 | yes | yes | yes |
-| Selection collapse()/setBaseAndExtent() creates a Range | editing | 4 | yes | yes | **no** |
+| Selection collapse()/setBaseAndExtent() creates a Range | editing | 4 | yes | yes | yes |
 | InputEvent#getTargetRanges | editing | 4 | **no** | **no** | yes |
 | caretRangeFromPoint/caretPositionFromPoint | editing | 4 | **no** | **no** | **no** |
 | Range#getBoundingClientRect | geometry | 4 | **no** | yes | yes |
@@ -182,7 +177,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **rsdom** (14 APIs): visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1)
+- **rsdom** (13 APIs): visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1)
 
 ## Caveats
 

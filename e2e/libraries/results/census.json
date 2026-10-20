@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T15:41:06.790Z",
+  "generated": "2026-10-20T16:59:51.522Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -2041,7 +2041,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3090,16 +3090,6 @@
           "framer-motion",
           "lexical",
           "lit"
-        ]
-      },
-      {
-        "api": "Selection collapse()/setBaseAndExtent() creates a Range",
-        "libs": 4,
-        "usedBy": [
-          "@headlessui/react",
-          "react-aria-components",
-          "@tiptap/react",
-          "lexical"
         ]
       },
       {

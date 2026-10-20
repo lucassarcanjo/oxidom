@@ -810,4 +810,10 @@ function install(rt_, dom_) {
   });
 }
 
-module.exports = { install, AbstractRange, StaticRange, Range };
+/**
+ * Boundary-point helpers for lib/selection.cjs (DESIGN §29): a Selection's anchor and focus are its range's
+ * boundaries, read through the private-field accessors.
+ */
+const internal = { sc, so, ec, eo, newRange, setStartChecked, setEndChecked, compareBP, nodeLength, rootKey };
+
+module.exports = { install, AbstractRange, StaticRange, Range, internal };

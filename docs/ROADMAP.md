@@ -99,9 +99,14 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [ ] Selection backed by real Ranges (M) `selection`. tiptap and lexical typing through user-event.
 - [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share.
 - [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
-- [ ] `document.createEvent`, `init*Event` and the missing event classes (S) `events`.
+- [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
+      createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
+      init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':
+      inline handlers, shadow retargeting, CSSOM).
 - [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
-- [ ] FileReader with DOM Blob and File (S) `file-api`.
+- [x] FileReader with DOM Blob and File (S) `file-api`. Done 2026-10-20 (DESIGN §27): FileReader, and Blob and File
+      as WebIDL-converting subclasses of Node's; 16 -> 36 of 37 suite files at parity, gap 137 -> 1 (an HTMLCollection
+      iterator detail that belongs to `core`).
 - [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
       named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
       gap 1,205 -> 0.

@@ -117,6 +117,7 @@ function installReporter(state) {
 /** Reports an uncaught error to the page the way a browser would: an "error" event on window. */
 function reportError(state, e, kind = 'error') {
   state.scriptErrors.push(trunc(`${kind}: ${e && e.stack ? String(e.stack).split('\n').slice(0, 2).join(' | ') : e}`, 300));
+  if (kind === 'error' && e !== undefined && state.windowErrors.delete(e)) return;
   try {
     let ev;
     if (kind === 'unhandledrejection') {
@@ -140,7 +141,7 @@ const HSTATUS = ['OK', 'ERROR', 'TIMEOUT', 'PRECONDITION_FAILED'];
 
 export async function runOne(dom, test) {
   const t0 = performance.now();
-  const state = { results: new Map(), harness: null, scriptErrors: [], allowUncaught: false, reporterInstalled: false };
+  const state = { results: new Map(), harness: null, scriptErrors: [], allowUncaught: false, reporterInstalled: false, windowErrors: new Set() };
   const out = { id: test.id, dom, harness: null, subtests: [], scriptErrors: state.scriptErrors, notes: [] };
   process.on('uncaughtException', (e) => reportError(state, e, 'error'));
   process.on('unhandledRejection', (e) => reportError(state, e, 'unhandledrejection'));
@@ -162,6 +163,12 @@ export async function runOne(dom, test) {
     return out;
   }
   const tSetup = performance.now();
+  // An error the DOM already reported to the window is not dispatched there a second time: rsdom's "report an
+  // exception" fires the window's ErrorEvent and then emits uncaughtException (what Vitest needs to fail a test),
+  // which would otherwise reach the window again through reportError (DESIGN §28).
+  try {
+    globalThis.addEventListener('error', (ev) => state.windowErrors.add(ev.error), true);
+  } catch {}
 
   try {
     const de = globalThis.document.documentElement;

@@ -1523,3 +1523,81 @@ Storage is a WebIDL legacy platform object with a named getter, setter and delet
 
 `test/contract/storage.test.mjs` runs on all three DOMs (happy-dom 21 pinned where it has no named-property
 semantics); the parity scope is WPT `webstorage/**`, 25 of 25 files at parity.
+
+---
+
+## 27. File API: Blob, File and FileReader (ROADMAP Stage 3, 2026-10)
+
+Facade only (`lib/file-api.cjs`, installed after xhr): blob bytes are not DOM state. A port of
+`refs/jsdom/lib/jsdom/living/file-api/` and of the WebIDL conversions jsdom generates for it.
+
+- **Blob and File subclass Node's.** jsdom's Blob is its own class holding a `Uint8Array`; that is why, under
+  jsdom, `fetch(url, { body: blob })` and `new Response(blob)` do not take a window Blob. rsdom's `Blob extends`
+  Node's Blob instead, so the bytes stay in Node's blob store and fetch, Response, `URL.createObjectURL` and
+  `structuredClone` accept it, while the constructor and `slice` follow WebIDL the way jsdom's bindings do: the
+  `sequence<BlobPart>` is read through one `@@iterator` lookup and each part is converted as it comes, Blob parts
+  are any Node Blob, `BlobPropertyBag` members are read in lexicographic order (`FilePropertyBag`'s
+  `lastModified` after the inherited ones), `endings: 'native'` writes `\n` (jsdom pretends to be *nix), and
+  `slice` takes `[Clamp] long long` offsets (halves round to even; Node truncates them). `slice` builds its
+  result from Node's own slice through a private constructor path (the `CONVERTED` token), so
+  slices are window Blobs. `File extends` the window Blob, with `name` and `lastModified` of its own.
+- **`instanceof` accepts Node's own Blobs and Files.** The Vitest environment installs the window's Blob and
+  File over the globals, and Node keeps creating its own (`await response.blob()`, `fs.openAsBlob`, undici's
+  FormData parsing). `Blob[Symbol.hasInstance]` accepts any Node Blob and `File[Symbol.hasInstance]` any Node
+  File, so `x instanceof Blob` stays true for them; `File`'s getters read Node's for those. The cost is an own
+  `@@hasInstance` on the two interface objects, which WebIDL does not define.
+- **FileReader** reads any Blob through `blob.arrayBuffer()`, started when the read starts, and fires jsdom's
+  three queued tasks (Node's `setImmediate`, captured at load so fake timers cannot stall a read; a closed
+  context ends the read): `loadstart`, then `progress` when the blob is not empty, then `load` and `loadend`
+  with the result. The third task waits for the bytes if Node has not produced them yet (in practice it has).
+  `readAsText` takes the label, then the type's `charset`, then UTF-8, and a BOM overrides all three
+  (Encoding's "decode"); Node's TextDecoder decodes windows-1252 (also the encoding of the `latin1` and
+  `iso-8859-1` labels) as ISO-8859-1, so 0x80-0x9F go through the WHATWG index instead. A failed blob read
+  sets `error` to a NotReadableError and fires `error` (jsdom cannot fail). One spec-correct divergence: a
+  new read started from a `load` or `error` handler suppresses the old read's `loadend`, as the spec says and
+  jsdom does not.
+
+`test/contract/file-api.test.mjs` runs on all three DOMs (happy-dom 21 pinned where its FileReader and Blob
+differ). The parity scope is WPT `FileAPI/**`: 36 of 37 files at parity. The remaining subtest needs
+HTMLCollection's `@@iterator` to be `%Array.prototype.values%` (it reads `length` through the object), which
+belongs to `core`.
+
+---
+
+## 28. `document.createEvent`, `init*Event` and the missing event classes (ROADMAP Stage 3, 2026-10)
+
+Facade only (`lib/events.cjs`, area B, in a block of its own before the EventTarget API). A port of
+`refs/jsdom/lib/jsdom/living/nodes/Document-impl.js` (`createEvent`, `eventInterfaceTable`) and of the event
+classes in `refs/jsdom/lib/jsdom/living/events/` that the table names and rsdom lacked.
+
+- **The initialized flag.** Event gets a private `#initialized`, true for constructed events, set by `initEvent`
+  (which every `init*Event` calls); `uninitialize` / `isInitialized` reach it from the module, like
+  `forceCancel`. `dispatchEvent` throws InvalidStateError for an uninitialized event, as DOM says.
+- **`createEvent(interface)`** looks the name up ASCII case-insensitively in jsdom's table (aliases `Events`,
+  `HTMLEvents`, `SVGEvents`, `MouseEvents`, `UIEvents` included; `TextEvent`, `DragEvent` and the other names DOM
+  lists and jsdom does not have throw NotSupportedError, as in jsdom), constructs the class with type `''` and
+  clears the flag.
+- **New classes**: BeforeUnloadEvent (not constructible; no members of its own, as in jsdom),
+  DeviceOrientationEvent, DeviceMotionEvent with DeviceMotionEventAcceleration / DeviceMotionEventRotationRate,
+  and MessageEvent with `initMessageEvent`. The simple ones use `simpleEvent`, members in dictionary
+  (lexicographic) order so the init dictionary is read in that order. MessageEvent `source` and `ports` are as
+  lenient as jsdom's conversions (any value; any iterable, frozen). MessageEvent replaces nothing: the window
+  already deletes Node's lazy undici `MessageEvent` global without reading it (reading its descriptor loads
+  undici), so before this there was no `MessageEvent` in the Vitest environment at all.
+- **Argument checks** jsdom's bindings make: the first argument of `initCustomEvent`, `initUIEvent`,
+  `initMouseEvent`, `initKeyboardEvent`, `initCompositionEvent` is required, and a UIEvent `view` (dictionary or
+  `initUIEvent`) must be the window of an open browsing context or null (`context.ofWindow`, so a Proxy around a
+  window is refused too).
+- **Not done, deliberately:** `isTrusted` stays a prototype getter. `[LegacyUnforgeable]` makes it an own
+  accessor on every event, which measured +140-280 ns on a ~1.4 µs MouseEvent construction for one WPT subtest.
+- **Harness fix** (`conformance/wpt/worker.mjs`): rsdom's "report an exception" fires the window's ErrorEvent and
+  then emits `uncaughtException` (what makes a Vitest test fail); the worker turned that emit into a second window
+  `error` event, so listener-error tests counted two. The worker now skips an error the window already received.
+  jsdom never emits both, so its runs are unaffected.
+
+`test/contract/create-event.test.mjs` runs on all three DOMs (happy-dom 21 pinned: no aliases, no initialized
+flag, no view check). The parity scope is WPT `dom/events/**` and `uievents/**` plus jsdom's to-upstream
+uievents: 97 of 108 files at parity; the remaining gap belongs to other items, and each entry's reason names it:
+content-attribute event handlers (`onclick="..."` needs script compilation, `browsing-contexts`), shadow-tree
+retargeting and slots (`shadow-dom`), CSSOM and resolved `em` (`cssom`, `computed-values`), `customElements`,
+and the `isTrusted` decision above.

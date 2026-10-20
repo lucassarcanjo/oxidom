@@ -194,6 +194,28 @@ describe.each(DOMS)('getComputedStyle [%s]', (kind) => {
     expect(got['#c width']).toBe('40px');
   });
 
+  it('rem reads the root from detached elements; vw/vh follow innerWidth/innerHeight', () => {
+    if (kind === 'happy-dom') return;
+    const run = (doc, win) => {
+      doc.documentElement.style.fontSize = '10px';
+      const det = doc.createElement('div');
+      det.style.width = '2rem';
+      const before = win.getComputedStyle(det).width;
+      doc.documentElement.style.fontSize = '30px';
+      const v = doc.createElement('div');
+      v.style.cssText = 'width: 10vw; height: 10vh';
+      doc.body.appendChild(v);
+      win.innerWidth = 500;
+      win.innerHeight = 400;
+      const cs = win.getComputedStyle(v);
+      return [before, win.getComputedStyle(det).width, cs.width, cs.height];
+    };
+    const o = windowWithGcs('jsdom');
+    const got = run(d, w);
+    expect(got).toEqual(run(o.document, o));
+    expect(got).toEqual(['20px', '60px', '50px', '40px']);
+  });
+
   it('jest-dom toHaveStyle: keyword colours and weights do not round-trip, as on jsdom 30', async () => {
     const matchersPath = path.join(pkgDir('@testing-library/jest-dom'), 'dist/matchers.js');
     const matchers = require(matchersPath);

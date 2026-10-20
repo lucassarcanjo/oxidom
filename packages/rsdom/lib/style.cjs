@@ -121,7 +121,8 @@ function install(rt, dom) {
           default:
         }
       }
-      return N.csStr(this.#o._i, p);
+      const win = this.#o.ownerDocument?.defaultView;
+      return win ? N.csStr(this.#o._i, p, +win.innerWidth, +win.innerHeight) : N.csStr(this.#o._i, p, 1024, 768);
     }
 
     /** set by property id ('' removes) */

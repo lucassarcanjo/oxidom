@@ -541,6 +541,8 @@ pub enum Grammar {
     FontFamily,
     /// everything else: jsdom's generic descriptor semantics
     Generic,
+    /// a `<color>` property that also takes `auto` (jsdom 30 accepts it on these four only)
+    ColorOrAuto,
 }
 
 /// Grammar of a property name.
@@ -585,6 +587,7 @@ pub fn grammar_of(name: &str) -> Grammar {
         }
         _ if name.starts_with("border-") && name.ends_with("-width") && dashes == 2 => Grammar::BorderWidth,
         _ if name.starts_with("border-") && name.ends_with("-style") && dashes == 2 => Grammar::BorderStyle,
+        "accent-color" | "caret-color" | "outline-color" | "scrollbar-color" => Grammar::ColorOrAuto,
         _ => Grammar::Generic,
     }
 }
@@ -797,7 +800,8 @@ fn parse_simple(g: Grammar, flags: u32, comps: &[Comp], src: &str) -> Option<Str
         Grammar::BorderStyle => one_kw(comps, BORDER_STYLE),
         Grammar::OutlineStyle => one_kw(comps, OUTLINE_STYLE),
         Grammar::FontFamily => font_family(comps, src),
-        Grammar::Generic => generic(flags, comps, src),
+        Grammar::Generic => generic(flags, comps, src, false),
+        Grammar::ColorOrAuto => generic(flags, comps, src, true),
     }
 }
 
@@ -841,7 +845,7 @@ fn font_family(comps: &[Comp], src: &str) -> Option<String> {
 
 /// jsdom's generic descriptor: single components are normalised by type, multi-component values are
 /// kept as written.
-fn generic(flags: u32, comps: &[Comp], src: &str) -> Option<String> {
+fn generic(flags: u32, comps: &[Comp], src: &str, allow_auto: bool) -> Option<String> {
     let c = match comps {
         [] => return None,
         [c] => c,
@@ -869,8 +873,10 @@ fn generic(flags: u32, comps: &[Comp], src: &str) -> Option<String> {
                 if let Some(col) = color(c) {
                     return Some(col);
                 }
-                // pure <color> properties accept no other identifier (but `auto` for caret/accent)
-                if flags & !flag::CASE_SENSITIVE == flag::COLOR && !s.eq_ignore_ascii_case("auto") {
+                // pure <color> properties accept no other identifier (but `auto` for caret/accent & co)
+                if flags & !flag::CASE_SENSITIVE == flag::COLOR
+                    && !(allow_auto && s.eq_ignore_ascii_case("auto"))
+                {
                     return None;
                 }
             }

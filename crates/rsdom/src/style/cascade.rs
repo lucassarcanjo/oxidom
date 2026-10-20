@@ -517,22 +517,33 @@ const ABS_FONT_SIZES: &[(&str, f64)] = &[
     ("xxx-large", 48.0),
 ];
 
-/// The viewport `vw`/`vh` resolve against: jsdom's and rsdom's fixed `innerWidth` / `innerHeight`
-/// (packages/rsdom/lib/window.cjs).
-const VIEWPORT: (f64, f64) = (1024.0, 768.0);
+/// The viewport `vw`/`vh` resolve against when the caller has no window: the default `innerWidth` /
+/// `innerHeight` (packages/rsdom/lib/window.cjs). The facade passes the window's current values to `csStr`.
+pub const DEFAULT_VIEWPORT: (f64, f64) = (1024.0, 768.0);
 
-/// A resolved length: jsdom 30 serialises it as `${Number(px.toPrecision(6))}px`.
+/// A resolved length: jsdom 30 serialises it as `${Number(px.toPrecision(6))}px`, so JS number formatting
+/// (exponent form below 1e-6 and from 1e21).
 fn px(v: f64) -> String {
     let r: f64 = format!("{v:.5e}").parse().unwrap_or(v);
-    // -0 prints as 0
-    format!("{}px", if r == 0.0 { 0.0 } else { r })
+    if r == 0.0 {
+        return "0px".into(); // also -0
+    }
+    if r.abs() < 1e-6 || r.abs() >= 1e21 {
+        let s = format!("{r:e}");
+        return match s.split_once('e') {
+            Some((m, x)) if !x.starts_with('-') => format!("{m}e+{x}px"),
+            _ => format!("{s}px"),
+        };
+    }
+    format!("{r}px")
 }
 
 /// jsdom 30's `resolveLengthInPixels` for a single `<number><unit>` value (refs/jsdom/lib/jsdom/living/css/
 /// helpers/font-sizes.js): absolute, font-relative and viewport units in px. `em` and `rem` give the font
-/// sizes the relative units use (only called for those units). None for anything else: percentages,
-/// unitless numbers, keywords, `calc()`.
-fn length_px(v: &str, em: impl Fn() -> f64, rem: impl Fn() -> f64) -> Option<f64> {
+/// sizes the relative units use (only called for those units); `vp` is the viewport in px, None on the root
+/// element, where jsdom leaves viewport units unresolved. None for anything else: percentages, unitless
+/// numbers, keywords, `calc()`.
+fn length_px(v: &str, em: impl Fn() -> f64, rem: impl Fn() -> f64, vp: Option<(f64, f64)>) -> Option<f64> {
     let b = v.as_bytes();
     if !b.first().is_some_and(|c| c.is_ascii_digit() || matches!(c, b'.' | b'+' | b'-')) {
         return None;
@@ -545,7 +556,7 @@ fn length_px(v: &str, em: impl Fn() -> f64, rem: impl Fn() -> f64) -> Option<f64
         }
         v[..i].parse::<f64>().ok().map(|n| (n, unit))
     })?;
-    let (vw, vh) = (VIEWPORT.0 / 100.0, VIEWPORT.1 / 100.0);
+    let (vw, vh) = vp.map_or((f64::NAN, f64::NAN), |(w, h)| (w / 100.0, h / 100.0));
     let r = n * match unit {
         "px" => 1.0,
         "cm" => 96.0 / 2.54,
@@ -583,11 +594,19 @@ struct Strs<'a> {
     e: &'a Env,
     q: selectors::context::QuirksMode,
     authors: Authors<'a>,
+    /// the window's innerWidth / innerHeight (viewport units)
+    vp: (f64, f64),
 }
 
 impl<'a> Strs<'a> {
-    fn new(e: &'a Env, el: NodeId) -> Self {
-        Strs { e, q: adapter::quirks_of(e, el), authors: sheet::author_sheets(e, e.rec(el).owner) }
+    fn new(e: &'a Env, el: NodeId, vp: (f64, f64)) -> Self {
+        Strs { e, q: adapter::quirks_of(e, el), authors: sheet::author_sheets(e, e.rec(el).owner), vp }
+    }
+
+    /// The viewport for lengths on `el`: none on the root element (jsdom 30 `#prepareDimension` is skipped
+    /// there, so `vh` & co stay as specified).
+    fn vp_of(&self, el: NodeId) -> Option<(f64, f64)> {
+        (document_element(self.e, el) != el).then_some(self.vp)
     }
 
     fn cascaded(&self, el: NodeId, p: u32) -> Option<&'a str> {
@@ -705,7 +724,7 @@ impl<'a> Strs<'a> {
                 "smaller" => Some(parent_px / 1.2),
                 _ => match v.strip_suffix('%').and_then(|n| n.parse::<f64>().ok()) {
                     Some(n) => Some(n * parent_px / 100.0),
-                    None => length_px(v, || parent_px, || self.rem_px(el)),
+                    None => length_px(v, || parent_px, || self.rem_px(el), self.vp_of(el)),
                 },
             };
             return r.map(px).unwrap_or_else(|| v.to_string());
@@ -747,7 +766,7 @@ impl<'a> Strs<'a> {
     /// A `<length>` longhand's computed value: jsdom resolves relative units against the element's own
     /// font size (`em`) and the root's (`rem`).
     fn length(&self, el: NodeId, v: &str) -> String {
-        match length_px(v, || self.font_px(el), || self.rem_px(el)) {
+        match length_px(v, || self.font_px(el), || self.rem_px(el), self.vp_of(el)) {
             Some(r) => px(r),
             None => v.to_string(),
         }
@@ -790,12 +809,22 @@ impl<'a> Strs<'a> {
 
 /// `getComputedStyle(el).getPropertyValue(p)` for any property (non-core path).
 pub fn computed_str(e: &mut Env, el: NodeId, p: u32) -> String {
+    computed_str_in(e, el, p, DEFAULT_VIEWPORT)
+}
+
+/// [`computed_str`] in a window of `vp` = (innerWidth, innerHeight).
+pub fn computed_str_in(e: &mut Env, el: NodeId, p: u32, vp: (f64, f64)) -> String {
     if !e.is_element(el) {
         return String::new();
     }
     prepare_chain(e, el, false);
+    // `rem` reads the root element, which is not an ancestor of a detached or shadow-tree element
+    let root = document_element(e, el);
+    if root != 0 {
+        prepare_chain(e, root, false);
+    }
     // inheritance and currentcolor resolution may visit any ancestor; prepare_chain covered them all
-    Strs::new(e, el).computed(el, p)
+    Strs::new(e, el, vp).computed(el, p)
 }
 
 /// Property ids with a cascaded value on `el` (jsdom's computed declaration `length` / `item`), in
@@ -856,8 +885,8 @@ natives! {
         core(e, id)
     }
     /// getComputedStyle(el).getPropertyValue(p) for property id `p`.
-    fn csStr(e, id: u32, p: u32) -> &str {
-        let s = computed_str(e, id, p);
+    fn csStr(e, id: u32, p: u32, vw: f64, vh: f64) -> &str {
+        let s = computed_str_in(e, id, p, (vw, vh));
         e.scratch.clear();
         e.scratch.push_str(&s);
         &e.scratch
@@ -1085,10 +1114,14 @@ mod tests {
         let root = document_element(&e, c);
         assert_eq!(computed_str(&mut e, root, pr.ids.font_size), "10px");
         assert_eq!(px(96.0 / 72.0 * 10.0), "13.3333px");
-        assert_eq!(length_px("1e1px", || 0.0, || 0.0), Some(10.0));
-        assert_eq!(length_px("3ex", || 20.0, || 0.0), Some(30.0));
-        assert_eq!(length_px("2", || 20.0, || 0.0), None);
-        assert_eq!(length_px("calc(1em + 2px)", || 20.0, || 0.0), None);
+        assert_eq!(px(9.6e-7), "9.6e-7px");
+        assert_eq!(px(1e21), "1e+21px");
+        assert_eq!(length_px("10vh", || 0.0, || 0.0, None), None); // root element: jsdom leaves it
+        assert_eq!(length_px("10vw", || 0.0, || 0.0, Some((500.0, 400.0))), Some(50.0));
+        assert_eq!(length_px("1e1px", || 0.0, || 0.0, None), Some(10.0));
+        assert_eq!(length_px("3ex", || 20.0, || 0.0, None), Some(30.0));
+        assert_eq!(length_px("2", || 20.0, || 0.0, None), None);
+        assert_eq!(length_px("calc(1em + 2px)", || 20.0, || 0.0, None), None);
     }
 
     /// A 300-row table under an author sheet of `rules` class-keyed rules, none matching (Tailwind- /
@@ -1228,7 +1261,7 @@ mod tests {
         println!("computed_str color deep: {:.1} ns", t.elapsed().as_nanos() as f64 / n as f64);
         let t = std::time::Instant::now();
         for _ in 0..n {
-            let st = Strs::new(&e, b);
+            let st = Strs::new(&e, b, DEFAULT_VIEWPORT);
             s += st.cascaded(b, color).map_or(0, |v| v.len()) as u32;
         }
         println!("cascaded color one element: {:.1} ns", t.elapsed().as_nanos() as f64 / n as f64);

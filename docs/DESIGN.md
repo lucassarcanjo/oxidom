@@ -1668,13 +1668,17 @@ passes on jsdom and failed on rsdom. Computed values now follow jsdom 30's `CSSS
 - **Lengths.** A single `<number><unit>` on a `<length>` longhand becomes px, serialised as jsdom's
   `Number(px.toPrecision(6))`: absolute units, `em`/`ex`/`ch`/`lh`/`cap`/`ic` against the element's own computed
   font size, `rem` & co against the root element's (16px on the root itself), and `vw`/`vh`/`vmin`/`vmax` against
-  the fixed 1024x768 viewport of `window.innerWidth`/`innerHeight`. `font-size` uses the parent's size for `em`
+  the window's current `innerWidth`/`innerHeight`, which the facade passes to `csStr` (Rust cannot read the window,
+  §7); on the root element they stay as specified, as in jsdom. `font-size` uses the parent's size for `em`
   and `%`. Percentages, unitless numbers, keywords and `calc()` stay as specified (jsdom reduces `calc()`).
+  `computed_str` prepares the root element's inline style too, since a detached or shadow-tree element's `rem`
+  reads a root that is not its ancestor.
 - Shorthands that rsdom stores as one value (`border-block`, `box-shadow`, ...) keep the specified value, as
   jsdom's do.
 
 Measured on the parity suite: the `computed-values` gap went from 3,147 to 366 subtests (206 -> 265 of 297 files at
 parity) and overall parity from 88.8% to 90.5%, with no regression. What remains is `:heading()` (a selector, 163),
-the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom accepts `auto` on
-`border-*-color` and `none` on `column-rule-color`, jsdom rejects them). `test/contract/computed-style.test.mjs`
-checks the resolved values against jsdom.
+the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom accepts `none` on
+`column-rule-color` and rounds `1e-8in` to `0in` when parsing; jsdom does neither). `auto` is now accepted only on
+the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
+`test/contract/computed-style.test.mjs` checks the resolved values against jsdom.

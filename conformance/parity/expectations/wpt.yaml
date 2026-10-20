@@ -862,7 +862,6 @@ dom/events/event-global-event-targets.html:
   "window.event is set when dispatching on FileReader": [fail, "missing global: FileReader"]
   "window.event is set when dispatching on Performance": [fail, "The … argument must be an instance of Event. Received an instance of Event"]
 dom/events/event-global.html:
-  "window.event is set to the current event, which is the event passed to dispatch (2)": [fail, "missing global: XMLHttpRequest"]
   "window.event is undefined if the target is in a shadow tree (event dispatched inside shadow tree)": [fail, "missing method: .attachShadow()"]
   "window.event is undefined if the target is in a shadow tree (event dispatched outside shadow tree)": [fail, "missing method: .attachShadow()"]
   "window.event is undefined inside window.onerror if the target is in a shadow tree (ErrorEvent dispatched inside shadow tree)": [fail, "missing method: .attachShadow()"]
@@ -1535,7 +1534,6 @@ encoding/iso-2022-jp-encoder.html:
   "iso-2022-jp encoder: jis0208": [fail, "assert_equals: wrong value"]
   "iso-2022-jp encoder: jis0208 SO/SI ESC": [fail, "assert_equals: wrong value"]
   "iso-2022-jp encoder: jis0208 U+FFFD": [fail, "assert_equals: wrong value"]
-encoding/replacement-encodings.any.html: [fail, "missing global: XMLHttpRequest"]
 encoding/sniffing.html: [fail, "assert_equals: wrong value"]
 encoding/textdecoder-eof.any.html: [fail, "assert_equals: wrong value"]
 "encoding/textdecoder-fatal-single-byte.any.html?3001-4000": [fail, "The … encoding is not supported", {pass: 744}]
@@ -1558,7 +1556,6 @@ encoding/textdecoder-labels.any.html:
 encoding/textencoder-constructor-non-utf.any.html:
   "Encoding argument supported for decode: ISO-8859-16": [fail, "The … encoding is not supported"]
   "Encoding argument supported for decode: x-user-defined": [fail, "The … encoding is not supported"]
-encoding/unsupported-encodings.any.html: [fail, "missing global: XMLHttpRequest"]
 html/dom/access-key-label.html:
   "Returns empty string when accesskey is invalid": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/dom/aria-attribute-reflection.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -3349,26 +3346,8 @@ webstorage/storage_string_conversion.window.html: [fail, "assert_equals: wrong v
 webstorage/storage_supported_property_names.window.html:
   "Object.getOwnPropertyNames on localStorage storage with empty collection": [fail, "assert_array_equals: wrong value"]
   "Object.getOwnPropertyNames on sessionStorage storage with empty collection": [fail, "assert_array_equals: wrong value"]
-xhr/abort-during-open.any.html: [fail, "missing global: XMLHttpRequest"]
-xhr/abort-during-unsent.any.html: [fail, "missing global: XMLHttpRequest"]
-xhr/event-readystate-sync-open.any.html: [fail, "missing global: XMLHttpRequest"]
 xhr/formdata/constructor-submitter-coordinate.html: [timeout, "harness TIMEOUT: (no message)"]
-xhr/historical.html: [fail, "missing global: XMLHttpRequest"]
-xhr/open-method-bogus.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/open-method-insecure.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/open-method-responsetype-set-sync.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/open-parameters-toString.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/open-user-password-non-same-origin.htm: [fail, "missing global: XMLHttpRequest"]
 xhr/progressevent-constructor.html:
   "Decimal number test.": [fail, "assert_equals: wrong value"]
   "Mixed integer and decimal number test.": [fail, "assert_equals: wrong value"]
   "Negative number.": [fail, "assert_equals: wrong value"]
-xhr/progressevent-interface.html:
-  "The ProgressEvent interface 1": [fail, "assert_true: wrong value"]
-  "The ProgressEvent interface 2": [fail, "assert_true: wrong value"]
-  "The ProgressEvent interface 3": [fail, "assert_true: wrong value"]
-xhr/setrequestheader-before-open.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/setrequestheader-bogus-name.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/setrequestheader-bogus-value.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/timeout-sync.htm: [fail, "missing global: XMLHttpRequest"]
-xhr/xmlhttprequest-basic.htm: [fail, "missing global: XMLHttpRequest"]

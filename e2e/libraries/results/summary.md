@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs rsdom
 
-Generated 2026-10-19T18:32:01.137Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
+Generated 2026-10-19T22:22:13.307Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -10,10 +10,10 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 |---|---|---|---|---|---|
 | polyfills-jsdom | 41 | 39 | 0 | 2 | 18/20 |
 | polyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| polyfills-rsdom | 41 | 34 | 0 | 7 | 14/20 |
+| polyfills-rsdom | 41 | 35 | 0 | 6 | 15/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-rsdom | 41 | 31 | 2 | 8 | 12/20 |
+| nopolyfills-rsdom | 41 | 32 | 2 | 7 | 13/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -29,7 +29,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | lexical | lexical@0.52.0<br>@lexical/react@0.52.0 | 2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** 1/2 | **FAIL** / **FAIL** / **FAIL** |
 | lit | lit@3.3.3 | 2 | pass 2/2 | pass 2/2 | **FAIL** 0/2 | pass / pass / **FAIL** |
 | @mui/material | @mui/material@9.5.0<br>@emotion/react@11.14.0<br>@emotion/styled@11.14.1 | 3 | pass 3/3 | pass 3/3 | **FAIL** 2/3 | pass / pass / **FAIL** |
-| axios | axios@1.20.0 | 2 | pass 2/2 | pass 2/2 | **FAIL** 1/2 | pass / pass / **FAIL** |
+| axios | axios@1.20.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | msw | msw@3.0.3 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | @radix-ui/react-dialog | @radix-ui/react-dialog@1.3.1 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | @radix-ui/react-select | @radix-ui/react-select@2.4.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | **FAIL** / pass / **FAIL** |
@@ -58,11 +58,6 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 
 - **DOM(s):** rsdom. **Category:** missing-api. **Libraries hit:** lit
 - **Evidence:** Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class) and has no shadowRoot (rsdom has no attachShadow). Probe: typeof customElements / Element.prototype.attachShadow === "undefined" only in rsdom (diag-facts). ROADMAP Stage 1 ShadowRoot, Stage 4 custom elements.
-
-### rsdom has no XMLHttpRequest (only Node fetch); axios `adapter: "xhr"` cannot run
-
-- **DOM(s):** rsdom. **Category:** missing-api. **Libraries hit:** axios
-- **Evidence:** AxiosError from axios/lib/adapters/adapters.js getAdapter. Default axios adapter list falls through to fetch, so the default-adapter test passes. Probe: typeof XMLHttpRequest === "undefined" only in rsdom.
 
 ### rsdom History.back()/forward()/go() are no-ops: no session history, no popstate
 
@@ -177,7 +172,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | DOMParser | misc | 3 | yes | yes | yes |
 | execCommand | editing | 2 | **no** | **no** | **no** |
 | Range#getClientRects | geometry | 2 | **no** | yes | yes |
-| XMLHttpRequest | network | 2 | yes | yes | **no** |
+| XMLHttpRequest | network | 2 | yes | yes | yes |
 | attachShadow | shadow-dom | 1 | yes | yes | **no** |
 | customElements | shadow-dom | 1 | yes | yes | **no** |
 | elementsFromPoint | geometry | 1 | **no** | **no** | **no** |
@@ -192,7 +187,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **rsdom** (24 APIs): ShadowRoot (global) (11), IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), Element#scrollTo (8), checkVisibility (8), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), XMLHttpRequest (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1), history traversal fires popstate (1)
+- **rsdom** (23 APIs): ShadowRoot (global) (11), IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), Element#scrollTo (8), checkVisibility (8), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), Selection collapse()/setBaseAndExtent() creates a Range (4), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), attachShadow (1), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1), history traversal fires popstate (1)
 
 ## Caveats
 
@@ -200,4 +195,4 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 - Static census hits come from identifier presence. Many are feature-detected or sit on code paths the tests never reach. Use them as a risk indicator. They do not predict failures.
 - Typing into contenteditable editors (Lexical, tiptap) also depends on how @testing-library/user-event simulates input. The Lexical typing failure on jsdom and happy-dom is partly a tooling limit. The counterfactual shows that the missing `getTargetRanges` is enough to explain it.
 - Unhandled errors are attributed to a test with Vitest's "last test to run" heuristic.
-- On rsdom, 4 tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.
+- On rsdom, 3 tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.

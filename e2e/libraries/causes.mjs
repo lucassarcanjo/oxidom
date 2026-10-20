@@ -21,12 +21,6 @@ export const CAUSES = [
     evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class) and has no shadowRoot (rsdom has no attachShadow). Probe: typeof customElements / Element.prototype.attachShadow === "undefined" only in rsdom (diag-facts). ROADMAP Stage 1 ShadowRoot, Stage 4 custom elements.',
   },
   {
-    id: 'rsdom-no-xhr', category: 'missing-api', doms: ['rsdom'],
-    title: 'rsdom has no XMLHttpRequest (only Node fetch); axios `adapter: "xhr"` cannot run',
-    re: /adapter xhr is not supported/,
-    evidence: 'AxiosError from axios/lib/adapters/adapters.js getAdapter. Default axios adapter list falls through to fetch, so the default-adapter test passes. Probe: typeof XMLHttpRequest === "undefined" only in rsdom.',
-  },
-  {
     id: 'rsdom-history-traversal-noop', category: 'missing-behaviour', doms: ['rsdom'],
     title: 'rsdom History.back()/forward()/go() are no-ops: no session history, no popstate',
     re: /Unable to find role="button" and name "Open settings"/, file: /react-router/,

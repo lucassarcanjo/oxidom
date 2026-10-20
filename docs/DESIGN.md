@@ -703,6 +703,7 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 - `window`, `self`, `top` and `parent` are `globalThis`, and `document.defaultView === globalThis`.
 - Node's timers, `setImmediate`, `queueMicrotask`, `performance`, `console`, `AbortController`, `MessageChannel`, typed arrays, Blob, URL, fetch, `crypto` and `DOMException` are kept as they are.
 - Added: the FormData override, rAF/cAF on Node timers, matchMedia, location (`http://localhost:3000`), localStorage/sessionStorage, navigator.userAgent (no Chrome/Firefox token), `HTMLIFrameElement` and AnimationEvent/TransitionEvent.
+- XMLHttpRequest, XMLHttpRequestUpload and XMLHttpRequestEventTarget (§21). With them axios picks its XHR adapter by default, as on jsdom.
 - `img.decode()` resolves immediately.
 
 **Options.** Options come from `options.rsdom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
@@ -1142,3 +1143,116 @@ that returned a stale base URL after exactly 4096 attribute writes, and a recomm
 
 `test/native/memo.test.mjs` runs one scenario that fills and invalidates every memo kind with memos on and off
 (child processes) and asserts identical, literal results, plus the base-URL collision regression.
+
+---
+
+## 21. XMLHttpRequest (ROADMAP Stage 1, 2026-10)
+
+Two facade modules, no Rust: XHR state is facade state, not DOM state (CONTRIBUTING §7), and the only DOM objects
+it creates are `responseXML` documents, through DOMParser. `lib/xhr.cjs` (loaded with the other areas, installed
+last) holds XMLHttpRequestEventTarget, XMLHttpRequestUpload and XMLHttpRequest: the state machine, events,
+response getters, the cookie adapter and teardown. `lib/xhr-fetch.cjs` (loaded by the first `send()`) holds request
+bodies, the network and response decoding; it requires only `node:*` built-ins, never `runtime.cjs`, so a later
+synchronous-XHR worker can run it unchanged. A port of `refs/jsdom/lib/jsdom/living/xhr/` (XMLHttpRequest-impl.js,
+xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-dispatcher.js` XHR goes through.
+
+- **Transport: Node's fetch, captured when the facade loads.** `xhr.cjs` reads `globalThis.fetch` once at load
+  (in the Vitest environment that is `setup()`, before any setup file). Reading it does not load undici; the first
+  call does. Each hop is one `fetch(url, { method, headers, body, redirect: 'manual', signal })`, and
+  `xhr-fetch.cjs` does the rest the way jsdom's dispatcher does: its CORS model (a preflight decided by header
+  names only, no Access-Control-Allow-Methods check, no preflight cache), redirects (a 301/302 POST and a 303
+  other than GET/HEAD become GET, at most 20, an empty Location is no Location), the Basic-auth retry after a 401
+  challenge, default headers (`User-Agent` = `navigator.userAgent`, `Accept-Language: en`, `Accept: */*`,
+  `Accept-Encoding: gzip, deflate`) and cookie gating per hop. `data:` and `blob:` URLs go through the same fetch; `file:` URLs are read with
+  `fs.createReadStream` after a 200 with no headers, as jsdom does, so a missing file is readyState 2 then an
+  error. Rejected: node:http (nock and ClientRequest interceptors would see XHR traffic, `setGlobalDispatcher`
+  would stop applying, methods would be uppercased, and it is about twice the code: zlib, data: URLs, keep-alive
+  retries) and reading `globalThis.fetch` at send time (msw 2 then handles each request twice, and
+  `vi.stubGlobal('fetch')` swallows axios calls).
+- **Mocks see what they see under jsdom**, which calls undici directly:
+
+  | tool | XHR traffic |
+  |---|---|
+  | msw 3 (socket interception plus AsyncLocalStorage) | handled once per XHR, every hop attributed to the XHR |
+  | msw 2 (XHR proxy) | handled once: mocks never reach `send()`, a passthrough's fetch is the captured one |
+  | `vi.spyOn(globalThis, 'fetch')`, `vi.stubGlobal('fetch')`, msw's FetchInterceptor | never see it |
+  | nock, ClientRequest interceptors, `http.request` hooks | never see it |
+  | undici `setGlobalDispatcher(MockAgent)` | applies |
+
+  msw 3 finds the initiating request through AsyncLocalStorage: its XHR proxy runs the real `send()` inside a
+  request context. `send()` reaches the first fetch call synchronously and later hops (preflight, redirects, the
+  401 retry) are continuations of it, never timers, so every socket write carries the context; native test N4
+  guards this. With msw 3.0.3 and axios 1.20, a mocked POST runs its handler once with `request.credentials`
+  `'include'` for `withCredentials`, and a cross-origin passthrough with a custom header shows msw the preflight
+  and the request, the same as on jsdom. msw 2 copies the prototype's descriptors onto the instance and shadows
+  `readyState`, `status` and `upload`; internal code never reads public members (state lives in `#x`), so it
+  cannot be confused (native test N5). Something that patches `globalThis.fetch` before the facade loads (a
+  `--import` preload) would be captured instead; Vitest setup files run after `setup()`.
+- **State and events.** One fixed-shape state object per request in a `#x` private field, which is also the brand
+  check. A request token guards every transport callback: `open()`, `abort()`, the timeout and teardown drop it, so
+  a superseded request's transport fires nothing more (the rest of an event group already being dispatched, such as
+  load and loadend after readystatechange(4), still fires, as in jsdom). Events go through `events.fire` (trusted, `window.event` set, a
+  throwing listener reported on the window while the request carries on). Order and values copy jsdom 30.1.3's
+  traces, quirks included: upload progress faked when the response arrives, `upload.loadstart` for
+  `send(new ArrayBuffer(0))`, and on timeout a progress event before `timeout`, upload events even without an
+  upload listener, readyState back to 0 after loadend with the response kept. Delivery uses promise and stream
+  continuations only, so fake timers never stall a response; only `timeout` uses timers, the globals of the moment
+  (as jsdom, so `vi.useFakeTimers()` drives it), cleared with the clear function captured when armed. One timer
+  per request, also when a loadstart listener sets `timeout`.
+- **Cookies.** `document.cookie` (through `Document.prototype`'s accessor captured at install, so a test stubbing
+  `document.cookie` on the instance changes neither what XHR sends nor what it stores) plus a per-document side jar keyed by hostname for what `document.cookie` cannot
+  hold: HttpOnly cookies, and other hosts' cookies from credentialed CORS requests (a `localhost:3000` page calling
+  `127.0.0.1`). Cookies go out on same-origin hops or with `withCredentials`, never on preflights (jsdom's gate).
+  Path, Domain, Secure and SameSite are ignored, as `document.cookie` ignores them: a URL-aware jar shared by both
+  belongs in the window or browsing-context code and is deferred (the api/cookies.js XHR cases stay listed).
+- **Synchronous XHR.** `open(m, u, false)` and its rules work (InvalidAccessError with `timeout` or
+  `responseType` set); `send()` sets readyState 4 and throws NetworkError without events, which is the shape of
+  jsdom's own sync failure, so `async: false` callers take their error path. A worker plus `Atomics.wait` transport
+  deadlocks against in-process servers and mocks, the usual Vitest setup; deferred.
+- **Teardown.** `rt.onReset` aborts every in-flight request without events (jsdom's `_abortError` path), so with
+  `isolate: true` (the default) a file's requests end with it. With `isolate: false` teardown runs once per worker,
+  so a request left in flight completes during a later file, as under jsdom. `abortRequests(doc)` is exported and registered with
+  the browsing context's `onClose` (`lib/context.cjs`, §18), so closing the context aborts its document's requests; `window.stop()` and
+  `window.close()` do not abort requests yet (two api/resources.js cases stay listed).
+- **Divergences from jsdom**, asserted in `test/contract/xhr.test.mjs` ("spec-correct divergences"):
+  - Fixed (jsdom bugs, or failures in its to-run.yaml): no transport callback fires for a request after its
+    loadend or abort (jsdom: a progress after `abort()` in readystatechange(3), readyState 2 after `abort()` in `upload.onload`);
+    abort and network errors clear `responseURL`; no fragment in `responseURL` or `Referer`, and no `Referer` from a
+    non-http(s) document; typed arrays and DataView are sent as their bytes; a URLSearchParams body is
+    `application/x-www-form-urlencoded;charset=UTF-8`; a SharedArrayBuffer body is a TypeError; a timeout set after
+    `send()` takes effect, and the timer is cleared by `open()`, so it never times out the next request; `open()`
+    in `ontimeout` keeps the new request; `open()` drops the credentials of an earlier `open()`; `blob:` URLs load.
+  - Forced by fetch: `getAllResponseHeaders()` is lowercased, sorted and combined (`x-b: 1, 3`) instead of wire
+    order; requests carry `sec-fetch-mode: cors`; a lowercase `patch` goes out as written (as in jsdom) with a
+    one-time `[UNDICI-FETCH-patch]` process warning; bad ports are checked on every hop. A request aborted before its
+    response ends (abort, timeout, teardown) makes Node 22's undici open one extra connection that idles for its
+    keep-alive timeout (~4 s), so a test server's `close()` waits that long unless `closeAllConnections()` runs
+    first (jsdom: no wait).
+  - Missing: `responseXML` is null for XML types and `send(XMLDocument)` uses the HTML serializer (no XML parser,
+    Stage 3 `xml`); synchronous `send()` throws.
+  - Decoding: Node 22's TextDecoder decodes windows-1252 (and its latin1 / us-ascii labels) 0x80-0x9F as latin1,
+    so those bytes are mapped through a 32-entry table; it refuses the replacement and x-user-defined encodings,
+    which are decoded by hand (one UTF-16 decode per body; 8 MB of x-user-defined in ~0.2 s) (WPT `encoding/replacement-encodings.any.html`).
+- **Cost** (2026-10-19, Node 22.22, 4 vCPUs, medians):
+  - Environment setup: loading `xhr.cjs` takes 1.1 ms (30 processes, its dependencies already loaded). Facade
+    require plus `createWindow` measured 33.1 ms with it and 33.5 ms without (40 interleaved processes each),
+    within the noise. Setup loads no undici, node:http or `xhr-fetch.cjs`: `test/native/vitest-env.test.mjs`
+    asserts it after constructing an XHR, `open()`, `setRequestHeader()` and the accessors.
+  - First `send()`: `xhr-fetch.cjs` compiles in 0.55 ms. The first request to a local server takes 63-68 ms when
+    nothing has loaded undici yet, and 9-11 ms when something has (importing axios or msw does). jsdom loads
+    undici when it is required and takes 36-47 ms for its first request; happy-dom 17-22 ms.
+  - Steady state, local server: 0.80-0.94 ms per request over 500 sequential GETs (jsdom 0.97-1.05, happy-dom
+    1.17-1.22); 100 concurrent GETs in 105-109 ms (jsdom 112-127, happy-dom 83-97).
+  - Hot paths: none. The simple event classes (ProgressEvent among them) now brand-check their getters, a cold
+    path.
+- **Verification.** Parity `--item xhr`: 31 of 31 files at parity (16 before: 14 needed the global and
+  `progressevent-interface` the brand check). The run also moved `encoding/replacement-encodings` and
+  `unsupported-encodings` (XHR over data: URLs), `dom/events/event-global` and 8 jsdom API cases (XHR to file:
+  URLs, 404/503 and a missing file: URL through XHR, abort after headers, and the cookies.js secure/HttpOnly case,
+  which passes only because the adapter keeps no cookie jar); overall parity 53.5% ->
+  53.6%. `e2e/libraries`: axios passes (15 of 20 libraries, 14 before), msw still passes; `e2e/react-app` 90/90.
+  `test/contract/xhr.test.mjs` runs on all three DOMs against a local server (`xhr-server.cjs`), with happy-dom
+  pinned where its XHR differs structurally; `test/native/xhr.test.mjs` covers module loading, teardown, the
+  captured fetch, the msw 3 and msw 2 contracts emulated without msw, sync `send()`, fake timers and the close
+  hook; `test/fixtures/vitest-env/xhr-leak.spec.mjs` leaves a request in flight in all four vitest-env fixture runs (a
+  smoke test: it does not fail when the teardown abort is removed; the native teardown test does).

@@ -1,3 +1,3 @@
-// Vitest resolves `test.environment: 'rsdom'` to the package `vitest-environment-rsdom`; the environment
-// itself lives in the rsdom package.
-export { default } from 'rsdom/vitest-environment';
+// Vitest resolves `test.environment: 'jetdom'` to the package `vitest-environment-jetdom`; the environment
+// itself lives in the jetdom package.
+export { default } from 'jetdom/vitest-environment';

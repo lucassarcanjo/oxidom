@@ -33,7 +33,7 @@ describe('vitest-environment module', () => {
     };
     Object.defineProperty(fake, 'localStorage', { get: () => { throw new Error('must not be read'); }, configurable: true });
     const before = descriptors(fake);
-    const { teardown } = await env.setup(fake, { rsdom: { url: 'http://localhost:3000/a' } });
+    const { teardown } = await env.setup(fake, { jetdom: { url: 'http://localhost:3000/a' } });
     expect(fake.window).toBe(fake);
     expect(fake.document.defaultView).toBe(fake);
     expect(fake.location.pathname).toBe('/a');

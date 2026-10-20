@@ -13,14 +13,14 @@ import { defineConfig } from 'vitest/config'
 type DomEnv = 'jsdom' | 'happy-dom' | 'rsdom'
 
 // rsdom is selected exactly like the builtin environments: Vitest resolves
-// `environment: 'rsdom'` to the `vitest-environment-rsdom` package
-// (packages/vitest-environment-rsdom, linked by the npm workspace), which
-// re-exports `rsdom/vitest-environment`. Switching a project from jsdom to
-// rsdom is that one-word change.
+// `environment: 'jetdom'` (the npm name) to the `vitest-environment-jetdom`
+// package (packages/vitest-environment-rsdom, linked by the npm workspace),
+// which re-exports `jetdom/vitest-environment`. Switching a project from jsdom
+// to rsdom is that one-word change.
 const ENVIRONMENTS: Record<DomEnv, string> = {
   jsdom: 'jsdom',
   'happy-dom': 'happy-dom',
-  rsdom: 'rsdom',
+  rsdom: 'jetdom',
 }
 
 const requested = (process.env.DOM_ENV ?? 'jsdom') as DomEnv

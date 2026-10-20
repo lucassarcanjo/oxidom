@@ -34,7 +34,7 @@ export default defineConfig({
       // Same URL for all three DOMs (react-router BrowserRouter, axios/msw relative URLs).
       jsdom: { url: 'http://localhost:3000/' },
       happyDOM: { url: 'http://localhost:3000/' },
-      rsdom: { url: 'http://localhost:3000/' },
+      jetdom: { url: 'http://localhost:3000/' },
     },
     globals: true,
     setupFiles: ['./tests/setup.ts'],

@@ -1,5 +1,5 @@
 {
-  "name": "rsdom",
+  "name": "jetdom",
   "version": "0.1.0",
   "private": true,
   "description": "A fast DOM for Node.js test environments, implemented in Rust: a drop-in replacement for jsdom",

@@ -19,7 +19,7 @@ npm run build:debug       # debug addon (overflow checks + re-entrancy guard); s
 npm run test:rust         # cargo test: Rust unit tests + proptest differential test (10k sequences)
 npm run test:js           # vitest: test/contract (jsdom / happy-dom / rsdom parity) + test/native (rsdom only)
 npm run test:fallback     # the same suite with RSDOM_SHARED=0 (crossing-getter fallback); must stay green
-npm run test:e2e          # e2e/react-app: 90 React + Testing Library tests under `environment: 'rsdom'`
+npm run test:e2e          # e2e/react-app: 90 React + Testing Library tests under `environment: 'jetdom'`
 npm test                  # all of the above except the fallback run
 npm run test:parity       # jsdom's own test suite on rsdom, against conformance/parity/expectations (~4 min;
                           # needs scripts/fetch-refs.sh --wpt)

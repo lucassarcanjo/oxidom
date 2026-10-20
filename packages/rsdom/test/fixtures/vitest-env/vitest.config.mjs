@@ -8,6 +8,6 @@ export default {
     environment: fileURLToPath(new URL('../../../lib/vitest-environment.mjs', import.meta.url)),
     globals: true,
     setupFiles: ['./setup.mjs'],
-    environmentOptions: { rsdom: { url: 'http://localhost:3000/start?q=1#top' } },
+    environmentOptions: { jetdom: { url: 'http://localhost:3000/start?q=1#top' } },
   },
 };

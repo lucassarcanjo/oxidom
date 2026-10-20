@@ -267,6 +267,38 @@ describe('fake timers', () => {
     expect(x.readyState).toBe(1);
     x.abort();
   });
+
+  it('a timeout set in a loadstart listener arms one timer, cleared by abort()', () => {
+    const { window } = createWindow({ url: 'http://localhost:3000/' });
+    vi.useFakeTimers();
+    const x = new window.XMLHttpRequest();
+    x.open('GET', `${base}/hang`);
+    x.onloadstart = () => {
+      x.timeout = 5000;
+    };
+    x.send();
+    expect(vi.getTimerCount()).toBe(1);
+    x.abort();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('cookies', () => {
+  it('a document.cookie stub on the instance changes neither what XHR sends nor what it stores', async () => {
+    const { window } = createWindow({ url: `${base}/page.html` });
+    const send = (path) =>
+      new Promise((resolve) => {
+        const x = new window.XMLHttpRequest();
+        x.open('GET', `${base}${path}`);
+        x.onloadend = () => resolve([x.status, x.responseText]);
+        x.send();
+      });
+    Object.defineProperty(window.document, 'cookie', { get: () => 'stub=1', configurable: true });
+    expect(await send('/cookie/set?name=sid&v=7')).toEqual([200, 'set']);
+    expect(await send('/cookie/echo')).toEqual([200, 'sid=7']);
+    delete window.document.cookie;
+    expect(window.document.cookie).toBe('sid=7');
+  });
 });
 
 describe('window context close hook', () => {

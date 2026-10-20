@@ -16,8 +16,9 @@
 // the initiating XHR through AsyncLocalStorage.
 //
 // Event order and state follow jsdom's traces, timeout quirks included (progress before timeout, readyState back
-// to 0 after loadend, response kept). Fixed on purpose (asserted in test/contract/xhr.test.mjs): nothing fires for
-// a request after its loadend or abort; abort and network errors clear responseURL; responseURL and Referer have no
+// to 0 after loadend, response kept). Fixed on purpose (asserted in test/contract/xhr.test.mjs): no transport
+// callback of a request fires anything after its loadend or abort (events of the step being dispatched, such as
+// load/loadend after readystatechange(4), still fire, as in jsdom); abort and network errors clear responseURL; responseURL and Referer have no
 // fragment; typed-array, URLSearchParams and SharedArrayBuffer bodies follow the spec; a timeout set after send()
 // takes effect and a stale one never aborts the next request; open() drops stored credentials; blob: URLs load.
 // Not supported: synchronous requests (send() throws NetworkError, jsdom's failure shape) and responseXML for XML
@@ -152,7 +153,8 @@ function encodingName(label) {
 /**
  * One request object's state, created in one literal (stable shape). `req` is the in-flight request token
  * `{ s, handle, timer, clearTimer, start, total, lc, last }`: `open()`, `abort()`, the timeout and teardown drop it
- * (`cancel`), and every transport callback first checks `s.req === r`, so a superseded request never fires events.
+ * (`cancel`), and every transport callback first checks `s.req === r`, so a superseded request's transport fires
+ * nothing more (the rest of an event group already being dispatched still fires, as in jsdom).
  */
 function newState(xhr) {
   return {
@@ -355,6 +357,9 @@ function docHost(doc) {
  * tough-cookie's domain matching, Path/Domain/Secure/SameSite ignored.
  */
 const JAR = new WeakMap();
+// Document.prototype's cookie accessor (window.cjs), captured at install: a test stubbing document.cookie on the
+// instance must not change what XHR sends or stores (jsdom's XHR uses its jar, never document.cookie)
+let COOKIE = null;
 
 function sideJar(doc, host) {
   let m = JAR.get(doc);
@@ -371,7 +376,7 @@ function cookieAdapter(doc) {
       const host = new URL(href).hostname;
       const parts = [];
       if (host === docHost(doc)) {
-        const c = doc.cookie;
+        const c = COOKIE.get.call(doc);
         if (c !== '') parts.push(c);
       }
       const side = JAR.get(doc)?.get(host);
@@ -385,12 +390,12 @@ function cookieAdapter(doc) {
         const c = net.parseSetCookie(line);
         if (c === null) continue;
         if (same && !c.httpOnly) {
-          doc.cookie = line; // the public setter handles expiry
+          COOKIE.set.call(doc, line); // the setter handles expiry
           JAR.get(doc)?.get(host)?.delete(c.name);
           continue;
         }
         // an HttpOnly cookie replaces a script-visible one of the same name
-        if (same) doc.cookie = `${c.name}=; max-age=0`;
+        if (same) COOKIE.set.call(doc, `${c.name}=; max-age=0`);
         const side = sideJar(doc, host);
         if (c.expired) side.delete(c.name);
         else side.set(c.name, c.value);
@@ -684,7 +689,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget {
     r.handle = n.start(FETCH, describe(s, headers, payload), makeSink(s, r));
     ACTIVE.add(r);
     hookContext(s.doc);
-    if (s.timeout > 0) arm(s, r, s.timeout);
+    // a timeout set in a loadstart listener has armed already
+    if (s.timeout > 0 && r.timer === null) arm(s, r, s.timeout);
   }
 
   abort() {
@@ -836,6 +842,7 @@ function install(_rt, _dom) {
   tag(XMLHttpRequest);
   events.defineHandlers(XMLHttpRequestEventTarget.prototype, PROGRESS_EVENTS);
   events.defineHandlers(XMLHttpRequest.prototype, ['readystatechange']);
+  COOKIE = Object.getOwnPropertyDescriptor(_dom.Document.prototype, 'cookie');
   rt.onReset(() => abortRequests(null));
 }
 

@@ -1079,14 +1079,17 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
   `--import` preload) would be captured instead; Vitest setup files run after `setup()`.
 - **State and events.** One fixed-shape state object per request in a `#x` private field, which is also the brand
   check. A request token guards every transport callback: `open()`, `abort()`, the timeout and teardown drop it, so
-  a superseded request never fires anything. Events go through `events.fire` (trusted, `window.event` set, a
+  a superseded request's transport fires nothing more (the rest of an event group already being dispatched, such as
+  load and loadend after readystatechange(4), still fires, as in jsdom). Events go through `events.fire` (trusted, `window.event` set, a
   throwing listener reported on the window while the request carries on). Order and values copy jsdom 30.1.3's
   traces, quirks included: upload progress faked when the response arrives, `upload.loadstart` for
   `send(new ArrayBuffer(0))`, and on timeout a progress event before `timeout`, upload events even without an
   upload listener, readyState back to 0 after loadend with the response kept. Delivery uses promise and stream
   continuations only, so fake timers never stall a response; only `timeout` uses timers, the globals of the moment
-  (as jsdom, so `vi.useFakeTimers()` drives it), cleared with the clear function captured when armed.
-- **Cookies.** `document.cookie` plus a per-document side jar keyed by hostname for what `document.cookie` cannot
+  (as jsdom, so `vi.useFakeTimers()` drives it), cleared with the clear function captured when armed. One timer
+  per request, also when a loadstart listener sets `timeout`.
+- **Cookies.** `document.cookie` (through `Document.prototype`'s accessor captured at install, so a test stubbing
+  `document.cookie` on the instance changes neither what XHR sends nor what it stores) plus a per-document side jar keyed by hostname for what `document.cookie` cannot
   hold: HttpOnly cookies, and other hosts' cookies from credentialed CORS requests (a `localhost:3000` page calling
   `127.0.0.1`). Cookies go out on same-origin hops or with `withCredentials`, never on preflights (jsdom's gate).
   Path, Domain, Secure and SameSite are ignored, as `document.cookie` ignores them: a URL-aware jar shared by both
@@ -1095,13 +1098,14 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
   `responseType` set); `send()` sets readyState 4 and throws NetworkError without events, which is the shape of
   jsdom's own sync failure, so `async: false` callers take their error path. A worker plus `Atomics.wait` transport
   deadlocks against in-process servers and mocks, the usual Vitest setup; deferred.
-- **Teardown.** `rt.onReset` aborts every in-flight request without events (jsdom's `_abortError` path): with
-  `isolate: false`, nothing from one file fires in the next. `abortRequests(doc)` is exported and registered with
+- **Teardown.** `rt.onReset` aborts every in-flight request without events (jsdom's `_abortError` path), so with
+  `isolate: true` (the default) a file's requests end with it. With `isolate: false` teardown runs once per worker,
+  so a request left in flight completes during a later file, as under jsdom. `abortRequests(doc)` is exported and registered with
   `doc._ctx.onClose` when a window context offers one (the foundation refactor); `window.stop()` and
   `window.close()` do not abort requests yet (two api/resources.js cases stay listed).
 - **Divergences from jsdom**, asserted in `test/contract/xhr.test.mjs` ("spec-correct divergences"):
-  - Fixed (jsdom bugs, or failures in its to-run.yaml): nothing fires for a request after its loadend or abort
-    (jsdom: a progress after `abort()` in readystatechange(3), readyState 2 after `abort()` in `upload.onload`);
+  - Fixed (jsdom bugs, or failures in its to-run.yaml): no transport callback fires for a request after its
+    loadend or abort (jsdom: a progress after `abort()` in readystatechange(3), readyState 2 after `abort()` in `upload.onload`);
     abort and network errors clear `responseURL`; no fragment in `responseURL` or `Referer`, and no `Referer` from a
     non-http(s) document; typed arrays and DataView are sent as their bytes; a URLSearchParams body is
     `application/x-www-form-urlencoded;charset=UTF-8`; a SharedArrayBuffer body is a TypeError; a timeout set after
@@ -1109,12 +1113,15 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
     in `ontimeout` keeps the new request; `open()` drops the credentials of an earlier `open()`; `blob:` URLs load.
   - Forced by fetch: `getAllResponseHeaders()` is lowercased, sorted and combined (`x-b: 1, 3`) instead of wire
     order; requests carry `sec-fetch-mode: cors`; a lowercase `patch` goes out as written (as in jsdom) with a
-    one-time `[UNDICI-FETCH-patch]` process warning; bad ports are checked on every hop.
+    one-time `[UNDICI-FETCH-patch]` process warning; bad ports are checked on every hop. A request aborted before its
+    response ends (abort, timeout, teardown) makes Node 22's undici open one extra connection that idles for its
+    keep-alive timeout (~4 s), so a test server's `close()` waits that long unless `closeAllConnections()` runs
+    first (jsdom: no wait).
   - Missing: `responseXML` is null for XML types and `send(XMLDocument)` uses the HTML serializer (no XML parser,
     Stage 3 `xml`); synchronous `send()` throws.
   - Decoding: Node 22's TextDecoder decodes windows-1252 (and its latin1 / us-ascii labels) 0x80-0x9F as latin1,
-    so a 32-entry table fixes them up; it refuses the replacement and x-user-defined encodings, which are decoded
-    by hand (WPT `encoding/replacement-encodings.any.html`).
+    so those bytes are mapped through a 32-entry table; it refuses the replacement and x-user-defined encodings,
+    which are decoded by hand (one UTF-16 decode per body; 8 MB of x-user-defined in ~0.2 s) (WPT `encoding/replacement-encodings.any.html`).
 - **Cost** (2026-10-19, Node 22.22, 4 vCPUs, medians):
   - Environment setup: loading `xhr.cjs` takes 1.1 ms (30 processes, its dependencies already loaded). Facade
     require plus `createWindow` measured 33.1 ms with it and 33.5 ms without (40 interleaved processes each),
@@ -1130,9 +1137,11 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
 - **Verification.** Parity `--item xhr`: 31 of 31 files at parity (16 before: 14 needed the global and
   `progressevent-interface` the brand check). The run also moved `encoding/replacement-encodings` and
   `unsupported-encodings` (XHR over data: URLs), `dom/events/event-global` and 8 jsdom API cases (XHR to file:
-  URLs, 404/503 and a missing file: URL through XHR, abort after headers, cookie semantics); overall parity 53.5% ->
+  URLs, 404/503 and a missing file: URL through XHR, abort after headers, and the cookies.js secure/HttpOnly case,
+  which passes only because the adapter keeps no cookie jar); overall parity 53.5% ->
   53.6%. `e2e/libraries`: axios passes (15 of 20 libraries, 14 before), msw still passes; `e2e/react-app` 90/90.
   `test/contract/xhr.test.mjs` runs on all three DOMs against a local server (`xhr-server.cjs`), with happy-dom
   pinned where its XHR differs structurally; `test/native/xhr.test.mjs` covers module loading, teardown, the
   captured fetch, the msw 3 and msw 2 contracts emulated without msw, sync `send()`, fake timers and the close
-  hook; `test/fixtures/vitest-env/xhr-leak.spec.mjs` leaves a request in flight in all four vitest-env fixture runs.
+  hook; `test/fixtures/vitest-env/xhr-leak.spec.mjs` leaves a request in flight in all four vitest-env fixture runs (a
+  smoke test: it does not fail when the teardown abort is removed; the native teardown test does).

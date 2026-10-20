@@ -18,6 +18,7 @@ const { MIMEType } = require('node:util');
 
 const NodeBlob = globalThis.Blob;
 const ENC = new TextEncoder();
+const UTF16LE = new TextDecoder('utf-16le', { ignoreBOM: true });
 const MAX_REDIRECTS = 20;
 /** https://fetch.spec.whatwg.org/#no-cors-safelisted-request-header-name (jsdom checks names only) */
 const SAFE_REQUEST = new Set(['accept', 'accept-language', 'content-language', 'content-type']);
@@ -366,19 +367,23 @@ function decode(b, label) {
   }
   // the two encodings TextDecoder refuses: replacement (any input is one U+FFFD) and x-user-defined
   if (enc === 'replacement') return b.length === 0 ? '' : '�';
-  if (enc === 'x-user-defined') {
-    let s = '';
-    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i] < 0x80 ? b[i] : 0xf700 + b[i]);
-    return s;
-  }
+  if (enc === 'x-user-defined') return mapBytes(b, (c) => (c < 0x80 ? c : 0xf700 + c));
   let d;
   try {
     d = new TextDecoder(enc, { ignoreBOM: true });
   } catch {
     d = new TextDecoder('utf-8', { ignoreBOM: true });
   }
-  const s = d.decode(skip === 0 ? b : b.subarray(skip));
-  return d.encoding === 'windows-1252' ? s.replace(/[\x80-\x9f]/g, (c) => String.fromCharCode(W1252[c.charCodeAt(0) - 0x80])) : s;
+  // Node's windows-1252 decoder is ISO-8859-1 (0x80-0x9F give C1 controls), so map the bytes here
+  if (d.encoding === 'windows-1252') return mapBytes(b, (c) => (c >= 0x80 && c < 0xa0 ? W1252[c - 0x80] : c));
+  return d.decode(skip === 0 ? b : b.subarray(skip));
+}
+
+/** One UTF-16 code unit per byte, decoded in one call (a string built per byte is ~30x slower on large bodies). */
+function mapBytes(b, unit) {
+  const u = new Uint16Array(b.length);
+  for (let i = 0; i < b.length; i++) u[i] = unit(b[i]);
+  return UTF16LE.decode(u);
 }
 
 /** XHR "JSON response": UTF-8 (BOM dropped), null on a parse error. */

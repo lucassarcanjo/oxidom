@@ -168,11 +168,16 @@ class Node extends EventTarget {
     return V.T[V.off(this._i) + F.CHILD_LEN] !== 0;
   }
 
-  getRootNode(_options = undefined) {
+  getRootNode(options = undefined) {
     let id = this._i;
     if (id === 0) return this; // Attr (its own root) or a wrapper from a reset env
-    for (let p = V.T[V.off(id) + F.PARENT]; p > 0; p = V.T[V.off(id) + F.PARENT]) id = p;
-    return wrap(id);
+    for (;;) {
+      for (let p = V.T[V.off(id) + F.PARENT]; p > 0; p = V.T[V.off(id) + F.PARENT]) id = p;
+      // { composed: true }: the shadow-including root (DESIGN §22)
+      if ((V.T[V.off(id) + F.META] & (M.KIND | M.SHADOW)) !== (K.FRAGMENT | M.SHADOW) || options === undefined || options === null
+        || !options.composed) return wrap(id);
+      id = N.shadowHost(id);
+    }
   }
 
   contains(other) {
@@ -1799,7 +1804,7 @@ function materialize(id) {
   } else if (k === K.DOCUMENT) {
     C = (m & M.HTML_DOC) !== 0 ? Document : XMLDocument;
   } else {
-    C = KIND_CLASS[k];
+    C = (m & M.SHADOW) !== 0 && k === K.FRAGMENT ? rt.classes.ShadowRoot : KIND_CLASS[k];
     if (C === undefined) return null;
   }
   return materializeAs(id, C);

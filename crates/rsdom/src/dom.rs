@@ -180,9 +180,9 @@ impl Env {
     }
 
     /// DOM "host-including inclusive ancestor": like [`Self::is_inclusive_ancestor`], but when the walk
-    /// reaches the root of template contents it continues from the owning `<template>` element (the
-    /// template-contents fragment records its host in `payload`). Bounded by the node count, so even a
-    /// corrupted tree cannot make it loop.
+    /// reaches the root of template contents or a shadow root it continues from the owning `<template>`
+    /// element or the shadow host (both fragments record their host in `payload`). Bounded by the node
+    /// count, so even a corrupted tree cannot make it loop.
     pub fn is_host_including_inclusive_ancestor(&self, anc: NodeId, n: NodeId) -> bool {
         let mut c = n;
         let mut steps = self.table.len();
@@ -196,6 +196,7 @@ impl Env {
             } else if r.meta & (meta::KIND_MASK | meta::TEMPLATE_CONTENT)
                 == kind::FRAGMENT | meta::TEMPLATE_CONTENT
                 && self.is_html_elem(r.payload, atom::TEMPLATE)
+                || r.meta & (meta::KIND_MASK | meta::SHADOW) == kind::FRAGMENT | meta::SHADOW
             {
                 r.payload
             } else {
@@ -664,6 +665,8 @@ impl Env {
                 let rec = self.new_rec(doc, kind::DOCTYPE, 0, payload);
                 self.alloc_node(rec)
             }
+            // DOM "clone a node" step 1 (jsdom `cloneNode`): shadow roots are not clonable.
+            kind::FRAGMENT if r.meta & meta::SHADOW != 0 => return Err(DomError::NotSupported),
             kind::FRAGMENT => self.create_fragment(doc),
             kind::DOCUMENT => {
                 let html = self.doc_data(node).is_some_and(|d| d.html);

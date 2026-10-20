@@ -212,7 +212,8 @@ impl Env {
             self.set_meta_flag(el, meta::HAS_ID, has);
             return;
         }
-        let connected = self.rec(el).meta & meta::CONNECTED != 0;
+        // the id map holds elements in a document tree only (shadow trees are connected but not in it)
+        let connected = self.in_document_tree(el);
         if connected && !old.is_none() {
             self.id_map_remove_atom(el, old);
         }

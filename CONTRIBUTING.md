@@ -59,6 +59,7 @@ allocations below still hold.
 | `src/select/**`, `src/style/**`, `lib/select.cjs`, `lib/style.cjs` | **A** selectors, inline style, getComputedStyle | |
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
+| `src/shadow.rs`, `lib/shadow.cjs` | ShadowRoot and `attachShadow`, without retargeting (DESIGN §22) | a shadow root is a fragment record with `meta::SHADOW` (bit 20, also set on its host) and its host in `payload`; connect / disconnect / adopt walks are shadow-including, the id map holds document-tree elements only |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `lib/history.cjs` | session history (DESIGN §23) | facade only; one `SessionHistory` per browsing context (`ctx.history`), driven by `History` and `Location` in `window.cjs` |
 | `data/atoms/NN-*.txt` | everyone | prefer a **new file** for a new feature (`40-select.txt`, `41-style.txt`, ...) over editing an existing one |
@@ -69,7 +70,7 @@ Reserved bit/slot ranges (declare constants in your own module; add a one-line c
 
 | resource | A | B | C |
 |---|---|---|---|
-| `NodeRec.meta` free bits (16..31) | 16-20 | 21-25 | 26-31 |
+| `NodeRec.meta` free bits (16..31) | 16-19 (20: `meta::SHADOW`, DESIGN §22) | 21-25 | 26-31 |
 | `NodeRec.state` (forms/focus layout is fixed by DESIGN §2.2) | - | all of `state` | - |
 | `NodeRec.res[0..2]` (words 14-15) | `res[0]` (e.g. attribute bloom) | - | `res[1]` |
 | epoch page slots 13-15 | 13 | 14 | 15 (bench counters) |
@@ -136,6 +137,7 @@ State slots that already exist for each area (fill in the structs in your module
 | `Env.focus`, `DocData.focused`, `state::FOCUSED`, `EP[FOCUS]` | `focus::FocusState` | B |
 | `Env.mo`, `DocData.observers`, `meta::OBSERVED`, `EP[MO_PENDING]` | `mo::MoState` | C |
 | `Env.traversal` (NodeIterator pointers, moved by `Env::remove`) | `traversal::TraversalState` | traversal (`lib/traversal.cjs`) |
+| `Env.shadow`, `ElementExt.shadow`, `meta::SHADOW` | `shadow::ShadowState` (shadow root modes) | shadow (`lib/shadow.cjs`) |
 
 Add per-element fields to `ElementExt` (boxed, allocated on demand), never to `ElementData` (kept small: fresh
 memory per element is the dominant creation cost in this VM, ~2 µs per first-touched 4 KiB page).
@@ -168,7 +170,7 @@ Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.childre
 ## 5. JS facade conventions
 
 Each area file exports `install(rt, dom)`; `lib/index.cjs` calls them once in the order
-select -> style -> forms -> events -> mo -> window -> xhr, after the core classes exist.
+select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow, after the core classes exist.
 
 - `rt` (`lib/runtime.cjs`): `N` (natives), `V` (hot holder: `V.T` table view, `V.EP`, `V.OUT`, `V.off(id)`),
   `F`/`M`/`S`/`K`/`EPI`/`NSC`/`NS` constants, `W` (id -> wrapper), `wrap(id)`, `field(id, F.X)`, `afterAlloc()`,
@@ -240,7 +242,8 @@ select -> style -> forms -> events -> mo -> window -> xhr, after the core classe
 - Known, asserted divergences: MathML elements are `MathMLElement` (spec) where jsdom/happy-dom use `Element`;
   html5ever implements the 2025 customizable-`<select>` parser rules (see `DIVERGENCES` in
   `test/contract/parse-serialize.test.mjs`); XMLHttpRequest fixes some jsdom bugs and inherits a few Node fetch
-  behaviours ("spec-correct divergences" in `test/contract/xhr.test.mjs`, DESIGN §21).
+  behaviours ("spec-correct divergences" in `test/contract/xhr.test.mjs`, DESIGN §21); events are not retargeted
+  across shadow boundaries until Stage 4 `shadow-dom` (`test/contract/shadow-root.test.mjs`, DESIGN §22).
 
 ## 7. Invariants (do not break)
 

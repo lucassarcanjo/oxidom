@@ -1716,6 +1716,9 @@ function install(_rt, dom) {
     },
   });
 
+  // <object> is a listed element (src/forms/mod.rs `is_listed`): form owner only (shadow-root thread, DESIGN §22)
+  defineAll(C.HTMLObjectElement, FormAssociated);
+
   const Output = C.HTMLOutputElement;
   defineAll(Output, {
     get type() {

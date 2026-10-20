@@ -242,7 +242,14 @@ class Event {
         let id = target._i;
         if (isClick && hasActivation(id)) activation = target;
         let last = id;
-        for (let p = V.T[V.off(id) + F.PARENT]; p > 0; p = V.T[V.off(p) + F.PARENT]) {
+        for (let p = V.T[V.off(id) + F.PARENT]; ; p = V.T[V.off(p) + F.PARENT]) {
+          if (!(p > 0)) { // `> 0`: a stale view (undefined) ends the walk
+            // A shadow root's "get the parent" (DESIGN §22): its host for a composed event; a non-composed
+            // one stops at the target's own shadow root, the first one this walk reaches. No retargeting.
+            if (p !== 0 || !ev.#composed || (V.T[V.off(last) + F.META] & (M.KIND | M.SHADOW)) !== (K.FRAGMENT | M.SHADOW)) break;
+            p = rt.N.shadowHost(last);
+            if (!(p > 0)) break;
+          }
           const w = wrap(p);
           path.push(w);
           if (isClick && activation === null && ev.#bubbles && hasActivation(p)) activation = w;

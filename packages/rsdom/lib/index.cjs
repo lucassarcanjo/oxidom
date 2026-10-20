@@ -4,7 +4,7 @@
 // contract tests). The Vitest environment (lib/vitest-environment.mjs, area C) opens one on globalThis.
 //
 // Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
-// -> xhr -> file-api.
+// -> xhr -> observers -> file-api.
 
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
@@ -18,6 +18,7 @@ const areas = [
   require('./mo.cjs'),
   require('./window.cjs'),
   require('./xhr.cjs'),
+  require('./observers.cjs'),
   require('./file-api.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);

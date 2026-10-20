@@ -71,8 +71,10 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [x] **XMLHttpRequest** (M) `xhr`. axios with the XHR adapter. Done 2026-10-19 (DESIGN §21): all 31 suite files at
       parity, libraries 14 -> 15 of 20 (axios). Asynchronous only: a synchronous `send()` throws NetworkError, the
       way a failed synchronous request does in jsdom.
-- [ ] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
+- [x] No-op observers and scrolling APIs that jsdom setups shim by hand: ResizeObserver, IntersectionObserver,
       `scrollIntoView`, `scrollTo` on elements, pointer capture, `checkVisibility` (S, beyond jsdom) `observers`.
+      Done 2026-10-20 (DESIGN §24): inert, the observers never fire; libraries without shims 14 -> 16 of 20 (Headless
+      UI, Radix Select), the same as with shims (16).
 
 ## Stage 2: jsdom-compatible entry points
 

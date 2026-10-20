@@ -14,6 +14,8 @@ A Rust DOM (napi-rs addon + JS facade) meant as a drop-in replacement for jsdom 
   repository, so nothing runs them automatically: run `npm run check` locally before merging.
 - Work through `docs/ROADMAP.md`; each item's parity-suite scope is in `conformance/parity/roadmap.yaml`
   (`npm run test:parity -- --item <id>`).
+- Several sessions work on roadmap items in parallel: `docs/THREADS.md` says who owns which item, which DESIGN
+  section each one uses, and how to merge generated parity files.
 - `packages/rsdom/lib/generated/` is written by `crates/rsdom/build.rs`; never edit it by hand.
 - Code comments cite `DESIGN §N` (docs/DESIGN.md), lab milestones `M0`-`M9` (docs/lab/ROADMAP.md) and
   `refs/...` upstream paths (`scripts/fetch-refs.sh`).

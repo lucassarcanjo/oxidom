@@ -13,7 +13,7 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | observers | No-op observers and scrolling APIs (`observers`) | `parity/observers` | §24 | done |
 | ranges | Range comparison and stringification, then live mutation (`ranges`) | `parity/ranges` | §25 | in progress |
 | quick-wins | Web Storage named properties (`storage`), FileReader (`file-api`), `createEvent` (`events`), in that order | `parity/quick-wins` | §26, §27, §28 | done |
-| selection | Selection backed by real Ranges (`selection`) | `parity/selection` | §29 | starts when Range comparison is on main |
+| selection | Selection backed by real Ranges (`selection`) | `parity/selection` | §29 | done |
 
 A thread works inside its item. Something it needs that belongs to another item goes to the coordinator (the session
 that created the threads) instead of into the PR. Small enablers (an exported helper, an atom) are fine when called

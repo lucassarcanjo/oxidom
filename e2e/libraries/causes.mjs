@@ -21,12 +21,6 @@ export const CAUSES = [
     evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in rsdom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.',
   },
   {
-    id: 'rsdom-selection-stub', category: 'wrong-behaviour', doms: ['rsdom'],
-    title: 'rsdom Selection is a stub: collapse()/setBaseAndExtent() set anchor/focus but create no Range (rangeCount 0), so getRangeAt(0) throws',
-    re: /getRangeAt.*not a valid index/,
-    evidence: 'IndexSizeError from packages/rsdom/lib/window.cjs Selection.getRangeAt, called by @testing-library/user-event event/selection/getInputRange.js when typing into any contenteditable. diag-facts: after collapse(text,1) rangeCount=0 in rsdom (1 in jsdom/happy-dom). Spec: collapse() must set a new collapsed range.',
-  },
-  {
     id: 'no-elementFromPoint', category: 'missing-api', doms: ['jsdom', 'rsdom'],
     title: 'document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor',
     re: /elementFromPoint is not a function/,
@@ -42,7 +36,7 @@ export const CAUSES = [
     id: 'no-getTargetRanges', category: 'missing-api+tooling', doms: ['jsdom', 'happy-dom'],
     title: 'InputEvent#getTargetRanges missing, so Lexical disables its beforeinput path; its mutation fallback reverts the bare text node user-event inserts (user-event sends input with data=null)',
     re: /last "vi\.fn\(\)" call to have been called with \[ 'Hi' \]/, file: /lexical/,
-    evidence: "lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (rsdom already has it, but fails on the Selection stub).",
+    evidence: "lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (rsdom has it; since its Selection holds a real Range, 2026-10-20, Lexical typing passes there).",
   },
   {
     id: 'happy-dom-document-instanceof', category: 'wrong-behaviour', doms: ['happy-dom'],

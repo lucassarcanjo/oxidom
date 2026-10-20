@@ -110,7 +110,7 @@ describe.each(DOMS)('window [%s]', (kind) => {
     expect(d.referrer).toBe('');
   });
 
-  it('getSelection stub', () => {
+  it('getSelection starts empty and collapses', () => {
     const sel = w.getSelection();
     expect(sel).toBe(d.getSelection());
     expect(sel.anchorNode).toBe(null);

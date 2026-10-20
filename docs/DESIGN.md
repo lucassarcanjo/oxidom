@@ -1556,3 +1556,36 @@ uievents: 97 of 108 files at parity; the remaining gap belongs to other items, a
 content-attribute event handlers (`onclick="..."` needs script compilation, `browsing-contexts`), shadow-tree
 retargeting and slots (`shadow-dom`), CSSOM and resolved `em` (`cssom`, `computed-values`), `customElements`,
 and the `isTrusted` decision above.
+
+---
+
+## 29. Selection backed by real Ranges (ROADMAP Stage 3, 2026-10)
+
+`lib/selection.cjs`, facade only: a port of `refs/jsdom/lib/jsdom/living/selection/Selection-impl.js` over the
+Range of §25. It replaces the anchor/focus stub that lived in `lib/window.cjs`, which kept four fields and no Range,
+so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a contenteditable.
+
+- **One Range plus a direction.** A Selection is empty or holds one `Range` and a direction (forwards, backwards,
+  directionless). `anchorNode` / `focusNode` and their offsets are that range's start and end, swapped when the
+  direction is backwards; they are read from the range on every access, never copied. `addRange` keeps the
+  caller's object (a range rooted in the selection's document, and only while the selection is empty), so
+  `getRangeAt(0)` returns it and a later `setStart` / `setEnd` on it moves the selection. `collapse`,
+  `setPosition`, `collapseToStart` / `End`, `extend`, `setBaseAndExtent` and `selectAllChildren` build a new Range,
+  as jsdom does, so a range the page held stops being the selection's. Nodes outside the document are ignored
+  silently; the error types and their order follow jsdom.
+- **Range internals.** `range.cjs` exports `internal` (the private-field accessors, the checked and unchecked
+  boundary setters, `compareBP`, `nodeLength`, `rootKey`), so a Selection reads its boundaries and compares
+  points without going through the public getters. A Range object stays a Range; there is no Selection-only
+  subclass.
+- **selectionchange.** Setting the range to one with different boundary points (or to or from none) queues a task
+  on `ctx.queueTask` that fires a non-bubbling `selectionchange` at the document, one task per change, like jsdom's
+  `_queueATask` (no "has scheduled selectionchange event" coalescing, which jsdom lacks too).
+- **jsdom quirks kept.** `containsNode(node, true)` is jsdom's "starts before the node or ends after it", true for
+  a node wholly after the range; full containment compares strictly. `deleteFromDocument` calls
+  `Range.prototype.deleteContents` and is a no-op until the ranges thread adds it.
+- **State.** One Selection per document of a browsing context (`doc._sel`, created on first `getSelection()`);
+  `document.getSelection()` is null without a browsing context. No Rust state: a selection is never read by
+  selector matching or the parser, and a Range's boundaries are facade state already (§25).
+- **Depends on live Ranges.** A selection's boundaries move on mutation only once Ranges do (the ranges thread's
+  live boundary updates); until then, removing a selected node leaves the selection pointing into the detached
+  subtree. The two parity files that test it carry the reason "needs live Range mutation (ranges thread)".

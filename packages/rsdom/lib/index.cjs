@@ -22,6 +22,7 @@ const areas = [
   require('./range.cjs'),
   require('./shadow.cjs'),
   require('./file-api.cjs'),
+  require('./selection.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);
 // WebIDL: interface members are enumerable (class syntax made them non-enumerable).

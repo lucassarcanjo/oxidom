@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1712 | 162751 | 122734 | 75.4% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1730 | 162751 | 143726 | 88.3% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 132 | 2578 | 2197 | 85.2% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 749 | 42.1% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1850** | **167724** | **125868** | **75.0%** |
+| **all** | **2615** | **1868** | **167724** | **146860** | **87.6%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -27,7 +27,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs) | 17 | 2 | 426 | 30.6% | rsdom adapter: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
-| 3 | Selection backed by real Ranges | 64 | 42 | 19944 | 40.5% | assert_equals: wrong value (17711); Selection.getRangeAt() throws: … is not a valid index. (2230); assert_throws_dom: did not throw (2) |
+| 3 | Selection backed by real Ranges | 64 | 60 | 36 | 99.9% | needs live Range mutation (ranges thread): Range.deleteContents (30); needs live Range mutation (ranges thread): boundary points move when a node is removed (4); jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 132 | 709 | 60.4% | assert_equals: wrong value (196); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 206 | 3147 | 19.5% | assert_equals: wrong value (1909); harness ERROR: assert_equals: wrong value (936); … is not a valid selector (163) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 97 | 63 | 88.5% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); cssom: insertRule / cssRules (2) |
@@ -35,7 +35,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8864 | 82.3% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (451); read of undefined (.length) (321) |
-| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 21 | 3109 | 92.3% | assert_equals: wrong value (2973); assert_true: wrong value (100); range[method] is not a function (20) |
+| 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 21 | 2025 | 95.0% | assert_equals: wrong value (1889); assert_true: wrong value (100); range[method] is not a function (20) |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 19 | 790 | 14.4% | rsdom adapter: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom adapter: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |

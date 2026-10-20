@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-19T22:21:55.005Z",
+  "generated": "2026-10-20T14:55:44.541Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -2609,7 +2609,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3288,13 +3288,6 @@
         "libs": 1,
         "usedBy": [
           "framer-motion"
-        ]
-      },
-      {
-        "api": "history traversal fires popstate",
-        "libs": 1,
-        "usedBy": [
-          "react-router"
         ]
       }
     ]

@@ -9,19 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-<<<<<<< HEAD
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1676 | 162751 | 88759 | 54.5% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2188 | 84.9% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
-| jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1813** | **167724** | **91882** | **54.8%** |
-=======
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1667 | 162751 | 122497 | 75.3% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1688 | 162751 | 122634 | 75.4% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 131 | 2578 | 2192 | 85.0% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 747 | 41.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 188 | 30.6% |
-| **all** | **2615** | **1804** | **167724** | **125624** | **74.9%** |
->>>>>>> origin/main
+| **all** | **2615** | **1825** | **167724** | **125761** | **75.0%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 

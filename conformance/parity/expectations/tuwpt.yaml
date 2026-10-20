@@ -196,24 +196,15 @@ dom/nodes/Node-proxy-brand-checks.html:
   "appendChild rejects a transparent proxy as its receiver": [fail, "assert_true: wrong value"]
 dom/nodes/Node-removeChild.html: [fail, "assert_equals: wrong value"]
 dom/nodes/adoption-tag-name.html:
-  "Adoption updates cached tag names in a detached shadow subtree": [fail, "missing method: .attachShadow()"]
   "Adoption updates cached tag names in a detached template subtree": [fail, "assert_equals: wrong value"]
 dom/nodes/attribute-change-steps.html: [fail, "missing global: customElements"]
 dom/nodes/pre-insertion-validity-children-to-exclude.html:
   "replaceChild() excludes the replaced doctype when validating an element": [fail, "assert_array_equals: wrong value"]
   "replaceChildren() excludes all current children when validating a retained element": [fail, "assert_array_equals: wrong value"]
 dom/nodes/tree-mutation-indexes.html:
-  "Adoption visits every node in nested shadow trees and their hosts' light trees": [fail, "missing method: .attachShadow()"]
   "Range common ancestors, cloning, and extraction follow moves between branches of different depths": [fail, "missing method: .cloneContents()"]
   "Removing a subtree adjusts descendant and parent Ranges, including offset zero": [fail, "assert_equals: wrong value"]
-dom/ranges/Range-character-data.html:
-  "Inserting at a CDATASection boundary splits the text": [fail, "missing method: .insertNode()"]
-  "cloneContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "cloneContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
-  "deleteContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "deleteContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
-  "extractContents handles CDATASection nodes at both boundaries": [fail, "range[method] is not a function"]
-  "extractContents handles offsets within a CDATASection": [fail, "range[method] is not a function"]
+dom/ranges/Range-character-data.html: [fail, "assert_equals: wrong value"]
 dom/ranges/Range-contents-boundaries.html: [fail, "range[method] is not a function"]
 dom/ranges/Range-traversal-boundaries.html: [fail, "assert_equals: wrong value"]
 domparsing/DOMParser-parseFromString-xml-script.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
@@ -229,11 +220,6 @@ html/browsers/the-window-object/named-access-on-the-window-object/element-contri
 html/dom/documents/dom-tree-accessors/Document-currentScript-external-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/Document-currentScript-inline-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/nameditem-subtree-mutations.html: [fail, "assert_true: wrong value"]
-html/editing/focus/focus-management/focused-area-removal-subtree.html:
-  "Removing the focused descendant of a closed shadow tree preserves document focus": [fail, "missing method: .attachShadow()"]
-  "Removing the focused descendant of a open shadow tree preserves document focus": [fail, "missing method: .attachShadow()"]
-  "Removing the host of a closed shadow tree preserves document focus": [fail, "missing method: .attachShadow()"]
-  "Removing the host of a open shadow tree preserves document focus": [fail, "missing method: .attachShadow()"]
 html/semantics/embedded-content/the-canvas-element/canvas-element-dont-upstream.html:
   "Canvas dimensions default to 300 by 150 and reflect converted IDL values": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Canvas dimensions reflect attributes set after creation": [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -243,10 +229,6 @@ html/semantics/forms/the-fieldset-element/HTMLFieldSetElement-dont-upstream.html
 html/semantics/forms/the-input-element/radio-form-owner-tree-changes.html:
   "Moving a checked radio directly between disconnected forms": [fail, "assert_false: wrong value"]
   "Moving a checked radio inside a subtree between disconnected forms": [fail, "assert_false: wrong value"]
-  "Moving a disconnected shadow host into and out of a form does not change shadow-tree radio owners": [fail, "missing method: .attachShadow()"]
-html/semantics/forms/the-input-element/radio-group-transitions.html:
-  "Connecting a checked radio subtree updates its shadow-tree group without a form": [fail, "missing method: .attachShadow()"]
-  "Connecting a host updates radio groups inside its shadow tree": [fail, "missing method: .attachShadow()"]
 html/semantics/forms/the-option-element/option-ask-for-a-reset.html:
   "Setting an already-present selected attribute does not change selectedness": [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/current-script-after-nested-exception.html: [fail, "assert_array_equals: wrong value"]
@@ -275,11 +257,10 @@ uievents/focusevents/focus-computed-style.html:
   "Focus checks reflect stylesheet and attribute mutations after both full and partial style reads": [fail, "read of undefined (.cssRules)"]
   "Inherited display checks reflect reparenting and stylesheet rule insertion and removal": [fail, "read of undefined (.insertRule)"]
 uievents/focusevents/focus-unfocus-steps.html:
-  "Entering and leaving a shadow tree delivers each host focus event once": [fail, "missing method: .attachShadow()"]
-uievents/focusevents/focusable-area-flat-tree.html: [fail, "missing method: .attachShadow()"]
+  "Entering and leaving a shadow tree delivers each host focus event once": [fail, "assert_array_equals: wrong value"]
+uievents/focusevents/focusable-area-flat-tree.html: [fail, "missing method: .assignedNodes()"]
 uievents/focusevents/focusable-area.html:
-  "Calling focus() on an element inside an inert shadow host does nothing": [fail, "missing method: .attachShadow()"]
-  "Calling focus() on an element slotted into display: none slot does nothing": [fail, "document.getElementById(...).attachShadow is not a function"]
+  "Calling focus() on an element inside an inert shadow host does nothing": [fail, "assert_not_equals: wrong value"]
+  "Calling focus() on an element slotted into display: none slot does nothing": [fail, "assert_not_equals: wrong value"]
   "Calling focus() on an element with an inert ancestor does nothing": [fail, "assert_not_equals: wrong value"]
-  "Calling focus() on an element within shadow with parent display none does nothing": [fail, "missing method: .attachShadow()"]
   "Calling focus() on an inert element does nothing": [fail, "assert_not_equals: wrong value"]

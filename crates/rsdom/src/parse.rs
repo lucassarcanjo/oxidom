@@ -419,11 +419,14 @@ impl Env {
 
     /// `innerHTML` setter (template elements replace their template contents).
     pub fn set_inner_html(&mut self, el: NodeId, html: &str) -> DomResult {
-        if !self.is_element(el) {
-            return Err(DomError::Type);
-        }
-        let frag = self.parse_fragment(el, 0, html)?;
-        let target = if self.is_html_elem(el, atom::TEMPLATE) { self.template_content(el) } else { el };
+        // ShadowRoot.innerHTML parses with the host as the context element (jsdom InnerHTML-impl.js).
+        let (ctx, target) = match self.shadow_host(el) {
+            0 if !self.is_element(el) => return Err(DomError::Type),
+            0 if self.is_html_elem(el, atom::TEMPLATE) => (el, self.template_content(el)),
+            0 => (el, el),
+            host => (host, el),
+        };
+        let frag = self.parse_fragment(ctx, 0, html)?;
         if self.rec(frag).first == 0 && self.rec(target).first == 0 {
             return Ok(());
         }

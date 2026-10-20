@@ -6,7 +6,7 @@ to-port-to-wpts/frame.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/jsonp.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/level1/core.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
 to-port-to-wpts/level2/core.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-to-port-to-wpts/level2/html.js: [fail, "read of undefined (.length)", {pass: 352}]
+to-port-to-wpts/level2/html.js: [fail, "read of undefined (.length)", {pass: 355}]
 to-port-to-wpts/level2/style.js:
   "level2/style > HTMLStyleElement01": [fail, "read of undefined (.cssRules)"]
   "level2/style > HTMLStyleElement02": [fail, "Expected values to be strictly equal: … !== …"]

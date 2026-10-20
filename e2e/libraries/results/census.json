@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T15:20:56.265Z",
+  "generated": "2026-10-20T15:41:06.790Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -1914,7 +1914,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -1937,7 +1937,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3038,23 +3038,6 @@
     ],
     "rsdom": [
       {
-        "api": "ShadowRoot (global)",
-        "libs": 11,
-        "usedBy": [
-          "@radix-ui/react-dialog",
-          "@radix-ui/react-select",
-          "@radix-ui/react-dropdown-menu",
-          "@headlessui/react",
-          "react-aria-components",
-          "@mui/material",
-          "focus-trap + tabbable",
-          "@floating-ui/react",
-          "react-select",
-          "lexical",
-          "lit"
-        ]
-      },
-      {
         "api": "visualViewport",
         "libs": 10,
         "usedBy": [
@@ -3173,13 +3156,6 @@
         "usedBy": [
           "@tiptap/react",
           "lexical"
-        ]
-      },
-      {
-        "api": "attachShadow",
-        "libs": 1,
-        "usedBy": [
-          "lit"
         ]
       },
       {

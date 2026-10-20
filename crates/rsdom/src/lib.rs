@@ -31,6 +31,7 @@ pub mod hooks;
 pub mod node;
 pub mod parse;
 pub mod serialize;
+pub mod shadow;
 pub mod string;
 pub mod table;
 pub mod text;

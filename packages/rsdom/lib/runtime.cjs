@@ -42,6 +42,8 @@ const M = Object.freeze({
   KIND: 0xf, NS_SHIFT: 4, NS_MASK: 0x30, CONNECTED: 1 << 6, OBSERVED: 1 << 7, HTML_DOC: 1 << 8,
   IN_TEMPLATE: 1 << 9, HAS_ID: 1 << 10, HAS_CLASS: 1 << 11, HAS_STYLE: 1 << 12, DISABLED_ATTR: 1 << 13,
   HAS_PREFIX: 1 << 14, TEMPLATE_CONTENT: 1 << 15,
+  /** shadow root (fragment) / shadow host (element), src/shadow.rs */
+  SHADOW: 1 << 20,
 });
 /** `state` bits (src/node.rs `state`). */
 const S = Object.freeze({

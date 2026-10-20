@@ -297,6 +297,8 @@ pub struct Env {
     pub traversal: crate::traversal::TraversalState,
     /// Their pointer words, shared with the facade (`iterBind`).
     pub iter_words: IterWords,
+    /// Shadow roots (shadow.rs, DESIGN §22).
+    pub shadow: crate::shadow::ShadowState,
     /// Area C: per-native call counters (bench build, `counters` feature; zero-sized otherwise).
     pub counters: crate::counters::Counters,
     /// html5ever atom -> rsdom atom cache (parse.rs).
@@ -342,6 +344,7 @@ impl Env {
             focus: Default::default(),
             traversal: Default::default(),
             iter_words: Default::default(),
+            shadow: Default::default(),
             parse_cache: Default::default(),
             counters: Default::default(),
             main_doc: 0,

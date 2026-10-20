@@ -21,10 +21,10 @@ export const CAUSES = [
     evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in rsdom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.',
   },
   {
-    id: 'no-elementFromPoint', category: 'missing-api', doms: ['jsdom', 'rsdom'],
+    id: 'no-elementFromPoint', category: 'missing-api', doms: ['jsdom'],
     title: 'document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor',
     re: /elementFromPoint is not a function/,
-    evidence: 'Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom and rsdom, present in happy-dom.',
+    evidence: 'Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom, present in happy-dom and (since 2026-10-20, returning null like happy-dom\'s) rsdom.',
   },
   {
     id: 'jsdom-no-range-geometry', category: 'missing-api', doms: ['jsdom'],

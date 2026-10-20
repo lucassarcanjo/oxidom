@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs rsdom
 
-Generated 2026-10-20T17:00:17.392Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
+Generated 2026-10-20T19:31:36.794Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, rsdom working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -10,10 +10,10 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 |---|---|---|---|---|---|
 | polyfills-jsdom | 41 | 39 | 0 | 2 | 18/20 |
 | polyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| polyfills-rsdom | 41 | 38 | 1 | 2 | 18/20 |
+| polyfills-rsdom | 41 | 39 | 0 | 2 | 19/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-rsdom | 41 | 38 | 1 | 2 | 18/20 |
+| nopolyfills-rsdom | 41 | 39 | 0 | 2 | 19/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -40,7 +40,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | react-router | react-router@8.4.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | react-select | react-select@5.10.2 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | @tanstack/react-table | @tanstack/react-table@9.3.1 | 1 | pass 1/1 | pass 1/1 | pass 1/1 | pass / pass / pass |
-| @tiptap/react | @tiptap/react@3.32.0<br>@tiptap/starter-kit@3.32.0 | 2 | **FAIL** 1/2 | pass 2/2 | error* 2/2 | **FAIL** / pass / error* |
+| @tiptap/react | @tiptap/react@3.32.0<br>@tiptap/starter-kit@3.32.0 | 2 | **FAIL** 1/2 | pass 2/2 | pass 2/2 | **FAIL** / pass / pass |
 
 ## Root causes (each one verified)
 
@@ -61,8 +61,8 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 
 ### document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor
 
-- **DOM(s):** jsdom, rsdom. **Category:** missing-api. **Libraries hit:** @tiptap/react
-- **Evidence:** Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom and rsdom, present in happy-dom.
+- **DOM(s):** jsdom. **Category:** missing-api. **Libraries hit:** @tiptap/react
+- **Evidence:** Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom, present in happy-dom and (since 2026-10-20, returning null like happy-dom's) rsdom.
 
 ### jsdom has no Range#getClientRects / Range#getBoundingClientRect; ProseMirror scrollToSelection throws inside dispatchTransaction, so tiptap never emits "update"
 
@@ -152,7 +152,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | InputEvent#getTargetRanges | editing | 4 | **no** | **no** | yes |
 | caretRangeFromPoint/caretPositionFromPoint | editing | 4 | **no** | **no** | **no** |
 | Range#getBoundingClientRect | geometry | 4 | **no** | yes | yes |
-| elementFromPoint | geometry | 4 | **no** | yes | **no** |
+| elementFromPoint | geometry | 4 | **no** | yes | yes |
 | setPointerCapture/hasPointerCapture | events | 4 | **no** | yes | yes |
 | DataTransfer | events | 4 | **no** | yes | **no** |
 | fetch | network | 4 | yes | yes | yes |
@@ -165,7 +165,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | XMLHttpRequest | network | 2 | yes | yes | yes |
 | attachShadow | shadow-dom | 1 | yes | yes | yes |
 | customElements | shadow-dom | 1 | yes | yes | **no** |
-| elementsFromPoint | geometry | 1 | **no** | **no** | **no** |
+| elementsFromPoint | geometry | 1 | **no** | **no** | yes |
 | Element#animate (WAAPI) | animation | 1 | **no** | yes | **no** |
 | history.pushState | html | 1 | yes | yes | yes |
 | history traversal fires popstate | html | 1 | yes | yes | yes |
@@ -177,7 +177,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **rsdom** (13 APIs): visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), caretRangeFromPoint/caretPositionFromPoint (4), elementFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), customElements (1), elementsFromPoint (1), Element#animate (WAAPI) (1)
+- **rsdom** (11 APIs): visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), caretRangeFromPoint/caretPositionFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), customElements (1), Element#animate (WAAPI) (1)
 
 ## Caveats
 

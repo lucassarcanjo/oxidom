@@ -1419,8 +1419,14 @@ nothing here reads or authors the tree beyond what public members already expose
 - **Measured.** No parity test selects these (their WPT DIR, css/cssom-view, is outside the selection);
   `test/contract/observers.test.mjs` runs against happy-dom and asserts jsdom has none. `e2e/libraries` without
   shims: rsdom 14 -> 16 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
-  `no-pointer-capture` are jsdom-only causes now. Not part of the item: `document.elementFromPoint` (ROADMAP "Not
-  planned"; ProseMirror's mousedown handler still needs it on jsdom and rsdom).
+  `no-pointer-capture` are jsdom-only causes now.
+- **Hit testing (added 2026-10-20, after the item).** `elementFromPoint` and `elementsFromPoint` on Document and
+  ShadowRoot (DocumentOrShadowRoot, cssom-view) return `null` and `[]`: with no boxes, no point hits an element.
+  happy-dom's `elementFromPoint` also returns `null`. ProseMirror's `posAtCoords` then falls back to its own walk
+  over `getBoundingClientRect`; without the method its mousedown handler throws on every click (tiptap in
+  `e2e/libraries`: error* -> pass, 18 -> 19 of 20 with and without shims). Missing or non-finite coordinates throw
+  TypeError (WebIDL `double`). Beyond jsdom, which has neither. `caretPositionFromPoint`/`caretRangeFromPoint` stay
+  undefined: ProseMirror feature-detects them, so a stub would change nothing.
 
 ---
 

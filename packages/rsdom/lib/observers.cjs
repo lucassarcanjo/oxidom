@@ -321,6 +321,33 @@ function checkVisibility(el, options) {
   return true;
 }
 
+// ========================================================================================= hit testing
+
+/**
+ * DocumentOrShadowRoot#elementFromPoint / elementsFromPoint (cssom-view). No boxes exist, so no point hits an
+ * element: null and [], as happy-dom's elementFromPoint returns. ProseMirror's posAtCoords then falls back to its
+ * own walk over getBoundingClientRect; without the method its mousedown handler throws (e2e/libraries tiptap).
+ * The arguments are WebIDL `double`s: missing or non-finite ones throw.
+ */
+function hitTesting(iface) {
+  function coords(argc, x, y, method) {
+    need(argc, 2, method, iface);
+    if (!Number.isFinite(Number(x)) || !Number.isFinite(Number(y))) {
+      throw new TypeError(`Failed to execute '${method}' on '${iface}': The provided double value is non-finite.`);
+    }
+  }
+  return {
+    elementFromPoint(x, y) {
+      coords(arguments.length, x, y, 'elementFromPoint');
+      return null;
+    },
+    elementsFromPoint(x, y) {
+      coords(arguments.length, x, y, 'elementsFromPoint');
+      return [];
+    },
+  };
+}
+
 // ============================================================================================== install
 
 function install(_rt, dom) {
@@ -380,6 +407,9 @@ function install(_rt, dom) {
       return checkVisibility(this, options);
     },
   });
+
+  // ShadowRoot gets the same pair from lib/shadow.cjs, which installs after this area.
+  rt.define(Document, hitTesting('Document'));
 }
 
-module.exports = { install, ResizeObserver, IntersectionObserver, IntersectionObserverEntry };
+module.exports = { install, hitTesting, ResizeObserver, IntersectionObserver, IntersectionObserverEntry };

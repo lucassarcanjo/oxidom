@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T16:59:51.522Z",
+  "generated": "2026-10-20T19:31:36.706Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -2198,7 +2198,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": true,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -2211,7 +2211,7 @@
       "available": {
         "jsdom": false,
         "happy-dom": false,
-        "rsdom": false
+        "rsdom": true
       }
     },
     {
@@ -3103,16 +3103,6 @@
         ]
       },
       {
-        "api": "elementFromPoint",
-        "libs": 4,
-        "usedBy": [
-          "@headlessui/react",
-          "react-aria-components",
-          "@tiptap/react",
-          "lexical"
-        ]
-      },
-      {
         "api": "DataTransfer",
         "libs": 4,
         "usedBy": [
@@ -3153,13 +3143,6 @@
         "libs": 1,
         "usedBy": [
           "lit"
-        ]
-      },
-      {
-        "api": "elementsFromPoint",
-        "libs": 1,
-        "usedBy": [
-          "lexical"
         ]
       },
       {

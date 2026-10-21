@@ -13,6 +13,9 @@ Where things stand (2026-10-21): rsdom passes 90.5% of the subtests jsdom passes
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
 
+None of the packages is on npm yet: install `jetdom` and the environment packages from this repository
+(`packages/rsdom`, `packages/vitest-environment-rsdom`, `packages/jest-environment-rsdom`; README "Usage").
+
 ## Contents
 
 1. [Vitest](#vitest)
@@ -90,13 +93,14 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 ```
 
 Supported: the options `url`, `referrer`, `contentType` (HTML types), `pretendToBeVisual`, `storageQuota`,
-`virtualConsole`, `beforeParse` and `resources.userAgent`; the members `window`, `serialize()`, `reconfigure()`
-and `fragment()`; and `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. `VirtualConsole`
+`virtualConsole`, `beforeParse` and `resources.userAgent`; the members `window`, `virtualConsole`, `cookieJar`,
+`serialize()` and `reconfigure()`; and `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. `VirtualConsole`
 (`forwardTo`, `"jsdomError"` events) and `CookieJar` (tough-cookie's, as jsdom exports it) are exported too.
 
 Not supported: XML content types, `runScripts` (validated, then ignored), `includeNodeLocations`,
 `nodeLocation()`, `getInternalVMContext()`, subresource loading, `requestInterceptor`, and a cookie jar behind
-`document.cookie`. rsdom also has a lighter entry point, `createWindow({ url })`, which skips the `JSDOM` wrapper.
+`document.cookie`. rsdom also has a lighter entry point, `createWindow({ url })`, which returns `{ window, document }` without
+the `JSDOM` wrapper.
 
 Several `JSDOM` instances in one thread share their interface objects (see [Setup and API](#setup-and-api)).
 
@@ -143,6 +147,8 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   and `runScripts` is ignored. Vitest's jsdom environment and jest-environment-jsdom run them by default
   (`runScripts: 'dangerously'`). Inline handler attributes (`onclick="..."`) do not run either; `el.onclick = fn`
   does. DESIGN §10, §28; `browsing-contexts`.
+- **[gap] No iframes.** An `<iframe>` has no nested browsing context: `contentWindow` and `contentDocument` are
+  undefined, and so are `window.frames` indexing and `window.length`. `browsing-contexts` (Stage 4).
 - **[gap] User agent.** `navigator.userAgent` ends in `rsdom/0.1.0`, not `jsdom/30.1.3`. Code that looks for
   "jsdom" in it will not match. DESIGN §31.
 - **[design] One set of interface objects per thread**, not per `JSDOM` instance: `dom1.window.Node ===
@@ -171,7 +177,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   `External`, `Audio`, `PromiseRejectionEvent`, `CloseEvent`, `ElementInternals`. `geometry`, `core`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
 - **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), `XMLSerializer` (`xml`),
-  `DOMRect` / `DOMRectReadOnly` / `DOMMatrix` (rects are plain objects; `geometry`), XPath (`document.evaluate`;
+  `DOMRect` / `DOMRectReadOnly` (rects are plain objects; `geometry`), XPath (`document.evaluate`;
   `xpath`), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] Brand checks are skipped on hot paths.** `Object.getOwnPropertyDescriptor(Node.prototype,
   'firstChild').get.call({})` returns `null` instead of throwing `TypeError`. CONTRIBUTING §8.
@@ -180,6 +186,12 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[gap] Indexed properties of live lists, `select` and `form` are prototype accessors**, not own properties:
   `Object.keys(childNodes)` is `[]` (jsdom lists the indices) and `i in list` holds for indices past the end.
   Reading, writing, iterating and `Array.from` match jsdom. DESIGN §14.1.
+- **[design] Async work leaked past a file's end throws**, in every pool. The environment is reset between
+  files; a timer or callback that touches a node from a finished file throws `Illegal invocation` in whatever file
+  is running. jsdom quietly mutates the closed window. Clean up timers, or await the work, before the test ends.
+  DESIGN §15.1.
+- **[beyond] `Blob` and `File` subclass Node's `Blob`**, so `fetch`, `Response`, `URL.createObjectURL` and
+  `structuredClone` accept them (jsdom's are refused there). DESIGN §27.
 
 ### Realms
 
@@ -196,11 +208,6 @@ share one realm, so they do not apply there.
   EventTarget`, and fake timers do not drive `AbortSignal.timeout()`. DESIGN §32.
 - **[design] Blob methods resolve in Node's realm** in VM pools; `FileReader` results and `TextEncoder` output
   are in the window's realm, as on jsdom. DESIGN §32, §33.
-- **[design] Async work leaked past a file's end throws.** The environment is reset between files; a timer or
-  callback that touches a node from a finished file throws `Illegal invocation` in whatever file is running. jsdom
-  quietly mutates the closed window. Clean up timers, or await the work, before the test ends. DESIGN §15.1.
-- **[beyond] `Blob` and `File` subclass Node's `Blob`**, so `fetch`, `Response`, `URL.createObjectURL` and
-  `structuredClone` accept them (jsdom's are refused there). DESIGN §27.
 
 ### Events
 
@@ -208,7 +215,7 @@ share one realm, so they do not apply there.
   inside it, not the host. `document.activeElement` does retarget. happy-dom does not retarget either. DESIGN §22;
   `shadow-dom`.
 - **[gap] `isTrusted` is a prototype getter**, not an own unforgeable property. Values match jsdom. DESIGN §28.
-- **[beyond] Extra event classes:** `AnimationEvent`, `TransitionEvent`, `DragEvent`, `ClipboardEvent`.
+- **[beyond] Extra event classes:** `AnimationEvent`, `DragEvent`, `ClipboardEvent`.
 - **[gap] A native panic is not transactional:** an internal bug surfaces as a JS `Error` and may leave a
   mutation half-applied. DESIGN §14.2.
 
@@ -236,7 +243,7 @@ share one realm, so they do not apply there.
   extended ranges; `:dir()` takes any identifier; `::slotted()` and `::part()` parse and never match; a scoped
   `el.querySelectorAll('nav li > a')` matches through ancestors outside `el`, as browsers do (jsdom returns
   nothing). DESIGN §14.2.
-- **[beyond] `matchMedia` and `CSS.escape` exist**; `MediaQueryList.matches` is always `false`. DESIGN §12.
+- **[beyond] `matchMedia` exists**; `MediaQueryList.matches` is always `false`. DESIGN §12.
 - **[beyond] `checkVisibility()`** answers from computed style. DESIGN §24.
 
 ### Forms
@@ -251,7 +258,7 @@ share one realm, so they do not apply there.
   call (jsdom: live, and `labels === labels`). `forms`, `core`.
 - **[gap] Option selectedness reset** does not run when an option is removed from inside a non-`optgroup`
   wrapper below the `select`.
-- **[gap] `innerText`** ignores `<br>` and `display: none` (jsdom has no `innerText` at all).
+- **[beyond] `innerText` exists** (jsdom has none), but it ignores `<br>` and `display: none`.
 - **[spec] `select[i] = option` for an option in an `<optgroup>`** replaces it in place, as Chromium does; jsdom
   throws `NotFoundError`. DESIGN §14.1.
 - **[beyond] `contentEditable` / `isContentEditable`, `<dialog>` methods, `img.decode()`.**
@@ -270,7 +277,7 @@ share one realm, so they do not apply there.
 ### History and navigation
 
 - **[gap] No navigation to another document.** Following a link or submitting a form is a silent no-op (jsdom
-  logs "Not implemented: navigation"). Fragment navigation, `pushState` and `replaceState` work. DESIGN §23.
+  logs "Not implemented: ..." for each). Fragment navigation, `pushState` and `replaceState` work. DESIGN §23.
 - **[gap] No cross-document traversal**, no `beforeunload` / `pagehide`; `scrollRestoration` is only stored.
   DESIGN §23.
 - **[spec] Fragment-navigation entries have state `null`** (jsdom: `undefined`). DESIGN §23.
@@ -319,7 +326,7 @@ share one realm, so they do not apply there.
 
 ### Timing and memory
 
-- **[gap] `ResizeObserver` and `IntersectionObserver` never call back** (they exist; jsdom has neither).
+- **[beyond] `ResizeObserver` and `IntersectionObserver` exist but never call back** (jsdom has neither).
   DESIGN §24.
 - **[design] FileReader tasks ignore fake timers**, and a failed blob read fires `error` with
   `NotReadableError`. DESIGN §27.

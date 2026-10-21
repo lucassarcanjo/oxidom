@@ -41,5 +41,10 @@ function createWindow(options = {}) {
 const { JSDOM, VirtualConsole, CookieJar, toughCookie } = require('./jsdom.cjs');
 
 module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toughCookie };
-// lib/index.cjs hands these exports to any later copy of the facade in this env
-Object.defineProperty(require('./native.cjs'), Symbol.for('jetdom.facade'), { value: module.exports });
+// lib/index.cjs hands these exports to any later copy of the facade in this env. Only a copy loaded in Node's own
+// realm records them (the addon exports object is made there): a copy a VM pool loads inside one file's vm
+// context must not hand that file's realm to the next file
+const native = require('./native.cjs');
+if (Object.getPrototypeOf(native) === Object.prototype) {
+  Object.defineProperty(native, Symbol.for('jetdom.facade'), { value: module.exports });
+}

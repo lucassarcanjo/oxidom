@@ -23,8 +23,24 @@ function openVmWindow(options) {
   for (const k of NODE_GLOBALS) {
     if (globalThis[k] !== undefined) Object.defineProperty(global, k, { value: globalThis[k], writable: true, configurable: true });
   }
+  // Node's TextEncoder makes Node-realm Uint8Arrays; jsdom's window has its own, whose output is the window's
+  // (`instanceof Uint8Array`, `toEqual(new Uint8Array(...))`, jose & co)
+  const { Uint8Array: WinUint8Array } = global;
+  Object.defineProperty(global, 'TextEncoder', {
+    value: class TextEncoder extends globalThis.TextEncoder {
+      encode(input = '') {
+        const bytes = super.encode(input);
+        const out = new WinUint8Array(bytes.length);
+        out.set(bytes);
+        return out;
+      }
+    },
+    writable: true,
+    configurable: true,
+  });
   const ctx = context.open({ ...options, global, ownTimers: true });
   global.webkitURL = global.URL;
+  Object.defineProperty(global, Symbol.toStringTag, { value: 'Window', configurable: true });
   return { vmContext, global, ctx };
 }
 

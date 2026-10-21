@@ -29,6 +29,12 @@ test('globals', () => {
   });
 });
 
+test('the window and TextEncoder output belong to the test realm', () => {
+  expect(Object.prototype.toString.call(window)).toBe('[object Window]');
+  expect(new TextEncoder().encode('a')).toEqual(new Uint8Array([97]));
+  expect(new TextEncoder().encode('a') instanceof Uint8Array).toBe(true);
+});
+
 test('a DOM change in one test is still there in the next (one document per file)', () => {
   document.body.innerHTML = '<p id=kept>1</p>';
 });

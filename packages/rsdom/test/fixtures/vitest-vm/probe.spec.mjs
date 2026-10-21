@@ -29,6 +29,12 @@ test('globals', () => {
   document.body.innerHTML = '<p>left behind</p>';
 });
 
+test('the window and TextEncoder output belong to the test realm', () => {
+  expect(Object.prototype.toString.call(window)).toBe('[object Window]');
+  expect(new TextEncoder().encode('a')).toEqual(new Uint8Array([97]));
+  expect(new TextEncoder().encode('a') instanceof Uint8Array).toBe(true);
+});
+
 test('FileReader results are the test realm\'s ArrayBuffers', async () => {
   const reader = new FileReader();
   const done = new Promise((resolve) => reader.addEventListener('load', resolve));

@@ -170,7 +170,7 @@ describe.each(['jsdom', 'jetdom'])('VM pools fixture suite [%s]', (dom) => {
   it.each(['vmThreads', 'vmForks'])('passes in %s', (pool) => {
     const { status, out } = runVm(dom, pool);
     expect(status, out).toBe(0);
-    expect(out).toMatch(/Tests\s+7 passed \(7\)/);
+    expect(out).toMatch(/Tests\s+8 passed \(8\)/);
   }, 120_000);
 
   it('a listener error is reported as an unhandled error', () => {

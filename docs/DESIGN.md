@@ -1777,8 +1777,9 @@ aliased to jetdom, works.
 
 **Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
 Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
-on them does not hold, nor `instanceof Uint8Array` on `TextEncoder` output, nor `instanceof Error` on a
-`DOMException` (its base is Node's `Error`). `AbortController` / `AbortSignal` are Node's: an abort reason is such a
+on them does not hold, nor `instanceof Error` on a `DOMException` (its base is Node's `Error`), nor
+`instanceof EventTarget` on the window (its `Symbol.toStringTag` is `Window`). `TextEncoder` is wrapped so its
+output is the window's `Uint8Array`, as jsdom's own encoder's is. `AbortController` / `AbortSignal` are Node's: an abort reason is such a
 `DOMException`, a signal is not `instanceof EventTarget`, and fake timers do not drive `AbortSignal.timeout()`.
 jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm. Two facade checks
 moved to realm-independent tests for this (Blob parts and `new JSDOM()` input use `util.types.isArrayBuffer` /
@@ -1813,11 +1814,22 @@ each file starts from a fresh document.
 
 Vitest executes externals in the vm context, so a test file's `require('jetdom')` / `import('jetdom')` is a
 second copy of the facade. It gets the first copy's exports (§32), and the facade entry has no top-level
-`return`, because Vite parses it when a workspace inlines the package.
+`return`, because Vite parses it when a workspace inlines the package. Only a copy loaded in Node's own realm
+records its exports (the addon exports object's prototype is that realm's `Object.prototype`): under another
+environment in a VM pool, a copy loaded inside one file's context is not handed to the next file.
 
-The realm notes of §32 apply here too. **Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
+**Divergences.** The VM pools reuse a worker across files. Teardown resets the env, so a host-realm callback a
+file leaked (`setImmediate`, Node's `MessageChannel`, a fetch or fs callback) that touches that file's nodes after
+the reset throws `Illegal invocation`, which Vitest reports as an unhandled error while the next file runs; jsdom
+quietly mutates its closed window. Keeping the old documents instead would grow the env across files (rsdom frees
+nodes only at a reset), so the reset stays. The §32 realm notes hold here as well: `toThrow(TypeError)` on a
+facade error, `DOMException instanceof Error`, `window instanceof EventTarget` and Blob promises differ from
+jsdom's window, whose WebIDL layer works in the window's realm. With `RSDOM_COUNTERS`, the counters lines carry no
+file list in VM pools (Vitest's worker state lives on the vm context).
+
+**Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
 in both pools, under jetdom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
-- the globals a file sees
+- which globals a file sees, the window's `toString` and `TextEncoder` output's realm
 - testing-library with user-event and jest-dom
 - fake timers
 - FileReader's realm

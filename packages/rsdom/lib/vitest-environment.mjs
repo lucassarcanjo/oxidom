@@ -14,8 +14,9 @@
 // `test.environmentOptions.jsdom` (ROADMAP Stage 2) is read as Vitest's jsdom environment reads it, so a
 // config written for jsdom works unchanged: `url`, `html` (a whole document, default `<!DOCTYPE html>`),
 // `userAgent` (or `resources.userAgent`), `pretendToBeVisual` (default true), `contentType` (HTML only),
-// `console`, `referrer`, `storageQuota`, `virtualConsole`. `cookieJar`, `runScripts`, `includeNodeLocations`
-// and `beforeParse` are ignored. A `jetdom` key wins over the `jsdom` one.
+// `console`, `referrer`, `storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are
+// ignored: scripts in `html` do not run, where Vitest's jsdom default (`runScripts: 'dangerously'`) runs them.
+// A `jetdom` key wins over the `jsdom` one.
 //
 // As in Vitest's jsdom environment, the window has a virtual console forwarding to the console (jsdom's
 // default whether `console` is set or not): not-implemented window methods (`alert`, `scrollTo`, ...) log

@@ -227,7 +227,9 @@ class JSDOM {
   }
 
   reconfigure(settings) {
-    if ('windowTop' in settings) {
+    // On the Vitest global, `top` stays the global: Vitest's jsdom environment copies the window's members once,
+    // so reconfiguring `windowTop` there only changes jsdom's hidden window
+    if ('windowTop' in settings && !this.#ctx.global) {
       Object.defineProperty(this.#ctx.window, 'top', { value: settings.windowTop, configurable: true, writable: true });
     }
     if ('url' in settings) {

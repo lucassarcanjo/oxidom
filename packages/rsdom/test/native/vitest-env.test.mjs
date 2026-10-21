@@ -91,6 +91,8 @@ describe('environmentOptions.jsdom (Vitest jsdom environment keys)', () => {
       fake.jsdom.reconfigure({ url: 'http://localhost:3000/next' });
       expect(fake.location.pathname).toBe('/next');
       expect(fake.jsdom.window).toBe(fake);
+      fake.jsdom.reconfigure({ windowTop: 5 });
+      expect(fake.top).toBe(fake);
       expect(fake.jsdom.serialize()).toBe('<!DOCTYPE html><html><head></head><body></body></html>');
     } finally {
       spy.mockRestore();

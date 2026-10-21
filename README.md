@@ -70,8 +70,11 @@ npm run build          # builds the native addon into packages/rsdom/native/
 **Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
 `environment: 'jetdom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
 (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
-global (`jsdom.reconfigure({ url })`) is there. rsdom's own options go in `test.environmentOptions.jetdom`
-(`{ url, html }`, with `html` as body markup) and win over the `jsdom` ones.
+global (`jsdom.reconfigure({ url })`) is there. rsdom never runs scripts, so a `<script>` in `html` does not run
+(Vitest's jsdom default runs it). rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
+`html` as body markup) and win over the `jsdom` ones. As on jsdom, `alert()`, `scrollTo()` and the other
+not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
+`error` listener saw but did not cancel is logged there instead of failing the test.
 
 **Plain Node.**
 

@@ -5,10 +5,10 @@ change for each runner, what carries over unchanged, and every known way rsdom b
 30.1.3, which is the oracle rsdom is measured against.
 
 Most suites need only the configuration change. Read [the divergences](#known-divergences) if a test fails after
-the switch, or before you switch if your suite relies on scripts, custom elements, iframes, XML or CSSOM rule
-objects, which rsdom does not support yet.
+the switch, or before you switch if your suite relies on scripts, custom elements, iframes or XML, which rsdom
+does not support yet.
 
-Where things stand (2026-10-21): rsdom passes 90.5% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-21): rsdom passes 90.9% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -221,9 +221,9 @@ share one realm, so they do not apply there.
 
 ### CSS and computed style
 
-- **[gap] No CSSOM rule objects:** `document.styleSheets`, `sheet`, `CSSStyleSheet`, `cssRules`, `insertRule`,
-  `adoptedStyleSheets`. CSS-in-JS libraries in "speedy" mode (injecting with `insertRule`) do not style anything;
-  `<style>` text still applies to computed style. `cssom`.
+- **[gap] CSSOM edges:** `document.styleSheets`, `sheet`, `CSSStyleSheet` and `insertRule` work like jsdom
+  (CSS-in-JS "speedy" mode styles elements). `<link rel=stylesheet>` has no `sheet` even with `resources: 'usable'`, `@import` sheets are empty,
+  and a `<style>`'s `media` is read when its sheet is first observed rather than at insertion. DESIGN §35.
 - **[gap] `calc()` is not reduced** in computed values: `calc(10px + 5px)` stays as written (jsdom: `15px`).
   `computed-values`.
 - **[gap] Some colours stay as specified:** `lab()`, `color-mix()`, `color-scheme`. Named colours, hex,

@@ -91,7 +91,18 @@ function normalizeKeyText(text) {
 /** csstree `<keyframe-selector>`: `from`, `to` or a `<percentage>` (jsdom `validateKeyframeSelector`). */
 function validKeySelector(sel) {
   if (/^(from|to)$/i.test(sel)) return true;
-  return /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?%$/.test(sel);
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?%$/.test(sel)) return false;
+  const n = parseFloat(sel);
+  return n >= 0 && n <= 100; // `<percentage [0,100]>`
+}
+
+function argRequired(method, iface) {
+  return new TypeError(`Failed to execute '${method}' on '${iface}': 1 argument required, but only 0 present.`);
+}
+
+/** jsdom MediaList `canonicalize`: a medium compared without insignificant whitespace. */
+function canonicalMedium(m) {
+  return m.replace(/\s*([():,])\s*/g, '$1');
 }
 
 // ------------------------------------------------------------------------------------------ page
@@ -259,20 +270,22 @@ function install(rt, dom) {
     }
 
     appendMedium(medium) {
+      if (arguments.length === 0) throw argRequired('appendMedium', 'MediaList');
       const m = parseMedium(String(medium)) ?? 'not all';
       const items = this._items();
-      if (items.includes(m)) return;
+      const c = canonicalMedium(m);
+      if (items.some((x) => canonicalMedium(x) === c)) return;
       items.push(m);
       this._write(items);
     }
 
     deleteMedium(medium) {
-      const m = parseMedium(String(medium)) ?? 'not all';
+      if (arguments.length === 0) throw argRequired('deleteMedium', 'MediaList');
+      const c = canonicalMedium(parseMedium(String(medium)) ?? 'not all');
       const items = this._items();
-      const i = items.indexOf(m);
-      if (i === -1) throw rt.domError(2, `"${medium}" was not found in the media list.`);
-      items.splice(i, 1);
-      this._write(items);
+      const kept = items.filter((x) => canonicalMedium(x) !== c);
+      if (kept.length === items.length) throw rt.domError(2, `"${medium}" was not found in the media list.`);
+      this._write(kept);
     }
 
     toString() {

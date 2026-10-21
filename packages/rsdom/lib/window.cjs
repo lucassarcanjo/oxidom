@@ -1086,7 +1086,10 @@ function makeWindow(ctx, global = undefined, ownTimers = false) {
   def('getSelection', function getSelection() {
     return selectionOf(document);
   });
-  def('CSS', Object.freeze({ escape: cssEscape, supports: cssSupports }), false);
+  // a WebIDL namespace object: plain writable methods and a configurable @@toStringTag
+  const css = { escape: cssEscape, supports: cssSupports };
+  Object.defineProperty(css, Symbol.toStringTag, { value: 'CSS', configurable: true });
+  def('CSS', css, false);
 
   // Area B's window EventTarget: listener methods, `event` and on* handlers.
   if (isGlobal) {

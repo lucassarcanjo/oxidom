@@ -18,16 +18,9 @@ FileAPI/url/url-format.any.html:
   "Blob URL parses correctly": [fail, "assert_equals: wrong value"]
   "Origin of Blob URL matches our origin": [fail, "assert_equals: wrong value"]
   "Origin of Blob URL matches our origin for Files": [fail, "assert_equals: wrong value"]
-css/cssom/CSS-namespace-object-class-string.html: [fail, "assert_own_property (missing property)"]
 css/cssom/CSSFontFeatureValuesRule.html: [fail, "read of undefined (.0)"]
 css/cssom/CSSImportRule-layer-false-positive.html: [timeout, "harness TIMEOUT: (no message)"]
 css/cssom/CSSImportRule-layer-media.html: [timeout, "harness TIMEOUT: (no message)"]
-css/cssom/CSSKeyframeRule-keyText-edge-cases.html:
-  "setter rejects -5%": [fail, "assert_true: wrong value"]
-  "setter rejects 150%": [fail, "assert_true: wrong value"]
-css/cssom/CSSKeyframesRule-appendRule-invalid.html:
-  "appendRule with trailing at-rule after keyframe block is silently ignored": [fail, "assert_equals: wrong value"]
-  "appendRule with trailing garbage after keyframe block is silently ignored": [fail, "assert_equals: wrong value"]
 css/cssom/CSSStyleDeclaration-indexed-properties.html:
   "in operator works for indexed properties": [fail, "assert_false: wrong value"]
   "indexed properties are enumerable": [fail, "assert_equals: wrong value"]
@@ -79,9 +72,6 @@ css/cssom/CSSStyleSheet-constructable-duplicate.html: [fail, "missing global: CS
 css/cssom/CSSStyleSheet-constructable-invalidation.html: [fail, "missing global: CSSStyleSheet"]
 css/cssom/CSSStyleSheet-constructable-replace-cssRules.html: [fail, "missing global: CSSStyleSheet"]
 css/cssom/CSSStyleSheet-constructable-replace-on-regular-sheet.html: [timeout, "harness TIMEOUT: (no message)"]
-css/cssom/CSSStyleSheet-replace-detach-old-rules.html:
-  "replace() nullifies parentStyleSheet on old nested rules after replacement": [fail, "assert_equals: wrong value"]
-  "replaceSync() nullifies parentStyleSheet on old nested rules": [fail, "assert_equals: wrong value"]
 css/cssom/HTMLLinkElement-disabled-001.html:
   "HTMLLinkElement.disabled reflects the <link disabled> attribute, and behaves consistently": [fail, "assert_true: got undefined (missing attribute/API)"]
 css/cssom/HTMLLinkElement-disabled-002.html: [fail, "assert_true: got undefined (missing attribute/API)"]
@@ -291,9 +281,6 @@ css/cssom/link-element-stylesheet-title.html: [fail, "undefined is not iterable 
 css/cssom/medialist-appendmedium-parse-single-and-dedup.html:
   "appendMedium with a comma-separated list is a no-op": [fail, "assert_equals: wrong value"]
   "appendMedium with a comma-separated list leaves an existing list unchanged": [fail, "assert_equals: wrong value"]
-css/cssom/medialist-deletemedium-parse-and-remove-all.html: [fail, "read of undefined (.media)"]
-css/cssom/medialist-interfaces-002.html:
-  "deleteMedium_called_without_argument": [fail, "assert_equals: wrong value"]
 css/cssom/overflow-serialization.html:
   "Overflow-x/y longhands on element with different keywords should serialize correctly.": [fail, "assert_equals: wrong value"]
   "Overflow-x/y longhands on element with same CSS-wide keyword should serialize correctly.": [fail, "assert_equals: wrong value"]

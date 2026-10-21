@@ -1864,3 +1864,36 @@ The packages ship hand-written declarations, listed under the `types` condition 
 jetdom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
 `jsdom` global, and custom Jest environments, with `@ts-expect-error` lines that must stay errors. It also
 checks the declared exports against the entry's runtime exports and Node's ESM named exports.
+
+## 35. CSSOM rule objects (ROADMAP Stage 3, 2026-10)
+
+`document.styleSheets`, `styleEl.sheet`, `CSSStyleSheet` (constructable, `insertRule` / `deleteRule` / `replace` /
+`replaceSync` / legacy `addRule` / `removeRule`), `CSSRuleList`, `MediaList` and the `CSSRule` family (style,
+import, media, supports, container, layer block and statement, scope, nested declarations, font-face, page,
+keyframes and keyframe, namespace, counter-style), ported from jsdom 30 (refs/jsdom/lib/jsdom/living/css).
+
+- **One parse, two views.** `src/style/cssom.rs` parses a sheet into a rule tree (`Tree`), replacing the flat
+  parser `sheet.rs` had. The cascade still consumes the flat `Sheet`, now derived from the tree (`to_sheet`: style
+  rules, recursively inside matching `@media`, as jsdom's `collectCandidateStyles`; other at-rules and nested rules
+  do not apply, like jsdom). Rule declaration blocks are the same `InlineStyle` as `element.style`, so
+  `rule.style` is a `CSSStyleDeclaration` over Rust with the inline style's parsing and serialization (§30).
+- **Lazily materialised.** A `<style>`'s tree is a temporary until script reads `sheet` or `document.styleSheets`;
+  the sheet then gets an id and stays the element's source of rules until its text changes or it disconnects,
+  when it is detached (jsdom creates a new sheet object then). CSSOM edits change the tree, drop the element's
+  flat sheet and bump `EP[STYLE]`, so computed style sees `insertRule` without re-reading the text, and the text
+  is never written back (as in jsdom).
+- **Facade.** `lib/cssom.cjs` holds jsdom's string logic (cssText assembly, `MediaList` parsing and comparison,
+  keyframe and page selectors, `selectorText` / `keyText` validation) and writes results back through natives
+  (`om*`). Wrappers are cached per sheet id and per rule handle for identity; removed rules stay in the tree,
+  detached, since script may hold them (`parentStyleSheet` and `parentRule` become null, as do nested rules on
+  `replace`).
+- **`CSS.supports`** is jsdom's: a declaration is supported when setting it on an empty block leaves a value
+  (`cssSupports`, so it agrees with `style.setProperty`), conditions are `not` / `and` / `or` over parenthesized
+  declarations, and `CSSSupportsRule#matches` uses the same evaluator.
+
+Divergences from jsdom: link sheets (`<link rel=stylesheet>`) have no `sheet` (rsdom loads no subresources, so
+this differs only under `resources: 'usable'`); a
+`<style>`'s `media` is read when its sheet is first observed (jsdom reads it when the element is inserted, so
+setting `media` on a connected element before touching `sheet` differs); `@import` sheets are empty.
+Parity: 138 -> 223 of 260 suite files, gap 681 -> 219 subtests. The rest is value serialization owned by
+`computed-values` (serialize-values, shorthands, about 190) and `customElements` (20).

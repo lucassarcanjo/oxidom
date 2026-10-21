@@ -19,8 +19,8 @@
 use std::sync::Arc;
 
 use cssparser::{
-    AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserState,
-    QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, StyleSheetParser, Token,
+    AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserState, QualifiedRuleParser,
+    RuleBodyItemParser, RuleBodyParser, StyleSheetParser, Token,
 };
 use rustc_hash::FxHashMap;
 use selectors::parser::{ParseRelative, SelectorList};
@@ -443,7 +443,8 @@ impl TreeParser<'_> {
     /// Parses the body of the rule at index `idx` (handle `idx + 1`) in context `ctx`.
     fn body(&mut self, idx: u32, ctx: Ctx, input: &mut Parser) {
         let is_style = self.tree.rules[idx as usize].kind == kind::STYLE;
-        let mut sub = TreeParser { tree: &mut *self.tree, parent: idx + 1, ctx, pending: InlineStyle::default() };
+        let mut sub =
+            TreeParser { tree: &mut *self.tree, parent: idx + 1, ctx, pending: InlineStyle::default() };
         let children = match ctx {
             Ctx::Nested => sub.nested_body(input, is_style, idx),
             _ => {
@@ -488,7 +489,11 @@ impl TreeParser<'_> {
             self.tree.rules[idx as usize].decls = Some(Arc::new(run));
             return;
         }
-        let i = self.add(RuleData { kind: kind::NESTED_DECLARATIONS, decls: Some(Arc::new(run)), ..Default::default() });
+        let i = self.add(RuleData {
+            kind: kind::NESTED_DECLARATIONS,
+            decls: Some(Arc::new(run)),
+            ..Default::default()
+        });
         out.push(i);
     }
 
@@ -538,17 +543,30 @@ impl TreeParser<'_> {
         };
         let (rule, body) = match pre {
             AtPre::Media(a) => (RuleData { kind: kind::MEDIA, a, ..Default::default() }, Some(group_ctx)),
-            AtPre::Supports(a) => (RuleData { kind: kind::SUPPORTS, a, ..Default::default() }, Some(group_ctx)),
+            AtPre::Supports(a) => {
+                (RuleData { kind: kind::SUPPORTS, a, ..Default::default() }, Some(group_ctx))
+            }
             AtPre::Container { name, query } => {
                 (RuleData { kind: kind::CONTAINER, a: name, b: query, ..Default::default() }, Some(group_ctx))
             }
             AtPre::Scope { start, end } => {
                 (RuleData { kind: kind::SCOPE, c: start, d: end, ..Default::default() }, Some(group_ctx))
             }
-            AtPre::LayerBlock(a) => (RuleData { kind: kind::LAYER_BLOCK, a, ..Default::default() }, Some(group_ctx)),
-            AtPre::LayerStatement(a) => (RuleData { kind: kind::LAYER_STATEMENT, a, ..Default::default() }, None),
+            AtPre::LayerBlock(a) => {
+                (RuleData { kind: kind::LAYER_BLOCK, a, ..Default::default() }, Some(group_ctx))
+            }
+            AtPre::LayerStatement(a) => {
+                (RuleData { kind: kind::LAYER_STATEMENT, a, ..Default::default() }, None)
+            }
             AtPre::Import { href, media, layer, supports } => (
-                RuleData { kind: kind::IMPORT, a: href, b: media, c: layer, d: supports, ..Default::default() },
+                RuleData {
+                    kind: kind::IMPORT,
+                    a: href,
+                    b: media,
+                    c: layer,
+                    d: supports,
+                    ..Default::default()
+                },
                 None,
             ),
             AtPre::Namespace { prefix, uri } => {
@@ -556,11 +574,20 @@ impl TreeParser<'_> {
             }
             AtPre::FontFace => {
                 let d = decl_block(input);
-                return Ok(self.add(RuleData { kind: kind::FONT_FACE, decls: Some(Arc::new(d)), ..Default::default() }));
+                return Ok(self.add(RuleData {
+                    kind: kind::FONT_FACE,
+                    decls: Some(Arc::new(d)),
+                    ..Default::default()
+                }));
             }
             AtPre::Page(a) => {
                 let d = decl_block(input);
-                return Ok(self.add(RuleData { kind: kind::PAGE, a, decls: Some(Arc::new(d)), ..Default::default() }));
+                return Ok(self.add(RuleData {
+                    kind: kind::PAGE,
+                    a,
+                    decls: Some(Arc::new(d)),
+                    ..Default::default()
+                }));
             }
             AtPre::CounterStyle(a) => {
                 let mut descs = Vec::new();
@@ -572,7 +599,9 @@ impl TreeParser<'_> {
                 }
                 return Ok(self.add(RuleData { kind: kind::COUNTER_STYLE, a, descs, ..Default::default() }));
             }
-            AtPre::Keyframes(a) => (RuleData { kind: kind::KEYFRAMES, a, ..Default::default() }, Some(Ctx::Keyframes)),
+            AtPre::Keyframes(a) => {
+                (RuleData { kind: kind::KEYFRAMES, a, ..Default::default() }, Some(Ctx::Keyframes))
+            }
         };
         let idx = self.add(rule);
         if let (Some(ctx), Some(input)) = (body, input) {
@@ -607,11 +636,7 @@ impl<'i> AtRuleParser<'i> for TreeParser<'_> {
     type AtRule = Item;
     type Error = ();
 
-    fn parse_prelude(
-        &mut self,
-        name: CowRcStr<'i>,
-        input: &mut Parser<'i>,
-    ) -> Result<AtPre, ParseError<()>> {
+    fn parse_prelude(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i>) -> Result<AtPre, ParseError<()>> {
         let n = name.to_ascii_lowercase();
         let err = |_: &Parser<'i>| ParseError::custom(());
         if self.ctx == Ctx::Keyframes {
@@ -638,7 +663,9 @@ impl<'i> AtRuleParser<'i> for TreeParser<'_> {
             "container" => {
                 let st = input.state();
                 let name = match input.next().cloned() {
-                    Ok(Token::Ident(i)) if !["not", "and", "or"].iter().any(|k| i.eq_ignore_ascii_case(k)) => {
+                    Ok(Token::Ident(i))
+                        if !["not", "and", "or"].iter().any(|k| i.eq_ignore_ascii_case(k)) =>
+                    {
                         i.to_string()
                     }
                     _ => {
@@ -800,10 +827,14 @@ impl<'i> RuleBodyItemParser<'i, (), ()> for RawDecls<'_> {
 /// Parses a rule list (a sheet, or one rule's text for `insertRule`) into a new tree. Returns the tree and
 /// the number of list items that failed to parse. Runs with an interner installed (`adapter::with_interner`).
 pub fn parse_tree(text: &str) -> (Tree, usize) {
+    parse_list(text, Ctx::Top)
+}
+
+fn parse_list(text: &str, ctx: Ctx) -> (Tree, usize) {
     let mut tree = Tree::default();
     let mut bad = 0;
     let mut input = Parser::new(text);
-    let mut p = TreeParser { tree: &mut tree, parent: 0, ctx: Ctx::Top, pending: InlineStyle::default() };
+    let mut p = TreeParser { tree: &mut tree, parent: 0, ctx, pending: InlineStyle::default() };
     let mut top = Vec::new();
     for r in StyleSheetParser::new(&mut input, &mut p) {
         match r {
@@ -916,7 +947,10 @@ impl Env {
         if let Some(&sid) = self.style.om.by_owner.get(&el) {
             return sid;
         }
-        if !self.style.sheets.contains_key(&el) || !self.is_html_elem(el, atom::STYLE) || !has_css_type(self, el) {
+        if !self.style.sheets.contains_key(&el)
+            || !self.is_html_elem(el, atom::STYLE)
+            || !has_css_type(self, el)
+        {
             return 0;
         }
         let text = sheet::style_text(self, el);
@@ -1025,7 +1059,8 @@ impl Env {
             }
             return;
         }
-        let nested = self.style.om.get(sid).is_some_and(|s| s.tree.rule(r).is_some_and(|x| s.tree.in_style(x.parent)));
+        let nested =
+            self.style.om.get(sid).is_some_and(|s| s.tree.rule(r).is_some_and(|x| s.tree.in_style(x.parent)));
         let sel = if f == field::A && self.om_kind(sid, r) == kind::STYLE as u32 && !nested {
             let text = v.to_owned();
             adapter::with_interner(&mut self.atoms, || parse_selector(&text))
@@ -1126,16 +1161,22 @@ impl Env {
         } else {
             let pre = |k: u8| k == kind::IMPORT || k == kind::NAMESPACE;
             if new_kind == kind::IMPORT
-                && list[..index as usize].iter().any(|i| !matches!(kind_at(i), kind::IMPORT | kind::LAYER_STATEMENT))
+                && list[..index as usize]
+                    .iter()
+                    .any(|i| !matches!(kind_at(i), kind::IMPORT | kind::LAYER_STATEMENT))
             {
                 return Err(DomError::HierarchyRequest);
             }
             if new_kind == kind::NAMESPACE
-                && list.iter().any(|i| !matches!(kind_at(i), kind::IMPORT | kind::NAMESPACE | kind::LAYER_STATEMENT))
+                && list
+                    .iter()
+                    .any(|i| !matches!(kind_at(i), kind::IMPORT | kind::NAMESPACE | kind::LAYER_STATEMENT))
             {
                 return Err(DomError::InvalidState);
             }
-            if !pre(new_kind) && new_kind != kind::LAYER_STATEMENT && list[index as usize..].iter().any(|i| pre(kind_at(i)))
+            if !pre(new_kind)
+                && new_kind != kind::LAYER_STATEMENT
+                && list[index as usize..].iter().any(|i| pre(kind_at(i)))
             {
                 return Err(DomError::HierarchyRequest);
             }
@@ -1174,7 +1215,10 @@ impl Env {
         let Some(&old) = list.get(index as usize) else { return Err(DomError::IndexSize) };
         if r == 0 && s.tree.rules[old as usize].kind == kind::NAMESPACE {
             let other = list.iter().any(|i| {
-                !matches!(s.tree.rules[*i as usize].kind, kind::IMPORT | kind::NAMESPACE | kind::LAYER_STATEMENT)
+                !matches!(
+                    s.tree.rules[*i as usize].kind,
+                    kind::IMPORT | kind::NAMESPACE | kind::LAYER_STATEMENT
+                )
             });
             if other {
                 return Err(DomError::InvalidState);
@@ -1196,10 +1240,13 @@ impl Env {
         // constructed sheets ignore @import (CSSOM "replace a stylesheet")
         tree.top.retain(|i| tree.rules[*i as usize].kind != kind::IMPORT);
         let Some(s) = self.style.om.get_mut(sid) else { return };
-        for i in std::mem::take(&mut s.tree.top) {
+        // jsdom `CSSRuleList#_clear`: old rules, nested ones included, lose their parents and children
+        let mut stack = std::mem::take(&mut s.tree.top);
+        while let Some(i) = stack.pop() {
             let x = &mut s.tree.rules[i as usize];
             x.attached = false;
             x.parent = 0;
+            stack.extend(std::mem::take(&mut x.children));
         }
         let added = s.tree.adopt(tree, 0);
         s.tree.top = added;
@@ -1211,18 +1258,11 @@ impl Env {
         if self.om_kind(sid, r) != kind::KEYFRAMES as u32 {
             return false;
         }
-        let (tree, _) = self.om_parse(&format!("@keyframes _temp {{ {text} }}"));
-        if tree.top.len() != 1 {
+        // exactly one keyframe rule, nothing else (jsdom `parseKeyframeRule`)
+        let (one, bad) = adapter::with_interner(&mut self.atoms, || parse_list(text, Ctx::Keyframes));
+        if one.top.len() != 1 || bad != 0 {
             return false;
         }
-        let k = &tree.rules[tree.top[0] as usize];
-        if k.kind != kind::KEYFRAMES || k.children.len() != 1 {
-            return false;
-        }
-        let mut one = Tree::default();
-        let child = tree.rules[k.children[0] as usize].clone();
-        let i = one.push(RuleData { parent: 0, ..child });
-        one.top.push(i);
         let Some(s) = self.style.om.get_mut(sid) else { return false };
         let added = s.tree.adopt(one, r);
         if let Some(l) = s.tree.list_mut(r) {
@@ -1239,7 +1279,8 @@ impl Env {
     }
 
     fn om_mutate_decls(&mut self, sid: u32, r: u32, f: impl FnOnce(&mut InlineStyle) -> bool) {
-        let Some(d) = self.style.om.get_mut(sid).and_then(|s| s.tree.rule_mut(r)).and_then(|x| x.decls.as_mut())
+        let Some(d) =
+            self.style.om.get_mut(sid).and_then(|s| s.tree.rule_mut(r)).and_then(|x| x.decls.as_mut())
         else {
             return;
         };
@@ -1307,7 +1348,8 @@ fn undeclared_prefix(sel: &str, declared: &[&str]) -> bool {
     let b = sel.as_bytes();
     let mut i = 0;
     while i < b.len() {
-        let at_start = i == 0 || matches!(b[i - 1], b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b',' | b'>' | b'+' | b'~' | b'(');
+        let at_start = i == 0
+            || matches!(b[i - 1], b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b',' | b'>' | b'+' | b'~' | b'(');
         if at_start && (b[i].is_ascii_alphabetic() || b[i] == b'_') {
             let s = i;
             while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_' || b[i] == b'-') {
@@ -1469,7 +1511,15 @@ mod tests {
         let kinds: Vec<u8> = t.top.iter().map(|i| t.rules[*i as usize].kind).collect();
         assert_eq!(
             kinds,
-            [kind::STYLE, kind::MEDIA, kind::IMPORT, kind::NAMESPACE, kind::KEYFRAMES, kind::LAYER_STATEMENT, kind::LAYER_BLOCK]
+            [
+                kind::STYLE,
+                kind::MEDIA,
+                kind::IMPORT,
+                kind::NAMESPACE,
+                kind::KEYFRAMES,
+                kind::LAYER_STATEMENT,
+                kind::LAYER_BLOCK
+            ]
         );
         let r = |k: usize| &t.rules[t.top[k] as usize];
         assert_eq!(r(0).a, "a  > b , c");

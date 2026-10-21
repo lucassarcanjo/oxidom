@@ -28,11 +28,43 @@ const context = require('./context.cjs');
 
 const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|image\/svg\+xml|[^/]+\/[^;]*\+xml)$/;
 
-function decode(input) {
-  if (Buffer.isBuffer(input)) return new TextDecoder().decode(input);
-  if (input instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(input));
-  if (ArrayBuffer.isView(input)) return new TextDecoder().decode(new Uint8Array(input.buffer, input.byteOffset, input.byteLength));
-  return String(input);
+/**
+ * jsdom's decoding of binary input (HTML "determine the character encoding", simplified): a BOM, then the
+ * content type's `charset`, then a `<meta charset>` / `http-equiv` prescan of the first 1024 bytes, else UTF-8
+ * (jsdom's default is windows-1252 only for a missing charset on a `fromURL()` response; rsdom keeps UTF-8).
+ */
+function decode(input, contentType) {
+  let bytes;
+  if (Buffer.isBuffer(input)) bytes = input;
+  else if (input instanceof ArrayBuffer) bytes = new Uint8Array(input);
+  else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+  else return String(input);
+  return new TextDecoder(sniffEncoding(bytes, contentType)).decode(bytes);
+}
+
+function sniffEncoding(bytes, contentType) {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return 'utf-16be';
+  const label = (s) => {
+    const m = s && /charset\s*=\s*["']?([^"'\s;>]+)/i.exec(s);
+    if (m === null || !m) return null;
+    try {
+      // TextDecoder resolves WHATWG labels (latin1 -> windows-1252); HTML treats a UTF-16 meta as UTF-8
+      const enc = new TextDecoder(m[1]).encoding;
+      return enc.startsWith('utf-16') ? 'utf-8' : enc;
+    } catch {
+      return null;
+    }
+  };
+  const fromType = label(contentType);
+  if (fromType !== null) return fromType;
+  const head = Buffer.from(bytes.subarray(0, 1024)).toString('latin1');
+  for (const m of head.matchAll(/<meta\b[^>]*>/gi)) {
+    const enc = label(m[0]);
+    if (enc !== null) return enc;
+  }
+  return 'utf-8';
 }
 
 /** jsdom's VirtualConsole (refs/jsdom/lib/jsdom/virtual-console.js). */
@@ -123,14 +155,18 @@ class JSDOM {
 
     const ctx = context.open({
       url,
-      source: decode(input),
+      source: decode(input, contentType),
       settings: {
         pretendToBeVisual: Boolean(options.pretendToBeVisual),
         storageQuota: options.storageQuota === undefined ? 5000000 : Number(options.storageQuota),
         userAgent: resources.userAgent === undefined ? null : String(resources.userAgent),
         referrer,
         virtualConsole: this.#virtualConsole,
+        closable: true,
       },
+      // A `JSDOM` made inside a Vitest test (a sanitizer's helper document) must not take over what `new Text()`
+      // & co create nodes in on the global window; between plain instances, the newest is current
+      main: context.current()?.global !== true,
     });
     if (options.beforeParse !== undefined) {
       // jsdom calls it with an empty document, before parsing; rsdom parses into a new document, so the

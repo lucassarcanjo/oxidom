@@ -413,7 +413,7 @@ class Window {
   }
 
   static [Symbol.hasInstance](v) {
-    return require('./context.cjs').ofWindow(v) !== undefined;
+    return require('./context.cjs').isWindow(v);
   }
 }
 tag(Window);
@@ -932,17 +932,16 @@ function makeWindow(ctx, global = undefined) {
   const noop = function () {};
   const vc = settings.virtualConsole;
   /** jsdom's not-implemented report (refs/jsdom/lib/jsdom/browser/not-implemented.js), on a virtual console only */
-  const notImplemented = (name, ret) => {
-    if (!vc) return () => ret;
-    return {
-      [name]() {
+  const notImplemented = (name, ret) => ({
+    [name]() {
+      if (vc) {
         const error = new Error(`Not implemented: Window's ${name}() method`);
         error.type = 'not-implemented';
         vc.emit('jsdomError', error);
-        return ret;
-      },
-    }[name];
-  };
+      }
+      return ret;
+    },
+  })[name];
   def('scrollTo', notImplemented('scrollTo'));
   def('scroll', notImplemented('scroll'));
   def('scrollBy', notImplemented('scrollBy'));
@@ -951,11 +950,11 @@ function makeWindow(ctx, global = undefined) {
   def('prompt', notImplemented('prompt', null));
   def('print', notImplemented('print'));
   def('open', notImplemented('open', null));
-  // Closing a `JSDOM` window closes its context (timers, animation frames); the Vitest global stays open
-  def('close', isGlobal ? noop : function close() {
+  // Closing a `JSDOM` window closes its context (timers, animation frames); other windows stay open
+  def('close', settings.closable && !isGlobal ? function close() {
     ctx.close();
     win.closed = true;
-  });
+  } : function close() {});
   def('stop', noop);
   def('focus', notImplemented('focus'));
   def('blur', notImplemented('blur'));

@@ -74,7 +74,7 @@ function needInit(len, method, iface) {
 }
 /** `Window?` (UIEvent's view, DESIGN §28): a window of an open browsing context, or null. */
 function toView(v, method) {
-  if (v === null || v === undefined || context.ofWindow(v) !== undefined) return v ?? null;
+  if (v === null || v === undefined || context.isWindow(v)) return v ?? null;
   throw new TypeError(`Failed to ${method}: The provided value is not of type 'Window'.`);
 }
 function initDict(init, name) {
@@ -1443,6 +1443,13 @@ function reportException(win, error) {
       vc.emit('jsdomError', unhandledError(error));
       return;
     }
+  }
+  // With no listener (plain Node, no test runner), emitting would drop the error: let it crash like Node's own timers
+  if (process.listenerCount('uncaughtException') === 0) {
+    queueMicrotask(() => {
+      throw error;
+    });
+    return;
   }
   process.emit('uncaughtException', error);
 }

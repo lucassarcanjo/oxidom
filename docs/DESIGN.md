@@ -1690,9 +1690,12 @@ the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline
 test adapter, which is now a one-line re-export.
 
 - **Instances and Envs.** Each `new JSDOM()` opens a browsing context (§18) on a full-document parse of its input
-  and makes it current, like `createWindow()`. Several instances live side by side in the thread's one Env; the
+  and makes it current, like `createWindow()`, unless the current context is a global one (the Vitest
+  environment): a helper `new JSDOM()` inside a test (a sanitizer's scratch document) must not change what the
+  global `new Text()` & co create nodes in. Several instances live side by side in the thread's one Env; the
   newest is the one `new Text()` & co create nodes in, and closing it (`window.close()`) makes the previous one
-  current again. They share one set of interface objects (`dom1.window.Node === dom2.window.Node`); jsdom gives each
+  current again. MutationObserver callback errors go to the window of the first observed node's document, not
+  the current one. They share one set of interface objects (`dom1.window.Node === dom2.window.Node`); jsdom gives each
   window its own, so `instanceof` across instances and the "DOMException should differ between jsdom instances"
   API test differ.
 - **Settings.** The options jsdom keeps in `window._settings` live on `ctx.settings` (`pretendToBeVisual`,
@@ -1705,9 +1708,15 @@ test adapter, which is now a one-line re-export.
   `error` listener cancelled emits an `unhandled-exception` jsdomError instead of reaching the process
   (`events.cjs` `reportException`).
 - **Window.** A non-global window has its own `setTimeout` / `setInterval` / `clear*` (integer handles, errors
-  reported to the window), and `close()` closes its context: timers and animation frames stop, and new ones return
-  0. The Vitest global keeps Node's timers and a no-op `close()`. `window instanceof Window` holds for every open
-  context's window (`Window[Symbol.hasInstance]`).
+  reported to the window). A `JSDOM` window's `close()` closes its context: timers and animation frames stop, and
+  new ones return 0; unlike jsdom it keeps the listeners. `createWindow()` windows and the Vitest global keep a
+  no-op `close()`. `window instanceof Window` holds for every context's window, closed ones too
+  (`Window[Symbol.hasInstance]` and event `view`s use `context.isWindow`, which remembers closed non-global windows). An error
+  reported with no virtual console and no `uncaughtException` listener (plain Node) is rethrown from a microtask,
+  so it crashes the way an error in Node's own timer does instead of vanishing.
+- **Encoding.** Binary input (`Buffer`, `fromFile()`, `fromURL()`) is decoded by BOM, then the content type's
+  `charset`, then a `<meta>` prescan of the first 1024 bytes, else UTF-8. `document.characterSet` still says
+  `UTF-8`.
 - **Not implemented.** XML content types (ROADMAP `xml`), `runScripts` (validated, then ignored),
   `includeNodeLocations`, subresource loading beyond `fromURL()`'s page (`resources` other than `userAgent`), a
   cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's

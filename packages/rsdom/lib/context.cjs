@@ -38,6 +38,8 @@ const stack = [];
 let cur = null;
 /** window object -> its open context */
 const byWindow = new WeakMap();
+/** windows of closed, non-global contexts */
+const closedWindows = new WeakSet();
 
 class BrowsingContext {
   #timers = new Set();
@@ -59,9 +61,19 @@ class BrowsingContext {
     /**
      * jsdom's window settings (`new JSDOM()` options, lib/jsdom.cjs): `pretendToBeVisual` (animation frames,
      * `document.hidden`), `storageQuota`, `userAgent`, `referrer`, and `virtualConsole` (when set: the
-     * window's `console`, not-implemented reports and uncaught exceptions go to it, not to the process).
+     * window's `console`, not-implemented reports and uncaught exceptions go to it, not to the process), and
+     * `closable` (`window.close()` closes the context; a no-op for `createWindow()` and the Vitest global).
      */
-    this.settings = { pretendToBeVisual: true, storageQuota: 5000000, userAgent: null, referrer: '', virtualConsole: null };
+    this.settings = {
+      pretendToBeVisual: true,
+      storageQuota: 5000000,
+      userAgent: null,
+      referrer: '',
+      virtualConsole: null,
+      closable: false,
+    };
+    /** the window is installed on a pre-existing global (the Vitest environment) */
+    this.global = false;
   }
 
   /** A same-document URL change (fragment navigation, pushState / replaceState). */
@@ -136,7 +148,12 @@ class BrowsingContext {
     for (let i = cleanups.length - 1; i >= 0; i--) cleanups[i]();
     cleanups.length = 0;
     open.delete(this);
-    if (this.window !== null && byWindow.get(this.window) === this) byWindow.delete(this.window);
+    if (this.window !== null && byWindow.get(this.window) === this) {
+      byWindow.delete(this.window);
+      // A closed window stays a window (`instanceof Window`, an event's `view`), as in jsdom; except a global
+      // one, whose object goes back to being the plain global
+      if (!this.global) closedWindows.add(this.window);
+    }
     return true;
   }
 
@@ -174,6 +191,7 @@ function openContext(options = {}) {
   const document = rt.wrap(id);
   const ctx = new BrowsingContext(document, url);
   if (options.settings !== undefined) Object.assign(ctx.settings, options.settings);
+  ctx.global = options.global !== undefined;
   document._ctx = ctx;
   open.add(ctx);
   if (options.main !== false) {
@@ -216,4 +234,9 @@ function reportError(err) {
 // The runtime's `defaultDocument` (CONTRIBUTING §5) is the current context's document, read-only.
 Object.defineProperty(rt, 'defaultDocument', { get: currentDocument, enumerable: true, configurable: true });
 
-module.exports = { DEFAULT_URL, BrowsingContext, open: openContext, current, currentDocument, ofWindow, reportError };
+/** True for a window object: an open context's, or a closed non-global one's (`instanceof Window`, event views). */
+function isWindow(v) {
+  return byWindow.has(v) || closedWindows.has(v);
+}
+
+module.exports = { DEFAULT_URL, BrowsingContext, open: openContext, current, currentDocument, ofWindow, isWindow, reportError };

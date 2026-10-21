@@ -84,3 +84,42 @@ describe.each(Object.keys(APIS))('JSDOM class [%s]', (kind) => {
     expect(ran).toBe(false);
   });
 });
+
+describe('JSDOM class: several instances [rsdom]', () => {
+  const { JSDOM, VirtualConsole, createWindow } = APIS.rsdom;
+  const quiet = () => new VirtualConsole();
+
+  it('a JSDOM made while a global window is open does not take over `new Text()`', () => {
+    const g = createWindow({ global: {} });
+    const doc = g.document;
+    new JSDOM('<p>helper</p>', { virtualConsole: quiet() });
+    expect(new g.window.Text('a').ownerDocument).toBe(doc);
+    g.window.document._ctx.close();
+  });
+
+  it('a closed window stays a window, and MutationObserver errors reach the observed instance', async () => {
+    const seen = [];
+    const vc1 = new VirtualConsole().on('jsdomError', (e) => seen.push(['d1', e.type]));
+    const vc2 = new VirtualConsole().on('jsdomError', (e) => seen.push(['d2', e.type]));
+    const d1 = new JSDOM('<p>x</p>', { virtualConsole: vc1 });
+    new JSDOM('', { virtualConsole: vc2 });
+    const p = d1.window.document.querySelector('p');
+    new d1.window.MutationObserver(() => {
+      throw new Error('mo');
+    }).observe(p, { attributes: true });
+    p.setAttribute('a', '1');
+    await Promise.resolve();
+    expect(seen).toEqual([['d1', 'unhandled-exception']]);
+    d1.window.close();
+    expect(d1.window instanceof d1.window.Window).toBe(true);
+    expect(() => p.click()).not.toThrow();
+  });
+
+  it('decodes binary input by BOM, content type charset and <meta charset>', () => {
+    const text = (input, options = {}) => new JSDOM(input, { virtualConsole: quiet(), ...options }).window.document.querySelector('p').textContent;
+    expect(text(Buffer.from('<meta charset=windows-1252><p>caf\xe9', 'latin1'))).toBe('café');
+    expect(text(Buffer.from('<p>caf\xe9', 'latin1'), { contentType: 'text/html; charset=iso-8859-1' })).toBe('café');
+    expect(text(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('<p>hi', 'utf16le')]))).toBe('hi');
+    expect(text(Buffer.from('<p>café', 'utf8'))).toBe('café');
+  });
+});

@@ -142,6 +142,8 @@ function opt(v) {
 class MutationObserver {
   #id;
   #cb;
+  /** the browsing context of the first observed node's document (where callback errors are reported) */
+  #ctx = undefined;
 
   constructor(callback) {
     if (typeof callback !== 'function') {
@@ -153,6 +155,7 @@ class MutationObserver {
 
   observe(target, options = undefined) {
     const id = dom.nodeArg(target, 'observe', 'MutationObserver');
+    this.#ctx ??= (target.ownerDocument ?? target)._ctx;
     if (options !== undefined && options !== null && typeof options !== 'object' && typeof options !== 'function') {
       throw new TypeError("Failed to execute 'observe' on 'MutationObserver': parameter 2 is not of type 'MutationObserverInit'.");
     }
@@ -220,8 +223,11 @@ class MutationObserver {
       try {
         mo.#cb.call(mo, records, mo);
       } catch (err) {
-        // "report the exception": the current browsing context's window, else the process
-        context.reportError(err);
+        // "report the exception": the observed document's window (several `JSDOM` instances may be open), else
+        // the current browsing context's window, else the process
+        const c = mo.#ctx;
+        if (c !== undefined && !c.closed) require('./events.cjs').reportException(c.window, err);
+        else context.reportError(err);
       }
     };
   }

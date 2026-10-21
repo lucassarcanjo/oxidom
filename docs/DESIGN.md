@@ -1894,6 +1894,15 @@ keyframes and keyframe, namespace, counter-style), ported from jsdom 30 (refs/js
 Divergences from jsdom: link sheets (`<link rel=stylesheet>`) have no `sheet` (rsdom loads no subresources, so
 this differs only under `resources: 'usable'`); a
 `<style>`'s `media` is read when its sheet is first observed (jsdom reads it when the element is inserted, so
-setting `media` on a connected element before touching `sheet` differs); `@import` sheets are empty.
+setting `media` on a connected element before touching `sheet` differs); `@import` sheets are empty; a
+`selectorText` write is checked by rsdom's selector engine, so a selector csstree accepts but rsdom cannot match
+(an unknown pseudo-class) is ignored where jsdom stores it; changing a `<style>`'s `type` drops its sheet (jsdom
+ignores the attribute after insertion; this predates the CSSOM). `disabled` sheets still apply, as in jsdom.
+
+Costs. Script that never touches the CSSOM pays nothing for the tree: `parse_sheet` runs the same parser in a lean
+mode that hands top-level style rules (and those of matching `@media`) straight to the cascade's flat sheet and
+skips other at-rule bodies, so text and observed sheets cascade identically. Nesting deeper than 128 blocks is
+dropped (the parser recurses). An observed sheet keeps removed rules (script may hold them) and a detached sheet
+keeps its tree until the env goes away: memory is bounded by what the env's script did, as with jsdom's objects.
 Parity: 138 -> 223 of 260 suite files, gap 681 -> 219 subtests. The rest is value serialization owned by
 `computed-values` (serialize-values, shorthands, about 190) and `customElements` (20).

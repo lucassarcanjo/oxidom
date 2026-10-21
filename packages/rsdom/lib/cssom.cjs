@@ -322,14 +322,18 @@ function install(rt, dom) {
     }
 
     get length() {
-      const n = this._handles().length;
+      const s = st(this);
+      const id = sid(s);
+      const n = id === 0 ? 0 : N.omLen(id, s.r);
       if (n > IDX.rl) IDX.rl = installIndices(CSSRuleList.prototype, IDX.rl, n);
       return n;
     }
 
     _get(i) {
-      const h = this._handles()[i];
-      return h === undefined ? undefined : ruleWrapper(st(this), h);
+      const s = st(this);
+      const id = sid(s);
+      const h = id === 0 || i > 0xffffffff ? 0 : N.omAt(id, s.r, i);
+      return h === 0 ? undefined : ruleWrapper(s, h);
     }
 
     item(index) {

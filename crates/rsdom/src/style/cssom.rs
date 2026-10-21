@@ -245,7 +245,15 @@ struct TreeParser<'t> {
     ctx: Ctx,
     /// Declarations of the body being parsed (rule bodies in nesting context).
     pending: InlineStyle,
+    /// Block nesting depth: bodies deeper than `MAX_DEPTH` are dropped, so hostile nesting cannot overflow
+    /// the native stack.
+    depth: u32,
+    /// Cascade-only parse (`parse_sheet`): top-level style rules (also inside matching `@media`) go straight to
+    /// this sheet instead of the tree, and other at-rules are dropped unparsed (what `to_sheet` would give).
+    out: Option<&'t mut (Sheet, u32)>,
 }
+
+const MAX_DEPTH: u32 = 128;
 
 fn rest(input: &mut Parser) -> String {
     let start = input.position();
@@ -442,9 +450,18 @@ impl TreeParser<'_> {
 
     /// Parses the body of the rule at index `idx` (handle `idx + 1`) in context `ctx`.
     fn body(&mut self, idx: u32, ctx: Ctx, input: &mut Parser) {
+        if self.depth >= MAX_DEPTH {
+            return; // the parser skips the rest of the block
+        }
         let is_style = self.tree.rules[idx as usize].kind == kind::STYLE;
-        let mut sub =
-            TreeParser { tree: &mut *self.tree, parent: idx + 1, ctx, pending: InlineStyle::default() };
+        let mut sub = TreeParser {
+            tree: &mut *self.tree,
+            parent: idx + 1,
+            ctx,
+            pending: InlineStyle::default(),
+            depth: self.depth + 1,
+            out: self.out.as_deref_mut(),
+        };
         let children = match ctx {
             Ctx::Nested => sub.nested_body(input, is_style, idx),
             _ => {
@@ -497,13 +514,12 @@ impl TreeParser<'_> {
         out.push(i);
     }
 
-    fn style_rule(&mut self, prelude: String, input: &mut Parser) -> Result<u32, ()> {
-        let (text, sel) = if self.ctx == Ctx::Nested {
-            (normalize_nested(&prelude).ok_or(())?, None)
-        } else {
-            let sel = if self.ctx == Ctx::Keyframes { None } else { parse_selector(&prelude) };
-            (prelude, sel)
-        };
+    fn style_rule(
+        &mut self,
+        (prelude, sel): (String, Option<SelectorList<Impl>>),
+        input: &mut Parser,
+    ) -> Result<u32, ()> {
+        let text = if self.ctx == Ctx::Nested { normalize_nested(&prelude).ok_or(())? } else { prelude };
         if self.ctx == Ctx::Keyframes {
             let mut decls = InlineStyle::default();
             let mut dp = DeclsOnly { out: &mut decls };
@@ -517,14 +533,27 @@ impl TreeParser<'_> {
                 ..Default::default()
             }));
         }
-        let idx = self.add(RuleData {
-            kind: kind::STYLE,
-            a: text,
-            decls: Some(Arc::new(InlineStyle::default())),
-            sel,
-            ..Default::default()
-        });
+        let idx = self.add(RuleData { kind: kind::STYLE, a: text, sel, ..Default::default() });
         self.body(idx, Ctx::Nested, input);
+        let r = &mut self.tree.rules[idx as usize];
+        if self.ctx != Ctx::Nested
+            && let Some((sheet, order)) = self.out.as_deref_mut()
+        {
+            // lean: hand the rule to the cascade and drop it (and its nested rules) from the tree
+            if let (Some(sel), Some(d)) = (r.sel.take(), r.decls.take())
+                && !d.decls.is_empty()
+            {
+                for s in sel.slice() {
+                    *order += 1;
+                    sheet.push(s.clone(), d.clone(), *order);
+                }
+            }
+            self.tree.rules.truncate(idx as usize);
+            return Err(());
+        }
+        if r.decls.is_none() {
+            r.decls = Some(Arc::default()); // `rule.style` of an empty rule
+        }
         Ok(idx)
     }
 
@@ -612,18 +641,37 @@ impl TreeParser<'_> {
 }
 
 impl<'i> QualifiedRuleParser<'i> for TreeParser<'_> {
-    type Prelude = String;
+    type Prelude = (String, Option<SelectorList<Impl>>);
     type QualifiedRule = Item;
     type Error = ();
 
-    fn parse_prelude(&mut self, input: &mut Parser<'i>) -> Result<String, ParseError<()>> {
-        let p = rest(input);
-        if p.is_empty() { Err(ParseError::custom(())) } else { Ok(p) }
+    fn parse_prelude(&mut self, input: &mut Parser<'i>) -> Result<Self::Prelude, ParseError<()>> {
+        // a top-level selector is parsed straight from the prelude (one tokenization); the raw text is kept
+        // either way (jsdom's `selectorText`)
+        let start = input.position();
+        let sel = if matches!(self.ctx, Ctx::Top | Ctx::Group) {
+            input
+                .try_parse(|i| {
+                    let l = SelectorList::parse(&SelParser, i, ParseRelative::No)
+                        .map_err(|_| ParseError::custom(()))?;
+                    i.expect_exhausted().map_err(|_| ParseError::custom(()))?;
+                    Ok::<_, ParseError<()>>(l)
+                })
+                .ok()
+        } else {
+            None
+        };
+        let p = if sel.is_some() {
+            if self.out.is_some() { String::new() } else { input.slice_from(start).trim().to_owned() }
+        } else {
+            rest(input)
+        };
+        if sel.is_none() && p.is_empty() { Err(ParseError::custom(())) } else { Ok((p, sel)) }
     }
 
     fn parse_block(
         &mut self,
-        prelude: String,
+        prelude: Self::Prelude,
         _start: &ParserState,
         input: &mut Parser<'i>,
     ) -> Result<Item, ParseError<()>> {
@@ -700,6 +748,27 @@ impl<'i> AtRuleParser<'i> for TreeParser<'_> {
         _start: &ParserState,
         input: &mut Parser<'i>,
     ) -> Result<Item, ParseError<()>> {
+        if self.out.is_some() {
+            // lean: only a matching `@media` reaches the cascade; its style rules go to `out` as they parse
+            if let AtPre::Media(m) = &prelude
+                && sheet::media_matches(m)
+            {
+                let mut sub = TreeParser {
+                    tree: &mut *self.tree,
+                    parent: 0,
+                    ctx: Ctx::Group,
+                    pending: InlineStyle::default(),
+                    depth: self.depth + 1,
+                    out: self.out.as_deref_mut(),
+                };
+                if sub.depth < MAX_DEPTH {
+                    for r in StyleSheetParser::new(input, &mut sub) {
+                        let _ = r;
+                    }
+                }
+            }
+            return Err(ParseError::custom(()));
+        }
         let pre = match prelude {
             AtPre::Import { .. } | AtPre::Namespace { .. } => return Err(ParseError::custom(())),
             AtPre::LayerStatement(p) => {
@@ -827,14 +896,22 @@ impl<'i> RuleBodyItemParser<'i, (), ()> for RawDecls<'_> {
 /// Parses a rule list (a sheet, or one rule's text for `insertRule`) into a new tree. Returns the tree and
 /// the number of list items that failed to parse. Runs with an interner installed (`adapter::with_interner`).
 pub fn parse_tree(text: &str) -> (Tree, usize) {
-    parse_list(text, Ctx::Top)
+    parse_list(text, Ctx::Top, None)
 }
 
-fn parse_list(text: &str, ctx: Ctx) -> (Tree, usize) {
+/// The cascade's view of `text` (`parse_tree(text).0.to_sheet()`, without building what only the CSSOM reads).
+pub fn parse_sheet(text: &str) -> Sheet {
+    let mut out = (Sheet::default(), 0);
+    parse_list(text, Ctx::Top, Some(&mut out));
+    out.0
+}
+
+fn parse_list(text: &str, ctx: Ctx, out: Option<&mut (Sheet, u32)>) -> (Tree, usize) {
     let mut tree = Tree::default();
     let mut bad = 0;
     let mut input = Parser::new(text);
-    let mut p = TreeParser { tree: &mut tree, parent: 0, ctx, pending: InlineStyle::default() };
+    let mut p =
+        TreeParser { tree: &mut tree, parent: 0, ctx, pending: InlineStyle::default(), depth: 0, out };
     let mut top = Vec::new();
     for r in StyleSheetParser::new(&mut input, &mut p) {
         match r {
@@ -918,7 +995,8 @@ impl Om {
 pub(crate) fn owned_sheet(e: &Env, el: NodeId) -> Option<Sheet> {
     let sid = *e.style.om.by_owner.get(&el)?;
     let s = e.style.om.get(sid)?;
-    Some(if s.disabled { Sheet::default() } else { s.tree.to_sheet() })
+    // jsdom's cascade (`collectCandidateStyles`) ignores `disabled`, so a disabled sheet still applies
+    Some(s.tree.to_sheet())
 }
 
 /// `<style>` element `el` lost its sheet (text change, `type` change, disconnection): detach the CSSOM sheet.
@@ -1009,6 +1087,16 @@ impl Env {
             .map(|l| l.iter().map(|i| i + 1).collect())
             .unwrap_or_default();
         self.write_out(&v)
+    }
+
+    /// Length of the rule list of `r` (`cssRules.length` without copying the handles).
+    pub fn om_len(&self, sid: u32, r: u32) -> u32 {
+        self.style.om.get(sid).and_then(|s| s.tree.list(r)).map_or(0, |l| l.len() as u32)
+    }
+
+    /// Handle of item `i` of the rule list of `r` (0: out of range).
+    pub fn om_at(&self, sid: u32, r: u32, i: u32) -> u32 {
+        self.style.om.get(sid).and_then(|s| s.tree.list(r)?.get(i as usize).map(|h| h + 1)).unwrap_or(0)
     }
 
     /// Rule kind (0: no such rule).
@@ -1259,7 +1347,8 @@ impl Env {
             return false;
         }
         // exactly one keyframe rule, nothing else (jsdom `parseKeyframeRule`)
-        let (one, bad) = adapter::with_interner(&mut self.atoms, || parse_list(text, Ctx::Keyframes));
+        let (one, bad) = adapter::with_interner(&mut self.atoms, || parse_list(text, Ctx::Keyframes, None));
+        self.ep.set(ep::ATOM_LEN, self.atoms.len());
         if one.top.len() != 1 || bad != 0 {
             return false;
         }
@@ -1399,6 +1488,14 @@ natives! {
     fn omRules(e, sid: u32, r: u32) -> u32 {
         e.om_rules(sid, r)
     }
+    /// `cssRules.length`.
+    fn omLen(e, sid: u32, r: u32) -> u32 {
+        e.om_len(sid, r)
+    }
+    /// `cssRules[i]`: a rule handle, 0 when out of range.
+    fn omAt(e, sid: u32, r: u32, i: u32) -> u32 {
+        e.om_at(sid, r, i)
+    }
     /// Kind of rule `r` (style/cssom.rs `kind`; 0 = none).
     fn omKind(e, sid: u32, r: u32) -> u32 {
         e.om_kind(sid, r)
@@ -1530,6 +1627,13 @@ mod tests {
         assert_eq!((r(3).a.as_str(), r(3).b.as_str()), ("svg", "http://x"));
         assert_eq!(r(5).a, "a, b");
         assert_eq!(t.to_sheet().rules.len(), 2); // `a > b` and `c` (`p { }` declares nothing)
+    }
+
+    #[test]
+    fn deep_nesting_is_capped() {
+        let text = "a {".repeat(100_000);
+        let t = tree(&text);
+        assert!(t.rules.len() <= MAX_DEPTH as usize + 1);
     }
 
     #[test]

@@ -349,10 +349,10 @@ pub fn media_matches(list: &str) -> bool {
             .any(|q| q.trim().eq_ignore_ascii_case("all") || q.trim().eq_ignore_ascii_case("screen"))
 }
 
-/// Parses sheet text into the cascade's rule list (through the CSSOM rule tree, `cssom.rs`). Runs with the env's
+/// Parses sheet text into the cascade's rule list (the CSSOM parser's lean mode, `cssom.rs`). Runs with the env's
 /// interner installed for selectors and custom properties.
 fn parse_sheet(text: &str) -> Sheet {
-    super::cssom::parse_tree(text).0.to_sheet()
+    super::cssom::parse_sheet(text)
 }
 
 // ------------------------------------------------------------------------------------------ UA

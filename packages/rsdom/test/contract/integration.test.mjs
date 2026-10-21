@@ -79,8 +79,7 @@ describe.each(DOMS)('integration [%s]', (kind) => {
   });
 
   it('window.getComputedStyle sees inline style and author sheets', () => {
-    // Values whose serialization jsdom and rsdom share (rsdom keeps keywords such as `red` / `bold` so that
-    // jest-dom toHaveStyle round-trips; DESIGN §8, a documented divergence from jsdom 30).
+    // Computed values resolve as on jsdom 30 (`#f00` -> `rgb(255, 0, 0)`; DESIGN §30).
     d.head.innerHTML = '<style>#p { color: #f00 }</style>';
     d.body.innerHTML = '<p id="p" style="font-weight: 700">x</p>';
     const cs = w.getComputedStyle($('p'));

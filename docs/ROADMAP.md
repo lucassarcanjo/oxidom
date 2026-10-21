@@ -100,7 +100,8 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [x] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
       Done 2026-10-21 (DESIGN §34): `lib/index.d.ts` (the `JSDOM` API as @types/jsdom types it), the Vitest and
       Jest environments, type-checked in the package suite.
-- [ ] Migration guide: jsdom to rsdom, with the known divergences listed in one place.
+- [x] Migration guide: jsdom to rsdom, with the known divergences listed in one place. Done 2026-10-21:
+      [`MIGRATING.md`](MIGRATING.md).
 
 ## Stage 3: Breadth parity with jsdom
 

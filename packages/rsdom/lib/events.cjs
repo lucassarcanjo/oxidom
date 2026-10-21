@@ -74,7 +74,7 @@ function needInit(len, method, iface) {
 }
 /** `Window?` (UIEvent's view, DESIGN §28): a window of an open browsing context, or null. */
 function toView(v, method) {
-  if (v === null || v === undefined || context.ofWindow(v) !== undefined) return v ?? null;
+  if (v === null || v === undefined || context.isWindow(v)) return v ?? null;
   throw new TypeError(`Failed to ${method}: The provided value is not of type 'Window'.`);
 }
 function initDict(init, name) {
@@ -1437,8 +1437,31 @@ function reportException(win, error) {
       win.reporting = false;
     }
     if (isCanceled(ev)) return;
+    // A `JSDOM` window with a virtual console reports it there, as jsdom does (lib/jsdom.cjs)
+    const vc = win.document._ctx?.settings.virtualConsole;
+    if (vc) {
+      vc.emit('jsdomError', unhandledError(error));
+      return;
+    }
+  }
+  // With no listener (plain Node, no test runner), emitting would drop the error: let it crash like Node's own timers
+  if (process.listenerCount('uncaughtException') === 0) {
+    queueMicrotask(() => {
+      throw error;
+    });
+    return;
   }
   process.emit('uncaughtException', error);
+}
+
+/** jsdom's "unhandled-exception" jsdomError (refs/jsdom/lib/jsdom/living/helpers/runtime-script-errors.js). */
+function unhandledError(error) {
+  const shown = error && error.name && error.message !== undefined && error.stack
+    ? `[${error.name}: ${error.message}]`
+    : require('node:util').inspect(error);
+  const e = new Error(`Uncaught ${shown}`, { cause: error });
+  e.type = 'unhandled-exception';
+  return e;
 }
 
 function safeString(v) {

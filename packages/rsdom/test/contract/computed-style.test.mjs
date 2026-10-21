@@ -1,7 +1,7 @@
 // getComputedStyle (ROADMAP M6 computed-style items): UA defaults (jsdom's default stylesheet), [hidden],
 // inheritance, inline !important, author <style> sheets, snapshot semantics, pseudo-elements, and the
-// jest-dom / dom-accessibility-api consumers. jsdom is the oracle except where documented (computed
-// values keep the specified serialization so jest-dom toHaveStyle round-trips).
+// jest-dom / dom-accessibility-api consumers. jsdom is the oracle (computed values resolve like
+// jsdom 30, DESIGN §30, so keyword colours do not round-trip through jest-dom toHaveStyle there either).
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -83,9 +83,11 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 
 - [ ] `JSDOM` class: `new JSDOM(html, { url, contentType, pretendToBeVisual, ... })`, `.window`, `.serialize()`,
       `.fragment()`; `JSDOM.fragment()` `jsdom-api`. Decide how several live `JSDOM` instances map onto one Env per
-      thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). The
-      parity suite runs jsdom's own API tests through a minimal test-only adapter
-      (`conformance/parity/mocha/rsdom-jsdom.cjs`); the real class replaces it.
+      thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). Class
+      done 2026-10-21 (DESIGN §31): `require('jetdom').JSDOM` and `VirtualConsole`, each instance a browsing context
+      that becomes current; jsdom's API tests run on it, gap 426 -> 365 subtests. Left: XML content types (`xml`),
+      `runScripts`, iframes and subresources (`browsing-contexts`), a cookie jar behind `document.cookie`,
+      `requestInterceptor`, and per-instance interface objects.
 - [ ] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
       as well as `environmentOptions.jetdom`.
 - [ ] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`).

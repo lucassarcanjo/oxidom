@@ -40,4 +40,6 @@ function createWindow(options = {}) {
   return { window: ctx.window, document: ctx.document };
 }
 
-module.exports = { createWindow, rt, dom };
+const { JSDOM, VirtualConsole, CookieJar, toughCookie } = require('./jsdom.cjs');
+
+module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toughCookie };

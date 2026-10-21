@@ -1722,6 +1722,21 @@ test adapter, which is now a one-line re-export.
   cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's
   (`... rsdom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
 
+**The Vitest environment** (`lib/vitest-environment.mjs`) reads `environmentOptions.jsdom` the way Vitest's own
+jsdom environment does (its `setup()` in node_modules/vitest/dist/chunks/index.*.js), so a jsdom config moves
+over unchanged: `url`, `html` (a whole document, parsed as the context's `source`), `userAgent` /
+`resources.userAgent`, `pretendToBeVisual` (default true), `contentType` (checked like `new JSDOM()`), `referrer`,
+`storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are ignored, so a `<script>`
+in `html` does not run where Vitest's jsdom default (`runScripts: 'dangerously'`) runs it. (`virtualConsole` is
+read too, but Vitest cannot pass one: options are cloned to the worker.)
+`environmentOptions.jetdom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
+window gets a virtual console forwarding to the console (jsdom's default, so `console: false` changes nothing), so
+`alert()`, `scrollTo()` & co log "Not implemented: ..." through `console.error`, and an uncaught error that an
+`error` listener saw but did not cancel goes there instead of failing the test; the global keeps its own
+`console`. The `jsdom` global is a `JSDOM` adopting the global context (`adopt()` in lib/jsdom.cjs), for
+`jsdom.reconfigure({ url })` and `jsdom.serialize()`; teardown removes it. `reconfigure({ windowTop })` leaves the
+global's `top` alone, as under Vitest's jsdom environment (which copies the window's members once).
+
 Measured on the parity suite: the `jsdom-api` gap went from 426 to 365 subtests, with no regression (virtual
 console 43, `window.close()` and `Window` 5, options 7, `Accept-Language` / user agent headers, not-implemented
 reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom side by side.

@@ -15,7 +15,7 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | quick-wins | Web Storage named properties (`storage`), FileReader (`file-api`), `createEvent` (`events`), in that order | `parity/quick-wins` | §26, §27, §28 | done |
 | selection | Selection backed by real Ranges (`selection`) | `parity/selection` | §29 | done |
 | computed-values | Computed-value fidelity (`computed-values`) | `claude/project-thread-8t2nkv` | §30 | values merged; `:heading()`, `calc()` left |
-| jsdom-api | `JSDOM` class (`jsdom-api`) | `claude/project-thread-8t2nkv` | §31 | in review |
+| jsdom-api | `JSDOM` class (`jsdom-api`), then Vitest `environmentOptions.jsdom` | `claude/project-thread-8t2nkv` | §31 | class merged; Vitest options in review |
 
 A thread works inside its item. Something it needs that belongs to another item goes to the coordinator (the session
 that created the threads) instead of into the PR. Small enablers (an exported helper, an atom) are fine when called

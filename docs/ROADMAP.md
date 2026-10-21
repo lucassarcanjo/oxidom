@@ -88,8 +88,10 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
       that becomes current; jsdom's API tests run on it, gap 426 -> 365 subtests. Left: XML content types (`xml`),
       `runScripts`, iframes and subresources (`browsing-contexts`), a cookie jar behind `document.cookie`,
       `requestInterceptor`, and per-instance interface objects.
-- [ ] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
-      as well as `environmentOptions.jetdom`.
+- [x] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
+      as well as `environmentOptions.jetdom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
+      environment, plus its virtual console (not-implemented methods log through `console.error`) and `jsdom`
+      global.
 - [ ] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`).
 - [ ] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports.
 - [ ] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).

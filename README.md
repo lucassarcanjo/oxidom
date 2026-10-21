@@ -72,7 +72,7 @@ npm run build          # builds the native addon into packages/rsdom/native/
 (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
 global (`jsdom.reconfigure({ url })`) is there. rsdom never runs scripts, so a `<script>` in `html` does not run
 (Vitest's jsdom default runs it). rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
-`html` as body markup) and win over the `jsdom` ones. As on jsdom, `alert()`, `scrollTo()` and the other
+`html` as body markup) and win over the `jsdom` ones. The VM pools (`pool: 'vmThreads'` / `'vmForks'`) work too. As on jsdom, `alert()`, `scrollTo()` and the other
 not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel is logged there instead of failing the test.
 

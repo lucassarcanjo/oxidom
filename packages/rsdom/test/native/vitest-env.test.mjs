@@ -22,7 +22,7 @@ describe('vitest-environment module', () => {
     expect(env.name).toBe('rsdom');
     expect(env.viteEnvironment).toBe('client');
     expect(typeof env.setup).toBe('function');
-    expect(env.setupVM).toBe(undefined);
+    expect(typeof env.setupVM).toBe('function');
   });
 
   it('setup installs own data globals; teardown restores every descriptor and drops the DOM', async () => {
@@ -150,5 +150,32 @@ describe.each([
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/Tests\s+\d+ passed/);
     expect(r.stdout + r.stderr).not.toMatch(/Unhandled/);
+  }, 120_000);
+});
+
+// VM pools (DESIGN §33): test/fixtures/vitest-vm under jetdom and under Vitest's jsdom environment (the oracle).
+const vmFixture = path.join(root, 'test/fixtures/vitest-vm');
+
+function runVm(dom, pool, extraEnv = {}) {
+  const r = spawnSync(process.execPath, [cli, 'run', '--config', 'vitest.config.mjs', `--pool=${pool}`], {
+    cwd: vmFixture,
+    encoding: 'utf8',
+    timeout: 120_000,
+    env: { ...process.env, CI: '1', NO_COLOR: '1', VITEST_DOM: dom, ...extraEnv },
+  });
+  return { status: r.status, out: r.stdout + r.stderr };
+}
+
+describe.each(['jsdom', 'jetdom'])('VM pools fixture suite [%s]', (dom) => {
+  it.each(['vmThreads', 'vmForks'])('passes in %s', (pool) => {
+    const { status, out } = runVm(dom, pool);
+    expect(status, out).toBe(0);
+    expect(out).toMatch(/Tests\s+8 passed \(8\)/);
+  }, 120_000);
+
+  it('a listener error is reported as an unhandled error', () => {
+    const { status, out } = runVm(dom, 'vmThreads', { VITEST_INCLUDE: 'errors.failing.mjs' });
+    expect(status).toBe(1);
+    expect(out).toMatch(/Unhandled Errors[\s\S]*Error: listener boom/);
   }, 120_000);
 });

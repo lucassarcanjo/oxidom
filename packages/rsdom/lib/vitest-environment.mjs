@@ -64,30 +64,38 @@ function dumpCounters(rt) {
   fs.appendFileSync(out, line + '\n');
 }
 
+/**
+ * Loads the facade and maps the environment options onto `context.open()` options: `environmentOptions.jsdom`
+ * with the defaults of Vitest's jsdom environment (node_modules/vitest/dist/chunks/index.*.js `jsdom`), then
+ * `environmentOptions.jetdom` over them (`jetdom.html` is body markup).
+ */
+function prepare(options) {
+  const o = options.jetdom ?? {};
+  applyOptions(o);
+  const { rt } = require('./index.cjs'); // installs every area
+  const api = require('./jsdom.cjs');
+  if (process.env.RSDOM_COUNTERS === '1') rt.N.countersReset();
+  const virtualConsole = options.jsdom?.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
+  const open = api.environmentOptions(options.jsdom ?? {}, virtualConsole);
+  if (o.url !== undefined) open.url = o.url;
+  if (o.html !== undefined) {
+    delete open.source;
+    open.html = o.html;
+  }
+  return { rt, api, open, virtualConsole };
+}
+
 export default {
   name: 'rsdom',
   viteEnvironment: 'client',
   prewarmModules: false,
   setup(global, options = {}) {
-    const o = options.jetdom ?? {};
-    applyOptions(o);
-    const { rt } = require('./index.cjs'); // installs every area
+    const { rt, api, open, virtualConsole } = prepare(options);
     const context = require('./context.cjs');
-    const api = require('./jsdom.cjs');
-    if (process.env.RSDOM_COUNTERS === '1') rt.N.countersReset();
 
     // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
-    // `environmentOptions.jsdom` with the defaults of Vitest's jsdom environment (node_modules/vitest/dist/
-    // chunks/index.*.js `jsdom.setup`); `jetdom.html` is body markup
-    const virtualConsole = options.jsdom?.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
-    const open = api.environmentOptions(options.jsdom ?? {}, virtualConsole);
-    if (o.url !== undefined) open.url = o.url;
-    if (o.html !== undefined) {
-      delete open.source;
-      open.html = o.html;
-    }
     const ctx = context.open({ ...open, global, catchErrors: true });
     const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
     const jsdomBefore = global.jsdom;
@@ -101,6 +109,34 @@ export default {
         ctx.close();
         // Drops the whole DOM in one call (no per-node finalizers) and leaves a fresh env behind; every
         // wrapper handed out before is neutered.
+        rt.reset();
+      },
+    };
+  },
+
+  // VM pools (`pool: 'vmThreads'` / `'vmForks'`, DESIGN §33): test files run in a vm context whose global is
+  // the window (lib/vm-window.cjs), one per file. What Vitest's jsdom `setupVM` adds to its window is added too.
+  setupVM(options = {}) {
+    const { rt, api, open, virtualConsole } = prepare(options);
+    const { openVmWindow } = require('./vm-window.cjs');
+    const { vmContext, global, ctx } = openVmWindow({ ...open, catchErrors: true });
+    global.Buffer = Buffer;
+    global.jsdom = api.adopt(ctx, virtualConsole);
+    for (const k of ['structuredClone', 'BroadcastChannel', 'MessageChannel', 'MessagePort', 'TextEncoder', 'TextDecoder']) {
+      if (globalThis[k] !== undefined && global[k] === undefined) global[k] = globalThis[k];
+    }
+    // Node's: Vitest's jsdom environment overrides jsdom's with these (and wraps Request and URL for jsdom's
+    // Blob, which rsdom's Blob, a Node Blob, does not need)
+    for (const k of ['fetch', 'Request', 'Response', 'Headers', 'AbortController', 'AbortSignal', 'URL', 'URLSearchParams']) {
+      if (globalThis[k] !== undefined) global[k] = globalThis[k];
+    }
+    return {
+      getVmContext() {
+        return vmContext;
+      },
+      teardown() {
+        if (process.env.RSDOM_COUNTERS === '1') dumpCounters(rt);
+        ctx.close();
         rt.reset();
       },
     };

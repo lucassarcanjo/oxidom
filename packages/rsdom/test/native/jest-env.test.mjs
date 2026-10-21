@@ -28,7 +28,7 @@ describe.each(['jsdom', 'jetdom'])('Jest fixture suite [%s]', (dom) => {
     for (const args of [[], ['--runInBand']]) {
       const { status, out } = jest(dom, args);
       expect(status, out).toBe(0);
-      expect(out).toMatch(/Tests:\s+9 passed, 9 total/);
+      expect(out).toMatch(/Tests:\s+10 passed, 10 total/);
     }
   }, 120_000);
 

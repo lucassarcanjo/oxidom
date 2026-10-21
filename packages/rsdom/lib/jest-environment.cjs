@@ -5,28 +5,19 @@
 //
 // A port of jest-environment-jsdom 30 (@jest/environment-jsdom-abstract): Jest runs test files in a vm context
 // (`getVmContext()`). jsdom's window is that context's global; rsdom's lives in this realm, so the environment
-// creates a bare vm context and opens a browsing context on its global (lib/context.cjs, DESIGN §18), with
-// window timers of its own (`ownTimers`), plus the members a jsdom window has that rsdom takes from Node
-// (`NODE_GLOBALS`). `testEnvironmentOptions` are jsdom options (lib/jsdom.cjs `environmentOptions`), with
-// jest-environment-jsdom's defaults: url `http://localhost/`, `<!DOCTYPE html>`, visual.
+// opens its window on a bare vm context's global (lib/vm-window.cjs). `testEnvironmentOptions` are jsdom options
+// (lib/jsdom.cjs `environmentOptions`), with jest-environment-jsdom's defaults: url `http://localhost/`, `<!DOCTYPE html>`, visual.
 //
 // Realms: DOM objects, and the arrays, promises and errors the facade makes, come from this realm, not the test
 // file's. `instanceof HTMLElement` & co hold (the interface objects are installed on the context's global);
 // `instanceof Array` / `toThrow(TypeError)` on something rsdom made do not. jsdom's own impl arrays have the same
 // split; its WebIDL errors are the window's.
-const vm = require('node:vm');
-
-const NODE_GLOBALS = [
-  'URL', 'URLSearchParams', 'AbortController', 'AbortSignal', 'Headers', 'TextEncoder', 'TextDecoder', 'WebSocket',
-  'Performance', 'performance', 'Crypto', 'crypto', 'queueMicrotask', 'atob', 'btoa',
-];
-
 function environmentClass(jestRequire) {
   const { installCommonGlobals } = jestRequire('jest-util');
   const { ModuleMocker } = jestRequire('jest-mock');
   const { LegacyFakeTimers, ModernFakeTimers } = jestRequire('@jest/fake-timers');
   require('./index.cjs'); // installs every area
-  const context = require('./context.cjs');
+  const { openVmWindow } = require('./vm-window.cjs');
   const api = require('./jsdom.cjs');
 
   return class JetdomEnvironment {
@@ -40,13 +31,10 @@ function environmentClass(jestRequire) {
       virtualConsole.on('jsdomError', (error) => envContext.console.error(error));
       const open = api.environmentOptions({ url: 'http://localhost/', html: '<!DOCTYPE html>', ...options }, virtualConsole);
 
-      this.context = vm.createContext();
-      const global = (this.global = vm.runInContext('this', this.context));
-      for (const k of NODE_GLOBALS) {
-        if (globalThis[k] !== undefined) Object.defineProperty(global, k, { value: globalThis[k], writable: true, configurable: true });
-      }
-      this.ctx = context.open({ ...open, global, ownTimers: true });
-      global.webkitURL = global.URL;
+      const { vmContext, global, ctx } = openVmWindow(open);
+      this.context = vmContext;
+      this.global = global;
+      this.ctx = ctx;
       // jest-environment-jsdom keeps its JSDOM as `this.dom` (no `jsdom` global, unlike Vitest's)
       this.dom = api.adopt(this.ctx, virtualConsole);
       global.global = global;

@@ -1840,3 +1840,22 @@ in both pools, under jetdom and under Vitest's own jsdom environment (jsdom 30).
 Beyond the fixture, the React app suite passes 90/90 in `vmThreads` on both, and the libraries suite gives the same
 counts as jsdom (35/37). On both, the network test fails in VM pools for lack of `WritableStream`; jsdom fails
 lexical and tiptap, and rsdom fails lit.
+
+## 34. TypeScript declarations (ROADMAP Stage 2, 2026-10)
+
+The packages ship hand-written declarations, listed under the `types` condition of each `exports` entry:
+- `lib/index.d.ts` for `jetdom`. It declares `createWindow()` and the `JSDOM` API the way @types/jsdom types
+  jsdom 30, so code typed against jsdom type-checks unchanged: `JSDOM`, `VirtualConsole`, the option interfaces
+  and `DOMWindow`. `CookieJar` is typed as possibly undefined, because it exists only when tough-cookie is
+  installed. `nodeLocation()` and `getInternalVMContext()` return `never`, because they always throw (§31).
+  `rt` and `dom` are internal.
+- `lib/vitest-environment.d.mts` for the environment, with a `JetdomEnvironmentOptions` type for
+  `environmentOptions.jetdom`. Vitest's `EnvironmentOptions` takes any key, so no augmentation is needed.
+- `lib/jest-environment.d.cts` for the environment builder.
+- The wrappers' `index.d.ts`. jest-environment-jetdom declares the class jest-environment-jsdom declares, with
+  the same `global` type, so a custom environment that extends it compiles. That package now depends on
+  `@jest/environment` and `@jest/types` for those types.
+
+`test/native/types.test.mjs` runs tsc (strict, with lib checking on) over test/types. That directory uses the
+API, a Vitest config and a custom Jest environment, with `@ts-expect-error` lines that must stay errors. The same
+test also compares the declared exports of `lib/index.d.ts` with the entry's runtime exports.

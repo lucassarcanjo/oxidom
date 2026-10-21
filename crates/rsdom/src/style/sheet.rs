@@ -7,19 +7,16 @@
 
 use std::sync::{Arc, OnceLock};
 
-use cssparser::{
-    AtRuleParser, CowRcStr, ParseError, Parser, ParserState, QualifiedRuleParser, StyleSheetParser,
-};
 use rustc_hash::FxHashMap;
-use selectors::parser::{Component, ParseRelative, Selector, SelectorList};
+use selectors::parser::{Component, Selector};
 use smallvec::SmallVec;
 
-use super::inline::{InlineStyle, parse_block_with};
+use super::inline::InlineStyle;
 use super::props::props;
 use crate::atoms::{Atom, Interner, atom};
 use crate::env::{Env, ep};
 use crate::select::Pre;
-use crate::select::adapter::{self, Impl, SelParser};
+use crate::select::adapter::{self, Impl};
 use crate::table::NodeId;
 
 /// Core properties as a bit set (`Rule::core`).
@@ -237,7 +234,7 @@ pub struct Sheet {
 }
 
 impl Sheet {
-    fn push(&mut self, sel: Selector<Impl>, decls: Arc<InlineStyle>, order: u32) {
+    pub(crate) fn push(&mut self, sel: Selector<Impl>, decls: Arc<InlineStyle>, order: u32) {
         let pre = Pre::of(&sel);
         if pre.never {
             return;
@@ -344,66 +341,6 @@ fn core_mask(decls: &InlineStyle) -> u8 {
 
 // ------------------------------------------------------------------------------------- parsing
 
-struct SheetParser<'a> {
-    sheet: &'a mut Sheet,
-    order: &'a mut u32,
-}
-
-impl<'i> QualifiedRuleParser<'i> for SheetParser<'_> {
-    type Prelude = SelectorList<Impl>;
-    type QualifiedRule = ();
-    type Error = ();
-
-    fn parse_prelude(&mut self, input: &mut Parser<'i>) -> Result<Self::Prelude, ParseError<()>> {
-        SelectorList::parse(&SelParser, input, ParseRelative::No).map_err(|_| ParseError::custom(()))
-    }
-
-    fn parse_block(
-        &mut self,
-        prelude: Self::Prelude,
-        _start: &ParserState,
-        input: &mut Parser<'i>,
-    ) -> Result<(), ParseError<()>> {
-        let decls = Arc::new(parse_block_with(input, &mut adapter::tls_intern));
-        if decls.decls.is_empty() {
-            return Ok(());
-        }
-        for sel in prelude.slice() {
-            *self.order += 1;
-            self.sheet.push(sel.clone(), decls.clone(), *self.order);
-        }
-        Ok(())
-    }
-}
-
-impl<'i> AtRuleParser<'i> for SheetParser<'_> {
-    type Prelude = bool;
-    type AtRule = ();
-    type Error = ();
-
-    fn parse_prelude(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i>) -> Result<bool, ParseError<()>> {
-        let start = input.position();
-        while input.next().is_ok() {}
-        let text = input.slice_from(start);
-        if name.eq_ignore_ascii_case("media") { Ok(media_matches(text)) } else { Err(ParseError::custom(())) }
-    }
-
-    fn parse_block(
-        &mut self,
-        matches: bool,
-        _start: &ParserState,
-        input: &mut Parser<'i>,
-    ) -> Result<(), ParseError<()>> {
-        if matches {
-            let mut nested = SheetParser { sheet: self.sheet, order: self.order };
-            for r in StyleSheetParser::new(input, &mut nested) {
-                let _ = r;
-            }
-        }
-        Ok(())
-    }
-}
-
 /// jsdom `evaluateMediaList`: true for an empty list or when some query is exactly `all` / `screen`.
 pub fn media_matches(list: &str) -> bool {
     let t = list.trim();
@@ -412,15 +349,10 @@ pub fn media_matches(list: &str) -> bool {
             .any(|q| q.trim().eq_ignore_ascii_case("all") || q.trim().eq_ignore_ascii_case("screen"))
 }
 
-/// Parses sheet text. Runs with the env's interner installed for selectors and custom properties.
-fn parse_sheet(text: &str, order: &mut u32) -> Sheet {
-    let mut sheet = Sheet::default();
-    let mut input = Parser::new(text);
-    let mut p = SheetParser { sheet: &mut sheet, order };
-    for r in StyleSheetParser::new(&mut input, &mut p) {
-        let _ = r;
-    }
-    sheet
+/// Parses sheet text into the cascade's rule list (through the CSSOM rule tree, `cssom.rs`). Runs with the env's
+/// interner installed for selectors and custom properties.
+fn parse_sheet(text: &str) -> Sheet {
+    super::cssom::parse_tree(text).0.to_sheet()
 }
 
 // ------------------------------------------------------------------------------------------ UA
@@ -442,8 +374,8 @@ pub struct UaSheet {
 pub fn ua() -> &'static UaSheet {
     UA.get_or_init(|| {
         let mut tmp = Interner::new();
-        let mut order = 0;
-        let sheet = adapter::with_interner(&mut tmp, || parse_sheet(UA_CSS, &mut order));
+        let sheet = adapter::with_interner(&mut tmp, || parse_sheet(UA_CSS));
+        let order = sheet.rules.len() as u32;
         let dynamic_atoms = tmp.len() - crate::atoms::STATIC_LEN;
         UaSheet { sheet, max_order: order, dynamic_atoms }
     })
@@ -452,7 +384,7 @@ pub fn ua() -> &'static UaSheet {
 // ------------------------------------------------------------------------------- author sheets
 
 /// Text of a `<style>` element (its child text nodes, concatenated).
-fn style_text(e: &Env, el: NodeId) -> String {
+pub(crate) fn style_text(e: &Env, el: NodeId) -> String {
     let mut s = String::new();
     // HTML "update a style block": a `type` other than "" / "text/css" (ASCII case-insensitive) creates no
     // sheet (jsdom too).
@@ -492,6 +424,7 @@ pub(crate) fn attach(e: &mut Env, el: NodeId) {
 
 /// A `<style>` element was disconnected.
 pub(crate) fn detach(e: &mut Env, el: NodeId) {
+    super::cssom::detach_owner(e, el);
     let doc = e.rec(el).owner;
     if let Some(dd) = e.doc_data_mut(doc) {
         dd.style.sheets.retain(|x| *x != el);
@@ -506,6 +439,7 @@ pub(crate) fn detach(e: &mut Env, el: NodeId) {
 
 /// The text of a registered `<style>` element changed.
 pub(crate) fn mark_dirty(e: &mut Env, el: NodeId) {
+    super::cssom::detach_owner(e, el);
     if let Some(s) = e.style.sheets.get_mut(&el) {
         *s = None;
         let doc = e.rec(el).owner;
@@ -547,9 +481,13 @@ pub(crate) fn prepare(e: &mut Env, doc: NodeId) {
         if matches!(e.style.sheets.get(&el), Some(Some(_))) {
             continue;
         }
-        let text = style_text(e, el);
-        let mut order = 0;
-        let sheet = adapter::with_interner(&mut e.atoms, || parse_sheet(&text, &mut order));
+        let sheet = match super::cssom::owned_sheet(e, el) {
+            Some(s) => s,
+            None => {
+                let text = style_text(e, el);
+                adapter::with_interner(&mut e.atoms, || parse_sheet(&text))
+            }
+        };
         e.ep.set(ep::ATOM_LEN, e.atoms.len());
         e.style.sheets.insert(el, Some(Arc::new(sheet)));
         changed = true;

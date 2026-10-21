@@ -75,11 +75,11 @@ css/css-syntax/input-preprocessing-cssom.html:
   "An escaped EOF becomes a replacement character via style.cssText": [fail, "assert_equals: wrong value"]
   "An escaped EOF becomes a replacement character via style.setProperty()": [fail, "assert_equals: wrong value"]
 css/css-values/calc-invalid-token.html: [fail, "assert_equals: wrong value"]
-css/cssom/CSSMediaRule-matches.html: [fail, "harness ERROR: read of undefined (.0)"]
-css/cssom/CSSRuleList-delete-namespace-with-layer.html: [fail, "read of undefined (.cssRules)"]
-css/cssom/CSSStyleRule-camel-case-properties.html: [fail, "read of undefined (.cssRules)"]
-css/cssom/CSSStyleSheet-replace-disallow-modification.html: [fail, "missing global: CSSStyleSheet"]
-css/cssom/CSSSupportsRule-matches.html: [fail, "harness ERROR: read of undefined (.0)"]
+css/cssom/CSSSupportsRule-matches.html:
+  "@supports (color: green) matches": [fail, "assert_equals: wrong value"]
+  "@supports not (supported) does not match": [fail, "assert_equals: wrong value"]
+  "@supports with and: both supported matches": [fail, "assert_equals: wrong value"]
+  "@supports with or: one supported matches": [fail, "assert_equals: wrong value"]
 css/cssom/getComputedStyle-imported-rule-style-mutation.html: [timeout, "harness TIMEOUT: (no message)"]
 css/cssom/getComputedStyle-imported-rules.html: [fail, "assert_equals: wrong value"]
 css/cssom/getComputedStyle-repeat.html:
@@ -89,8 +89,6 @@ css/cssom/getComputedStyle-repeat.html:
   "Repeated computed styles resolve light-dark() and currentcolor in the dark color scheme": [fail, "assert_equals: wrong value"]
   "Repeated computed styles resolve light-dark() and currentcolor in the light color scheme": [fail, "assert_equals: wrong value"]
   "Repeated computed styles resolve relative colors and currentcolor regardless of property read order": [fail, "assert_equals: wrong value"]
-css/cssom/getComputedStyle-rule-invalidation.html: [fail, "read of undefined (.cssRules)"]
-css/cssom/getComputedStyle-rule-style-mutation.html: [fail, "read of undefined (.cssRules)"]
 css/cssom/getComputedStyle-shorthand-cascade.html:
   "A flex basis calculation that reduces to a percentage preserves its unit": [fail, "assert_equals: wrong value"]
   "An important unresolved shorthand also participates in on-demand inheritance": [fail, "assert_equals: wrong value"]
@@ -106,12 +104,9 @@ css/cssom/getComputedStyle-shorthand-cascade.html:
   "Inherited background positions repeat to match the child's image layers": [fail, "assert_equals: wrong value"]
   "Longhands from an unresolved shorthand participate independently in the cascade": [fail, "assert_equals: wrong value"]
   "Reading inherited longhands before shorthands preserves the other longhand values": [fail, "assert_equals: wrong value"]
-  "Stylesheet longhand updates and removal invalidate computed shorthands": [fail, "read of undefined (.length)"]
   "The background attribute and getPropertyValue agree and use computed longhands": [fail, "assert_true: wrong value"]
 css/cssom/getComputedStyle-shorthand-defaults.html:
   "The initial border-image value serializes as none": [fail, "assert_equals: wrong value"]
-css/cssom/set-property-invalid-priority.html:
-  "An invalid stylesheet declaration update preserves value and priority": [fail, "read of undefined (.cssRules)"]
 css/cssom/set-property-shorthand-priority.html:
   "Parsing cssText preserves important background over normal background-color": [fail, "assert_equals: wrong value"]
   "Parsing cssText preserves important border over normal border-top-color": [fail, "assert_equals: wrong value"]

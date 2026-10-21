@@ -81,6 +81,9 @@ function install(rt, dom) {
   const KIND_INLINE = 0;
   const KIND_COMPUTED = 1;
   const KIND_PSEUDO = 2;
+  /** a CSSOM rule's declarations (`rule.style`, lib/cssom.cjs): the owner is the rule wrapper */
+  const KIND_RULE = 3;
+  const ref = (rule) => rt.cssom.ref(rule);
 
   function readOnly() {
     return rt.domError(10, 'These styles are computed, and the properties are therefore read-only.');
@@ -108,6 +111,10 @@ function install(rt, dom) {
     _pv(p) {
       const k = this.#k;
       if (k === KIND_INLINE) return N.styleGet(this.#o._i, p);
+      if (k === KIND_RULE) {
+        const [s, r] = ref(this.#o);
+        return N.omStyleGet(s, r, p);
+      }
       if (k === KIND_PSEUDO) return p === CONTENT ? 'none' : '';
       const c = this.#c;
       if (c !== 0) {
@@ -127,6 +134,11 @@ function install(rt, dom) {
 
     /** set by property id ('' removes) */
     _sp(p, value, important) {
+      if (this.#k === KIND_RULE) {
+        const [s, r] = ref(this.#o);
+        N.omStyleSet(s, r, p, value, important);
+        return;
+      }
       if (this.#k !== KIND_INLINE) throw readOnly();
       const id = this.#o._i;
       if (value === '') N.styleRemove(id, p);
@@ -147,25 +159,43 @@ function install(rt, dom) {
     }
 
     _get(i) {
+      if (this.#k === KIND_RULE) {
+        const n = this.length;
+        const [s, r] = ref(this.#o);
+        return i >= 0 && i < n ? N.omStyleItem(s, r, i) : undefined;
+      }
       if (this.#k !== KIND_INLINE) return this._declared()[i];
       const n = this.length;
       return i >= 0 && i < n ? N.styleItem(this.#o._i, i) : undefined;
     }
 
     get cssText() {
+      if (this.#k === KIND_RULE) {
+        const [s, r] = ref(this.#o);
+        return N.omStyleCssText(s, r);
+      }
       if (this.#k !== KIND_INLINE) return '';
       return N.styleCssText(this.#o._i);
     }
 
     set cssText(v) {
+      if (this.#k === KIND_RULE) {
+        const [s, r] = ref(this.#o);
+        N.omStyleCssTextSet(s, r, v === null ? '' : String(v));
+        return;
+      }
       if (this.#k !== KIND_INLINE) throw readOnly();
       N.styleCssTextSet(this.#o._i, v === null ? '' : String(v));
       rt.mutated();
     }
 
     get length() {
-      if (this.#k !== KIND_INLINE) return this._declared().length;
-      const n = N.styleLen(this.#o._i);
+      let n;
+      if (this.#k === KIND_RULE) {
+        const [s, r] = ref(this.#o);
+        n = N.omStyleLen(s, r);
+      } else if (this.#k !== KIND_INLINE) return this._declared().length;
+      else n = N.styleLen(this.#o._i);
       if (n > IDX.n) IDX.n = installIndices(CSSStyleDeclaration.prototype, IDX.n, n);
       return n;
     }
@@ -180,13 +210,18 @@ function install(rt, dom) {
     }
 
     getPropertyPriority(property) {
+      if (this.#k === KIND_RULE) {
+        const p = pidOf(property);
+        const [s, r] = ref(this.#o);
+        return p >= 0 && N.omStylePriority(s, r, p) ? 'important' : '';
+      }
       if (this.#k !== KIND_INLINE) return '';
       const p = pidOf(property);
       return p >= 0 && N.stylePriority(this.#o._i, p) ? 'important' : '';
     }
 
     setProperty(property, value, priority = '') {
-      if (this.#k !== KIND_INLINE) throw readOnly();
+      if (this.#k !== KIND_INLINE && this.#k !== KIND_RULE) throw readOnly();
       const p = pidOf(property);
       if (p < 0) return;
       const v = value === null || value === undefined ? '' : String(value);
@@ -194,6 +229,12 @@ function install(rt, dom) {
     }
 
     removeProperty(property) {
+      if (this.#k === KIND_RULE) {
+        const p = pidOf(property);
+        if (p < 0) return '';
+        const [s, r] = ref(this.#o);
+        return N.omStyleRemove(s, r, p);
+      }
       if (this.#k !== KIND_INLINE) throw readOnly();
       const p = pidOf(property);
       if (p < 0) return '';
@@ -203,7 +244,7 @@ function install(rt, dom) {
     }
 
     get parentRule() {
-      return null;
+      return this.#k === KIND_RULE ? this.#o : null;
     }
 
     get cssFloat() {
@@ -315,7 +356,16 @@ function install(rt, dom) {
   }
 
   rt.getComputedStyle = getComputedStyle;
-  rt.style = { pidOf, NAMES, core };
+  rt.style = {
+    pidOf,
+    NAMES,
+    core,
+    /** `rule.style` of a CSSOM rule wrapper (CSSStyleProperties, or a plain CSSStyleDeclaration as jsdom gives
+     * `@font-face` and `@page`). */
+    ruleStyle(rule, properties) {
+      return properties ? new CSSStyleProperties(TOKEN, rule, KIND_RULE, 0) : new CSSStyleDeclaration(TOKEN, rule, KIND_RULE, 0);
+    },
+  };
   module.exports.getComputedStyle = getComputedStyle;
 }
 

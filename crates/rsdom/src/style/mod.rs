@@ -18,6 +18,7 @@
 //! so the memo also validates against `EP[REC]` / `EP[FORM]` (area B writes those on state changes).
 
 pub mod cascade;
+pub mod cssom;
 pub mod inline;
 pub mod props;
 pub mod sheet;
@@ -83,6 +84,8 @@ pub struct StyleState {
     pub sheet_text: bool,
     /// Computed-style memo enabled (`RSDOM_NO_MEMO=1` disables it, like the facade memos).
     pub memo: bool,
+    /// CSSOM sheets script has seen (DESIGN §35).
+    pub om: cssom::Om,
 }
 
 impl Default for StyleState {
@@ -95,6 +98,7 @@ impl Default for StyleState {
             sheet_state: false,
             sheet_text: false,
             memo: std::env::var_os("RSDOM_NO_MEMO").is_none_or(|v| v != "1"),
+            om: cssom::Om::default(),
         }
     }
 }

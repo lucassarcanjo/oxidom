@@ -1083,4 +1083,4 @@ function install(_rt, d) {
   });
 }
 
-module.exports = { install, makeWindow, catchWindowErrors, cssEscape, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };
+module.exports = { install, makeWindow, catchWindowErrors, cssEscape, cssSupports, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };

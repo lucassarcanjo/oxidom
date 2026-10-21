@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1820 | 162751 | 148508 | 91.2% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 141 | 2578 | 2304 | 89.4% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1889 | 162751 | 148901 | 91.5% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 148 | 2578 | 2348 | 91.1% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 750 | 42.1% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 249 | 40.6% |
-| **all** | **2615** | **1967** | **167724** | **151811** | **90.5%** |
+| **all** | **2615** | **2043** | **167724** | **152248** | **90.8%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -28,7 +28,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 365 | 40.6% | rsdom: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
-| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 138 | 681 | 62.0% | assert_equals: wrong value (181); harness ERROR: read of undefined (.0) (161); read of undefined (.cssRules) (124) |
+| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 214 | 244 | 86.4% | assert_equals: wrong value (197); missing global: customElements (20); assert_true: wrong value (14) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 265 | 366 | 90.6% | … is not a valid selector (163); assert_equals: wrong value (83); read of undefined (.insertRule) (69) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 97 | 62 | 88.7% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); cssom: insertRule / cssRules (2) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 218 | 314 | 91.1% | assert_equals: got undefined (missing attribute/API) (82); missing method: .stepUp() (70); assert_equals: wrong value (32) |

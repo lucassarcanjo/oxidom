@@ -1764,13 +1764,26 @@ browsing context on its global (§18). That global gets three things:
 - Nothing jsdom lacks, so `fetch` and `structuredClone` stay undefined, as under jest-environment-jsdom.
 
 Teardown closes the context and resets the env (`rt.reset()`), so each file starts from a fresh document, in
-workers and in band.
+workers and in band. As in the Vitest environment, a wrapper from an earlier file is neutered by the reset: async
+work a file leaked that touches its old nodes later throws (`Illegal invocation`) in whichever file is running,
+where jsdom quietly mutates the closed window.
+
+**One facade per env.** Jest loads `require('jetdom')` in a test file through its own module registry: a second
+copy of the facade over the same addon exports (Node caches `.node` files per process), whose `init()` would reset
+the env under the environment's document. `lib/index.cjs` records its exports on the addon exports object
+(`Symbol.for('jetdom.facade')`) and a later copy hands those back, so a helper `new JSDOM()` in a test, or jsdom
+aliased to jetdom, works.
 
 **Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
 Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
-on them does not hold. jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm.
-Two facade checks moved to realm-independent tests for this: Blob parts and `new JSDOM()` input use
-`util.types.isArrayBuffer` / `isAnyArrayBuffer`.
+on them does not hold, nor `instanceof Uint8Array` on `TextEncoder` output, nor `instanceof Error` on a
+`DOMException` (its base is Node's `Error`). `AbortController` / `AbortSignal` are Node's: an abort reason is such a
+`DOMException`, a signal is not `instanceof EventTarget`, and fake timers do not drive `AbortSignal.timeout()`.
+jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm. Two facade checks
+moved to realm-independent tests for this (Blob parts and `new JSDOM()` input use `util.types.isArrayBuffer` /
+`isAnyArrayBuffer`), and a FileReader's ArrayBuffer result is copied into its window's realm (`inRealm()` in
+lib/file-api.cjs). Scripts and inline event handler attributes do not run (rsdom runs no scripts, ROADMAP
+`browsing-contexts`); the vm context would be where they could run later.
 
 **Tests.** `test/native/jest-env.test.mjs` runs the specs in test/fixtures/jest-env in child `jest` processes, in
 workers and in band, under jetdom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom

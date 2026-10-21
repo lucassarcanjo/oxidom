@@ -79,8 +79,10 @@ not-implemented window methods log "Not implemented: ..." through `console.error
 **Jest.** Install `jetdom` and `jest-environment-jetdom` (from this repository for now) and set
 `testEnvironment: 'jetdom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
 `userAgent`, `pretendToBeVisual`, `customExportConditions`, ...) and the `@jest-environment-options` docblock work
-the same, and so do fake timers. Arrays, promises and errors that rsdom itself creates come from Node's realm,
-not the test file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold.
+the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
+runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
+file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
+not `instanceof Error`. `customElements`, `XMLSerializer` and `DOMRect` are not there yet.
 
 **Plain Node.**
 

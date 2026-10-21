@@ -226,6 +226,18 @@ function parseMime(type) {
 }
 
 /** FileReader's result for a format (refs/jsdom/lib/jsdom/living/file-api/FileReader-impl.js `_setResult`). */
+/**
+ * An ArrayBuffer result in the reader's window's realm, as jsdom gives it: the Jest environment's window is a vm
+ * context global with its own `ArrayBuffer` (DESIGN §32), so `result instanceof ArrayBuffer` holds in the test.
+ */
+function inRealm(result, ctx) {
+  const AB = ctx?.window?.ArrayBuffer;
+  if (typeof result === 'string' || typeof AB !== 'function' || AB === ArrayBuffer) return result;
+  const out = new AB(result.byteLength);
+  new Uint8Array(out).set(new Uint8Array(result));
+  return out;
+}
+
 function readResult(buf, type, format, label) {
   switch (format) {
     case 'binaryString':
@@ -335,7 +347,7 @@ function read(reader, method, argc, blob, format, label = undefined) {
       s.error = new rt.classes.DOMException(`The blob could not be read: ${failure?.message ?? failure}`, 'NotReadableError');
       events.fire(reader, 'error', undefined, events.ProgressEvent);
     } else {
-      s.result = readResult(bytes, type, format, label);
+      s.result = inRealm(readResult(bytes, type, format, label), s.ctx);
       s.readyState = DONE;
       events.fire(reader, 'load', undefined, events.ProgressEvent);
     }

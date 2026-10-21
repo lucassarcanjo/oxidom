@@ -171,7 +171,7 @@ Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.childre
 
 ## 5. JS facade conventions
 
-Each area file exports `install(rt, dom)`; `lib/index.cjs` calls them once in the order
+Each area file exports `install(rt, dom)`; `lib/facade.cjs` calls them once in the order
 select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow, after the core classes exist.
 
 - `rt` (`lib/runtime.cjs`): `N` (natives), `V` (hot holder: `V.T` table view, `V.EP`, `V.OUT`, `V.off(id)`),
@@ -211,7 +211,7 @@ select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow
 - Attr wrappers are cached per element by (namespace atom, local atom) in `el._at.map` (key `local` for no
   namespace, `"ns:local"` otherwise).
 - `rt.define` gives WebIDL descriptors: public (non-`_`) names are enumerable, `_x` and symbols are not;
-  `index.cjs` calls `rt.exposeMembers()` after all areas installed.
+  `facade.cjs` calls `rt.exposeMembers()` after all areas installed.
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
@@ -310,7 +310,7 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
    the oracle. A case where jsdom itself is wrong against the spec gets a comment and an explicit divergence.
 3. Decide where the state lives. State that must survive or react to tree mutations goes to Rust (a new
    module with its own `natives!` block, hooks from §4); pure API surface over existing state stays in the facade
-   (a new `lib/<feature>.cjs` installed from `lib/index.cjs`). Unused features must cost nothing on the hot paths.
+   (a new `lib/<feature>.cjs` installed from `lib/facade.cjs`). Unused features must cost nothing on the hot paths.
 4. Run `npm test` and `npm run test:fallback`; for anything on a hot path also `npm run bench:micro` and compare with
    `bench/results/micro.md`.
 5. `npm run test:parity -- --update --item <id>` locks in what now passes and regenerates the scoreboard

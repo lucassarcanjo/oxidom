@@ -1,0 +1,45 @@
+'use strict';
+// The facade, loaded once per native env through lib/index.cjs (which documents it).
+//
+// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
+// -> xhr -> observers -> range -> shadow -> file-api.
+
+const rt = require('./runtime.cjs');
+const dom = require('./dom.cjs');
+const context = require('./context.cjs');
+const areas = [
+  require('./traversal.cjs'),
+  require('./select.cjs'),
+  require('./style.cjs'),
+  require('./forms.cjs'),
+  require('./events.cjs'),
+  require('./mo.cjs'),
+  require('./window.cjs'),
+  require('./xhr.cjs'),
+  require('./observers.cjs'),
+  require('./range.cjs'),
+  require('./shadow.cjs'),
+  require('./file-api.cjs'),
+  require('./selection.cjs'),
+];
+for (const a of areas) a.install(rt, dom);
+// WebIDL: interface members are enumerable (class syntax made them non-enumerable).
+rt.exposeMembers();
+
+/**
+ * Opens a browsing context and returns its window and document. `main: false` keeps the current context
+ * current (`new Text()` & co keep creating nodes in its document); `global` installs the window on that
+ * object (lib/context.cjs `open`).
+ * @param {{ url?: string, html?: string, main?: boolean, global?: object }} [options]
+ * @returns {{ window: object, document: object }}
+ */
+function createWindow(options = {}) {
+  const ctx = context.open(options);
+  return { window: ctx.window, document: ctx.document };
+}
+
+const { JSDOM, VirtualConsole, CookieJar, toughCookie } = require('./jsdom.cjs');
+
+module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toughCookie };
+// lib/index.cjs hands these exports to any later copy of the facade in this env
+Object.defineProperty(require('./native.cjs'), Symbol.for('jetdom.facade'), { value: module.exports });

@@ -1770,8 +1770,9 @@ where jsdom quietly mutates the closed window.
 
 **One facade per env.** Jest loads `require('jetdom')` in a test file through its own module registry: a second
 copy of the facade over the same addon exports (Node caches `.node` files per process), whose `init()` would reset
-the env under the environment's document. `lib/index.cjs` records its exports on the addon exports object
-(`Symbol.for('jetdom.facade')`) and a later copy hands those back, so a helper `new JSDOM()` in a test, or jsdom
+the env under the environment's document. `lib/facade.cjs` records its exports on the addon exports object
+(`Symbol.for('jetdom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
+parses the file when a workspace inlines it), so a helper `new JSDOM()` in a test, or jsdom
 aliased to jetdom, works.
 
 **Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
@@ -1791,3 +1792,39 @@ itself pins jsdom 26; a `ResourceLoader` shim maps its `userAgent` option onto j
 give the same results: the globals a test file sees, options from the docblock, testing-library with user-event and
 jest-dom, fake timers over timers and animation frames, a fresh document per file, a failing listener error, and
 the not-implemented log.
+
+## 33. Vitest VM pools (ROADMAP Stage 2, 2026-10)
+
+With `pool: 'vmThreads'` or `'vmForks'`, Vitest runs each test file in a vm context the environment's `setupVM()`
+returns, and calls its `teardown()` after the file. `lib/vitest-environment.mjs` now has one. It reads the same
+options as `setup()` (`environmentOptions.jsdom`, then `jetdom`, §31). It opens the window on a bare vm context's
+global the way the Jest environment does (`openVmWindow()` in lib/vm-window.cjs, §32): own window timers, plus
+the members a jsdom window takes from Node. On top of that it adds what Vitest's jsdom `setupVM` adds to its
+window:
+- `Buffer` and the `jsdom` global.
+- `structuredClone`, `BroadcastChannel`, `MessageChannel`, `MessagePort`, `TextEncoder` and `TextDecoder` when
+  absent.
+- Node's `fetch`, `Request`, `Response`, `Headers`, `AbortController`, `AbortSignal`, `URL` and `URLSearchParams`.
+  Vitest wraps `Request` and `URL` so they accept jsdom's Blob; rsdom's Blob is a Node Blob, so Node's are used
+  as they are.
+
+Vitest's window error routing is installed as in `setup()`. Teardown closes the context and resets the env, so
+each file starts from a fresh document.
+
+Vitest executes externals in the vm context, so a test file's `require('jetdom')` / `import('jetdom')` is a
+second copy of the facade. It gets the first copy's exports (§32), and the facade entry has no top-level
+`return`, because Vite parses it when a workspace inlines the package.
+
+The realm notes of §32 apply here too. **Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
+in both pools, under jetdom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
+- the globals a file sees
+- testing-library with user-event and jest-dom
+- fake timers
+- FileReader's realm
+- a helper `JSDOM`
+- a fresh document per file
+- a listener error reported as unhandled
+
+Beyond the fixture, the React app suite passes 90/90 in `vmThreads` on both, and the libraries suite gives the same
+counts as jsdom (35/37). On both, the network test fails in VM pools for lack of `WritableStream`; jsdom fails
+lexical and tiptap, and rsdom fails lit.

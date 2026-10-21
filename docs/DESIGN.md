@@ -440,7 +440,7 @@ All classes are defined once at module level in `packages/rsdom/lib/*.cjs`. `con
 EventTarget
  ├─ Window (globalThis gets EventTarget methods bound to a hidden WindowTarget)
  └─ Node  (constants on Node and Node.prototype: ELEMENT_NODE…, DOCUMENT_POSITION_*)
-     ├─ Document ─ HTMLDocument (XMLDocument stub)      ├─ DocumentFragment (ShadowRoot: out of scope)
+     ├─ Document ─ HTMLDocument (XMLDocument stub)      ├─ DocumentFragment ─ ShadowRoot (§22)
      ├─ DocumentType                                     ├─ Attr
      ├─ CharacterData ─ Text ─ CDATASection, Comment, ProcessingInstruction
      └─ Element ─ HTMLElement ─ HTML*Element (~70, generated from refs/jsdom/lib/jsdom/living/helpers/create-element.js),
@@ -448,7 +448,7 @@ EventTarget
                 ├─ SVGElement ─ SVGGraphicsElement ─ SVGSVGElement …
                 └─ MathMLElement
 NodeList, HTMLCollection, HTMLOptionsCollection, HTMLFormControlsCollection, NamedNodeMap, DOMTokenList,
-DOMStringMap, CSSStyleDeclaration, Range (basic), Selection (stub), MutationObserver, MutationRecord,
+DOMStringMap, CSSStyleDeclaration, StaticRange, Range (§25), Selection (§29), MutationObserver, MutationRecord,
 DOMParser, FormData (override), Event + subclasses, DOMException (Node's own)
 ```
 

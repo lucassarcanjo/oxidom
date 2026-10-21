@@ -1010,7 +1010,7 @@ function install(rt, dom) {
   /** State a `<style>` sheet's wrapper starts with: its title (jsdom reads the attribute at creation). */
   function sheetInit(id) {
     const owner = wrap(N.omOwner(id));
-    return { title: owner?.getAttribute('title') ?? null };
+    return { title: owner?.getAttribute('title') || null };
   }
 
   const STYLE_SHEET_LISTS = new WeakMap();
@@ -1077,56 +1077,8 @@ function install(rt, dom) {
 
   function supportsMatches(text) {
     // eslint-disable-next-line global-require
-    const { cssSupports } = require('./window.cjs');
-    return evaluateSupports(text, (p, v) => cssSupports(p, v));
+    return require('./window.cjs').supportsCondition(text);
   }
 }
 
-/**
- * A `@supports` condition (jsdom CSSSupportsRule-impl.js `evaluateSupportsText`, over CSS.supports): `not X`,
- * `X and Y ...`, `X or Y ...` where each X is `(prop: value)` or a parenthesized condition.
- */
-function evaluateSupports(text, supports) {
-  const t = text.trim();
-  const items = [];
-  const ops = [];
-  let i = 0;
-  let neg = false;
-  const skip = () => {
-    while (i < t.length && /\s/.test(t[i])) i++;
-  };
-  skip();
-  if (/^not\s*\(/i.test(t.slice(i))) {
-    neg = true;
-    i += 3;
-    skip();
-  }
-  while (i < t.length) {
-    if (t[i] !== '(') return false;
-    let d = 0;
-    let j = i;
-    for (; j < t.length; j++) {
-      if (t[j] === '(') d++;
-      else if (t[j] === ')' && --d === 0) break;
-    }
-    if (d !== 0) return false;
-    const inner = t.slice(i + 1, j).trim();
-    const m = /^([-\w]+)\s*:\s*([\s\S]*)$/.exec(inner);
-    items.push(m !== null ? supports(m[1], m[2].trim()) : evaluateSupports(inner, supports));
-    i = j + 1;
-    skip();
-    if (i >= t.length) break;
-    const op = /^(and|or)\b/i.exec(t.slice(i));
-    if (op === null) return false;
-    ops.push(op[1].toLowerCase());
-    i += op[1].length;
-    skip();
-  }
-  if (items.length === 0) return false;
-  if (neg) return items.length === 1 ? !items[0] : false;
-  let r = items[0];
-  for (let k = 0; k < ops.length; k++) r = ops[k] === 'and' ? r && items[k + 1] : r || items[k + 1];
-  return r;
-}
-
-module.exports = { install, mediaItems, parseMedium, normalizeKeyText, parsePageSelector, evaluateSupports };
+module.exports = { install, mediaItems, parseMedium, normalizeKeyText, parsePageSelector };

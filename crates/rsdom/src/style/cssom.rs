@@ -1324,6 +1324,19 @@ fn undeclared_prefix(sel: &str, declared: &[&str]) -> bool {
 }
 
 natives! {
+    /// `CSS.supports(property, value)` (jsdom `#isValueSupported`): setting the declaration on an empty block
+    /// leaves a non-empty value. Custom properties: any value.
+    fn cssSupports(e, name: str, v: str) -> bool {
+        match inline::prop_id(e, &name.to_ascii_lowercase()) {
+            Some(p) if p >= super::props::CUSTOM_BASE => true,
+            Some(p) => value::parse_declaration(p, v).is_some_and(|parsed| {
+                let mut st = InlineStyle::default();
+                st.apply(p, parsed, false);
+                st.get(p).map(|d| !d.value.is_empty()).or_else(|| st.value_of(p).map(|s| !s.is_empty())) == Some(true)
+            }),
+            None => false,
+        }
+    }
     /// `styleEl.sheet`: the CSSOM sheet id of a connected `<style>` element (parsed on first use); 0 = none.
     fn omSheetOf(e, el: u32) -> u32 {
         e.om_sheet_of(el)

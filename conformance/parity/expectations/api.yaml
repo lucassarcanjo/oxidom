@@ -37,7 +37,6 @@ api/from-outside.js:
   "Test cases only possible to test from the outside > ensure cssom uses the correct jsdom instance's globalObject": [fail, "Precondition: DOMException should differ between jsdom instances"]
   "Test cases only possible to test from the outside > frees up callback handles passed to setTimeout": [fail, "Expected values to be strictly equal: … !== …"]
   "Test cases only possible to test from the outside > releases idle MutationObserver bookkeeping": [fail, "node:internal/modules/cjs/loader:… throw err; ^ Error: Cannot find module … Require stack:…"]
-  "Test cases only possible to test from the outside > should process data: URLs in stylesheets even with external resources disabled (GH-743)": [fail, "read of undefined (.cssRules)"]
   "Test cases only possible to test from the outside > window.close() should stop a setInterval()": [fail, "The expression evaluated to a falsy value: assert(window.counter >= …)"]
   "Test cases only possible to test from the outside > with runScripts set to dangerously > an element named eval should not shadow window.eval": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
   "Test cases only possible to test from the outside > with runScripts set to outside-only > an element named eval should not shadow window.eval": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]

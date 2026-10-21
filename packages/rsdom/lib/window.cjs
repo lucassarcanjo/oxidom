@@ -608,23 +608,101 @@ function cssEscape(value) {
 }
 
 /**
- * `CSS.supports(property, value)` / `CSS.supports('(property: value)')`: true for properties rsdom's style
- * engine knows (area A's `cssProp`) with a non-empty value; false otherwise (no value validation).
+ * `CSS.supports(property, value)` / `CSS.supports(conditionText)` (jsdom CSS-impl.js): a declaration is supported
+ * when setting it on an empty declaration block leaves a non-empty value (custom properties: always); a condition
+ * is `not` / `and` / `or` over parenthesized declarations or conditions.
  */
-function cssSupports(a, b = undefined) {
-  let prop;
-  let value;
-  if (b === undefined) {
-    const m = /^\s*\(\s*([-\w]+)\s*:\s*([^)]*?)\s*\)\s*$/.exec(String(a));
-    if (m === null) return false;
-    [, prop, value] = m;
-  } else {
-    prop = String(a).trim();
-    value = String(b).trim();
+function cssSupports(...args) {
+  if (args.length === 0) throw new TypeError("Failed to execute 'supports' on 'CSS': 1 argument required, but only 0 present.");
+  if (args.length === 1) return supportsCondition(String(args[0]).trim());
+  return supportsDeclaration(String(args[0]), String(args[1]));
+}
+
+const PROP_VAL = /^([^():]+)\s*:\s*(.+)\s*$/;
+
+function supportsDeclaration(prop, value) {
+  return rt.N.cssSupports(prop, value);
+}
+
+/** A `@supports` condition (`CSS.supports(conditionText)`, `CSSSupportsRule#matches`). */
+function supportsCondition(text) {
+  if (PROP_VAL.test(text)) {
+    const [, p, v] = PROP_VAL.exec(text);
+    return supportsDeclaration(p.trim(), v);
   }
-  if (value === '' || typeof rt.N.cssProp !== 'function') return false;
-  if (prop.startsWith('--')) return true;
-  return rt.N.cssProp(rt.asciiLower(prop)) !== 0;
+  const toks = supportsTokens(text);
+  return toks === null ? false : supportsList(toks);
+}
+
+/** Tokens of a condition: identifiers and parenthesized groups (null: anything else, e.g. a function). */
+function supportsTokens(t) {
+  const out = [];
+  let i = 0;
+  while (i < t.length) {
+    const c = t[i];
+    if (/\s/.test(c)) {
+      i++;
+    } else if (c === '(') {
+      let d = 0;
+      let j = i;
+      for (; j < t.length; j++) {
+        if (t[j] === '(') d++;
+        else if (t[j] === ')' && --d === 0) break;
+      }
+      if (d !== 0) return null;
+      out.push({ g: t.slice(i + 1, j) });
+      i = j + 1;
+    } else {
+      const m = /^-?[A-Za-z_][\w-]*/.exec(t.slice(i));
+      if (m === null || t[i + m[0].length] === '(') return null;
+      out.push({ id: m[0].toLowerCase() });
+      i += m[0].length;
+    }
+  }
+  return out;
+}
+
+/** jsdom `#evaluateList`. */
+function supportsList(toks) {
+  let result = null;
+  let op = null;
+  let not = false;
+  let expecting = true;
+  for (const t of toks) {
+    if (t.id !== undefined) {
+      if (t.id === 'not') {
+        if (result !== null || not) return false;
+        not = true;
+      } else if (t.id === 'and' || t.id === 'or') {
+        if (not || expecting || (op !== null && op !== t.id)) return false;
+        op = t.id;
+        expecting = true;
+      } else {
+        return false;
+      }
+      continue;
+    }
+    if (!expecting) return false;
+    const inner = t.g.trim();
+    let r;
+    if (PROP_VAL.test(inner) && !inner.startsWith('(')) {
+      const [, p, v] = PROP_VAL.exec(inner);
+      r = supportsDeclaration(p.trim(), v);
+    } else {
+      const sub = supportsTokens(inner);
+      r = sub === null ? false : supportsList(sub);
+    }
+    if (not) {
+      r = !r;
+      not = false;
+    }
+    if (result === null) result = r;
+    else if (op === 'and') result &&= r;
+    else result ||= r;
+    expecting = false;
+  }
+  if (not || (expecting && result !== null)) return false;
+  return result === null ? false : result;
 }
 
 // ========================================================================================== FormData
@@ -1083,4 +1161,4 @@ function install(_rt, d) {
   });
 }
 
-module.exports = { install, makeWindow, catchWindowErrors, cssEscape, cssSupports, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };
+module.exports = { install, makeWindow, catchWindowErrors, cssEscape, cssSupports, supportsCondition, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };

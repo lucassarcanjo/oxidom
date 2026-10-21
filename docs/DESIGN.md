@@ -575,7 +575,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 ### 8.1 Inline style
 - `InlineStyle` holds a `SmallVec<[(PropId u16, Value, important); 4]>`. Values are parsed with cssparser.
 - Normalisation: lengths, numbers (a unitless non-zero length is rejected), hex/rgb/hsl/named colours serialised as `rgb(r, g, b)`, keywords, and common shorthands (margin, padding, border, border-width/style/color, overflow, flex, background-color, font-weight). Invalid values are ignored.
-- **The same value serializer is used for `element.style` and for computed values**, so jest-dom `toHaveStyle` round-trips. This fixes the jsdom 30 `color: red` / `fontWeight: 'bold'` mismatch (docs/lab/research/testing-library.md).
+- **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on rsdom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
 - The `style` attribute string is serialised lazily, only when something reads it: getAttribute, outerHTML, attributes, or an MO old value.
 - `CSSStyleDeclaration` is created lazily per element.
   - It has generated prototype accessors for camelCase, kebab-case, `Webkit*` and `cssFloat`.
@@ -821,8 +821,6 @@ Remaining divergences (rsdom follows the spec or browsers where jsdom does not):
 - Changing a `<style>` element's `type` re-evaluates its sheet; jsdom only re-evaluates on connect / text change.
 - `display: revert` resolves to the UA origin's value (browsers: `block` on `<p>`); jsdom returns the string
   `revert`.
-- `font-weight: bold` computes to `bold` (rsdom keeps the specified serialization for non-core properties so
-  jest-dom `toHaveStyle` round-trips); jsdom returns `700`.
 - MutationObserver `attributeFilter` ignores namespaced attributes (DOM spec); jsdom reports them.
 - The `toggle` event is a plain `Event` (no `oldState`/`newState`), as in jsdom.
 - A panic inside a native (a bug) is turned into a JS Error but the env is not transactional: a mutation can be
@@ -1648,3 +1646,39 @@ so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a
   nodes outside the flat tree, `content-visibility: hidden` text). `test/contract/selection.test.mjs` runs the API
   on all three DOMs. In `e2e/libraries`, Lexical typing passes on rsdom (it fails on jsdom and happy-dom: no
   `getTargetRanges`); tiptap's assertions pass, with one unhandled error from the missing `elementFromPoint`.
+
+## 30. Computed-value fidelity (ROADMAP Stage 3, 2026-10)
+
+`getComputedStyle` returned the specified serialization for non-core properties, which kept jest-dom
+`toHaveStyle('color: red')` passing where jsdom 30 fails, but made rsdom diverge from jsdom on every test that reads a
+computed colour: the css/selectors invalidation tests check matching through `color`, so they were 2,800 of the
+3,147-subtest gap. It also broke the drop-in contract the other way: `expect(redEl).not.toHaveStyle('color: red')`
+passes on jsdom and failed on rsdom. Computed values now follow jsdom 30's `CSSStyleDeclaration#getComputedValue`
+(refs/jsdom/lib/jsdom/living/css/CSSStyleDeclaration-impl.js), all in `style/cascade.rs` `Strs::resolve`:
+
+- **Colours.** Longhands flagged `<color>` or `<paint>` in the property table: named colours become `rgb()`,
+  `transparent` `rgba(0, 0, 0, 0)`, system colours their light-scheme value (jsdom's `system-colors.js`), and
+  `currentcolor` the element's colour. A colour inherits as specified and resolves on the inheriting element, so an
+  unspecified `currentcolor` initial value (`column-rule-color`, `text-emphasis-color`) is the element's own
+  colour, not the root's. Like jsdom, any other bare keyword on such a property (`outline-color: auto`,
+  `stroke: none`) computes to `rgba(0, 0, 0, 0)`. Hex, `rgb()` and `hsl()` were already normalised when parsed;
+  `lab()`, `color-mix()` and `color-scheme: dark` are not resolved.
+- **`font-weight`.** `normal` and `bold` compute to `400` and `700` (`bolder`/`lighter` already did). The computed
+  `font` shorthand leaves a 400 weight out, as jsdom does.
+- **Lengths.** A single `<number><unit>` on a `<length>` longhand becomes px, serialised as jsdom's
+  `Number(px.toPrecision(6))`: absolute units, `em`/`ex`/`ch`/`lh`/`cap`/`ic` against the element's own computed
+  font size, `rem` & co against the root element's (16px on the root itself), and `vw`/`vh`/`vmin`/`vmax` against
+  the window's current `innerWidth`/`innerHeight`, which the facade passes to `csStr` (Rust cannot read the window,
+  §7); on the root element they stay as specified, as in jsdom. `font-size` uses the parent's size for `em`
+  and `%`. Percentages, unitless numbers, keywords and `calc()` stay as specified (jsdom reduces `calc()`).
+  `computed_str` prepares the root element's inline style too, since a detached or shadow-tree element's `rem`
+  reads a root that is not its ancestor.
+- Shorthands that rsdom stores as one value (`border-block`, `box-shadow`, ...) keep the specified value, as
+  jsdom's do.
+
+Measured on the parity suite: the `computed-values` gap went from 3,147 to 366 subtests (206 -> 265 of 297 files at
+parity) and overall parity from 88.8% to 90.5%, with no regression. What remains is `:heading()` (a selector, 163),
+the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom accepts `none` on
+`column-rule-color` and rounds `1e-8in` to `0in` when parsing; jsdom does neither). `auto` is now accepted only on
+the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
+`test/contract/computed-style.test.mjs` checks the resolved values against jsdom.

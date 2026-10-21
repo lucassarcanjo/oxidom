@@ -102,7 +102,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       42 -> 62 of 64 suite files at parity, gap 19,944 -> 2 subtests (a jsdom onload quirk). Lexical typing now passes
       on rsdom; tiptap's assertions pass, its remaining unhandled error is `elementFromPoint`.
 - [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share.
-- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
+- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`. Values
+      done 2026-10-20 (DESIGN §30): 206 -> 265 of 297 suite files at parity, gap 3,147 -> 366 subtests, overall parity
+      88.8% -> 90.5%. Left: `:heading()` selectors (163), `insertRule` (`cssom`), `calc()` reduction.
 - [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
       createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
       init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':

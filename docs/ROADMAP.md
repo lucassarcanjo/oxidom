@@ -97,7 +97,9 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [x] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports. Done
       2026-10-21 (DESIGN §33): the window on a vm context, as for Jest; the React app suite passes 90/90 in both pools
       and the libraries suite matches jsdom's result.
-- [ ] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
+- [x] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
+      Done 2026-10-21 (DESIGN §34): `lib/index.d.ts` (the `JSDOM` API as @types/jsdom types it), the Vitest and
+      Jest environments, type-checked in the package suite.
 - [ ] Migration guide: jsdom to rsdom, with the known divergences listed in one place.
 
 ## Stage 3: Breadth parity with jsdom

@@ -84,6 +84,9 @@ runs them). Arrays, typed arrays, promises and errors that rsdom itself creates 
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
 not `instanceof Error`. `customElements`, `XMLSerializer` and `DOMRect` are not there yet.
 
+**TypeScript.** The packages ship their declarations; `jetdom`'s `JSDOM` API is typed as @types/jsdom types
+jsdom's. For the Vitest `jsdom` global, use `types: ["jetdom/vitest-globals"]` where you had `vitest/jsdom`.
+
 **Plain Node.**
 
 ```js

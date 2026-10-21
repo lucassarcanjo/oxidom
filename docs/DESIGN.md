@@ -79,11 +79,13 @@ crates/rsdom/                 the native addon crate (napi-rs v3, cdylib + rlib)
 packages/rsdom/               the `rsdom` npm package
   lib/*.cjs                   the JS facade (plain CJS, loaded through createRequire, never through Vite)
   lib/vitest-environment.mjs  the Vitest Environment (`rsdom/vitest-environment`)
+  lib/jest-environment.cjs    the Jest environment class (`jetdom/jest-environment`, §32)
   lib/generated/              emitted by build.rs (gitignored)
   native/rsdom.<triple>.node  the addon (gitignored)
   test/contract/              one parity suite run against jsdom, happy-dom and rsdom
   test/native/                rsdom-only tests (protocols, wrappers, epochs, Vitest pools)
 packages/vitest-environment-rsdom/   `test.environment: 'jetdom'` (npm: vitest-environment-jetdom)
+packages/jest-environment-rsdom/     `testEnvironment: 'jetdom'` (npm: jest-environment-jetdom, DESIGN §32)
 e2e/react-app/                React 19 + Testing Library suite (90 tests), the end-to-end subject
 e2e/libraries/                real-library smoke tests (Radix, MUI, react-aria, lit, ...)
 bench/micro/  bench/e2e/      benchmark harnesses (phase reporter, runner); bench/results/
@@ -1740,3 +1742,39 @@ global's `top` alone, as under Vitest's jsdom environment (which copies the wind
 Measured on the parity suite: the `jsdom-api` gap went from 426 to 365 subtests, with no regression (virtual
 console 43, `window.close()` and `Window` 5, options 7, `Accept-Language` / user agent headers, not-implemented
 reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom side by side.
+
+## 32. The Jest environment (ROADMAP Stage 2, 2026-10)
+
+`testEnvironment: 'jetdom'` resolves to `jest-environment-jetdom` (packages/jest-environment-rsdom), which builds
+its class from `lib/jest-environment.cjs` with its own `require`. That way jest-util, jest-mock and
+@jest/fake-timers, which are the package's dependencies as they are jest-environment-jsdom's, resolve from the Jest
+side. The class is a port of jest-environment-jsdom 30 (`@jest/environment-jsdom-abstract`): the same
+`testEnvironmentOptions` handling (`environmentOptions()` in lib/jsdom.cjs, shared with the Vitest environment,
+with Jest's defaults `http://localhost/` and `<!DOCTYPE html>`), the same virtual console (forwarding to the test
+console, with each jsdomError also logged as the Error), the same error routing (an uncaught error that no user
+`error` listener saw fails the test), `customExportConditions`, legacy and modern fake timers, and `this.dom`.
+
+**The vm context.** Jest runs each test file in the vm context `getVmContext()` returns. jsdom's window is such a
+context's global. rsdom's window lives in Node's realm, so the environment creates a bare context and opens a
+browsing context on its global (§18). That global gets three things:
+- Its own window timers (`context.open({ ownTimers })`). They use integer handles, report errors to the window,
+  and are cancelled at close. A vm context has no timers, and jsdom's are the window's.
+- The members a jsdom window has that rsdom otherwise takes from Node's global (`URL`, `TextEncoder`,
+  `AbortController`, `atob`, `queueMicrotask`, `performance`, `crypto`, ...). These are copied from Node.
+- Nothing jsdom lacks, so `fetch` and `structuredClone` stay undefined, as under jest-environment-jsdom.
+
+Teardown closes the context and resets the env (`rt.reset()`), so each file starts from a fresh document, in
+workers and in band.
+
+**Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
+Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
+on them does not hold. jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm.
+Two facade checks moved to realm-independent tests for this: Blob parts and `new JSDOM()` input use
+`util.types.isArrayBuffer` / `isAnyArrayBuffer`.
+
+**Tests.** `test/native/jest-env.test.mjs` runs the specs in test/fixtures/jest-env in child `jest` processes, in
+workers and in band, under jetdom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
+itself pins jsdom 26; a `ResourceLoader` shim maps its `userAgent` option onto jsdom 30's `resources`. Both must
+give the same results: the globals a test file sees, options from the docblock, testing-library with user-event and
+jest-dom, fake timers over timers and animation frames, a fresh document per file, a failing listener error, and
+the not-implemented log.

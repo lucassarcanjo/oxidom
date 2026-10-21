@@ -862,8 +862,9 @@ function installTimers(win, ctx, def) {
  * the original properties.
  * @param {import('./context.cjs').BrowsingContext} ctx
  * @param {object} [global]
+ * @param {boolean} [ownTimers] window timers on a `global` too (context.cjs `open`)
  */
-function makeWindow(ctx, global = undefined) {
+function makeWindow(ctx, global = undefined, ownTimers = false) {
   const { document, url } = ctx;
   const win = global ?? Object.create(null);
   const isGlobal = global !== undefined;
@@ -969,7 +970,7 @@ function makeWindow(ctx, global = undefined) {
     for (const m of CONSOLE_METHODS) c[m] = (...args) => vc.emit(m, ...args);
     def('console', c);
   }
-  if (!isGlobal) installTimers(win, ctx, def);
+  if (!isGlobal || ownTimers) installTimers(win, ctx, def);
 
   def('matchMedia', function matchMedia(query) {
     if (arguments.length === 0) throw new TypeError("Failed to execute 'matchMedia' on 'Window': 1 argument required, but only 0 present.");

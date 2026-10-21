@@ -64,33 +64,6 @@ function dumpCounters(rt) {
   fs.appendFileSync(out, line + '\n');
 }
 
-/**
- * `context.open()` options from `environmentOptions.jetdom` (`o`) and `environmentOptions.jsdom` (`j`), with
- * the defaults of Vitest's jsdom environment (node_modules/vitest/dist/chunks/index.*.js `jsdom.setup`).
- */
-function contextOptions(o, j, api) {
-  api.checkContentType(j.contentType);
-  const virtualConsole = j.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
-  if (!(virtualConsole instanceof api.VirtualConsole)) {
-    throw new TypeError('virtualConsole must be an instance of VirtualConsole');
-  }
-  const userAgent = j.userAgent ?? j.resources?.userAgent;
-  const open = {
-    url: o.url ?? (j.url === undefined ? undefined : new URL(j.url).href),
-    settings: {
-      pretendToBeVisual: j.pretendToBeVisual === undefined ? true : Boolean(j.pretendToBeVisual),
-      storageQuota: j.storageQuota === undefined ? 5000000 : Number(j.storageQuota),
-      userAgent: userAgent === undefined ? null : String(userAgent),
-      referrer: j.referrer === undefined ? '' : new URL(j.referrer).href,
-      virtualConsole,
-    },
-  };
-  // `jetdom.html` is body markup; `jsdom.html` a whole document (Vitest's default is a bare doctype)
-  if (o.html !== undefined) open.html = o.html;
-  else if (j.html !== undefined) open.source = String(j.html);
-  return { open, virtualConsole };
-}
-
 export default {
   name: 'rsdom',
   viteEnvironment: 'client',
@@ -106,7 +79,15 @@ export default {
     // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
-    const { open, virtualConsole } = contextOptions(o, options.jsdom ?? {}, api);
+    // `environmentOptions.jsdom` with the defaults of Vitest's jsdom environment (node_modules/vitest/dist/
+    // chunks/index.*.js `jsdom.setup`); `jetdom.html` is body markup
+    const virtualConsole = options.jsdom?.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
+    const open = api.environmentOptions(options.jsdom ?? {}, virtualConsole);
+    if (o.url !== undefined) open.url = o.url;
+    if (o.html !== undefined) {
+      delete open.source;
+      open.html = o.html;
+    }
     const ctx = context.open({ ...open, global, catchErrors: true });
     const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
     const jsdomBefore = global.jsdom;

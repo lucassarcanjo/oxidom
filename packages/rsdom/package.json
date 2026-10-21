@@ -17,6 +17,7 @@
   "exports": {
     ".": "./lib/index.cjs",
     "./vitest-environment": "./lib/vitest-environment.mjs",
+    "./jest-environment": "./lib/jest-environment.cjs",
     "./package.json": "./package.json"
   },
   "files": [
@@ -36,10 +37,12 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "3.10.8",
+    "@jest/environment-jsdom-abstract": "30.5.2",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/user-event": "14.6.8",
     "happy-dom": "21.0.3",
+    "jest": "30.5.2",
     "jsdom": "30.1.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",

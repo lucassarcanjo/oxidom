@@ -14,7 +14,7 @@ const rt = require('./runtime.cjs');
 const { EventTarget } = require('./dom.cjs');
 const events = require('./events.cjs');
 const context = require('./context.cjs');
-const { MIMEType } = require('node:util');
+const { MIMEType, types } = require('node:util');
 
 const NodeBlob = globalThis.Blob;
 const NodeFile = globalThis.File;
@@ -75,7 +75,7 @@ function blobParts(V, ctx) {
     if (r === null || (typeof r !== 'object' && typeof r !== 'function')) throw new TypeError(`${ctx}: The iterator result is not an object.`);
     if (r.done) return out;
     const part = r.value;
-    out.push(part instanceof NodeBlob || part instanceof ArrayBuffer || ArrayBuffer.isView(part) ? part : usvString(part));
+    out.push(part instanceof NodeBlob || types.isArrayBuffer(part) || ArrayBuffer.isView(part) ? part : usvString(part));
   }
 }
 

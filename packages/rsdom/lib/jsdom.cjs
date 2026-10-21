@@ -22,6 +22,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { pathToFileURL } = require('node:url');
+const { types } = require('node:util');
 
 const rt = require('./runtime.cjs');
 const context = require('./context.cjs');
@@ -36,7 +37,7 @@ const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|imag
 function decode(input, contentType) {
   let bytes;
   if (Buffer.isBuffer(input)) bytes = input;
-  else if (input instanceof ArrayBuffer) bytes = new Uint8Array(input);
+  else if (types.isAnyArrayBuffer(input)) bytes = new Uint8Array(input);
   else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   else return String(input);
   return new TextDecoder(sniffEncoding(bytes, contentType)).decode(bytes);
@@ -292,6 +293,32 @@ class JSDOM {
 }
 
 /**
+ * `context.open()` options for a test environment's window from jsdom options as Vitest's and Jest's jsdom
+ * environments pass them (`environmentOptions.jsdom`, `testEnvironmentOptions`): `url`, `html` (a whole
+ * document), `userAgent` / `resources.userAgent`, `pretendToBeVisual` (default true), `contentType`, `referrer`,
+ * `storageQuota`. The rest (`runScripts`, `cookieJar`, ...) is ignored.
+ */
+function environmentOptions(j, virtualConsole) {
+  checkContentType(j.contentType);
+  if (!(virtualConsole instanceof VirtualConsole)) {
+    throw new TypeError('virtualConsole must be an instance of VirtualConsole');
+  }
+  const userAgent = j.userAgent ?? j.resources?.userAgent;
+  const open = {
+    url: j.url === undefined ? undefined : new URL(j.url).href,
+    settings: {
+      pretendToBeVisual: j.pretendToBeVisual === undefined ? true : Boolean(j.pretendToBeVisual),
+      storageQuota: j.storageQuota === undefined ? 5000000 : Number(j.storageQuota),
+      userAgent: userAgent === undefined ? null : String(userAgent),
+      referrer: j.referrer === undefined ? '' : new URL(j.referrer).href,
+      virtualConsole,
+    },
+  };
+  if (j.html !== undefined) open.source = String(j.html);
+  return open;
+}
+
+/**
  * A `JSDOM` for an already open context: the Vitest environment's `jsdom` global (what Vitest's jsdom
  * environment exposes, for `jsdom.reconfigure({ url })` and `jsdom.serialize()`).
  */
@@ -304,4 +331,4 @@ function adopt(ctx, virtualConsole) {
   }
 }
 
-module.exports = { JSDOM, VirtualConsole, CookieJar, toughCookie, adopt, checkContentType };
+module.exports = { JSDOM, VirtualConsole, CookieJar, toughCookie, adopt, checkContentType, environmentOptions };

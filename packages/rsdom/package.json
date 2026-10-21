@@ -24,6 +24,9 @@
       "types": "./lib/vitest-environment.d.mts",
       "default": "./lib/vitest-environment.mjs"
     },
+    "./vitest-globals": {
+      "types": "./lib/vitest-globals.d.ts"
+    },
     "./jest-environment": {
       "types": "./lib/jest-environment.d.cts",
       "default": "./lib/jest-environment.cjs"
@@ -45,6 +48,10 @@
     "test": "vitest run",
     "test:fallback": "RSDOM_SHARED=0 vitest run"
   },
+  "dependencies": {
+    "@types/node": "*",
+    "tough-cookie": "^6.0.2"
+  },
   "devDependencies": {
     "@napi-rs/cli": "3.10.8",
     "@jest/environment-jsdom-abstract": "30.5.2",
@@ -52,7 +59,7 @@
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/user-event": "14.6.8",
     "@types/chai": "5.2.3",
-    "@types/node": "26.6.5",
+    "@types/jsdom": "30.0.0",
     "happy-dom": "21.0.3",
     "jest": "30.5.2",
     "jsdom": "30.1.3",

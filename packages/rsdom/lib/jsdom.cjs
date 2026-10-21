@@ -17,7 +17,7 @@
 // ignored: rsdom never runs scripts, so `getInternalVMContext()` throws as jsdom does without it),
 // `includeNodeLocations` (`nodeLocation()` throws as jsdom does without it), subresource loading (`resources`
 // beyond `userAgent`), and a cookie jar `document.cookie` reads (`cookieJar` is held for the getter only;
-// `CookieJar` is tough-cookie's when that package is installed, as it is next to jsdom).
+// `CookieJar` is tough-cookie's, a dependency as it is jsdom's).
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
@@ -99,17 +99,13 @@ class VirtualConsole extends EventEmitter {
   }
 }
 
-let CookieJar;
-let toughCookie;
-try {
-  toughCookie = require('tough-cookie');
-  CookieJar = class CookieJar extends toughCookie.CookieJar {
-    constructor(store, options) {
-      super(store, { looseMode: true, ...options });
-    }
-  };
-} catch {
-  // tough-cookie is jsdom's dependency, not rsdom's: without it there is no CookieJar
+const toughCookie = require('tough-cookie');
+
+/** jsdom's CookieJar: tough-cookie's, in loose mode */
+class CookieJar extends toughCookie.CookieJar {
+  constructor(store, options) {
+    super(store, { looseMode: true, ...options });
+  }
 }
 
 function undiciFetch(dispatcher) {
@@ -148,7 +144,7 @@ class JSDOM {
     if (adopting !== null) {
       this.#ctx = adopting.ctx;
       this.#virtualConsole = adopting.virtualConsole;
-      this.#cookieJar = CookieJar ? new CookieJar() : undefined;
+      this.#cookieJar = new CookieJar();
       return;
     }
     const contentType = checkContentType(options.contentType);
@@ -163,7 +159,7 @@ class JSDOM {
     if (typeof resources !== 'object' || resources === null) {
       throw new TypeError('resources must be undefined, "usable", or an object');
     }
-    this.#cookieJar = options.cookieJar === undefined && CookieJar ? new CookieJar() : options.cookieJar;
+    this.#cookieJar = options.cookieJar === undefined ? new CookieJar() : options.cookieJar;
     this.#virtualConsole = options.virtualConsole === undefined ? new VirtualConsole().forwardTo(console) : options.virtualConsole;
     if (!(this.#virtualConsole instanceof VirtualConsole)) {
       throw new TypeError('virtualConsole must be an instance of VirtualConsole');
@@ -268,7 +264,7 @@ class JSDOM {
     if (options.contentType !== undefined) throw new TypeError('Cannot supply a contentType option when using fromURL');
     const normalized = { ...options };
     if (options.referrer !== undefined) normalized.referrer = new URL(options.referrer).href;
-    if (options.cookieJar === undefined && CookieJar) normalized.cookieJar = new CookieJar();
+    if (options.cookieJar === undefined) normalized.cookieJar = new CookieJar();
     const requestURL = new URL(url).href;
     const userAgent = options.resources?.userAgent ?? require('./window.cjs').USER_AGENT;
     const headers = {

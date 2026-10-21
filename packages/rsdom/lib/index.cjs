@@ -10,3 +10,6 @@
 const native = require('./native.cjs');
 
 module.exports = native[Symbol.for('jetdom.facade')] ?? require('./facade.cjs');
+// The export names for Node's ESM import of this CommonJS entry (`import { JSDOM } from 'jetdom'`): its lexer
+// reads them from this never-run assignment, as it does in esbuild's CommonJS output
+0 && (module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toughCookie });

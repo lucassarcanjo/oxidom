@@ -1,5 +1,5 @@
 // The TypeScript declarations (DESIGN §34): test/types type-checks against them with tsc (strict, lib check on),
-// and the runtime exports are the ones lib/index.d.ts declares.
+// and the runtime exports are the ones lib/index.d.ts declares, also as an ES module's named exports.
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,5 +22,12 @@ describe('TypeScript declarations', () => {
     const dts = fs.readFileSync(path.join(root, 'lib/index.d.ts'), 'utf8');
     const declared = [...dts.matchAll(/^export (?:declare )?(?:function|class|const) (\w+)/gm)].map((m) => m[1]).sort();
     expect(Object.keys(require('../../lib/index.cjs')).sort()).toEqual(declared);
+  });
+
+  it("every declared export is a named export for Node's ES module import", () => {
+    const code = "import * as m from 'jetdom'; process.stdout.write(JSON.stringify(Object.keys(m).filter((k) => k !== 'default')))";
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: root, encoding: 'utf8', timeout: 60_000 });
+    expect(r.status, r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout).sort()).toEqual(Object.keys(require('../../lib/index.cjs')).sort());
   });
 });

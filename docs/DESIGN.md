@@ -1844,18 +1844,23 @@ lexical and tiptap, and rsdom fails lit.
 ## 34. TypeScript declarations (ROADMAP Stage 2, 2026-10)
 
 The packages ship hand-written declarations, listed under the `types` condition of each `exports` entry:
-- `lib/index.d.ts` for `jetdom`. It declares `createWindow()` and the `JSDOM` API the way @types/jsdom types
-  jsdom 30, so code typed against jsdom type-checks unchanged: `JSDOM`, `VirtualConsole`, the option interfaces
-  and `DOMWindow`. `CookieJar` is typed as possibly undefined, because it exists only when tough-cookie is
-  installed. `nodeLocation()` and `getInternalVMContext()` return `never`, because they always throw (§31).
-  `rt` and `dom` are internal.
-- `lib/vitest-environment.d.mts` for the environment, with a `JetdomEnvironmentOptions` type for
-  `environmentOptions.jetdom`. Vitest's `EnvironmentOptions` takes any key, so no augmentation is needed.
-- `lib/jest-environment.d.cts` for the environment builder.
-- The wrappers' `index.d.ts`. jest-environment-jetdom declares the class jest-environment-jsdom declares, with
-  the same `global` type, so a custom environment that extends it compiles. That package now depends on
-  `@jest/environment` and `@jest/types` for those types.
+- `lib/index.d.ts` for `jetdom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
+  against jsdom type-checks unchanged and a jetdom value fits where a jsdom-typed one is expected. `DOMWindow` is
+  copied from @types/jsdom (MIT), interface objects rsdom does not have yet included. `CookieJar` is a class
+  (tough-cookie is now a dependency, as it is jsdom's, so it always exists), `nodeLocation()` and
+  `getInternalVMContext()` return `never` (they always throw, §31), and `rt` / `dom` are internal. Like
+  @types/jsdom, the package depends on `@types/node`.
+- `lib/index.cjs` names its exports for Node's CommonJS lexer (a never-run `module.exports = { ... }`), so
+  `import { JSDOM } from 'jetdom'` works in Node's ESM as the types allow.
+- `lib/vitest-environment.d.mts` for the environment, with `JetdomEnvironmentOptions` for
+  `environmentOptions.jetdom` (Vitest's `EnvironmentOptions` takes any key). `jetdom/vitest-globals` types the
+  `jsdom` global, as `vitest/jsdom` does for Vitest's jsdom environment.
+- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-jetdom
+  declares jest-environment-jsdom's class shape and `global` type (it depends on `@jest/environment` and
+  `@jest/types` for them), as `export =` of the class with `default` and `TestEnvironment` on it, which is what
+  index.js exports.
 
-`test/native/types.test.mjs` runs tsc (strict, with lib checking on) over test/types. That directory uses the
-API, a Vitest config and a custom Jest environment, with `@ts-expect-error` lines that must stay errors. The same
-test also compares the declared exports of `lib/index.d.ts` with the entry's runtime exports.
+`test/native/types.test.mjs` runs tsc (strict, lib check on) over test/types: the API with typed window members,
+jetdom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
+`jsdom` global, and custom Jest environments, with `@ts-expect-error` lines that must stay errors. It also
+checks the declared exports against the entry's runtime exports and Node's ESM named exports.

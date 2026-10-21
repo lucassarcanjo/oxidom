@@ -1,4 +1,5 @@
-// Type declarations for jest-environment-jetdom (DESIGN §32, §34), shaped like jest-environment-jsdom's.
+// Type declarations for jest-environment-jetdom (DESIGN §32, §34), shaped like jest-environment-jsdom's. The
+// module is the class itself, with `default` and `TestEnvironment` pointing at it (index.js).
 import type { EnvironmentContext, JestEnvironment, JestEnvironmentConfig } from '@jest/environment';
 import type { LegacyFakeTimers, ModernFakeTimers } from '@jest/fake-timers';
 import type { Global } from '@jest/types';
@@ -24,5 +25,8 @@ declare class JetdomEnvironment implements JestEnvironment<number> {
   getVmContext(): Context | null;
 }
 
-export default JetdomEnvironment;
-export { JetdomEnvironment as TestEnvironment };
+declare namespace JetdomEnvironment {
+  export { JetdomEnvironment as default, JetdomEnvironment as TestEnvironment };
+}
+
+export = JetdomEnvironment;

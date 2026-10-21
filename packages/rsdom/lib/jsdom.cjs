@@ -122,20 +122,35 @@ function undiciFetch(dispatcher) {
   return fetch;
 }
 
+/** jsdom's content type check; rsdom has no XML parser yet. Returns the content type as a string. */
+function checkContentType(type) {
+  const contentType = type === undefined ? 'text/html' : String(type);
+  const essence = contentType.split(';')[0].trim().toLowerCase();
+  if (XML_ESSENCE.test(essence)) {
+    throw new Error(`rsdom: XML documents are not supported (contentType "${contentType}")`);
+  }
+  if (essence !== 'text/html') {
+    throw new RangeError(`The given content type of "${contentType}" was not a HTML or XML content type`);
+  }
+  return contentType;
+}
+
+/** An open context `adopt()` hands to the JSDOM constructor, or null. */
+let adopting = null;
+
 class JSDOM {
   #ctx;
   #virtualConsole;
   #cookieJar;
 
   constructor(input = '', options = {}) {
-    const contentType = options.contentType === undefined ? 'text/html' : String(options.contentType);
-    const essence = contentType.split(';')[0].trim().toLowerCase();
-    if (XML_ESSENCE.test(essence)) {
-      throw new Error(`rsdom: XML documents are not supported (contentType "${contentType}")`);
+    if (adopting !== null) {
+      this.#ctx = adopting.ctx;
+      this.#virtualConsole = adopting.virtualConsole;
+      this.#cookieJar = CookieJar ? new CookieJar() : undefined;
+      return;
     }
-    if (essence !== 'text/html') {
-      throw new RangeError(`The given content type of "${contentType}" was not a HTML or XML content type`);
-    }
+    const contentType = checkContentType(options.contentType);
     // jsdom's normalizeOptions: `new URL(x)` throws a TypeError for anything but an absolute URL
     const url = options.url === undefined ? 'about:blank' : new URL(options.url).href;
     const referrer = options.referrer === undefined ? '' : new URL(options.referrer).href;
@@ -274,4 +289,17 @@ class JSDOM {
   }
 }
 
-module.exports = { JSDOM, VirtualConsole, CookieJar, toughCookie };
+/**
+ * A `JSDOM` for an already open context: the Vitest environment's `jsdom` global (what Vitest's jsdom
+ * environment exposes, for `jsdom.reconfigure({ url })` and `jsdom.serialize()`).
+ */
+function adopt(ctx, virtualConsole) {
+  adopting = { ctx, virtualConsole };
+  try {
+    return new JSDOM();
+  } finally {
+    adopting = null;
+  }
+}
+
+module.exports = { JSDOM, VirtualConsole, CookieJar, toughCookie, adopt, checkContentType };

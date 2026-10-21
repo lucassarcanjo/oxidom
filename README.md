@@ -68,7 +68,10 @@ npm run build          # builds the native addon into packages/rsdom/native/
 ```
 
 **Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
-`environment: 'jetdom'`. Options go in `test.environmentOptions.jetdom`: `{ url, html }`.
+`environment: 'jetdom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
+(`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
+global (`jsdom.reconfigure({ url })`) is there. rsdom's own options go in `test.environmentOptions.jetdom`
+(`{ url, html }`, with `html` as body markup) and win over the `jsdom` ones.
 
 **Plain Node.**
 

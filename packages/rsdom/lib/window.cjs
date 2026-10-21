@@ -962,8 +962,9 @@ function makeWindow(ctx, global = undefined) {
   def('moveBy', notImplemented('moveBy'));
   def('resizeTo', notImplemented('resizeTo'));
   def('resizeBy', notImplemented('resizeBy'));
-  if (vc) {
-    // jsdom's window.console: every method emits on the virtual console
+  if (vc && !isGlobal) {
+    // jsdom's window.console: every method emits on the virtual console (a global keeps its console, as
+    // Vitest's jsdom environment does)
     const c = {};
     for (const m of CONSOLE_METHODS) c[m] = (...args) => vc.emit(m, ...args);
     def('console', c);

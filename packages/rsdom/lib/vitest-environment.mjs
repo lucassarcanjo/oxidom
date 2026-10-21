@@ -9,7 +9,18 @@
 //
 // Options: `test.environmentOptions.jetdom = { url, html, shared, memo, prefilter, counters }`. The env vars
 // RSDOM_SHARED=0 / RSDOM_NO_MEMO=1 / RSDOM_NO_PREFILTER=1 / RSDOM_COUNTERS=1 win over the options (the facade
-// reads them once, when it is first loaded in this worker).
+// reads them once, when it is first loaded in this worker). `jetdom.html` is body markup.
+//
+// `test.environmentOptions.jsdom` (ROADMAP Stage 2) is read as Vitest's jsdom environment reads it, so a
+// config written for jsdom works unchanged: `url`, `html` (a whole document, default `<!DOCTYPE html>`),
+// `userAgent` (or `resources.userAgent`), `pretendToBeVisual` (default true), `contentType` (HTML only),
+// `console`, `referrer`, `storageQuota`, `virtualConsole`. `cookieJar`, `runScripts`, `includeNodeLocations`
+// and `beforeParse` are ignored. A `jetdom` key wins over the `jsdom` one.
+//
+// As in Vitest's jsdom environment, the window has a virtual console forwarding to the console (jsdom's
+// default whether `console` is set or not): not-implemented window methods (`alert`, `scrollTo`, ...) log
+// "Not implemented: ..." through `console.error`. The global `jsdom` is a `JSDOM` for the window
+// (`jsdom.reconfigure({ url })`, `jsdom.serialize()`).
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -52,6 +63,33 @@ function dumpCounters(rt) {
   fs.appendFileSync(out, line + '\n');
 }
 
+/**
+ * `context.open()` options from `environmentOptions.jetdom` (`o`) and `environmentOptions.jsdom` (`j`), with
+ * the defaults of Vitest's jsdom environment (node_modules/vitest/dist/chunks/index.*.js `jsdom.setup`).
+ */
+function contextOptions(o, j, api) {
+  api.checkContentType(j.contentType);
+  const virtualConsole = j.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
+  if (!(virtualConsole instanceof api.VirtualConsole)) {
+    throw new TypeError('virtualConsole must be an instance of VirtualConsole');
+  }
+  const userAgent = j.userAgent ?? j.resources?.userAgent;
+  const open = {
+    url: o.url ?? (j.url === undefined ? undefined : new URL(j.url).href),
+    settings: {
+      pretendToBeVisual: j.pretendToBeVisual === undefined ? true : Boolean(j.pretendToBeVisual),
+      storageQuota: j.storageQuota === undefined ? 5000000 : Number(j.storageQuota),
+      userAgent: userAgent === undefined ? null : String(userAgent),
+      referrer: j.referrer === undefined ? '' : new URL(j.referrer).href,
+      virtualConsole,
+    },
+  };
+  // `jetdom.html` is body markup; `jsdom.html` a whole document (Vitest's default is a bare doctype)
+  if (o.html !== undefined) open.html = o.html;
+  else if (j.html !== undefined) open.source = String(j.html);
+  return { open, virtualConsole };
+}
+
 export default {
   name: 'rsdom',
   viteEnvironment: 'client',
@@ -61,16 +99,23 @@ export default {
     applyOptions(o);
     const { rt } = require('./index.cjs'); // installs every area
     const context = require('./context.cjs');
+    const api = require('./jsdom.cjs');
     if (process.env.RSDOM_COUNTERS === '1') rt.N.countersReset();
 
     // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
-    const ctx = context.open({ url: o.url, html: o.html, global, catchErrors: true });
+    const { open, virtualConsole } = contextOptions(o, options.jsdom ?? {}, api);
+    const ctx = context.open({ ...open, global, catchErrors: true });
+    const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
+    const jsdomBefore = global.jsdom;
+    global.jsdom = api.adopt(ctx, virtualConsole);
 
     return {
       teardown() {
         if (process.env.RSDOM_COUNTERS === '1') dumpCounters(rt);
+        if (hadJsdom) global.jsdom = jsdomBefore;
+        else delete global.jsdom;
         ctx.close();
         // Drops the whole DOM in one call (no per-node finalizers) and leaves a fresh env behind; every
         // wrapper handed out before is neutered.

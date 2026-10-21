@@ -92,7 +92,8 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
       as well as `environmentOptions.jetdom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
       environment, plus its virtual console (not-implemented methods log through `console.error`) and `jsdom`
       global.
-- [ ] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`).
+- [x] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`). Done 2026-10-21 (DESIGN §32): a port of
+      jest-environment-jsdom 30 on a vm context, checked side by side with it on jsdom 30.
 - [ ] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports.
 - [ ] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
 - [ ] Migration guide: jsdom to rsdom, with the known divergences listed in one place.

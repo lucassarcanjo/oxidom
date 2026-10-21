@@ -176,9 +176,11 @@ class BrowsingContext {
  * - `main: false`: the context does not become current;
  * - `global`: install the window's members on this object (the Vitest environment passes globalThis) instead
  *   of a fresh null-prototype object; `close()` restores the object's original properties;
+ * - `ownTimers`: the window gets its own `setTimeout` & co (integer handles, cancelled by `close()`) even on a
+ *   `global` (the Jest environment's vm context, which has no timers of its own);
  * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions);
  * - `settings`: overrides of `BrowsingContext#settings` (the `JSDOM` class's options).
- * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, catchErrors?: boolean, settings?: object }} [options]
+ * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, ownTimers?: boolean, catchErrors?: boolean, settings?: object }} [options]
  * @returns {BrowsingContext}
  */
 function openContext(options = {}) {
@@ -201,7 +203,7 @@ function openContext(options = {}) {
   }
   if (options.html !== undefined) document.documentElement.innerHTML = options.html;
   const window = require('./window.cjs');
-  ctx.window = window.makeWindow(ctx, options.global);
+  ctx.window = window.makeWindow(ctx, options.global, options.ownTimers === true);
   byWindow.set(ctx.window, ctx);
   if (options.catchErrors === true) ctx.onClose(window.catchWindowErrors(ctx.window));
   return ctx;

@@ -6,6 +6,16 @@
 // Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
 // -> xhr -> observers -> range -> shadow -> file-api.
 
+// One facade per native env. Jest loads a test file's `require('jetdom')` through its own module registry, a
+// second copy of these files over the same addon exports (Node caches `.node` files per process): that copy hands
+// back the first one's exports instead of re-initialising the env under the environment's document (DESIGN §32).
+const FACADE = Symbol.for('jetdom.facade');
+const native = require('./native.cjs');
+if (native[FACADE] !== undefined) {
+  module.exports = native[FACADE];
+  return;
+}
+
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
 const context = require('./context.cjs');
@@ -43,3 +53,4 @@ function createWindow(options = {}) {
 const { JSDOM, VirtualConsole, CookieJar, toughCookie } = require('./jsdom.cjs');
 
 module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toughCookie };
+Object.defineProperty(native, FACADE, { value: module.exports });

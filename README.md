@@ -76,6 +76,14 @@ global (`jsdom.reconfigure({ url })`) is there. rsdom never runs scripts, so a `
 not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel is logged there instead of failing the test.
 
+**Jest.** Install `jetdom` and `jest-environment-jetdom` (from this repository for now) and set
+`testEnvironment: 'jetdom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
+`userAgent`, `pretendToBeVisual`, `customExportConditions`, ...) and the `@jest-environment-options` docblock work
+the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
+runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
+file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
+not `instanceof Error`. `customElements`, `XMLSerializer` and `DOMRect` are not there yet.
+
 **Plain Node.**
 
 ```js
@@ -107,6 +115,7 @@ and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compat
 | [`crates/rsdom`](crates/rsdom) | the Rust core and Node-API bindings (napi-rs v3) |
 | [`packages/rsdom`](packages/rsdom) | the `jetdom` npm package: JS facade, native loader, Vitest environment, contract tests |
 | [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-jetdom`: makes `environment: 'jetdom'` resolve |
+| [`packages/jest-environment-rsdom`](packages/jest-environment-rsdom) | `jest-environment-jetdom`: makes `testEnvironment: 'jetdom'` resolve |
 | [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |

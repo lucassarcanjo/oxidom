@@ -1058,7 +1058,7 @@ Every change to a child list goes through `src/tree.rs`:
 
 A **browsing context** is one window: its window object, its document, the document's URL, the timers the
 window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and
-`createWindow()`, the Vitest environment (§12) and a future `JSDOM` class are adapters over `open()`.
+`createWindow()`, the Vitest environment (§12) and the `JSDOM` class (§31) are adapters over `open()`.
 
 - **Current context.** An Env (§2.1) holds any number of open contexts, but rsdom has one set of interface
   objects per Env (`rt.classes`), not one per window. Whatever needs "the window" without a node to ask
@@ -1682,3 +1682,37 @@ the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom
 `column-rule-color` and rounds `1e-8in` to `0in` when parsing; jsdom does neither). `auto` is now accepted only on
 the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
 `test/contract/computed-style.test.mjs` checks the resolved values against jsdom.
+
+## 31. The `JSDOM` class (ROADMAP Stage 2, 2026-10)
+
+`lib/jsdom.cjs` is jsdom 30's programmatic API (refs/jsdom/lib/api.js), exported from the package entry with
+`VirtualConsole` (and tough-cookie's `CookieJar` when that package is installed). It grew out of the parity suite's
+test adapter, which is now a one-line re-export.
+
+- **Instances and Envs.** Each `new JSDOM()` opens a browsing context (§18) on a full-document parse of its input
+  and makes it current, like `createWindow()`. Several instances live side by side in the thread's one Env; the
+  newest is the one `new Text()` & co create nodes in, and closing it (`window.close()`) makes the previous one
+  current again. They share one set of interface objects (`dom1.window.Node === dom2.window.Node`); jsdom gives each
+  window its own, so `instanceof` across instances and the "DOMException should differ between jsdom instances"
+  API test differ.
+- **Settings.** The options jsdom keeps in `window._settings` live on `ctx.settings` (`pretendToBeVisual`,
+  `storageQuota`, `userAgent`, `referrer`, `virtualConsole`). `createWindow()` and the Vitest environment keep
+  their defaults (visual, no virtual console); `JSDOM` uses jsdom's (not visual, a virtual console forwarding to
+  Node's console). Without `pretendToBeVisual` there is no `requestAnimationFrame` and the document is hidden
+  (`visibilityState` `prerender`), as in jsdom.
+- **Virtual console.** With one, the window gets jsdom's `console` (each method emits on it), the not-implemented
+  window methods (`alert`, `scrollTo`, `focus`, ...) emit a `not-implemented` jsdomError, and an exception no
+  `error` listener cancelled emits an `unhandled-exception` jsdomError instead of reaching the process
+  (`events.cjs` `reportException`).
+- **Window.** A non-global window has its own `setTimeout` / `setInterval` / `clear*` (integer handles, errors
+  reported to the window), and `close()` closes its context: timers and animation frames stop, and new ones return
+  0. The Vitest global keeps Node's timers and a no-op `close()`. `window instanceof Window` holds for every open
+  context's window (`Window[Symbol.hasInstance]`).
+- **Not implemented.** XML content types (ROADMAP `xml`), `runScripts` (validated, then ignored),
+  `includeNodeLocations`, subresource loading beyond `fromURL()`'s page (`resources` other than `userAgent`), a
+  cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's
+  (`... rsdom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
+
+Measured on the parity suite: the `jsdom-api` gap went from 426 to 365 subtests, with no regression (virtual
+console 43, `window.close()` and `Window` 5, options 7, `Accept-Language` / user agent headers, not-implemented
+reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom side by side.

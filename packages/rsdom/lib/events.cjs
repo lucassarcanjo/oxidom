@@ -1437,8 +1437,24 @@ function reportException(win, error) {
       win.reporting = false;
     }
     if (isCanceled(ev)) return;
+    // A `JSDOM` window with a virtual console reports it there, as jsdom does (lib/jsdom.cjs)
+    const vc = win.document._ctx?.settings.virtualConsole;
+    if (vc) {
+      vc.emit('jsdomError', unhandledError(error));
+      return;
+    }
   }
   process.emit('uncaughtException', error);
+}
+
+/** jsdom's "unhandled-exception" jsdomError (refs/jsdom/lib/jsdom/living/helpers/runtime-script-errors.js). */
+function unhandledError(error) {
+  const shown = error && error.name && error.message !== undefined && error.stack
+    ? `[${error.name}: ${error.message}]`
+    : require('node:util').inspect(error);
+  const e = new Error(`Uncaught ${shown}`, { cause: error });
+  e.type = 'unhandled-exception';
+  return e;
 }
 
 function safeString(v) {

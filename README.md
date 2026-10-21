@@ -80,7 +80,19 @@ document.body.innerHTML = '<button class="primary">Save</button>';
 document.querySelector('button.primary').textContent; // 'Save'
 ```
 
-A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
+Or the jsdom API, unchanged:
+
+```js
+const { JSDOM } = require('jetdom');
+
+const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
+dom.window.document.querySelector('p').textContent; // 'Hello'
+```
+
+`JSDOM` takes jsdom's options (`url`, `referrer`, `contentType`, `pretendToBeVisual`, `storageQuota`,
+`virtualConsole`, `beforeParse`, `resources.userAgent`) and has `serialize()`, `reconfigure()`, `JSDOM.fragment()`,
+`JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet: XML content types, `runScripts`, `includeNodeLocations`
+and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
 
 ## Repository
 

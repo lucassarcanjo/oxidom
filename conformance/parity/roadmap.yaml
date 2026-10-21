@@ -40,7 +40,7 @@
 # ---- Stage 2: jsdom-compatible entry points
 - id: jsdom-api
   stage: 2
-  title: JSDOM class and options (jsdom's own API tests, through conformance/parity/mocha/rsdom-jsdom.cjs)
+  title: JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class)
   tests: ['api:api/**']
 
 # ---- Stage 3: breadth parity with jsdom

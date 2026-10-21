@@ -15,7 +15,7 @@ checks).
 Every file runs in a fresh process, the way a Vitest test file sees the DOM: WPT pages through
 `conformance/wpt/worker.mjs` (global-install mode, described in `conformance/wpt/README.md`), mocha files
 through `mocha/worker.cjs`, which runs them unmodified with a small `mocha-sugar-free` runner
-(`mocha/sugar-free.cjs`) and, for rsdom, a `JSDOM`-shaped adapter (`mocha/rsdom-jsdom.cjs`).
+(`mocha/sugar-free.cjs`) and, for rsdom, rsdom's own `JSDOM` class (`mocha/rsdom-jsdom.cjs` maps jsdom's `lib/api.js` onto the package entry).
 
 Three committed files drive it:
 

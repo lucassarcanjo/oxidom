@@ -56,6 +56,12 @@ class BrowsingContext {
     /** the session history (lib/history.cjs, DESIGN §23), created with the window */
     this.history = null;
     this.closed = false;
+    /**
+     * jsdom's window settings (`new JSDOM()` options, lib/jsdom.cjs): `pretendToBeVisual` (animation frames,
+     * `document.hidden`), `storageQuota`, `userAgent`, `referrer`, and `virtualConsole` (when set: the
+     * window's `console`, not-implemented reports and uncaught exceptions go to it, not to the process).
+     */
+    this.settings = { pretendToBeVisual: true, storageQuota: 5000000, userAgent: null, referrer: '', virtualConsole: null };
   }
 
   /** A same-document URL change (fragment navigation, pushState / replaceState). */
@@ -153,8 +159,9 @@ class BrowsingContext {
  * - `main: false`: the context does not become current;
  * - `global`: install the window's members on this object (the Vitest environment passes globalThis) instead
  *   of a fresh null-prototype object; `close()` restores the object's original properties;
- * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions).
- * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, catchErrors?: boolean }} [options]
+ * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions);
+ * - `settings`: overrides of `BrowsingContext#settings` (the `JSDOM` class's options).
+ * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, catchErrors?: boolean, settings?: object }} [options]
  * @returns {BrowsingContext}
  */
 function openContext(options = {}) {
@@ -166,6 +173,7 @@ function openContext(options = {}) {
   rt.afterAlloc();
   const document = rt.wrap(id);
   const ctx = new BrowsingContext(document, url);
+  if (options.settings !== undefined) Object.assign(ctx.settings, options.settings);
   document._ctx = ctx;
   open.add(ctx);
   if (options.main !== false) {

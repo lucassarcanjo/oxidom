@@ -229,10 +229,10 @@ const storageTraps = {
 };
 
 /** A new, empty Storage (one per window and kind: rsdom has no same-origin frames to share an area with). */
-function createStorage() {
+function createStorage(quota = STORAGE_QUOTA) {
   const target = new Storage(rt.TOKEN);
   const proxy = new Proxy(target, storageTraps);
-  const a = { items: new Map(), quota: STORAGE_QUOTA, proxy };
+  const a = { items: new Map(), quota, proxy };
   areas.set(target, a);
   areas.set(proxy, a);
   return proxy;
@@ -401,6 +401,23 @@ class History {
 }
 tag(History);
 
+// ============================================================================================ Window
+
+/**
+ * The `Window` interface object. Window objects are plain objects (or the Vitest global), so `instanceof Window`
+ * asks whether the value is an open context's window.
+ */
+class Window {
+  constructor(t = undefined) {
+    if (t !== rt.TOKEN) illegal();
+  }
+
+  static [Symbol.hasInstance](v) {
+    return require('./context.cjs').ofWindow(v) !== undefined;
+  }
+}
+tag(Window);
+
 // ========================================================================================= Navigator
 
 class Navigator {
@@ -409,7 +426,7 @@ class Navigator {
   }
 
   get userAgent() {
-    return USER_AGENT;
+    return state.get(this)?.ctx.settings.userAgent ?? USER_AGENT;
   }
 
   get appCodeName() {
@@ -789,6 +806,56 @@ function restoreGlobals(win, saved) {
   saved.clear();
 }
 
+/** jsdom's `window.console` members. */
+const CONSOLE_METHODS = ['assert', 'clear', 'count', 'countReset', 'debug', 'dir', 'dirxml', 'error', 'group',
+  'groupCollapsed', 'groupEnd', 'info', 'log', 'table', 'time', 'timeLog', 'timeEnd', 'trace', 'warn'];
+
+/**
+ * A `JSDOM` window's own timers (the Vitest global keeps Node's): integer handles, `this` = the window, errors
+ * reported to the window, all cancelled when the context closes, after which new ones return 0 (jsdom).
+ */
+function installTimers(win, ctx, def) {
+  const events = require('./events.cjs');
+  const timers = new Map();
+  let nextId = 0;
+  const start = (repeat, name) => ({
+    [name](handler, timeout = 0, ...args) {
+      if (ctx.closed) return 0;
+      const id = ++nextId;
+      const run = () => {
+        if (!repeat) timers.delete(id);
+        // a string handler is script source: rsdom does not run scripts
+        if (typeof handler !== 'function') return;
+        try {
+          handler.apply(win, args);
+        } catch (err) {
+          events.reportException(win, err);
+        }
+      };
+      const ms = Math.max(0, Number(timeout) || 0);
+      timers.set(id, repeat ? setInterval(run, ms) : setTimeout(run, ms));
+      return id;
+    },
+  })[name];
+  const clear = (name) => ({
+    [name](id = 0) {
+      const t = timers.get(id);
+      if (t !== undefined) {
+        clearTimeout(t); // clears intervals too
+        timers.delete(id);
+      }
+    },
+  })[name];
+  def('setTimeout', start(false, 'setTimeout'));
+  def('setInterval', start(true, 'setInterval'));
+  def('clearTimeout', clear('clearTimeout'));
+  def('clearInterval', clear('clearInterval'));
+  ctx.onClose(() => {
+    for (const t of timers.values()) clearTimeout(t);
+    timers.clear();
+  });
+}
+
 /**
  * Builds the window of browsing context `ctx` (lib/context.cjs) onto `global` (the Vitest environment) or a
  * fresh null-prototype object, and returns it. On a pre-existing global, the context's `close()` restores
@@ -847,10 +914,13 @@ function makeWindow(ctx, global = undefined) {
   state.set(history, { ctx, scroll: 'auto' });
   ctx.history = new (require('./history.cjs').SessionHistory)(ctx);
   def('history', history);
-  def('navigator', new Navigator(rt.TOKEN));
+  const { settings } = ctx;
+  const navigator = new Navigator(rt.TOKEN);
+  state.set(navigator, { ctx });
+  def('navigator', navigator);
   def('screen', new Screen(rt.TOKEN));
-  def('localStorage', createStorage());
-  def('sessionStorage', createStorage());
+  def('localStorage', createStorage(settings.storageQuota));
+  def('sessionStorage', createStorage(settings.storageQuota));
 
   def('innerWidth', 1024);
   def('innerHeight', 768);
@@ -860,28 +930,46 @@ function makeWindow(ctx, global = undefined) {
   for (const k of ['scrollX', 'scrollY', 'pageXOffset', 'pageYOffset', 'screenX', 'screenY', 'screenLeft', 'screenTop']) def(k, 0);
 
   const noop = function () {};
-  def('scrollTo', function scrollTo() {});
-  def('scroll', function scroll() {});
-  def('scrollBy', function scrollBy() {});
-  def('alert', function alert() {});
-  def('confirm', function confirm() {
-    return false;
+  const vc = settings.virtualConsole;
+  /** jsdom's not-implemented report (refs/jsdom/lib/jsdom/browser/not-implemented.js), on a virtual console only */
+  const notImplemented = (name, ret) => {
+    if (!vc) return () => ret;
+    return {
+      [name]() {
+        const error = new Error(`Not implemented: Window's ${name}() method`);
+        error.type = 'not-implemented';
+        vc.emit('jsdomError', error);
+        return ret;
+      },
+    }[name];
+  };
+  def('scrollTo', notImplemented('scrollTo'));
+  def('scroll', notImplemented('scroll'));
+  def('scrollBy', notImplemented('scrollBy'));
+  def('alert', notImplemented('alert'));
+  def('confirm', notImplemented('confirm', false));
+  def('prompt', notImplemented('prompt', null));
+  def('print', notImplemented('print'));
+  def('open', notImplemented('open', null));
+  // Closing a `JSDOM` window closes its context (timers, animation frames); the Vitest global stays open
+  def('close', isGlobal ? noop : function close() {
+    ctx.close();
+    win.closed = true;
   });
-  def('prompt', function prompt() {
-    return null;
-  });
-  def('print', function print() {});
-  def('open', function open() {
-    return null;
-  });
-  def('close', noop);
   def('stop', noop);
-  def('focus', noop);
-  def('blur', noop);
-  def('moveTo', noop);
-  def('moveBy', noop);
-  def('resizeTo', noop);
-  def('resizeBy', noop);
+  def('focus', notImplemented('focus'));
+  def('blur', notImplemented('blur'));
+  def('moveTo', notImplemented('moveTo'));
+  def('moveBy', notImplemented('moveBy'));
+  def('resizeTo', notImplemented('resizeTo'));
+  def('resizeBy', notImplemented('resizeBy'));
+  if (vc) {
+    // jsdom's window.console: every method emits on the virtual console
+    const c = {};
+    for (const m of CONSOLE_METHODS) c[m] = (...args) => vc.emit(m, ...args);
+    def('console', c);
+  }
+  if (!isGlobal) installTimers(win, ctx, def);
 
   def('matchMedia', function matchMedia(query) {
     if (arguments.length === 0) throw new TypeError("Failed to execute 'matchMedia' on 'Window': 1 argument required, but only 0 present.");
@@ -890,10 +978,12 @@ function makeWindow(ctx, global = undefined) {
   /** animation-frame id -> its context timer (closing the context cancels them) */
   const rafs = new Map();
   let rafId = 0;
-  def('requestAnimationFrame', function requestAnimationFrame(callback) {
+  // jsdom defines animation frames only with `pretendToBeVisual` (createWindow and the Vitest environment set it)
+  if (settings.pretendToBeVisual) def('requestAnimationFrame', function requestAnimationFrame(callback) {
     if (typeof callback !== 'function') {
       throw new TypeError("Failed to execute 'requestAnimationFrame' on 'Window': The callback provided as parameter 1 is not a function.");
     }
+    if (ctx.closed) return 0;
     const id = ++rafId;
     rafs.set(id, ctx.setTimer(() => {
       rafs.delete(id);
@@ -906,7 +996,7 @@ function makeWindow(ctx, global = undefined) {
     }, 16));
     return id;
   });
-  def('cancelAnimationFrame', function cancelAnimationFrame(id) {
+  if (settings.pretendToBeVisual) def('cancelAnimationFrame', function cancelAnimationFrame(id) {
     const t = rafs.get(id);
     if (t !== undefined) {
       ctx.clearTimer(t);
@@ -974,16 +1064,17 @@ function install(_rt, d) {
       }
     },
     get referrer() {
-      return '';
+      return this._ctx?.settings.referrer ?? '';
     },
     get domain() {
       return this._ctx?.url.hostname ?? '';
     },
+    // jsdom: visible only with `pretendToBeVisual` (a document without a window is hidden)
     get hidden() {
-      return false;
+      return this._ctx?.settings.pretendToBeVisual !== true;
     },
     get visibilityState() {
-      return 'visible';
+      return this._ctx?.settings.pretendToBeVisual === true ? 'visible' : 'prerender';
     },
     get scrollingElement() {
       return this.documentElement;

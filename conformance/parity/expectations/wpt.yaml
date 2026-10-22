@@ -1917,8 +1917,7 @@ html/semantics/embedded-content/media-elements/interfaces/TextTrackList/onremove
 html/semantics/embedded-content/media-elements/interfaces/TrackEvent/constructor.html: [fail, "missing global: TrackEvent"]
 html/semantics/embedded-content/media-elements/interfaces/TrackEvent/createEvent.html: [fail, "missing method: .createEvent()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-candidate-insert-before.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor-no-src.html: [fail, "missing global: Audio"]
-html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor.html: [fail, "missing global: Audio"]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor.html: [fail, "assert_unreached: Reached unreachable code"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source-not-in-document.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-load.html: [fail, "missing method: .load()"]
@@ -2451,8 +2450,6 @@ html/webappapis/events/event-handler-object-environment-instantiation.html: [fai
 html/webappapis/scripting/events/compile-event-handler-lexical-scopes-form-owner.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/webappapis/scripting/events/compile-event-handler-lexical-scopes.html: [timeout, "harness TIMEOUT: (no message)"]
 html/webappapis/scripting/events/compile-event-handler-symbol-unscopables.html: [fail, "write to undefined (.testVariable)"]
-html/webappapis/scripting/events/event-handler-handleEvent-ignored.html:
-  "non-callable \"message\" handler that is instance of Function": [fail, "missing method: .postMessage()"]
 html/webappapis/scripting/events/event-handler-javascript.html: [timeout, "harness TIMEOUT: (no message)"]
 html/webappapis/scripting/events/event-handler-processing-algorithm-error/document-synthetic-errorevent.html:
   "Initial values of ErrorEvent members": [fail, "assert_equals: got undefined (missing attribute/API)"]

@@ -147,7 +147,10 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [x] XPath (M) `xpath`. Done 2026-10-22 (DESIGN §39): jsdom's XPath 1.0 engine vendored as `lib/xpath.cjs`; 8 -> 26
       of 28 suite files at parity, gap 66 -> 5. Left: `hasOwnProperty` on live collection indices (DESIGN §4.3, `core`),
       declarative shadow roots (`shadow-dom`).
-- [ ] DOMRect classes and the remaining Window members (S) `geometry`.
+- [x] DOMRect classes and the remaining Window members (S) `geometry`. Done 2026-10-22 (DESIGN §40): `DOMRect` /
+      `DOMRectReadOnly`, `BarProp`s, `external`, `navigator.plugins` / `mimeTypes`, `Audio`, `postMessage`, `name` /
+      `length` / `status`, `CloseEvent` / `PromiseRejectionEvent` / `BlobEvent`; 3 files progressed. Left for later items:
+      `ElementInternals` (`custom-elements`), SVG value types.
 - [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
       including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's
       `core` row and its last table list them.

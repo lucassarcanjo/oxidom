@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2048 | 162751 | 158789 | 97.6% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2050 | 162751 | 158791 | 97.6% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 157 | 2578 | 2398 | 93.0% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 8 | 1781 | 1717 | 96.4% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 8 | 1781 | 1718 | 96.5% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2215** | **167724** | **163188** | **97.3%** |
+| **all** | **2615** | **2217** | **167724** | **163191** | **97.3%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -39,12 +39,12 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 37 | 5 | 99.5% | assert_equals: wrong value (4); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XPath | 28 | 26 | 5 | 97.8% | assert_array_equals: wrong value (4); read of null (.getElementById) (1) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 823 | 453 | 98.2% | assert_array_equals: wrong value (182); assert_true: wrong value (58); assert_equals: wrong value (53) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 825 | 451 | 98.2% | assert_array_equals: wrong value (182); assert_true: wrong value (58); assert_equals: wrong value (53) |
 | 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 84 | 259 | 69.2% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (41) |
 | 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
-| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 69 | 83.8% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
+| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 68 | 84.0% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
 
 ## Gaps outside every roadmap item
 

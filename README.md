@@ -42,7 +42,7 @@ Measured against jsdom 30.1.3:
 
 | measure | rsdom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.3% (163,188 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
+| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.3% (163,191 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
 | real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
@@ -82,7 +82,7 @@ not-implemented window methods log "Not implemented: ..." through `console.error
 the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
 runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
-not `instanceof Error`. `customElements` and `DOMRect` are not there yet.
+not `instanceof Error`. `customElements` is not there yet.
 
 **TypeScript.** The packages ship their declarations; `jetdom`'s `JSDOM` API is typed as @types/jsdom types
 jsdom's. For the Vitest `jsdom` global, use `types: ["jetdom/vitest-globals"]` where you had `vitest/jsdom`.

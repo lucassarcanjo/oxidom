@@ -4,7 +4,6 @@
 
 to-port-to-wpts/frame.js:
   "frame > accessor should not exist before append": [fail, "no frames should exist yet undefined !== …"]
-  "frame > frame should not be loaded and accessor should not exist until in document, even with a parent node": [fail, "window length should be zero (no frames) undefined !== …"]
   "frame > frame_parent": [fail, "write to undefined (.onload)"]
   "frame > frame_src_relative_to_parent_doc": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > get iframe window via indexed frames access": [fail, "TIMEOUT: Timeout of …ms exceeded"]

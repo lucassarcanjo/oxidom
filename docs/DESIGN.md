@@ -2022,3 +2022,27 @@ the parity worker redirects that require to rsdom's copy under rsdom (conformanc
 162 subtests measure rsdom. Parity: the `xpath` gap went from 66 to 5 subtests (8 -> 26 of 28 files). Four remaining
 subtests compare results with `hasOwnProperty` on an HTMLCollection, whose live indices are prototype getters
 (§4.3); one needs a declarative shadow root.
+
+## 40. DOMRect and the remaining Window members (ROADMAP Stage 3, 2026-10)
+
+`lib/geometry.cjs` ports jsdom's DOMRect / DOMRectReadOnly (living/geometry), BarProp and External (living/window) and
+the always-empty PluginArray / MimeTypeArray with their Plugin / MimeType interfaces (living/navigator). The values
+live in a private field; DOMRect's own x / y / width / height accessors write it through a static-block accessor, and
+the getters keep jsdom's brand-check messages. `getBoundingClientRect()` / `getClientRects()` still return a plain
+object and an array, as jsdom's do, so code that stubs them with `new DOMRect(...)` and code that reads the plain
+object both work.
+
+lib/window.cjs creates the per-window members as it does the others (writable data properties): the six BarProps,
+`external`, `name` / `status` (empty strings), `length` (0: iframes have no windows yet, `browsing-contexts`),
+`captureEvents` / `releaseEvents` (also on Document), `Audio` (jsdom's factory: no `new` needed, `preload="auto"`)
+and `postMessage`. `postMessage` follows jsdom: two arguments required, `"/"` does nothing, an unparsable target
+origin throws SyntaxError, another origin drops the message, and otherwise a trusted `message` event with only
+`data` (not structured-cloned) is fired at the window on `ctx.queueTask`, unless the context has closed. These cold
+interfaces keep jsdom's brand checks (a WeakSet of the instances the TOKEN constructors made). `navigator.plugins` / `mimeTypes` are [SameObject]
+getters on Navigator. CloseEvent, PromiseRejectionEvent and BlobEvent are `simpleEvent`s (events.cjs), which now take
+required dictionary members and a constructor arity of 2 for them, read after Event's own init members, as jsdom's
+generated conversions do.
+
+Not here: `ElementInternals` and `customElements` (`custom-elements`), the SVG value types, `webkitURL` (an alias of
+the realm's `URL`, which a non-global window does not carry; §32). Parity: 3 files progressed (the Audio constructor,
+a window `message` handler test, jsdom's legacy frame.js), with 0 regressions.

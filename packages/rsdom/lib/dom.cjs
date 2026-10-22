@@ -147,7 +147,10 @@ class Node extends EventTarget {
     // indexed without touching `length` can be stale (documented caveat, DESIGN §4.3).
     const n = V.T[V.off(this._i) + F.CHILD_LEN];
     if (n > 256) coverIndices(n);
-    return this._cn ?? (this._cn = liveChildNodes(this._i));
+    const l = this._cn ?? (this._cn = liveChildNodes(this._i));
+    // own index properties as of now (DESIGN §4.3), so two lists compared with toEqual agree
+    l._own(n);
+    return l;
   }
 
   get isConnected() {
@@ -377,7 +380,9 @@ const ParentNode = {
   get children() {
     const n = V.T[V.off(this._i) + F.CHILD_LEN];
     if (n > 256) coverIndices(n);
-    return this._ch ?? (this._ch = liveChildren(this._i));
+    const l = this._ch ?? (this._ch = liveChildren(this._i));
+    l.length; // syncs its own index properties (DESIGN §4.3); the element count is memoised per child_ver
+    return l;
   },
   get firstElementChild() {
     for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {

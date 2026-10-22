@@ -141,9 +141,6 @@ dom/nodes/Node-proxy-brand-checks.html:
 dom/nodes/adoption-tag-name.html:
   "Adoption updates cached tag names in a detached template subtree": [fail, "assert_equals: wrong value"]
 dom/nodes/attribute-change-steps.html: [fail, "missing global: customElements"]
-dom/nodes/pre-insertion-validity-children-to-exclude.html:
-  "replaceChild() excludes the replaced doctype when validating an element": [fail, "assert_array_equals: wrong value"]
-  "replaceChildren() excludes all current children when validating a retained element": [fail, "assert_array_equals: wrong value"]
 html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling-dont-upstream.html:
   "Returning false must not cancel the event, because it's coerced to the DOMString \"false\" which does not cancel CustomEvents: CustomEvent, cancelable": [fail, "assert_false: wrong value"]
 html/browsers/the-window-object/named-access-on-the-window-object/element-contributions.html:

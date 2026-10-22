@@ -204,8 +204,8 @@ select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow
   (`_i = 0`) and bumps the env generation; JS caches keyed by ids or dynamic atoms must be cleared in
   `rt.onReset`, and objects that cache ids record `memo.envGen()` and check `memo.alive(gen)` (the core
   collections do).
-- Collections: live lists have NO own numeric properties (index getters live on the prototype, always
-  current); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
+- Collections: live lists' index getters live on the prototype (always current); a `length` read also syncs
+  own enumerable index accessors for [0, length) (`syncOwn`, DESIGN §4.3); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
   (Vitest `toEqual` compares own entries). `liveQueryCollection({ deps, items })`: `deps` is a
   `memo.deps(...)` set, `items()` may return any iterable. `_sync()` still exists on every collection.
 - Attr wrappers are cached per element by (namespace atom, local atom) in `el._at.map` (key `local` for no
@@ -277,8 +277,8 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
   has seen (at least 256). A list held across a mutation that grows it past that bound and then indexed past
   it without any `length`/`item`/iteration/getter access returns `undefined`.
   The same accessors serve `select[i]`, `select.options[i]` (with the indexed setter) and `form[i]` (bound grown
-  by their `length` getters). They live on prototypes, so `i in list` is true below the bound and indices are not
-  own properties (jsdom's legacy platform objects are Proxies with own index properties).
+  by their `length` getters). They live on prototypes, so `i in list` is true below the bound; live lists add own index
+  properties on `length` reads (DESIGN §4.3), `select` and `form` do not.
 - **Node reclamation (deferred).** Records and payloads of removed nodes are never reused: ids are never
   reused (invariant 6) and a removed subtree can be re-inserted while any wrapper of it is alive, which Rust
   cannot see. A free list needs a wrapper-liveness protocol (e.g. FinalizationRegistry -> Rust) and is

@@ -8,7 +8,7 @@ Most suites need only the configuration change. Read [the divergences](#known-di
 the switch, or before you switch if your suite relies on scripts, custom elements or iframes, which rsdom
 does not support yet.
 
-Where things stand (2026-10-22): rsdom passes 97.3% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-22): rsdom passes 97.4% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -184,9 +184,12 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   'firstChild').get.call({})` returns `null` instead of throwing `TypeError`. CONTRIBUTING §8.
 - **[design] Element wrappers have enumerable own fields** (`_ev`, `_i` and others): `Object.keys(div)` is not
   `[]` (jsdom: `[]`). Code that enumerates a node's own keys sees them.
-- **[gap] Indexed properties of live lists, `select` and `form` are prototype accessors**, not own properties:
-  `Object.keys(childNodes)` is `[]` (jsdom lists the indices) and `i in list` holds for indices past the end.
-  Reading, writing, iterating and `Array.from` match jsdom. DESIGN §14.1.
+- **[gap] Indexed properties of live lists are own properties as of the last `length` read or
+  `childNodes` / `children` access** (jsdom: always exact), and `i in list` holds for indices past the end. A list
+  held across a mutation and compared with `toEqual` before either is re-read can see stale own entries. The own
+  properties are accessors, so `console.log(list)` prints `[Getter]`s (jsdom prints the nodes). `select[i]` and `form[i]` are prototype accessors only,
+  so `Object.keys(select)` lists no indices. Reading, writing, iterating and `Array.from` match jsdom. DESIGN
+  §4.3, §14.1.
 - **[design] Async work leaked past a file's end throws**, in every pool. The environment is reset between
   files; a timer or callback that touches a node from a finished file throws `Illegal invocation` in whatever file
   is running. jsdom quietly mutates the closed window. Clean up timers, or await the work, before the test ends.

@@ -265,7 +265,7 @@ function install(rt, dom) {
   function docList(node, key, make) {
     let m = DOC_LISTS.get(node);
     if (m === undefined) DOC_LISTS.set(node, (m = {}));
-    return (m[key] ??= make());
+    return (m[key] ??= make())._synced();
   }
   function htmlQuery(doc, selectors) {
     const root = doc._i;

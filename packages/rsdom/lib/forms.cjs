@@ -1539,7 +1539,7 @@ function install(_rt, dom) {
       rt.mutated();
     },
     get options() {
-      return optionsOf(this);
+      return optionsOf(this)._synced();
     },
     get selectedOptions() {
       const s = bs(this);
@@ -1680,7 +1680,7 @@ function install(_rt, dom) {
   Object.defineProperty(Form.prototype, Symbol.iterator, { value: Array.prototype.values, writable: true, configurable: true });
   defineAll(Form, {
     get elements() {
-      return formElements(this);
+      return formElements(this)._synced();
     },
     get length() {
       const n = formElements(this).length;
@@ -1762,7 +1762,7 @@ function install(_rt, dom) {
     },
     get elements() {
       const s = bs(this);
-      return s.coll ?? (s.coll = liveIds(null, this, N.fieldsetElements));
+      return (s.coll ?? (s.coll = liveIds(null, this, N.fieldsetElements)))._synced();
     },
   }, ConstraintValidation, FormAssociated);
   reflectBool(FieldSet, 'disabled');

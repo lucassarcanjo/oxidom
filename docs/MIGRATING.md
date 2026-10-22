@@ -180,6 +180,9 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   read like jsdom's, but are not own properties: `'email' in form.elements`, `hasOwnProperty`,
   `Object.getOwnPropertyDescriptor` and `Object.keys` don't see them (use `namedItem()` for an existence check).
   DESIGN §4.3.
+- **[gap] Media events of elements in a windowless document** (`createHTMLDocument()`, `DOMParser`): the
+  `volumechange` / `ratechange` task is queued on the current window, not the creating one, so it still fires
+  after the creating window closed if another is current, and is dropped when no window is open. DESIGN §41.
 - **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] XPath iterators and shadow trees:** a change inside a connected shadow tree sets
   `invalidIteratorState` on a document's XPath iterators; jsdom ignores shadow-tree changes there. DESIGN §39.

@@ -501,6 +501,15 @@ class HTMLCollection {
     return n;
   }
 
+  /**
+   * Syncs the own indices (a `length` read: one compare when nothing changed) and returns this: the getters of
+   * `form.elements`, `select.options`, `document.forms` / `images` / ... and the table collections (DESIGN §4.3).
+   */
+  _synced() {
+    void this.length;
+    return this;
+  }
+
   item(index) {
     return this._get(index >>> 0) ?? null;
   }

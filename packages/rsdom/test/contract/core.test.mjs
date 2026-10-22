@@ -63,6 +63,7 @@ describe.each(DOMS)('core [%s]', (kind) => {
     const el = d.querySelector('input');
     expect(el.attributes.name.value).toBe('email');
     if (kind === 'happy-dom') return; // PINNED to jsdom
+    expect(Object.keys(d.forms)).toEqual(['0']); // own indices from the getter, names not enumerable
     const held = form.elements;
     const attrs = el.attributes;
     el.name = 'renamed'; // a held collection / map answers names as of now

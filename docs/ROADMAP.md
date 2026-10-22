@@ -115,10 +115,13 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       2026-10-21 (DESIGN §35): a Rust rule tree behind jsdom's CSSOM classes, `CSS.supports` like jsdom; 138 -> 223
       of 260 suite files at parity, gap 681 -> 219 subtests, overall parity 90.5% -> 90.9%. Left: value serialization
       (about 190, `computed-values`) and `customElements` (20).
-- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`. Values
+- [x] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`. Values
       done 2026-10-20 (DESIGN §30): 206 -> 265 of 297 suite files at parity, gap 3,147 -> 366 subtests, overall parity
-      88.8% -> 90.5%. `:heading()` 2026-10-22: gap 249 -> 88, overall 91.0%. Left: shorthand serialization quirks
-      of jsdom's cssstyle (border / background, about 60), CR/LF preprocessing in CSSOM text, `calc()` reduction.
+      88.8% -> 90.5%. `:heading()` 2026-10-22: gap 249 -> 88, overall 91.0%. Shorthands 2026-10-22 (DESIGN §8.1):
+      `border` resets `border-image`, multi-layer `background`, completed `background-position`, jsdom's gradient
+      normalisation, CSS input preprocessing, at-keywords inside functions; 279 -> 284 of 297 at parity, gap 79 -> 23
+      (and `cssom` 219 -> 107), overall 97.5% -> 97.6%. Left: `background-position-x` / `-y` as longhands of
+      `background-position` (4), jsdom's border-longhand bookkeeping (1), selectors that need shadow DOM or focus moves.
 - [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
       createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
       init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':
@@ -151,9 +154,13 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       `DOMRectReadOnly`, `BarProp`s, `external`, `navigator.plugins` / `mimeTypes`, `Audio`, `postMessage`, `name` /
       `length` / `status`, `CloseEvent` / `PromiseRejectionEvent` / `BlobEvent`; 3 files progressed. Left for later items:
       `ElementInternals` (`custom-elements`), SVG value types.
-- [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
-      including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's
-      `core` row and its last table list them.
+- [x] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
+      including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests). Done 2026-10-22
+      (#32-#35, DESIGN §4.3): own collection indices, named properties through a Proxy in the prototype chain
+      (collections, NamedNodeMap, `document`), HTMLMediaElement, the `form` attribute, `:in-range`, SVG
+      `document.title`; 823 -> 888 of 955 suite files at parity, gap 453 -> 172. Left: what needs Stage 4
+      (`customElements`, inline event handlers, shadow DOM, lone surrogates), `document.open()` / `write()`, and
+      `in` / `hasOwnProperty` on named properties (a Proxy limit, DESIGN §4.3).
 
 ## Stage 4: Architectural work
 

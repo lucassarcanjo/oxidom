@@ -583,6 +583,16 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 ### 8.1 Inline style
 - `InlineStyle` holds a `SmallVec<[(PropId u16, Value, important); 4]>`. Values are parsed with cssparser.
 - Normalisation: lengths, numbers (a unitless non-zero length is rejected), hex/rgb/hsl/named colours serialised as `rgb(r, g, b)`, keywords, and common shorthands (margin, padding, border, border-width/style/color, overflow, flex, background-color, font-weight). Invalid values are ignored.
+- Ported from jsdom 30 (crates/rsdom/src/style/value.rs):
+  - `border` also resets `border-image` to `none`, as a thirteenth longhand. So `border-width` + `border-style` + `border-color` alone serialize as those three, not as `border`.
+  - `background` takes comma-separated layers; each longhand holds one value per layer, and only the last layer may set the colour. The serializer follows jsdom's getter, including its origin/clip-before-attachment order.
+  - `background-position` fills in the missing axis (`10px` becomes `10px center`).
+  - Gradients are normalised like `@asamuzakjp/css-color`'s `resolveGradient`: lowercase, `, `-separated, colours as `rgb()`, and default lines dropped. A `calc()` in a colour stop is not simplified, which differs from jsdom.
+  - Multi-word `font-family` names are quoted.
+  - At-keywords and `{}` blocks inside a function make the declaration invalid; custom properties keep them.
+  - CR, CR LF and FF become LF, and NUL becomes U+FFFD (CSS Syntax input preprocessing).
+  - `calc()` of numbers, or of percentages, is evaluated in `rgb()` channels and `hsl()` saturation / lightness (not in hues, alphas or `min()`, which jsdom also resolves).
+  - Longhands with different layer counts have no `background` shorthand. A removed `border-image` leaves `border` unserializable, where jsdom still serializes it from its stored shorthand.
 - **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on rsdom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
 - The `style` attribute string is serialised lazily, only when something reads it: getAttribute, outerHTML, attributes, or an MO old value.
 - `CSSStyleDeclaration` is created lazily per element.

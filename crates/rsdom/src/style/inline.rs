@@ -139,7 +139,7 @@ impl InlineStyle {
                 if d.prop < CUSTOM_BASE { pr.info(d.prop).map_or(&[][..], |x| &x.shorthands) } else { &[] };
             for &sh in shorthands {
                 let longs = value::longhands(sh);
-                let mut idx: SmallVec<[usize; 12]> = SmallVec::new();
+                let mut idx: SmallVec<[usize; 13]> = SmallVec::new();
                 for &l in longs {
                     match self.decls.iter().position(|x| x.prop == l) {
                         Some(j) if !done[j] && self.decls[j].important == d.important => idx.push(j),
@@ -149,7 +149,7 @@ impl InlineStyle {
                 if idx.len() != longs.len() {
                     continue;
                 }
-                let vals: SmallVec<[&str; 12]> = idx.iter().map(|&j| self.decls[j].value.as_str()).collect();
+                let vals: SmallVec<[&str; 13]> = idx.iter().map(|&j| self.decls[j].value.as_str()).collect();
                 if let Some(v) = value::serialize_values(sh, &vals) {
                     push_decl(out, pr.info(sh).map_or("", |i| i.name), &v, d.important);
                     for j in idx {
@@ -551,7 +551,7 @@ mod tests {
         let custom = prop_id(&mut e, "--Foo").unwrap();
         e.style_set(d, custom, " bar ", false);
         assert_eq!(e.style_get(d, custom), "bar");
-        assert_eq!(e.style_len(d), 14);
+        assert_eq!(e.style_len(d), 15);
     }
 
     /// `cargo test --release --lib timing_style -- --ignored --nocapture`

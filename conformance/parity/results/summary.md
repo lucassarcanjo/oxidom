@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2127 | 162751 | 159109 | 97.8% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 159 | 2578 | 2403 | 93.2% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2129 | 162751 | 159217 | 97.8% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 165 | 2578 | 2463 | 95.5% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2297** | **167724** | **163519** | **97.5%** |
+| **all** | **2615** | **2305** | **167724** | **163687** | **97.6%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -28,8 +28,8 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 330 | 46.3% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
-| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 223 | 219 | 87.8% | assert_equals: wrong value (187); missing global: customElements (20); assert_true: wrong value (4) |
-| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 279 | 79 | 98.0% | assert_equals: wrong value (73); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
+| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 226 | 107 | 94.0% | assert_equals: wrong value (77); missing global: customElements (20); harness TIMEOUT: (no message) (3) |
+| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 23 | 99.4% | assert_equals: wrong value (17); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 98 | 60 | 89.1% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 261 | 19 | 99.5% | assert_true: wrong value (7); assert_false: wrong value (4); assert_equals: wrong value (3) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |

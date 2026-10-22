@@ -245,32 +245,49 @@ impl<'i> DeclarationParser<'i> for DeclParser<'_, '_> {
         input: &mut Parser<'i>,
         _start: &ParserState,
     ) -> Result<(), ParseError<()>> {
-        let start = input.position();
-        let mut bang = None;
-        loop {
-            let pos = input.position();
-            match input.next() {
-                Err(_) => break,
-                Ok(cssparser::Token::Delim('!')) => {
-                    let st = input.state();
-                    if input.expect_ident_matching("important").is_ok() && input.is_exhausted() {
-                        bang = Some(pos);
-                        break;
-                    }
-                    input.reset(&st);
-                }
-                Ok(_) => {}
-            }
-        }
-        let important = bang.is_some();
-        let end = bang.unwrap_or_else(|| input.position());
-        let text = input.slice(start..end);
-        let Some(p) = prop_id_with(&name, self.intern) else { return Ok(()) };
-        if let Some(parsed) = value::parse_declaration(p, text) {
-            self.out.apply(p, parsed, important);
-        }
+        parse_declaration_into(&name, input, self.intern, self.out);
         Ok(())
     }
+}
+
+/// Parses the value of declaration `name` (the rest of `input`, `!important` included) into `out`,
+/// dropping it when the property is unknown or the value invalid. Shared with the CSSOM rule bodies
+/// (`cssom.rs`).
+pub(crate) fn parse_declaration_into(
+    name: &str,
+    input: &mut Parser,
+    intern: &mut dyn FnMut(&str) -> Atom,
+    out: &mut InlineStyle,
+) {
+    let (text, important) = declaration_value(input);
+    let Some(p) = prop_id_with(name, intern) else { return };
+    if let Some(parsed) = value::parse_declaration(p, text) {
+        out.apply(p, parsed, important);
+    }
+}
+
+/// The value text of a declaration (consumes `input`) and whether it ends in `!important`.
+pub(crate) fn declaration_value<'i>(input: &mut Parser<'i>) -> (&'i str, bool) {
+    let start = input.position();
+    let mut bang = None;
+    loop {
+        let pos = input.position();
+        match input.next() {
+            Err(_) => break,
+            Ok(cssparser::Token::Delim('!')) => {
+                let st = input.state();
+                if input.expect_ident_matching("important").is_ok() && input.is_exhausted() {
+                    bang = Some(pos);
+                    break;
+                }
+                input.reset(&st);
+            }
+            Ok(_) => {}
+        }
+    }
+    let important = bang.is_some();
+    let end = bang.unwrap_or_else(|| input.position());
+    (input.slice(start..end), important)
 }
 
 impl<'i> AtRuleParser<'i> for DeclParser<'_, '_> {

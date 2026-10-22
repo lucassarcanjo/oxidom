@@ -1,7 +1,7 @@
 'use strict';
 // The facade, loaded once per native env through lib/index.cjs (which documents it).
 //
-// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> forms -> events -> mo -> window
+// Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> cssom -> forms -> events -> mo -> window
 // -> xhr -> observers -> range -> shadow -> file-api.
 
 const rt = require('./runtime.cjs');
@@ -11,6 +11,7 @@ const areas = [
   require('./traversal.cjs'),
   require('./select.cjs'),
   require('./style.cjs'),
+  require('./cssom.cjs'),
   require('./forms.cjs'),
   require('./events.cjs'),
   require('./mo.cjs'),

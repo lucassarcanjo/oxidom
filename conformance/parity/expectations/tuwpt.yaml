@@ -2,63 +2,13 @@
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
-css/css-backgrounds/background-no-whitespace.html:
-  "A function containing nested functions followed by an identifier via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "A function containing nested functions followed by an identifier via the background setter": [fail, "assert_equals: wrong value"]
-  "A function followed by an identifier via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "A function followed by an identifier via the background setter": [fail, "assert_equals: wrong value"]
-  "A url() followed by a dimension via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "A url() followed by a dimension via the background setter": [fail, "assert_equals: wrong value"]
-  "A url() followed by a percentage via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "A url() followed by a percentage via the background setter": [fail, "assert_equals: wrong value"]
-  "A url() followed by a position and size via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "A url() followed by a position and size via the background setter": [fail, "assert_equals: wrong value"]
-  "Multiple comma-separated layers containing adjacent components via cssText before another declaration": [fail, "assert_equals: wrong value"]
-  "Multiple comma-separated layers containing adjacent components via the background setter": [fail, "assert_equals: wrong value"]
 css/css-backgrounds/background-position-font-relative-lengths.html:
   "Inherited background-position lengths are computed against the parent's font size": [fail, "assert_equals: wrong value"]
   "Repeated computed style reads agree on font-relative background-position lengths": [fail, "assert_equals: wrong value"]
   "background-position declared before font-size in a style sheet rule": [fail, "assert_equals: wrong value"]
   "background-position declared before font-size in the style attribute": [fail, "assert_equals: wrong value"]
-css/css-backgrounds/background-shorthand.html:
-  "Shorthand value containing '/'": [fail, "assert_equals: wrong value"]
-css/css-backgrounds/border-no-whitespace.html:
-  "A color function containing a nested function followed by an identifier via cssText for border": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via cssText for border-bottom": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via cssText for border-left": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via cssText for border-right": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via cssText for border-top": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via the border setter": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via the borderBottom setter": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via the borderLeft setter": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via the borderRight setter": [fail, "assert_equals: wrong value"]
-  "A color function containing a nested function followed by an identifier via the borderTop setter": [fail, "assert_equals: wrong value"]
 css/css-backgrounds/border-style-none.html:
-  "Set border as 1px and change border-style to none": [fail, "assert_equals: wrong value"]
-  "Set border as 1px and change border-top to none": [fail, "assert_equals: wrong value"]
-  "Set border as 1px solid and change border-style to none": [fail, "assert_equals: wrong value"]
-  "Set border as 1px solid and change border-top to none": [fail, "assert_equals: wrong value"]
-  "Set border as none": [fail, "assert_equals: wrong value"]
-  "Set border as none and change border-style to null": [fail, "assert_equals: wrong value"]
-  "Set border as none and change border-top to null": [fail, "assert_equals: wrong value"]
-  "Set border as solid and change border-style to none": [fail, "assert_equals: wrong value"]
-  "Set border as solid and change border-top to none": [fail, "assert_equals: wrong value"]
   "Set border-top as solid and change border-style to none": [fail, "assert_equals: wrong value"]
-  "Set border-top-width as 1px and change border to none": [fail, "assert_equals: wrong value"]
-  "Set cssText as none": [fail, "assert_equals: wrong value"]
-  "Set setProperty as none": [fail, "assert_equals: wrong value"]
-css/css-syntax/input-preprocessing-cssom.html:
-  "A carriage return becomes a newline via style.cssText": [fail, "assert_equals: wrong value"]
-  "A carriage return becomes a newline via style.setProperty()": [fail, "assert_equals: wrong value"]
-  "A carriage return followed by a newline becomes a newline via style.cssText": [fail, "assert_equals: wrong value"]
-  "A carriage return followed by a newline becomes a newline via style.setProperty()": [fail, "assert_equals: wrong value"]
-  "A form feed becomes a newline via style.cssText": [fail, "assert_equals: wrong value"]
-  "A form feed becomes a newline via style.setProperty()": [fail, "assert_equals: wrong value"]
-  "A null becomes a replacement character via style.cssText": [fail, "assert_equals: wrong value"]
-  "A null becomes a replacement character via style.setProperty()": [fail, "assert_equals: wrong value"]
-  "An escaped EOF becomes a replacement character via style.cssText": [fail, "assert_equals: wrong value"]
-  "An escaped EOF becomes a replacement character via style.setProperty()": [fail, "assert_equals: wrong value"]
-css/css-values/calc-invalid-token.html: [fail, "assert_equals: wrong value"]
 css/cssom/getComputedStyle-imported-rule-style-mutation.html: [timeout, "harness TIMEOUT: (no message)"]
 css/cssom/getComputedStyle-imported-rules.html: [fail, "assert_equals: wrong value"]
 css/cssom/getComputedStyle-repeat.html:
@@ -95,12 +45,7 @@ css/cssom/set-property-shorthand-priority.html:
   "Parsing cssText preserves important margin over normal margin-top": [fail, "assert_equals: wrong value"]
   "Parsing cssText preserves important padding over normal padding-left": [fail, "assert_equals: wrong value"]
 css/cssom/shadow-template-computed-style.html: [fail, "harness ERROR: read of undefined (.ownerDocument)"]
-css/cssom/style-attribute-property-roundtrip.html:
-  "A fragment retains the background shorthand linear-gradient(red,blue)": [fail, "assert_equals: wrong value"]
-  "Parsed backgroundPosition for #sample is retained": [fail, "assert_equals: wrong value"]
 css/cssom/style-background-shorthand.html:
-  "Background shorthand sets longhand values": [fail, "assert_true: wrong value"]
-  "Update longhand sets background value with its updated value": [fail, "assert_true: wrong value"]
   "Update longhand with var() sets empty background value": [fail, "assert_equals: wrong value"]
   "`transparent` sets default longhand values": [fail, "assert_equals: wrong value"]
 css/cssom/style-mutation-reentrancy.html:

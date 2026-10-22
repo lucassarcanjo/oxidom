@@ -919,12 +919,6 @@ dom/nodes/Document-getElementsByTagName.html:
 dom/nodes/DocumentType-literal.html: [fail, "assert_equals: wrong value"]
 dom/nodes/Element-children.html:
   "HTMLCollection edge cases 1": [fail, "assert_array_equals: wrong value"]
-dom/nodes/Element-classlist.html:
-  "classList.replace(\" \", \"\") with attribute value null (HTML node)": [fail, "assert_throws_dom: wrong exception"]
-  "classList.replace(\" \", \"\") with attribute value null (MathML node)": [fail, "assert_throws_dom: wrong exception"]
-  "classList.replace(\" \", \"\") with attribute value null (XHTML node)": [fail, "assert_throws_dom: wrong exception"]
-  "classList.replace(\" \", \"\") with attribute value null (XML node with null namespace)": [fail, "assert_throws_dom: wrong exception"]
-  "classList.replace(\" \", \"\") with attribute value null (foo node)": [fail, "assert_throws_dom: wrong exception"]
 dom/nodes/Element-getElementsByTagName.html:
   "hasOwnProperty, getOwnPropertyDescriptor, getOwnPropertyNames": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/nodes/Element-setAttributeNodeNS.html: [fail, "assert_equals: wrong value"]
@@ -1169,7 +1163,6 @@ html/dom/documents/dom-tree-accessors/document.title-09.html:
   "Title element not in SVG namespace": [fail, "assert_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/document.title-not-in-html-svg.html:
   "Should not be able to set document title in XML document with html:title element": [fail, "assert_equals: wrong value"]
-html/dom/documents/dom-tree-accessors/nameditem-01.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/dom/documents/dom-tree-accessors/nameditem-04.html:
   "An id shouldn't affect getting an form by name": [fail, "assert_true: wrong value"]
   "Dynamically removing the name attribute from form elements, should not be accessible.": [fail, "assert_true: wrong value"]
@@ -1188,17 +1181,14 @@ html/dom/documents/dom-tree-accessors/nameditem-06.html:
   "If there are two imgs, the one with a name should be returned. (name and id)": [fail, "assert_true: wrong value"]
   "If there is one img, it should be returned (name)": [fail, "assert_true: wrong value"]
   "img elements that is removed, should not be accessible.": [fail, "assert_true: wrong value"]
-html/dom/documents/dom-tree-accessors/nameditem-img-name-added.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
-html/dom/documents/dom-tree-accessors/nameditem-img-name-dynamic.html: [fail, "read of undefined (.length)"]
 html/dom/documents/dom-tree-accessors/nameditem-supported-property-names-order.html: [fail, "assert_array_equals: wrong value"]
-html/dom/documents/dom-tree-accessors/nameditem-tree-order.html: [fail, "read of undefined (.length)"]
 html/dom/documents/resource-metadata-management/document-compatmode-03.html: [fail, "assert_equals: wrong value"]
 html/dom/documents/resource-metadata-management/document-cookie.html:
   "A null char": [fail, "assert_equals: wrong value"]
   "getting cookie for a cookie-averse document returns empty string, setting does nothing": [fail, "assert_equals: wrong value"]
 html/dom/documents/resource-metadata-management/document-lastModified-01.html: [fail, "read of null (.3)"]
 html/dom/documents/resource-metadata-management/document-lastModified.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
-html/dom/documents/resource-metadata-management/document-readyState.html: [timeout, "harness TIMEOUT: (no message)", {pass: 4}]
+html/dom/documents/resource-metadata-management/document-readyState.html: [timeout, "harness TIMEOUT: (no message)", {pass: 5}]
 html/dom/elements/global-attributes/dataset-binding.window.html:
   "Setting property for key 9 with accessor property on prototype": [fail, "assert_equals: wrong value"]
   "Setting property for key x with accessor property on prototype": [fail, "assert_equals: wrong value"]
@@ -1704,7 +1694,15 @@ html/semantics/document-metadata/the-style-element/style_media.html: [fail, "ass
 html/semantics/document-metadata/the-style-element/style_media_change.html: [fail, "assert_equals: wrong value"]
 html/semantics/embedded-content/media-elements/autoplay-supported-by-permissions-policy.html: [fail, "read of undefined (.features)"]
 html/semantics/embedded-content/media-elements/error-sequence.html: [fail, "missing global: MediaSource"]
-html/semantics/embedded-content/media-elements/event_volumechange.html: [timeout, "harness TIMEOUT: (no message)"]
+html/semantics/embedded-content/media-elements/event_volumechange.html:
+  "adding/removing audio muted content attribute on a connected element will not fire volumechange": [fail, "assert_true: wrong value"]
+  "adding/removing audio muted content attribute will not fire volumechange": [fail, "assert_true: wrong value"]
+  "adding/removing video muted content attribute on a connected element will not fire volumechange": [fail, "assert_true: wrong value"]
+  "adding/removing video muted content attribute will not fire volumechange": [fail, "assert_true: wrong value"]
+  "setting audio.muted to true when true by default will not fire volumechange": [fail, "assert_true: wrong value"]
+  "setting audio.volume/muted before load will not fire volumechange": [fail, "assert_unreached: wrong value"]
+  "setting video.muted to true when true by default will not fire volumechange": [fail, "assert_true: wrong value"]
+  "setting video.volume/muted before load will not fire volumechange": [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/historical.html:
   "TextTrackCue constructor should not be supported": [fail, "assert_equals: wrong value"]
 html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLMediaElement/addTextTrack.html:
@@ -1822,7 +1820,6 @@ html/semantics/embedded-content/media-elements/mime-types/canPlayType.html:
   "video/webm; codecs=\"vp9\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
   "video/webm; codecs=\"vp9.0\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
 html/semantics/embedded-content/media-elements/playing-the-media-resource/pause-remove-from-document-networkState.html: [fail, "missing method: .play()"]
-html/semantics/embedded-content/media-elements/playing-the-media-resource/playbackRate.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/media-elements/track/track-element/src-clear-cues.html: [fail, "write to undefined (.mode)"]
 html/semantics/embedded-content/media-elements/track/track-element/src-empty-string.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/media-elements/track/track-element/track-addtrack-kind.html: [fail, "read of undefined (.length)"]
@@ -1836,7 +1833,6 @@ html/semantics/embedded-content/media-elements/track/track-element/track-load-er
 html/semantics/embedded-content/media-elements/track/track-element/track-node-add-remove.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/embedded-content/media-elements/track/track-element/track-selection-task-order.html: [fail, "missing method: .play()"]
 html/semantics/embedded-content/media-elements/track/track-element/vtt-cue-float-precision.html: [fail, "missing global: VTTCue"]
-html/semantics/embedded-content/media-elements/volumechange-ratechange-queue-task.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/the-img-element/Image-constructor.html:
   "NamedConstructor creates the correct object structure.": [fail, "assert_false: wrong value"]
 html/semantics/embedded-content/the-img-element/adoption.html: [timeout, "harness TIMEOUT: (no message)"]
@@ -1942,14 +1938,6 @@ html/semantics/forms/constraints/form-validation-willValidate.html:
   "[object]  Must be barred from the constraint validation": [fail, "assert_true: wrong value"]
 html/semantics/forms/constraints/input-maxlength-emoji.html: [fail, "missing method: .execCommand()"]
 html/semantics/forms/constraints/input-pattern-dynamic-value.html: [fail, "assert_true: wrong value"]
-html/semantics/forms/form-control-infrastructure/form_attribute.html:
-  "[BUTTON] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
-  "[FIELDSET] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
-  "[INPUT] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
-  "[OBJECT] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "[OUTPUT] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
-  "[SELECT] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
-  "[TEXTAREA] A control that is not in the document but has the form attribute set is associated with the nearest ancestor form if one exists": [fail, "assert_equals: wrong value"]
 html/semantics/forms/form-control-infrastructure/form_owner_and_table.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/form-control-infrastructure/form_owner_and_table_3.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/form-submission-0/FormDataEvent.window.html: [fail, "assert_equals: wrong value"]
@@ -2253,13 +2241,6 @@ html/semantics/tabular-data/processing-model-1/rowspan-0-quirks.html:
 html/semantics/tabular-data/processing-model-1/rowspan-0.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
 html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_array_equals: wrong value"]
-html/semantics/text-level-semantics/the-a-element/a-stringifier.html:
-  "HTMLAnchorElement stringifier 10": [fail, "assert_equals: wrong value"]
-  "HTMLAnchorElement stringifier 2": [fail, "assert_true: wrong value"]
-  "HTMLAnchorElement stringifier 4": [fail, "undefined"]
-  "HTMLAnchorElement stringifier 5": [fail, "assert_equals: wrong value"]
-  "HTMLAnchorElement stringifier 7": [fail, "assert_true: wrong value"]
-  "HTMLAnchorElement stringifier 9": [fail, "undefined"]
 html/syntax/parsing-html-fragments/fragment-parse-form-in-template-002.html: [fail, "assert_equals: wrong value"]
 html/syntax/parsing-html-fragments/the-input-byte-stream-001.html: [fail, "assert_equals: wrong value"]
 html/syntax/parsing-html-fragments/the-input-byte-stream-003.html: [fail, "harness NO_HARNESS: (no message)"]

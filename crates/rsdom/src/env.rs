@@ -42,6 +42,9 @@ pub mod ep {
     pub const REC: usize = 11;
     /// any character-data change (Text/Comment/PI data)
     pub const TEXT: usize = 12;
+    /// an HTML embed / form / iframe / img / object element connected or disconnected, or a null-namespace
+    /// `name` / `id` change on a connected one (Document's named properties memo)
+    pub const NAMED: usize = 15;
     /// number of slots
     pub const LEN: usize = 16;
 }

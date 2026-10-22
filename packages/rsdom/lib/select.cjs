@@ -23,7 +23,7 @@ const MEMO_MAX = 64;
 
 function install(rt, dom) {
   const { N, V, F, M } = rt;
-  const { liveQueryCollection, staticNodeListShared, wrapAll } = require('./collections.cjs');
+  const { liveQueryCollection, staticNodeListShared, wrapAll, installNamedProperties } = require('./collections.cjs');
   const { MEMO, PREFILTER, deps } = require('./memo.cjs');
   const { Element, Document, DocumentFragment, staticNodeListFromIds, wrap } = dom;
 
@@ -303,6 +303,56 @@ function install(rt, dom) {
     enumerable: false,
     configurable: true,
   });
+
+  // ------------------------------------------------- Document named properties (`document.loginForm`)
+
+  // jsdom Document-impl.js `#namedPropertyElements` / namedGet, one name at a time: `N.docNamed` walks the
+  // document natively for the elements contributing `name` (HTML embed / form / iframe / img / object by name,
+  // object and named img by id). The answer is memoised per document and name on EP[NAMED], which Rust bumps only
+  // when one of those five elements is connected or disconnected or its name / id changes (jsdom drops its cache
+  // on the same events), so probes of a missing member (`document.documentMode`) cost one stamp compare across
+  // unrelated mutations, and one native walk without wrappers after a relevant one.
+  const NAMED_DEPS = deps('NAMED');
+  const NAMED = new WeakMap();
+  function namedIds(doc, name) {
+    let s = NAMED.get(doc);
+    if (s === undefined) NAMED.set(doc, (s = { names: new Map(), colls: new Map() }));
+    let m = s.names.get(name);
+    if (m === undefined || !NAMED_DEPS.fresh(m.stamp)) {
+      if (m === undefined && s.names.size >= 256) s.names.clear(); // probes of many distinct names
+      const stamp = NAMED_DEPS.stamp(m === undefined ? null : m.stamp);
+      m = { stamp, ids: Array.from(rt.outIds(N.docNamed(doc._i, name))) };
+      s.names.set(name, m);
+    }
+    return { s, ids: m.ids };
+  }
+  // Document's named getter (no [LegacyOverrideBuiltIns]: Document's own members win), through the
+  // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe would
+  // answer its content window; rsdom's iframes have none), several a live HTMLCollection, the same per name.
+  // Document has no indexed getter, so `document[0]` is a name too.
+  installNamedProperties(
+    Document.prototype,
+    (doc, name) => {
+      // a wrapper still being made (`_i` unset) or of a torn-down env answers nothing and memoises nothing
+      if (!(doc instanceof Document) || typeof doc._i !== 'number' || doc._i === 0) return undefined;
+      let r;
+      try {
+        r = namedIds(doc, name);
+      } catch {
+        return undefined; // a probe for a missing member must not throw
+      }
+      const { s, ids } = r;
+      if (ids.length === 0) return undefined;
+      if (ids.length === 1) return wrap(ids[0]);
+      let c = s.colls.get(name);
+      if (c === undefined) {
+        c = liveQueryCollection({ deps: NAMED_DEPS, items: () => namedIds(doc, name).ids.map(wrap) });
+        s.colls.set(name, c);
+      }
+      return c;
+    },
+    { indices: true, internal: true },
+  );
 
   // Exposed for tests / benches (not part of the DOM surface).
   rt.select = { sel, SF, memoSize: () => MEMO_MAP.size, selSize: () => SEL.size };

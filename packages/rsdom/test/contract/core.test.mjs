@@ -60,6 +60,10 @@ describe.each(DOMS)('core [%s]', (kind) => {
     const form = d.forms.f;
     expect(form.id).toBe('f');
     expect(form.elements.email.value).toBe('x');
+    const token = d.createElement('input');
+    token.name = '_token'; // a CSRF field: `_` names work on collections
+    form.append(token);
+    expect(form.elements._token).toBe(token);
     const el = d.querySelector('input');
     expect(el.attributes.name.value).toBe('email');
     if (kind === 'happy-dom') return; // PINNED to jsdom
@@ -75,6 +79,27 @@ describe.each(DOMS)('core [%s]', (kind) => {
     expect(Object.keys(attrs)).toEqual(['0', '1', '2']); // names are not enumerable
     expect(d.body.children.f).toBe(form);
     expect(form.elements.item).toBe(d.defaultView.HTMLFormControlsCollection.prototype.item); // the prototype wins
+  });
+
+  it('document named properties: forms and named images, a live collection for duplicates', () => {
+    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom has no document named properties
+    d.body.innerHTML = '<form name="login"></form><img id="logo" name="brand"><form name="dup"></form><embed name="dup">';
+    expect(d.login).toBe(d.forms[0]);
+    expect([d.logo, d.brand]).toEqual([d.images[0], d.images[0]]);
+    const dup = d.dup;
+    expect(dup.length).toBe(2);
+    expect([...dup]).toEqual([d.forms[1], d.querySelector('embed')]);
+    expect(d.dup).toBe(dup);
+    d.querySelector('img').removeAttribute('name'); // an img contributes its id only alongside a name
+    expect([d.logo, d.brand]).toEqual([undefined, undefined]);
+    d.querySelector('embed').remove();
+    expect(dup.length).toBe(1);
+    expect(d.dup).toBe(d.forms[1]);
+    expect(d.createElement).toBe(d.defaultView.Document.prototype.createElement);
+    const parsed = new d.defaultView.DOMParser().parseFromString('<form name="p"></form>', 'text/html');
+    expect(parsed.p).toBe(parsed.forms[0]); // a fresh document answers on first read
+    d.body.firstChild.setAttribute('name', 'renamed');
+    expect([d.login, d.renamed]).toEqual([undefined, d.forms[0]]);
   });
 
   it('HTMLMediaElement: state, volume / rate events as tasks, play() not implemented', async () => {

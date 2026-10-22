@@ -19,13 +19,25 @@
 //! hooks, and it queues the MutationObserver childList records itself (they need the exact
 //! added/removed/prev/next of each step, or the merged record of replace / replace-all).
 
-use crate::atoms::Atom;
+use crate::atoms::{Atom, atom};
 use crate::env::{Env, ep};
-use crate::node::meta;
+use crate::node::{kind, meta};
 use crate::string::Str;
 use crate::table::NodeId;
 
 impl Env {
+    /// Bumps `EP[NAMED]` (Document's named properties) when `n` is an HTML embed / form / iframe / img /
+    /// object element: the only elements that can contribute (jsdom drops its cache on the same events).
+    #[inline]
+    fn bump_named_if_contributes(&mut self, n: NodeId) {
+        let r = self.rec(n);
+        if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+            && matches!(Atom(r.local), atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+        {
+            self.ep.bump(ep::NAMED);
+        }
+    }
+
     /// Bumps the document version (the document record's `attr_ver`: documents have no attributes) when `n`
     /// is connected: what jsdom's `Document#_version` counts, child-list and attribute changes in the
     /// document, for XPathResult's `invalidIteratorState` (lib/xpath.cjs, DESIGN §39). A plain increment, not
@@ -43,6 +55,7 @@ impl Env {
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_connected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
         crate::style::on_node_connected(self, id);
         crate::forms::on_node_connected(self, id);
     }
@@ -50,6 +63,7 @@ impl Env {
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_disconnected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
         crate::focus::on_node_disconnected(self, id);
         crate::style::on_node_disconnected(self, id);
         crate::forms::on_node_disconnected(self, id);
@@ -91,6 +105,12 @@ impl Env {
         let v = self.ep.bump(ep::ATTR);
         self.rec_mut(el).attr_ver = v;
         self.bump_doc_version(el);
+        if ns == Atom::NONE
+            && matches!(local, atom::NAME | atom::ID)
+            && self.rec(el).meta & meta::CONNECTED != 0
+        {
+            self.bump_named_if_contributes(el);
+        }
         crate::mo::queue_attribute(self, el, local, ns, old);
         crate::style::on_attr_changed(self, el, local, ns, old);
         crate::forms::on_attr_changed(self, el, local, ns, old);

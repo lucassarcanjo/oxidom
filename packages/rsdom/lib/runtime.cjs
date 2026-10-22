@@ -29,6 +29,8 @@ const EPI = Object.freeze({
   OUT_NEED: 9, ERR: 10, REC: 11, TEXT: 12,
   /** area A's slot (src/style/mod.rs EP_STYLE_DEP): non-zero while author sheets select on element state */
   STYLE_DEP: 13,
+  /** an HTML embed / form / iframe / img / object (dis)connected, or its `name` / `id` changed (src/env.rs ep::NAMED) */
+  NAMED: 15,
 });
 /** Node-record field offsets (src/table.rs `NodeRec`). */
 const F = Object.freeze({

@@ -5,10 +5,10 @@ change for each runner, what carries over unchanged, and every known way rsdom b
 30.1.3, which is the oracle rsdom is measured against.
 
 Most suites need only the configuration change. Read [the divergences](#known-divergences) if a test fails after
-the switch, or before you switch if your suite relies on scripts, custom elements, iframes or XML, which rsdom
+the switch, or before you switch if your suite relies on scripts, custom elements or iframes, which rsdom
 does not support yet.
 
-Where things stand (2026-10-22): rsdom passes 96.7% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-22): rsdom passes 97.3% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -92,12 +92,12 @@ const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.tes
 dom.window.document.querySelector('p').textContent; // 'Hello'
 ```
 
-Supported: the options `url`, `referrer`, `contentType` (HTML types), `pretendToBeVisual`, `storageQuota`,
+Supported: the options `url`, `referrer`, `contentType` (HTML and XML types), `pretendToBeVisual`, `storageQuota`,
 `virtualConsole`, `beforeParse` and `resources.userAgent`; the members `window`, `virtualConsole`, `cookieJar`,
 `serialize()` and `reconfigure()`; and `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. `VirtualConsole`
 (`forwardTo`, `"jsdomError"` events) and `CookieJar` (tough-cookie's, as jsdom exports it) are exported too.
 
-Not supported: XML content types, `runScripts` (validated, then ignored), `includeNodeLocations`,
+Not supported: `runScripts` (validated, then ignored), `includeNodeLocations`,
 `nodeLocation()`, `getInternalVMContext()`, subresource loading, `requestInterceptor`, and a cookie jar behind
 `document.cookie`. rsdom also has a lighter entry point, `createWindow({ url })`, which returns `{ window, document }` without
 the `JSDOM` wrapper.
@@ -174,7 +174,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[gap] Missing Window members:** `postMessage`, `name`, `length`, `Plugin`, `MimeType`, `BarProp`,
   `External`, `Audio`, `PromiseRejectionEvent`, `CloseEvent`, `ElementInternals`. `geometry`, `core`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
-- **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), `XMLSerializer` (`xml`),
+- **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4),
   `DOMRect` / `DOMRectReadOnly` (rects are plain objects; `geometry`), XPath (`document.evaluate`;
   `xpath`), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] Brand checks are skipped on hot paths.** `Object.getOwnPropertyDescriptor(Node.prototype,
@@ -265,7 +265,6 @@ share one realm, so they do not apply there.
 
 ### Ranges, selection and geometry
 
-- **[gap] `StaticRange` over XML documents** (needs `xml`). Otherwise Range and Selection are at parity.
   DESIGN §25, §29.
 - **[beyond] `Range#getBoundingClientRect` / `getClientRects`** exist and return zero rects. DESIGN §24.
 - **[beyond] `elementFromPoint` / `elementsFromPoint`** exist and return `null` / `[]`. DESIGN §24.
@@ -295,7 +294,6 @@ share one realm, so they do not apply there.
 
 - **[gap] Synchronous XHR is not supported:** `send()` after `open(m, u, false)` throws `NetworkError`.
   DESIGN §21.
-- **[gap] `responseXML` is `null` for XML types.** DESIGN §21.
 - **[gap] `window.stop()` and `window.close()` do not abort in-flight XHRs.** DESIGN §21.
 - **[design] XHR runs on Node's `fetch`:** `getAllResponseHeaders()` is lowercased, sorted and combined;
   requests carry `sec-fetch-mode: cors`; an aborted request can hold a keep-alive connection for about 4 s, so call
@@ -312,9 +310,6 @@ share one realm, so they do not apply there.
 
 ### Parsing and serialization
 
-- **[gap] No XML documents.** `DOMParser` with an XML type throws `NotSupportedError`, and so does `new JSDOM`
-  with an XML `contentType`. Elements of documents from `createDocument()` serialize with the HTML serializer
-  (`<r></r>`, not `<r/>`). `xml`.
 - **[gap] Lone surrogates become U+FFFD**, and a CharacterData offset inside a surrogate pair rounds down to the
   code point's start. Final values match when user-event types an emoji; an intermediate `value` can differ.
   DESIGN §2.3; `surrogates`.

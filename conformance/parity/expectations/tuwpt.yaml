@@ -144,8 +144,6 @@ dom/nodes/attribute-change-steps.html: [fail, "missing global: customElements"]
 dom/nodes/pre-insertion-validity-children-to-exclude.html:
   "replaceChild() excludes the replaced doctype when validating an element": [fail, "assert_array_equals: wrong value"]
   "replaceChildren() excludes all current children when validating a retained element": [fail, "assert_array_equals: wrong value"]
-domparsing/DOMParser-parseFromString-xml-script.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/xml-serialization-namespaces.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling-dont-upstream.html:
   "Returning false must not cancel the event, because it's coerced to the DOMString \"false\" which does not cancel CustomEvents: CustomEvent, cancelable": [fail, "assert_false: wrong value"]
 html/browsers/the-window-object/named-access-on-the-window-object/element-contributions.html:
@@ -172,7 +170,6 @@ jsdom-only/failure-example-1.html: [fail, "assert_true: wrong value"]
 jsdom-only/failure-example-2.html:
   "failing test": [fail, "assert_true: wrong value"]
 jsdom/misc/test_body_event_handler_inline.html: [fail, "assert_true: got undefined (missing attribute/API)"]
-svg/painting/parsed-svg-default-fill.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 svg/struct/scripted/element-svg.html:
   "Basic properties": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "createSVGNumber": [fail, "missing method: .createSVGNumber()"]

@@ -13,14 +13,11 @@ api/cookies.js:
   "Cookie processing > sent with requests > should send the Cookies header with iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "Cookie processing > should share cookies when a cookie jar is shared": [fail, "Expected values to be strictly deep-equal: + actual - expected [ + … - …, - …, - …, - …, -…"]
 api/css-parsing-errors.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
-api/encoding.js: [fail, "rsdom: XML documents are not supported (contentType …)", {pass: 37}]
+api/encoding.js: [fail, "rsdom: XML documents are not supported (contentType …)", {pass: 64}]
 api/file-url-functionality.js:
   "Test cases for the interaction with file: URLs > loading file: URL resources > should load scripts from file: URLs from about:blank": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "Test cases for the interaction with file: URLs > loading file: URL resources > should load scripts via relative URL from file: URLs, despite hrefless <base>": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/from-file.js:
-  "API: JSDOM.fromFile() > contentType option defaulting > should default to application/xhtml+xml Content-Type for .xht files": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "API: JSDOM.fromFile() > contentType option defaulting > should default to application/xhtml+xml Content-Type for .xhtml files": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "API: JSDOM.fromFile() > contentType option defaulting > should default to application/xhtml+xml Content-Type for .xml files": [fail, "rsdom: XML documents are not supported (contentType …)"]
   "API: JSDOM.fromFile() > should work even for Unicode main resource and subresource filenames (GH-3016)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/from-outside.js:
   "Test cases only possible to test from the outside > document.currentScript is null when not executing <script>": [fail, "Expected values to be strictly equal: + actual - expected + undefined - null"]
@@ -45,8 +42,6 @@ api/from-url.js:
   "API: JSDOM.fromURL() > tests that use a server > cookie jar integration > should send applicable cookies in a supplied cookie jar": [fail, "Expected values to be strictly equal: + actual - expected + undefined - …"]
   "API: JSDOM.fromURL() > tests that use a server > cookie jar integration > should store cookies set by the server in a newly-created cookie jar": [fail, "Expected values to be strictly equal: … !== …"]
   "API: JSDOM.fromURL() > tests that use a server > cookie jar integration > should store cookies set by the server in a supplied cookie jar": [fail, "Expected values to be strictly equal: … !== …"]
-  "API: JSDOM.fromURL() > tests that use a server > inferring options from the response > contentType > should use the content type fetched for a 200": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "API: JSDOM.fromURL() > tests that use a server > inferring options from the response > contentType > should use the ultimate response content type after a redirect": [fail, "rsdom: XML documents are not supported (contentType …)"]
   "API: JSDOM.fromURL() > tests that use a server > should give an appropriate error for invalid redirect URLs (GH-3804)": [fail, "The input did not match the regular expression /Invalid redirect URL/. Input: …"]
   "API: JSDOM.fromURL() > tests that use a server > user agent > should use the default user agent as the User-Agent header when none is given": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
 api/jsdom-errors.js:
@@ -98,8 +93,6 @@ api/options-run-scripts.js:
   "API: runScripts constructor option > event handlers > when set to \"outside-only\" > body onload handler set during parsing > should not evaluate the handler (GH-1848)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "API: runScripts constructor option > event handlers > when set to undefined > body onload handler set during parsing > should not evaluate the handler (GH-1848)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/options.js:
-  "API: constructor options > contentType > should allow customizing document content type via the contentType option": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "API: constructor options > contentType > should not show content type parameters in document.contentType (XML)": [fail, "rsdom: XML documents are not supported (contentType …)"]
   "API: constructor options > cookieJar > should have a loose-by-default cookie jar even if none is passed": [fail, "Expected values to be strictly equal: … !== …"]
   "API: constructor options > cookieJar > should have loose behavior by default when using the CookieJar constructor": [fail, "Expected values to be strictly equal: … !== …"]
   "API: constructor options > cookieJar > should reflect changes to the cookie jar in document.cookie": [fail, "Expected values to be strictly equal: … !== …"]

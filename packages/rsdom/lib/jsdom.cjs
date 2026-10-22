@@ -13,7 +13,7 @@
 // console, as in jsdom), which receives the window's `console` calls, jsdomErrors for not-implemented window
 // methods and uncaught exceptions no `error` listener cancelled.
 //
-// Not implemented: XML content types (no XML parser yet: ROADMAP Stage 3 `xml`), `runScripts` (validated, then
+// XML content types parse with lib/xml.cjs (DESIGN §38). Not implemented: `runScripts` (validated, then
 // ignored: rsdom never runs scripts, so `getInternalVMContext()` throws as jsdom does without it),
 // `includeNodeLocations` (`nodeLocation()` throws as jsdom does without it), subresource loading (`resources`
 // beyond `userAgent`), and a cookie jar `document.cookie` reads (`cookieJar` is held for the getter only;
@@ -33,14 +33,48 @@ const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|imag
  * jsdom's decoding of binary input (HTML "determine the character encoding", simplified): a BOM, then the
  * content type's `charset`, then a `<meta charset>` / `http-equiv` prescan of the first 1024 bytes, else UTF-8
  * (jsdom's default is windows-1252 only for a missing charset on a `fromURL()` response; rsdom keeps UTF-8).
+ * XML (`xml`): html-encoding-sniffer's XML mode, the XML declaration's `encoding` instead of the meta prescan.
  */
-function decode(input, contentType) {
+function decode(input, contentType, xml = false) {
   let bytes;
   if (Buffer.isBuffer(input)) bytes = input;
   else if (types.isAnyArrayBuffer(input)) bytes = new Uint8Array(input);
   else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   else return String(input);
-  return new TextDecoder(sniffEncoding(bytes, contentType)).decode(bytes);
+  return new TextDecoder(xml ? sniffXmlEncoding(bytes, contentType) : sniffEncoding(bytes, contentType)).decode(bytes);
+}
+
+/** A WHATWG encoding label's name, or null. */
+function encodingName(l) {
+  try {
+    return new TextDecoder(l).encoding;
+  } catch {
+    return null;
+  }
+}
+
+/** html-encoding-sniffer's XML mode (refs: node_modules/html-encoding-sniffer, jsdom's dependency). */
+function sniffXmlEncoding(bytes, contentType) {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return 'utf-16be';
+  const m = contentType && /charset\s*=\s*["']?([^"'\s;>]+)/i.exec(contentType);
+  const fromType = m ? encodingName(m[1]) : null;
+  if (fromType !== null) return fromType;
+  if (bytes.length >= 8) {
+    const b = bytes;
+    if (b[0] === 0x3c && b[1] === 0 && b[2] === 0x3f && b[3] === 0 && b[4] === 0x78 && b[5] === 0) return 'utf-16le';
+    if (b[0] === 0 && b[1] === 0x3c && b[2] === 0 && b[3] === 0x3f && b[4] === 0 && b[5] === 0x78) return 'utf-16be';
+    // the XML declaration: case-sensitive `<?xml` at the start, the first `encoding` before its `>`
+    const head = Buffer.from(b.subarray(0, 1024)).toString('latin1');
+    const end = head.indexOf('>', 5);
+    if (head.startsWith('<?xml') && end !== -1) {
+      const d = /encoding[\x00-\x20]*=[\x00-\x20]*(["'])([^\x00-\x20"']*)\1/.exec(head.slice(5, end + 1));
+      const enc = d === null ? null : encodingName(d[2]);
+      if (enc !== null) return enc.startsWith('utf-16') ? 'utf-8' : enc;
+    }
+  }
+  return 'utf-8';
 }
 
 function sniffEncoding(bytes, contentType) {
@@ -119,17 +153,18 @@ function undiciFetch(dispatcher) {
   return fetch;
 }
 
-/** jsdom's content type check; rsdom has no XML parser yet. Returns the content type as a string. */
+/**
+ * jsdom's content type check. Returns the content type as a string and, for an XML type, its essence (the XML
+ * document's `contentType`, DESIGN §38).
+ */
 function checkContentType(type) {
   const contentType = type === undefined ? 'text/html' : String(type);
   const essence = contentType.split(';')[0].trim().toLowerCase();
-  if (XML_ESSENCE.test(essence)) {
-    throw new Error(`rsdom: XML documents are not supported (contentType "${contentType}")`);
-  }
+  if (XML_ESSENCE.test(essence)) return { contentType, xml: essence };
   if (essence !== 'text/html') {
     throw new RangeError(`The given content type of "${contentType}" was not a HTML or XML content type`);
   }
-  return contentType;
+  return { contentType, xml: undefined };
 }
 
 /** An open context `adopt()` hands to the JSDOM constructor, or null. */
@@ -147,7 +182,7 @@ class JSDOM {
       this.#cookieJar = new CookieJar();
       return;
     }
-    const contentType = checkContentType(options.contentType);
+    const { contentType, xml } = checkContentType(options.contentType);
     // jsdom's normalizeOptions: `new URL(x)` throws a TypeError for anything but an absolute URL
     const url = options.url === undefined ? 'about:blank' : new URL(options.url).href;
     const referrer = options.referrer === undefined ? '' : new URL(options.referrer).href;
@@ -167,7 +202,8 @@ class JSDOM {
 
     const ctx = context.open({
       url,
-      source: decode(input, contentType),
+      source: decode(input, contentType, xml !== undefined),
+      xml,
       settings: {
         pretendToBeVisual: Boolean(options.pretendToBeVisual),
         storageQuota: options.storageQuota === undefined ? 5000000 : Number(options.storageQuota),
@@ -205,6 +241,9 @@ class JSDOM {
   }
 
   serialize() {
+    const doc = this.#ctx.document;
+    const xml = require('./xml.cjs');
+    if (xml.inXmlDocument(doc)) return xml.serializeDocument(doc); // DESIGN §38
     let out = '';
     for (const n of this.#ctx.document.childNodes) {
       if (n.nodeType === 10) out += `<!DOCTYPE ${n.name}>`;
@@ -295,7 +334,7 @@ class JSDOM {
  * `storageQuota`. The rest (`runScripts`, `cookieJar`, ...) is ignored.
  */
 function environmentOptions(j, virtualConsole) {
-  checkContentType(j.contentType);
+  const { xml } = checkContentType(j.contentType);
   if (!(virtualConsole instanceof VirtualConsole)) {
     throw new TypeError('virtualConsole must be an instance of VirtualConsole');
   }
@@ -311,6 +350,11 @@ function environmentOptions(j, virtualConsole) {
     },
   };
   if (j.html !== undefined) open.source = String(j.html);
+  if (xml !== undefined) {
+    open.xml = xml;
+    // Vitest's jsdom environment's default document, which an XML document must parse too (jsdom then throws)
+    open.source ??= '<!DOCTYPE html>';
+  }
   return open;
 }
 

@@ -173,6 +173,7 @@ class BrowsingContext {
  * - `html`: body markup, set as `documentElement.innerHTML`;
  * - `source`: a whole HTML document (doctype, `<html>` attributes and all) parsed as the context's document,
  *   as `new JSDOM(source)` does; excludes `html`;
+ * - `xml`: an XML content type: the document is an XML document of that type and `source` is parsed as XML;
  * - `main: false`: the context does not become current;
  * - `global`: install the window's members on this object (the Vitest environment passes globalThis) instead
  *   of a fresh null-prototype object; `close()` restores the object's original properties;
@@ -180,17 +181,28 @@ class BrowsingContext {
  *   `global` (the Jest environment's vm context, which has no timers of its own);
  * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions);
  * - `settings`: overrides of `BrowsingContext#settings` (the `JSDOM` class's options).
- * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, ownTimers?: boolean, catchErrors?: boolean, settings?: object }} [options]
+ * @param {{ url?: string, html?: string, source?: string, xml?: string, main?: boolean, global?: object, ownTimers?: boolean, catchErrors?: boolean, settings?: object }} [options]
  * @returns {BrowsingContext}
  */
 function openContext(options = {}) {
   const url = new URL(options.url ?? DEFAULT_URL);
+  if (options.xml !== undefined && options.html !== undefined) {
+    throw new TypeError('rsdom: context.open() takes `source` (the whole document) for an XML document, not `html`');
+  }
   if (options.source !== undefined && options.html !== undefined) {
     throw new TypeError('rsdom: context.open() takes `html` (body markup) or `source` (a whole document), not both');
   }
-  const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source)));
-  rt.afterAlloc();
-  const document = rt.wrap(id);
+  let document;
+  if (options.xml !== undefined) {
+    // An XML document (`new JSDOM(x, { contentType })` with an XML type, DESIGN §38); a well-formedness error throws
+    const xml = require('./xml.cjs');
+    document = xml.newXmlDocument(options.xml, url.href);
+    if (options.source !== undefined) xml.parseInto(document, String(options.source), { fileName: url.href });
+  } else {
+    const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source)));
+    rt.afterAlloc();
+    document = rt.wrap(id);
+  }
   const ctx = new BrowsingContext(document, url);
   if (options.settings !== undefined) Object.assign(ctx.settings, options.settings);
   ctx.global = options.global !== undefined;
@@ -199,7 +211,7 @@ function openContext(options = {}) {
   if (options.main !== false) {
     stack.push(ctx);
     cur = ctx;
-    rt.N.setMainDocument(id);
+    rt.N.setMainDocument(document._i);
   }
   if (options.html !== undefined) document.documentElement.innerHTML = options.html;
   const window = require('./window.cjs');

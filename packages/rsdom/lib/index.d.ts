@@ -365,7 +365,7 @@ export interface FileOptions extends BaseOptions {
 
 export interface ConstructorOptions extends BaseOptions {
   url?: string | undefined;
-  /** an HTML content type; XML types throw (no XML parser yet) */
+  /** an HTML or XML content type (XML types parse the input as XML) */
   contentType?: string | undefined;
   storageQuota?: number | undefined;
 }

@@ -84,6 +84,7 @@ describe.each(DOMS)('core [%s]', (kind) => {
     expect([d.logo, d.brand]).toEqual([d.images[0], d.images[0]]);
     const dup = d.dup;
     expect(dup.length).toBe(2);
+    expect([...dup]).toEqual([d.forms[1], d.querySelector('embed')]);
     expect(d.dup).toBe(dup);
     d.querySelector('img').removeAttribute('name'); // an img contributes its id only alongside a name
     expect([d.logo, d.brand]).toEqual([undefined, undefined]);

@@ -321,7 +321,7 @@ function install(rt, dom) {
     if (m === undefined || !NAMED_DEPS.fresh(m.stamp)) {
       if (m === undefined && s.names.size >= 256) s.names.clear(); // probes of many distinct names
       const stamp = NAMED_DEPS.stamp(m === undefined ? null : m.stamp);
-      m = { stamp, ids: rt.outIds(N.docNamed(doc._i, name)).slice() };
+      m = { stamp, ids: Array.from(rt.outIds(N.docNamed(doc._i, name))) };
       s.names.set(name, m);
     }
     return { s, ids: m.ids };

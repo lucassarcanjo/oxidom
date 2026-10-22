@@ -392,6 +392,27 @@ pub const FAIL_MASK: u32 = vbits::VALUE_MISSING
     | vbits::BAD_INPUT
     | vbits::CUSTOM_ERROR;
 
+/// dom-selector's `:in-range` / `:out-of-range` for an HTML `<input>` (`matchRangePseudoClass`): no `readonly`
+/// or `disabled` attribute (the attributes alone, not a disabled fieldset), a raw `type` attribute (compared
+/// case-sensitively) of date, datetime-local, month, time, week, number or range, then the range bits of
+/// [`validity_bits`]: out of range when underflowing or overflowing, in range when neither and `min` or `max` is
+/// set or the type is range.
+pub fn matches_in_range(e: &Env, id: NodeId, out: bool) -> bool {
+    if has(e, id, atom::READONLY) || has(e, id, atom::DISABLED) {
+        return false;
+    }
+    let Some(t) = attr(e, id, atom::TYPE) else { return false };
+    if !matches!(t, "date" | "datetime-local" | "month" | "time" | "week" | "number" | "range") {
+        return false;
+    }
+    let range = t == "range";
+    let flowed = validity_bits(e, id) & (vbits::RANGE_UNDERFLOW | vbits::RANGE_OVERFLOW) != 0;
+    if out {
+        return flowed;
+    }
+    !flowed && (has(e, id, atom::MIN) || has(e, id, atom::MAX) || range)
+}
+
 /// dom-selector's `:valid` / `:invalid` for one button / input / select / textarea
 /// (`#matchValidityPseudoClass`): `validity.valid`, then for a non-negative `maxLength` the answer is
 /// REPLACED by `maxLength >= value.length`, and a valid result is further checked against a

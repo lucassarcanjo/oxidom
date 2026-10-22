@@ -498,9 +498,7 @@ css/selectors/invalidation/host-has-shadow-tree-element-at-subject-position.html
 css/selectors/invalidation/host-pseudo-class-in-has.html:
   "After adding 'a' to #host: Check #subject1 color": [fail, "assert_equals: wrong value"]
   "After adding 'a' to #host: Check #subject2 color": [fail, "assert_equals: wrong value"]
-css/selectors/invalidation/input-in-range-in-has-with-readonly.html: [fail, "assert_equals: wrong value"]
 css/selectors/invalidation/input-pseudo-classes-in-has.html:
-  ":out-of-range invalidation": [fail, "assert_equals: wrong value"]
   ":read-only invalidation": [fail, "assert_equals: wrong value"]
 css/selectors/invalidation/is-pseudo-containing-sibling-relationship-in-has.html:
   "Initially red": [fail, "assert_equals: wrong value"]
@@ -906,9 +904,6 @@ dom/nodes/CharacterData-surrogates.html:
   "Text.replaceData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
 dom/nodes/Comment-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
 dom/nodes/DOMImplementation-createDocument.html:
-  "createDocument test: null,undefined,null,null": [fail, "assert_not_equals: wrong value"]
-  "createDocument test: undefined,undefined,null,null": [fail, "assert_not_equals: wrong value"]
-  "createDocument test: undefined,undefined,undefined,null": [fail, "assert_not_equals: wrong value"]
   "createDocument with missing arguments": [fail, "assert_true: wrong value"]
 dom/nodes/Document-constructor.html:
   "new Document(): metadata": [fail, "assert_equals: wrong value"]
@@ -921,7 +916,6 @@ dom/nodes/Element-children.html:
   "HTMLCollection edge cases 1": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-getElementsByTagName.html:
   "hasOwnProperty, getOwnPropertyDescriptor, getOwnPropertyNames": [fail, "assert_equals: got undefined (missing attribute/API)"]
-dom/nodes/Element-setAttributeNodeNS.html: [fail, "assert_equals: wrong value"]
 dom/nodes/MutationObserver-childList.html:
   "childList ParentNode.replaceChildren: move an existing child": [fail, "assert_equals: wrong value"]
   "childList ParentNode.replaceChildren: self replacement of only child": [fail, "assert_equals: wrong value"]
@@ -1156,13 +1150,6 @@ html/dom/documents/dom-tree-accessors/document.images.html:
   "img with id": [fail, "assert_true: wrong value"]
   "img with id and name": [fail, "assert_true: wrong value"]
   "img with name": [fail, "assert_true: wrong value"]
-html/dom/documents/dom-tree-accessors/document.title-09.html:
-  "No title element in SVG document": [fail, "assert_equals: wrong value"]
-  "Title element in SVG document": [fail, "assert_equals: wrong value"]
-  "Title element not child of SVG root": [fail, "assert_equals: wrong value"]
-  "Title element not in SVG namespace": [fail, "assert_equals: wrong value"]
-html/dom/documents/dom-tree-accessors/document.title-not-in-html-svg.html:
-  "Should not be able to set document title in XML document with html:title element": [fail, "assert_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/nameditem-04.html:
   "An id shouldn't affect getting an form by name": [fail, "assert_true: wrong value"]
   "Dynamically removing the name attribute from form elements, should not be accessible.": [fail, "assert_true: wrong value"]
@@ -2025,12 +2012,6 @@ html/semantics/forms/the-input-element/reset.html:
 html/semantics/forms/the-label-element/forward-focus-to-associated-element.html: [timeout, "harness TIMEOUT: (no message)", {pass: 2}]
 html/semantics/forms/the-label-element/labels-live-attribute-changes.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/forms/the-label-element/labels-live-label-removal.html: [fail, "assert_array_equals: wrong value"]
-html/semantics/forms/the-option-element/option-element-constructor.html:
-  "Option constructor does not set dirtiness (so, manipulating the selected content attribute still updates the selected IDL attribute)": [fail, "assert_false: wrong value"]
-html/semantics/forms/the-option-element/option-label.html:
-  "No children, namespaced label": [fail, "assert_equals: wrong value"]
-  "Single child, namespaced label": [fail, "assert_equals: wrong value"]
-  "Two children, namespaced label": [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-select-element/customizable-select/base-appearance-inheritance.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-select-element/customizable-select/option-disabled-invalid-nesting.html: [fail, "read of null (.appendChild)"]
 html/semantics/forms/the-select-element/customizable-select/option-disabled-optgroup-wrapper.html: [fail, "assert_true: wrong value"]
@@ -2061,10 +2042,6 @@ html/semantics/forms/the-select-element/customizable-select/selectedcontent-muta
 html/semantics/forms/the-select-element/customizable-select/selectedcontent-nested.html: [fail, "read of null (.appendChild)"]
 html/semantics/forms/the-select-element/inserted-or-removed.html:
   "If an OPTION says it is selected, it should be selected after it is inserted.": [fail, "assert_equals: wrong value"]
-html/semantics/forms/the-select-element/option-selectedness-script-mutation.html:
-  "multi-select keeps multiple selected options when selected attribute changes from script": [fail, "assert_equals: wrong value"]
-  "single-select responds to removing selected attribute from script": [fail, "assert_equals: wrong value"]
-  "single-select responds to setting selected attribute from script": [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-select-element/select-selectedOptions-nesting.window.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-select-element/select-validity.html:
   "Remove and add back the placeholder label option": [fail, "assert_false: wrong value"]
@@ -2224,9 +2201,6 @@ html/semantics/scripting-1/the-template-element/template-for/template-for-supers
 html/semantics/scripting-1/the-template-element/template-for/template-for-title.html: [fail, "assert_equals: wrong value"]
 html/semantics/selectors/pseudo-classes/autofill.html: [fail, "Cannot destructure property … of … as it is undefined."]
 html/semantics/selectors/pseudo-classes/focus-autofocus.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/selectors/pseudo-classes/inrange-outofrange-time-reversed.html: [fail, "assert_array_equals: wrong value"]
-html/semantics/selectors/pseudo-classes/inrange-outofrange-type-change.html: [fail, "assert_equals: wrong value"]
-html/semantics/selectors/pseudo-classes/inrange-outofrange.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/selectors/pseudo-classes/readwrite-readonly.html: [fail, "harness ERROR: read of undefined (.define)"]
 html/semantics/selectors/pseudo-classes/valid-invalid.html:
   "':invalid' matches elements that do not satisfy their pattern constraints": [fail, "assert_array_equals: wrong value"]

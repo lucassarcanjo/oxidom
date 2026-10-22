@@ -102,6 +102,26 @@ describe.each(DOMS)('core [%s]', (kind) => {
     expect([d.login, d.renamed]).toEqual([undefined, d.forms[0]]);
   });
 
+  it(':in-range / :out-of-range, new Option() selectedness, setAttributeNodeNS prefix', () => {
+    if (kind === 'happy-dom') return; // PINNED to jsdom
+    d.body.innerHTML = '<input type=number min=0 max=10 value=5><input type=number max=10 value=11><input type=range><input type=number>';
+    const ins = [...d.querySelectorAll('input')];
+    expect([...d.querySelectorAll(':in-range')]).toEqual([ins[0], ins[2]]);
+    expect([...d.querySelectorAll(':out-of-range')]).toEqual([ins[1]]);
+    const w = d.defaultView;
+    const s = d.createElement('select');
+    const a = new w.Option('a');
+    const b = new w.Option('b');
+    s.append(a, b);
+    b.setAttribute('selected', ''); // not dirty: the attribute still drives selectedness
+    expect(s.selectedIndex).toBe(1);
+    const el = d.createElement('div');
+    el.setAttributeNS('urn:x', 'p:id', 'old');
+    const attr = d.createAttributeNS('urn:x', 'id');
+    el.setAttributeNodeNS(attr); // replaces the attribute, prefix included
+    expect([el.getAttribute('p:id'), el.attributes[0].name]).toEqual([null, 'id']);
+  });
+
   it('HTMLMediaElement: state, volume / rate events as tasks, play() not implemented', async () => {
     if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom's play() returns a promise
     const v = d.createElement('video');

@@ -580,18 +580,34 @@ class Document extends Node {
     root.appendChild(v);
   }
 
+  // jsdom Document-impl.js: an `svg` document element's first SVG `title` child, else the document's first HTML
+  // `title`; the element's own Text children only (childTextContent), whitespace stripped and collapsed
   get title() {
     const root = this.documentElement;
-    if (root === null) return '';
-    const t = firstDescendant(root._i, (id) => isHtml(id, A.title));
-    if (t === 0) return '';
-    return (N.textContentGet(t) ?? '').replace(/[\t\n\f\r ]+/g, ' ').replace(/^ | $/g, '');
+    let t;
+    if (root !== null && root.localName === 'svg') t = svgTitleOf(root);
+    else {
+      const id = firstDescendant(this._i, (n) => isHtml(n, A.title));
+      t = id === 0 ? null : wrap(id);
+    }
+    if (t === null) return '';
+    let text = '';
+    for (const c of t.childNodes) if (c.nodeType === K.TEXT || c.nodeType === K.CDATA) text += c.data;
+    return text.replace(/[\t\n\f\r ]+/g, ' ').replace(/^ | $/g, '');
   }
 
   set title(v) {
     const root = this.documentElement;
     if (root === null) return;
-    let t = firstDescendant(root._i, (id) => isHtml(id, A.title));
+    if (root.localName === 'svg') {
+      let t = svgTitleOf(root);
+      // inside the svg root, as the spec says (jsdom inserts into the document when the root is empty)
+      if (t === null) t = root.insertBefore(this.createElementNS(NS.SVG, 'title'), root.firstChild);
+      t.textContent = String(v);
+      return;
+    }
+    if (root.namespaceURI !== NS.HTML) return;
+    let t = firstDescendant(this._i, (id) => isHtml(id, A.title));
     if (t === 0) {
       const head = this.head;
       if (head === null) return;
@@ -1375,6 +1391,14 @@ function isHtml(id, a) {
   return (V.T[o + F.META] & (M.KIND | M.NS_MASK)) === K.ELEMENT && V.T[o + F.LOCAL] === a;
 }
 
+/** The first SVG `title` element child of `root` (a wrapper), or null. */
+function svgTitleOf(root) {
+  for (let c = root.firstElementChild; c !== null; c = c.nextElementSibling) {
+    if (c.localName === 'title' && c.namespaceURI === NS.SVG) return c;
+  }
+  return null;
+}
+
 /** First element (preorder, excluding `root`) satisfying `pred`. */
 function firstDescendant(root, pred) {
   let n = V.T[V.off(root) + F.FIRST];
@@ -1652,11 +1676,13 @@ class Element extends Node {
     if (!(attr instanceof Attr)) throw new TypeError("Failed to execute 'setAttributeNode' on 'Element': parameter 1 is not of type 'Attr'.");
     if (attr._el !== null && attr._el !== this) throw new rt.classes.DOMException('The attribute is in use.', 'InUseAttributeError');
     if (attr._el === this) return attr;
-    const old = attr._n === 0 ? this.getAttributeNode(attr.name) : this.getAttributeNodeNS(attr.namespaceURI, attr.localName);
+    // DOM "set an attribute": the old attribute is the one with the Attr's namespace and local name, also for a
+    // null-namespace Attr whose name has a colon (createAttribute('p:id') must not replace a namespaced p:id)
+    const old = this.getAttributeNodeNS(attr.namespaceURI, attr.localName);
     const value = attr._v;
     if (old !== null) detachAttr(old, old.value);
-    if (attr._n === 0 && attr._p === 0) check(N.setAttr(this._i, attr._q, value));
-    else check(N.setAttrNS(this._i, attr.namespaceURI, attr.name, value));
+    if (attr._n === 0) check(N.setAttrNSA(this._i, 0, attr._l, 0, value));
+    else check(N.setAttrNodeNS(this._i, attr.namespaceURI, attr.name, value));
     attr._el = this;
     attr._doc = null;
     attrMap(attrState(this)).set(attrKey(attr._n, attr._l), attr);
@@ -1930,12 +1956,14 @@ class DOMImplementation {
   }
 
   createDocument(namespace, qualifiedName, doctype = null) {
+    // [LegacyNullToEmptyString] DOMString: null is "", undefined is "undefined"
+    qualifiedName = qualifiedName === null ? '' : `${qualifiedName}`;
     const id = N.createDocument(1, null);
     afterAlloc();
     const d = wrap(id);
     d._ct = namespace === NS.HTML ? 'application/xhtml+xml' : namespace === NS.SVG ? 'image/svg+xml' : 'application/xml';
     if (doctype !== null) d.appendChild(doctype);
-    if (qualifiedName) d.appendChild(d.createElementNS(namespace, qualifiedName));
+    if (qualifiedName !== '') d.appendChild(d.createElementNS(namespace, qualifiedName));
     return d;
   }
 

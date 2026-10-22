@@ -156,6 +156,10 @@ pub enum PseudoClass {
     Defined,
     /// `:open` (details / dialog with `open`)
     Open,
+    /// `:in-range`
+    InRange,
+    /// `:out-of-range`
+    OutOfRange,
     /// `:valid`
     Valid,
     /// `:invalid`
@@ -191,8 +195,6 @@ pub const NEVER_MATCHING: &[&str] = &[
     "playing",
     "paused",
     "fullscreen",
-    "in-range",
-    "out-of-range",
     "local-link",
     "muted",
     "picture-in-picture",
@@ -225,6 +227,8 @@ impl ToCss for PseudoClass {
             PseudoClass::AnyLink => ":any-link",
             PseudoClass::Defined => ":defined",
             PseudoClass::Open => ":open",
+            PseudoClass::InRange => ":in-range",
+            PseudoClass::OutOfRange => ":out-of-range",
             PseudoClass::Valid => ":valid",
             PseudoClass::Invalid => ":invalid",
             PseudoClass::Lang(l) => {
@@ -285,6 +289,8 @@ impl PseudoClass {
                 | PseudoClass::FocusVisible
                 | PseudoClass::PlaceholderShown
                 | PseudoClass::Indeterminate
+                | PseudoClass::InRange
+                | PseudoClass::OutOfRange
                 | PseudoClass::Valid
                 | PseudoClass::Invalid
                 | PseudoClass::Dir(..)
@@ -436,6 +442,8 @@ impl<'i> selectors::Parser<'i> for SelParser {
             "any-link" => PseudoClass::AnyLink,
             "defined" => PseudoClass::Defined,
             "open" => PseudoClass::Open,
+            "in-range" => PseudoClass::InRange,
+            "out-of-range" => PseudoClass::OutOfRange,
             "valid" => PseudoClass::Valid,
             "invalid" => PseudoClass::Invalid,
             "heading" => PseudoClass::Heading(None),
@@ -1173,6 +1181,10 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
             !(html && e.atoms.name(l).contains('-'))
         }
         PseudoClass::Open => html && matches!(l, atom::DETAILS | atom::DIALOG) && e.has_attr(el, atom::OPEN),
+        PseudoClass::InRange | PseudoClass::OutOfRange => {
+            html && l == atom::INPUT
+                && element_state::matches_in_range(e, el, matches!(pc, PseudoClass::OutOfRange))
+        }
         PseudoClass::Valid | PseudoClass::Invalid => {
             let valid = match l {
                 _ if !html => return false,

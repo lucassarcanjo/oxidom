@@ -279,11 +279,11 @@ class Event {
       let activation = null;
       const isNode = target instanceof rt.classes.Node && target._i !== 0;
       const isClick = type === 'click' && ev instanceof MouseEvent;
-      // A target outside shadow trees, with no related target inside one, has a path that never meets a
-      // shadow root (no slots yet), so nothing to retarget: the plain walk below.
+      // A target outside shadow trees and slots, with no related target inside a shadow tree, has a path that
+      // never meets a shadow root, so nothing to retarget: the plain walk below.
       if (shadow().shadowsExist()) {
         const rel = getRel(ev);
-        if (isNode && (inShadowTree(target) || inShadowTree(rel))) return composedDispatch(target, ev, isClick);
+        if (isNode && (pathMeetsShadow(target._i) || inShadowTree(rel))) return composedDispatch(target, ev, isClick);
         // a window or plain EventTarget: jsdom's one-entry path still retargets the related target (against
         // no node: the outermost host), and leaves it so after dispatch
         if (!isNode && inShadowTree(rel)) setRel(ev, wrap(shadow().retarget(rel._i, 0)));
@@ -378,6 +378,12 @@ class Event {
         const composed = ev.#composed;
         let pid = parentId(S, tId, tId0, composed);
         while (pid !== 0) {
+          // jsdom's `slotable` / `slotInClosedTree`: the previous item's parent is its assigned slot
+          let slotInClosed = false;
+          if (viaSlot) {
+            path[path.length - 1].slotted = true;
+            slotInClosed = N.shadowMode(S.rootOf(pid)) === 1;
+          }
           let item;
           if (pid === WIN) {
             if (load) break;
@@ -388,14 +394,14 @@ class Event {
           rid = pid === WIN ? relId(0) : relId(pid);
           if (pid === WIN || underRoot(S, tRoot, pid)) {
             if (isClick && ev.#bubbles && activation === null && pid !== WIN && hasActivation(pid)) activation = item;
-            appendStruct(path, pid, item, null, relOf(rid), false);
+            appendStruct(path, pid, item, null, relOf(rid), slotInClosed);
           } else if (relNode !== 0 && pid === rid) {
             break;
           } else {
             tId = pid;
             tRoot = S.rootOf(pid);
             if (isClick && activation === null && hasActivation(pid)) activation = item;
-            appendStruct(path, pid, item, item, relOf(rid), false);
+            appendStruct(path, pid, item, item, relOf(rid), slotInClosed);
           }
           pid = pid === WIN ? 0 : parentId(S, pid, tId0, composed);
         }
@@ -1493,20 +1499,37 @@ function appendStruct(path, id, item, sat, rel, slotInClosedTree) {
     inShadow: false, // markShadowItems
     rootOfClosedTree: id > 0 && shadow().isShadowRoot(id) && N.shadowMode(id) === 1,
     slotInClosedTree,
+    slotted: false, // the next item is this node's assigned slot
   });
 }
 
 /**
+ * True if the event path of node `id` meets a shadow tree: `id` is in one, or it or an ancestor is assigned
+ * to a slot (a parent with `M.SHADOW` is a host; one table read per ancestor otherwise).
+ */
+function pathMeetsShadow(id) {
+  for (;;) {
+    const p = V.T[V.off(id) + F.PARENT];
+    if (!(p > 0)) return shadow().isShadowRoot(id);
+    if ((V.T[V.off(p) + F.META] & M.SHADOW) !== 0 && N.slotAssigned(id) !== 0) return true;
+    id = p;
+  }
+}
+
+/**
  * Sets `inShadow` (the item's root is a shadow root) on every node item of a built path in one backward pass:
- * the walk goes up a tree until its root, so an item's root is the first tree root at or after it.
+ * the walk goes up a tree until its root, so an item's root is the first tree root at or after it, unless the
+ * walk left the tree through a slot (a slotted item: its root is looked up).
  */
 function markShadowItems(S, path) {
   let inShadow = false;
   for (let i = path.length - 1; i >= 0; i--) {
-    const id = path[i].id;
+    const st = path[i];
+    const id = st.id;
     if (id === WIN) continue;
-    if (!(V.T[V.off(id) + F.PARENT] > 0)) inShadow = S.isShadowRoot(id);
-    path[i].inShadow = inShadow;
+    if (st.slotted) inShadow = S.isShadowRoot(S.rootOf(id));
+    else if (!(V.T[V.off(id) + F.PARENT] > 0)) inShadow = S.isShadowRoot(id);
+    st.inShadow = inShadow;
   }
 }
 
@@ -1522,15 +1545,29 @@ function underRoot(S, root, id) {
   return S.isShadowIncludingInclusiveAncestor(root, id);
 }
 
+/** Set by `parentId`: the parent it returned is the node's assigned slot. */
+let viaSlot = false;
+
 /**
  * DOM "get the parent" of node `id` for an event first dispatched at `first`: the parent node, WIN for a
  * document (the caller drops it for `load` or a window-less document), a shadow root's host unless the event
  * is not composed and this is the target's own root; 0 for none.
  */
 function parentId(S, id, first, composed) {
+  viaSlot = false;
   const o = V.off(id);
   const p = V.T[o + F.PARENT];
-  if (p > 0) return p;
+  if (p > 0) {
+    // a host's child goes to its assigned slot (jsdom `Node-impl.js` `_getTheParent`)
+    if ((V.T[V.off(p) + F.META] & M.SHADOW) !== 0) {
+      const slot = N.slotAssigned(id);
+      if (slot !== 0) {
+        viaSlot = true;
+        return slot;
+      }
+    }
+    return p;
+  }
   const meta = V.T[o + F.META];
   if ((meta & M.KIND) === K.DOCUMENT) return WIN;
   if ((meta & (M.KIND | M.SHADOW)) === (K.FRAGMENT | M.SHADOW)) {

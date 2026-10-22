@@ -114,6 +114,10 @@ struct ObsState {
     recs: Vec<Record>,
     ids: Vec<NodeId>,
     olds: String,
+    /// Queued a record since the current delivery took its snapshot (DOM "mutation observers" list).
+    active: bool,
+    /// In the snapshot of the delivery in progress (DOM "notify list").
+    in_round: bool,
 }
 
 /// MutationObserver registry and pending records (`Env.mo`).
@@ -279,6 +283,7 @@ impl MoState {
             st.olds.push_str(s);
         }
         st.recs.push(rec);
+        st.active = true;
         self.pending += 1;
     }
 
@@ -294,10 +299,12 @@ impl MoState {
     }
 }
 
-fn set_pending(e: &mut Env) {
+/// Mirrors "records or signal slots pending" into bit 0 of `EP[MO_PENDING]`.
+pub(crate) fn set_pending(e: &mut Env) {
     // bit 0 of the post-mutation mask; bit 1 belongs to area B's UA tasks (forms::UA_TASKS_BIT)
     let other = e.ep.get(ep::MO_PENDING) & !1;
-    e.ep.set(ep::MO_PENDING, other | (e.mo.pending != 0) as u32);
+    let pending = e.mo.pending != 0 || !e.shadow.signals.is_empty();
+    e.ep.set(ep::MO_PENDING, other | pending as u32);
 }
 
 /// Queue a childList record (`added`/`removed` in order; `prev`/`next` siblings, 0 = null). Removed nodes
@@ -483,11 +490,24 @@ impl Env {
     /// queue (written to OUT, see [`Env::mo_encode`]) and removes the transient registrations of every
     /// observer in `(after, taken]` (all of `(after, max]` when none has records). Returns the old-values
     /// string.
+    ///
+    /// The first call of a delivery (`after == 0`) snapshots the observers that queued records since the last
+    /// one (DOM "notify mutation observers" step 2): an observer that receives its first record from another
+    /// observer's callback waits for the next delivery, as in jsdom.
     pub fn mo_take(&mut self, after: u32, max: u32) -> &str {
+        if after == 0 {
+            for s in &mut self.mo.observers {
+                s.in_round = std::mem::take(&mut s.active);
+            }
+        }
         let found = if after >= max {
             None
         } else {
-            self.mo.observers.iter().find(|s| s.id > after && s.id <= max && !s.recs.is_empty()).map(|s| s.id)
+            self.mo
+                .observers
+                .iter()
+                .find(|s| s.id > after && s.id <= max && s.in_round && !s.recs.is_empty())
+                .map(|s| s.id)
         };
         let upto = found.unwrap_or(max);
         remove_transients(self, |t| t.reg.obs > after && t.reg.obs <= upto);

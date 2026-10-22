@@ -33,6 +33,7 @@ pub mod parse;
 pub mod range;
 pub mod serialize;
 pub mod shadow;
+pub mod slots;
 pub mod string;
 pub mod table;
 pub mod text;

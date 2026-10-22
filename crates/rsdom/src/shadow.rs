@@ -34,6 +34,12 @@ pub mod mode {
 pub struct ShadowState {
     /// mode of each shadow root, by root id
     modes: FxHashMap<NodeId, u32>,
+    /// assigned slot of each assigned slottable (crate::slots, DESIGN §42)
+    pub(crate) assigned_slot: FxHashMap<NodeId, NodeId>,
+    /// assigned nodes of each slot that has some
+    pub(crate) assigned_nodes: FxHashMap<NodeId, Vec<NodeId>>,
+    /// DOM "signal slots": slots to fire `slotchange` at, in signal order
+    pub(crate) signals: Vec<NodeId>,
 }
 
 impl ShadowState {

@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2137 | 162751 | 159285 | 97.9% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 166 | 2578 | 2464 | 95.6% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2153 | 162751 | 159424 | 98.0% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 166 | 2578 | 2469 | 95.8% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2314** | **167724** | **163756** | **97.6%** |
+| **all** | **2615** | **2330** | **167724** | **163900** | **97.7%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -30,7 +30,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 226 | 107 | 94.0% | assert_equals: wrong value (77); missing global: customElements (20); harness TIMEOUT: (no message) (3) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 23 | 99.4% | assert_equals: wrong value (17); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 102 | 53 | 90.3% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (17); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 102 | 48 | 91.3% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); assert_equals: wrong value (11); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 261 | 19 | 99.5% | assert_true: wrong value (7); assert_false: wrong value (4); assert_equals: wrong value (3) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
@@ -40,7 +40,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XPath | 28 | 27 | 1 | 99.6% | read of null (.getElementById) (1) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
 | 3 | Core DOM and HTML behaviour no other item claims | 955 | 888 | 172 | 99.3% | assert_true: wrong value (44); assert_equals: wrong value (33); harness ERROR: read of undefined (.define) (25) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 89 | 197 | 76.6% | assert_equals: wrong value (60); missing method: .assignedNodes() (54); assert_true: wrong value (41) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 105 | 58 | 93.1% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16); harness ERROR: missing global: customElements (7) |
 | 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |

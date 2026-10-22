@@ -466,6 +466,9 @@ impl Env {
             if connected {
                 self.connect_subtree(n);
             }
+            if self.shadow.any() {
+                self.slot_insert(parent, n);
+            }
         }
         if records == Records::Queue {
             crate::mo::queue_child_list(self, parent, &nodes, &[], prev, child);
@@ -498,9 +501,13 @@ impl Env {
             self.node_iterators_pre_remove(node);
         }
         let was_connected = r.meta & meta::CONNECTED != 0;
+        let slots = if self.shadow.any() { Some(self.slot_pre_remove(parent, node)) } else { None };
         self.unlink(node);
         if was_connected {
             self.disconnect_subtree(node);
+        }
+        if let Some((in_shadow, has_slot)) = slots {
+            self.slot_remove(parent, node, in_shadow, has_slot);
         }
         if records == Records::Queue {
             crate::mo::queue_child_list(self, parent, &[], &[node], r.prev, r.next);

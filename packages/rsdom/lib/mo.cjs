@@ -12,6 +12,7 @@
 
 const rt = require('./runtime.cjs');
 const context = require('./context.cjs');
+const { shadowsExist } = require('./shadow.cjs');
 
 const { N, V, EPI, TOKEN } = rt;
 
@@ -247,6 +248,9 @@ function onPending() {
 function tick() {
   queued = false;
   stats.ticks++;
+  // DOM "notify mutation observers" step 3: the signal slot list is taken before the callbacks run
+  const ns = shadowsExist() ? N.slotTakeSignals() : 0;
+  const signals = ns === 0 ? null : Array.from(rt.outIds(ns));
   const max = nextId - 1;
   let after = 0;
   for (;;) {
@@ -259,6 +263,16 @@ function tick() {
     const records = decode(w, s);
     const mo = live.get(obs);
     if (mo !== undefined && records.length !== 0) deliver(mo, records);
+  }
+  if (signals !== null) fireSlotChanges(signals);
+}
+
+/** Step 6: a trusted, bubbling `slotchange` at each signalled slot (src/slots.rs, DESIGN §42). */
+function fireSlotChanges(slots) {
+  const events = require('./events.cjs');
+  for (const id of slots) {
+    const slot = rt.wrap(id);
+    if (slot !== null) events.fire(slot, 'slotchange', { bubbles: true });
   }
 }
 

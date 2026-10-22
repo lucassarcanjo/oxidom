@@ -813,17 +813,11 @@ custom-elements/upgrading/upgrading-parser-created-element.html: [fail, "missing
 dom/collections/HTMLCollection-as-prototype.html:
   "HTMLCollection as a prototype and setting own properties": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-delete.html:
-  "Loose name": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Strict id": [fail, "assert_true: wrong value"]
   "Strict name": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-live-mutations.window.html:
   "HTMLCollection live mutations: HTMLCollection ownPropertyNames": [fail, "assert_object_equals: wrong value"]
-dom/collections/HTMLCollection-own-props.html:
-  "Setting non-array index while named property exists (loose)": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Setting non-array index while named property exists (strict)": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-supported-property-indices.html:
-  "Handling of property names that look like integers around 2^32": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Handling of property names that look like negative integers": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Trying to delete an indexed property name should never work": [fail, "read of undefined (.value)"]
   "Trying to set an expando that would shadow an already-existing indexed property": [fail, "read of undefined (.value)"]
   "Trying to set an expando with an indexed property name past the end of the list": [fail, "assert_true: wrong value"]
@@ -831,7 +825,6 @@ dom/collections/HTMLCollection-supported-property-names.html:
   "Object.getOwnPropertyNames on HTMLCollection": [fail, "assert_array_equals: wrong value"]
   "Object.getOwnPropertyNames on HTMLCollection with expando object": [fail, "assert_array_equals: wrong value"]
   "Object.getOwnPropertyNames on HTMLCollection with non-HTML namespace": [fail, "assert_array_equals: wrong value"]
-  "Trying to set an expando that shadows a named property that gets added later": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Trying to set an expando that would shadow an already-existing named property": [fail, "read of undefined (.value)"]
 dom/collections/namednodemap-supported-property-names.html: [fail, "assert_array_equals: wrong value"]
 dom/events/Body-FrameSet-Event-Handlers.html:
@@ -949,15 +942,6 @@ dom/nodes/Node-childNodes.html:
   "Node.childNodes on a DocumentFragment.": [fail, "assert_array_equals: wrong value"]
   "Node.childNodes on an Element.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Node-cloneNode-document-allow-declarative-shadow-roots.window.html: [fail, "missing method: .write()"]
-dom/nodes/Node-lookupNamespaceURI.html:
-  "Disconnected Attr has no namespace URI matching \"xml\"": [fail, "assert_equals: wrong value"]
-  "Disconnected Attr has no namespace URI matching \"xmlns\"": [fail, "assert_equals: wrong value"]
-  "Document without documentElement has no namespace URI matching \"xml\"": [fail, "assert_equals: wrong value"]
-  "Document without documentElement has no namespace URI matching \"xmlns\"": [fail, "assert_equals: wrong value"]
-  "DocumentFragment should have null namespace, prefix \"xml\"": [fail, "assert_equals: wrong value"]
-  "DocumentFragment should have null namespace, prefix \"xmlns\"": [fail, "assert_equals: wrong value"]
-  "DocumentType should have null namespace, prefix \"xml\"": [fail, "assert_equals: wrong value"]
-  "DocumentType should have null namespace, prefix \"xmlns\"": [fail, "assert_equals: wrong value"]
 dom/nodes/NodeList-live-mutations.window.html:
   "NodeList live mutations: NodeList ownPropertyNames": [fail, "assert_object_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-escapes.html:
@@ -965,12 +949,6 @@ dom/nodes/ParentNode-querySelector-escapes.html:
   "\"surrogateSecond\\udd11\" should never match with \"#surrogateSecond\\\\dd11\"": [fail, "assert_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-host-pseudo-class.html: [fail, "assert_equals: wrong value"]
 dom/nodes/Text-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
-dom/nodes/attributes-namednodemap.html:
-  "an attribute set by setAttribute should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
-  "an attribute with a null namespace should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
-  "an attribute with a set namespace should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
-  "setNamedItem and removeNamedItem on `attributes` should add and remove fields from `attributes`": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "setNamedItem and removeNamedItem on `attributes` should not interfere with existing method names": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/nodes/getElementsByClassName-14.htm:
   "document.getElementsByClassName(): case-insensitive (quirks mode)": [fail, "assert_array_equals: wrong value"]
 dom/nodes/insertion-removing-steps/Node-append-form-and-script-from-fragment.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -1177,14 +1155,13 @@ html/dom/aria-element-reflection.html:
 html/dom/documents/dom-tree-accessors/Document.body.html:
   "Setting document.body to a string.": [fail, "assert_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/document.forms.html:
-  "document.forms": [fail, "read of undefined (.id)"]
   "document.forms getOwnPropertyNames": [fail, "assert_array_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/document.images.html:
-  "Two img elements with the same id": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Two img elements with the same name": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "img with id": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "img with id and name": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "img with name": [fail, "assert_equals: got undefined (missing attribute/API)"]
+  "Two img elements with the same id": [fail, "assert_true: wrong value"]
+  "Two img elements with the same name": [fail, "assert_true: wrong value"]
+  "img with id": [fail, "assert_true: wrong value"]
+  "img with id and name": [fail, "assert_true: wrong value"]
+  "img with name": [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/document.title-09.html:
   "No title element in SVG document": [fail, "assert_equals: wrong value"]
   "Title element in SVG document": [fail, "assert_equals: wrong value"]
@@ -1678,11 +1655,8 @@ html/infrastructure/common-dom-interfaces/collections/htmlallcollection.html:
   "namedItem method with no argument": [fail, "read of undefined (.namedItem)"]
   "namedItem method with null": [fail, "read of undefined (.namedItem)"]
   "namedItem method with undefined": [fail, "read of undefined (.namedItem)"]
-html/infrastructure/common-dom-interfaces/collections/htmlformcontrolscollection.html:
-  "HTMLFormControlsCollection[name] must return the named item": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/infrastructure/common-dom-interfaces/collections/htmloptionscollection.html:
   "Add non-option to collection": [fail, "assert_true: wrong value"]
-  "HTMLOptionsCollection [name] method return the item with name": [fail, "assert_true: wrong value"]
   "Insert <p><option>6</option></p> into <select>": [fail, "assert_equals: wrong value"]
 html/interaction/focus/focus-selection.html: [fail, "Selection.getRangeAt() throws: … is not a valid index."]
 html/interaction/focus/processing-model/focus-fixup-rule-one-no-dialogs.html:
@@ -1728,9 +1702,6 @@ html/semantics/document-metadata/the-style-element/style_load_async.html: [timeo
 html/semantics/document-metadata/the-style-element/style_load_event.html: [fail, "assert_equals: wrong value"]
 html/semantics/document-metadata/the-style-element/style_media.html: [fail, "assert_equals: wrong value"]
 html/semantics/document-metadata/the-style-element/style_media_change.html: [fail, "assert_equals: wrong value"]
-html/semantics/embedded-content/media-elements/audio_volume_check.html:
-  "Check if audio.volume is set to new value greater than 1.0 that expecting an IndexSizeError exception is to be thrown": [fail, "assert_true: wrong value"]
-  "Check if media.volume is set to new value less than 0.0 that expecting an IndexSizeError exception is to be thrown": [fail, "assert_true: wrong value"]
 html/semantics/embedded-content/media-elements/autoplay-supported-by-permissions-policy.html: [fail, "read of undefined (.features)"]
 html/semantics/embedded-content/media-elements/error-sequence.html: [fail, "missing global: MediaSource"]
 html/semantics/embedded-content/media-elements/event_volumechange.html: [timeout, "harness TIMEOUT: (no message)"]
@@ -1746,7 +1717,6 @@ html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLMediaE
   "HTMLMediaElement.addTextTrack null second and third arg": [fail, "missing method: .addTextTrack()"]
   "HTMLMediaElement.addTextTrack subtitles first arg": [fail, "missing method: .addTextTrack()"]
   "HTMLMediaElement.addTextTrack undefined second and third arg": [fail, "missing method: .addTextTrack()"]
-html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLMediaElement/textTracks.html: [fail, "read of undefined (.length)"]
 html/semantics/embedded-content/media-elements/interfaces/HTMLElement/HTMLTrackElement/kind.html:
   "HTMLTrackElement.kind content attribute \"captions\\u0000\"": [fail, "assert_equals: wrong value"]
   "HTMLTrackElement.kind content attribute uppercase": [fail, "assert_equals: wrong value"]
@@ -1789,6 +1759,7 @@ html/semantics/embedded-content/media-elements/interfaces/TrackEvent/constructor
 html/semantics/embedded-content/media-elements/interfaces/TrackEvent/createEvent.html: [fail, "missing method: .createEvent()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-candidate-insert-before.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor.html: [fail, "assert_unreached: Reached unreachable code"]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-in-sync-event.html: [fail, "assert_equals: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source-not-in-document.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-load.html: [fail, "missing method: .load()"]
@@ -1801,11 +1772,55 @@ html/semantics/embedded-content/media-elements/loading-the-media-resource/resour
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-pause.html: [fail, "missing method: .pause()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-play.html: [fail, "missing method: .play()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-remove-from-document-networkState.html: [fail, "assert_equals: wrong value"]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-remove-src.html: [fail, "assert_equals: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-set-src-networkState.html: [fail, "missing method: .play()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-set-src-not-in-document.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-set-src.html: [fail, "assert_unreached: wrong value"]
-html/semantics/embedded-content/media-elements/location-of-the-media-resource/currentSrc.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
-html/semantics/embedded-content/media-elements/mime-types/canPlayType.html: [fail, "harness ERROR: missing method: .canPlayType()", {pass: 1}]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-remove-source.html: [fail, "assert_equals: wrong value"]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-remove-src.html: [fail, "assert_equals: wrong value"]
+html/semantics/embedded-content/media-elements/location-of-the-media-resource/currentSrc.html: [timeout, "harness TIMEOUT: (no message)", {pass: 2}]
+html/semantics/embedded-content/media-elements/mime-types/canPlayType.html:
+  "audio/mp4 (optional)": [fail, "PRECONDITION_FAILED: audio/mp…"]
+  "audio/mp4; codecs=\"iamf.001.001.Opus\" (optional)": [fail, "PRECONDITION_FAILED: audio/mp…"]
+  "audio/mp4; codecs=\"mp4a.40.2\" (optional)": [fail, "PRECONDITION_FAILED: audio/mp…"]
+  "audio/ogg (optional)": [fail, "PRECONDITION_FAILED: audio/ogg"]
+  "audio/ogg; codecs=\"opus\" (optional)": [fail, "PRECONDITION_FAILED: audio/ogg"]
+  "audio/ogg; codecs=\"vorbis\" (optional)": [fail, "PRECONDITION_FAILED: audio/ogg"]
+  "audio/wav (optional)": [fail, "PRECONDITION_FAILED: audio/wav"]
+  "audio/wav; codecs=\"1\" (optional)": [fail, "PRECONDITION_FAILED: audio/wav"]
+  "audio/webm (optional)": [fail, "PRECONDITION_FAILED: audio/webm"]
+  "audio/webm; codecs=\"opus\" (optional)": [fail, "PRECONDITION_FAILED: audio/webm"]
+  "audio/webm; codecs=\"vorbis\" (optional)": [fail, "PRECONDITION_FAILED: audio/webm"]
+  "video/3gpp (optional)": [fail, "PRECONDITION_FAILED: video/…gpp"]
+  "video/3gpp codecs order": [fail, "PRECONDITION_FAILED: video/…gpp"]
+  "video/3gpp codecs subset": [fail, "PRECONDITION_FAILED: video/…gpp"]
+  "video/3gpp; codecs=\"mp4v.20.8\" (optional)": [fail, "PRECONDITION_FAILED: video/…gpp"]
+  "video/3gpp; codecs=\"samr\" (optional)": [fail, "PRECONDITION_FAILED: video/…gpp"]
+  "video/mp4 (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4 codecs order": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4 codecs subset": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"avc1.42E01E\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"avc1.4D401E\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"avc1.58A01E\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"avc1.64001E\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"mp4a.40.2\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"mp4v.20.240\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/mp4; codecs=\"mp4v.20.8\" (optional)": [fail, "PRECONDITION_FAILED: video/mp…"]
+  "video/ogg (optional)": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/ogg codecs order": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/ogg codecs subset": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/ogg; codecs=\"opus\" (optional)": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/ogg; codecs=\"theora\" (optional)": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/ogg; codecs=\"vorbis\" (optional)": [fail, "PRECONDITION_FAILED: video/ogg"]
+  "video/webm (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm codecs order": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm codecs subset": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"opus\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"vorbis\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"vp8\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"vp8.0\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"vp9\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
+  "video/webm; codecs=\"vp9.0\" (optional)": [fail, "PRECONDITION_FAILED: video/webm"]
 html/semantics/embedded-content/media-elements/playing-the-media-resource/pause-remove-from-document-networkState.html: [fail, "missing method: .play()"]
 html/semantics/embedded-content/media-elements/playing-the-media-resource/playbackRate.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/media-elements/track/track-element/src-clear-cues.html: [fail, "write to undefined (.mode)"]
@@ -1821,10 +1836,6 @@ html/semantics/embedded-content/media-elements/track/track-element/track-load-er
 html/semantics/embedded-content/media-elements/track/track-element/track-node-add-remove.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/embedded-content/media-elements/track/track-element/track-selection-task-order.html: [fail, "missing method: .play()"]
 html/semantics/embedded-content/media-elements/track/track-element/vtt-cue-float-precision.html: [fail, "missing global: VTTCue"]
-html/semantics/embedded-content/media-elements/video_volume_check.html:
-  "Check if media.volume is set to new value less than 0.0 that expecting an IndexSizeError exception is to be thrown": [fail, "assert_true: wrong value"]
-  "Check if video.volume is set to new value greater than 1.0 that expecting an IndexSizeError exception is to be thrown": [fail, "assert_true: wrong value"]
-html/semantics/embedded-content/media-elements/volume_nonfinite.html: [fail, "assert_true: wrong value"]
 html/semantics/embedded-content/media-elements/volumechange-ratechange-queue-task.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/embedded-content/the-img-element/Image-constructor.html:
   "NamedConstructor creates the correct object structure.": [fail, "assert_false: wrong value"]
@@ -1950,11 +1961,6 @@ html/semantics/forms/form-submission-0/newline-normalization.html:
   "Constructing the entry list shouldn't perform newline normalization: \\r in the filename": [fail, "missing global: DataTransfer"]
   "Constructing the entry list shouldn't perform newline normalization: \\r\\n in the filename": [fail, "missing global: DataTransfer"]
 html/semantics/forms/form-submission-0/submit-event-shadow-host.html: [fail, "read of null (.getElementById)"]
-html/semantics/forms/resetting-a-form/reset-form.html:
-  "Resetting <input> by calling the reset() method": [fail, "read of undefined (.fm1)"]
-  "Resetting <output> by calling the reset() method": [fail, "read of undefined (.fm1)"]
-  "Resetting <select> by calling the reset() method": [fail, "read of undefined (.fm1)"]
-  "Resetting <textarea> by calling the reset() method": [fail, "read of undefined (.fm1)"]
 html/semantics/forms/textfieldselection/select-event.html: [fail, "assert_unreached: wrong value", {pass: 162}]
 html/semantics/forms/textfieldselection/selection-start-end-extra.html:
   "Removing child nodes in non-dirty textarea should make selection{Start,End} 0": [fail, "assert_equals: wrong value"]
@@ -1965,22 +1971,17 @@ html/semantics/forms/the-button-element/button-click-submits-with-commandfor.htm
   "clicking a button (implicit type) should NOT trigger a submit (with command and commandfor attribute)": [fail, "assert_false: wrong value"]
   "clicking a button (implicit type) should NOT trigger a submit (with command attribute)": [fail, "assert_false: wrong value"]
   "clicking a button (implicit type) should NOT trigger a submit (with commandfor attribute)": [fail, "assert_false: wrong value"]
-html/semantics/forms/the-button-element/button-events.html: [fail, "harness ERROR: read of undefined (.fm1)"]
 html/semantics/forms/the-datalist-element/datalistoptions.html:
   "options label/value": [fail, "read of undefined (.length)"]
 html/semantics/forms/the-datalist-element/input-list-detached.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-fieldset-element/HTMLFieldSetElement.html:
   "The controls must root at the fieldset element": [fail, "read of undefined (.txt_inner)"]
-  "The form attribute must return the fieldset's form owner": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/forms/the-fieldset-element/disabled-003.html: [fail, "assert_not_equals: wrong value"]
 html/semantics/forms/the-fieldset-element/fieldset-intrinsic-size.html: [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-form-element/form-action-reflection-with-base-url.html:
   "An action URL should be resolved relative to the document's base URL (not the document's URL)": [fail, "assert_equals: wrong value"]
 html/semantics/forms/the-form-element/form-autocomplete.html: [fail, "harness ERROR: read of undefined (.missing_attribute)"]
-html/semantics/forms/the-form-element/form-elements-matches.html:
-  "form.elements should include elements whose name starts with a number": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/forms/the-form-element/form-elements-nameditem-01.html:
-  "elements collection should include fieldsets": [fail, "read of undefined (.form)"]
   "elements collection should return elements or RadioNodeLists": [fail, "read of undefined (.form)"]
 html/semantics/forms/the-form-element/form-indexed-element-shadow.html: [fail, "assert_true: wrong value"]
 html/semantics/forms/the-form-element/form-indexed-element.html:
@@ -2251,7 +2252,7 @@ html/semantics/tabular-data/processing-model-1/rowspan-0-quirks.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
 html/semantics/tabular-data/processing-model-1/rowspan-0.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
-html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_true: wrong value"]
+html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/text-level-semantics/the-a-element/a-stringifier.html:
   "HTMLAnchorElement stringifier 10": [fail, "assert_equals: wrong value"]
   "HTMLAnchorElement stringifier 2": [fail, "assert_true: wrong value"]

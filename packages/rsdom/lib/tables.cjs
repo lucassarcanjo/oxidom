@@ -51,7 +51,7 @@ const LIVE = new WeakMap();
 function live(el, key, items) {
   let s = LIVE.get(el);
   if (s === undefined) LIVE.set(el, (s = {}));
-  return (s[key] ??= liveQueryCollection({ deps: TREE_DEPS, items }));
+  return (s[key] ??= liveQueryCollection({ deps: TREE_DEPS, items }))._synced();
 }
 
 /** WebIDL `long` with a default of -1 (the optional index arguments). */

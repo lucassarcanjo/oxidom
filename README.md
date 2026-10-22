@@ -42,7 +42,7 @@ Measured against jsdom 30.1.3:
 
 | measure | rsdom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.4% (163,357 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
+| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.4% (163,433 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
 | real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 

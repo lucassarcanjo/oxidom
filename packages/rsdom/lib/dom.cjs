@@ -16,7 +16,7 @@ const context = require('./context.cjs');
 const interfaces = require('./generated/interfaces.cjs');
 const {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeListFromIds, ListIterator, installIndices,
-  coverIndices,
+  coverIndices, installNamedProperties,
 } = require('./collections.cjs');
 const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
 
@@ -309,10 +309,13 @@ class Node extends EventTarget {
 
   lookupNamespaceURI(prefix) {
     if (prefix === '') prefix = null;
+    // DOM "locate a namespace": doctypes and fragments have none; the xml / xmlns prefixes are an element's
+    const t = this.nodeType;
+    let el = t === 1 ? this : t === 9 ? this.documentElement : t === 2 ? this.ownerElement
+      : t === 10 || t === 11 ? null : this.parentElement;
+    if (el === null) return null;
     if (prefix === 'xml') return NS.XML;
     if (prefix === 'xmlns') return NS.XMLNS;
-    let el = this instanceof Element ? this : this instanceof Document ? this.documentElement
-      : this instanceof Attr ? this.ownerElement : this.parentElement;
     for (; el !== null; el = el.parentElement) {
       if (el.namespaceURI !== null && el.prefix === prefix) return el.namespaceURI;
       const v = prefix === null ? el.getAttributeNS(NS.XMLNS, 'xmlns') : el.getAttributeNS(NS.XMLNS, prefix);
@@ -1224,10 +1227,15 @@ function cachedAttrByQname(el, q) {
  * Live NamedNodeMap, re-synced against the element's `attr_ver` with one `attrsAll` crossing. Like the live
  * collections, indices are prototype getters (always current) and internal state is #private.
  */
+/** Shared own-index getters of NamedNodeMaps (`NNM_GET[i]` returns `this._get(i)`). */
+const NNM_GET = [];
+
 class NamedNodeMap {
   #e = null;
   #v = -1;
   #a = [];
+  /** own index properties [0, #own) (`#ownIndices`) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -1262,6 +1270,37 @@ class NamedNodeMap {
     this.#a = a;
     if (n > NNM_IDX) NNM_IDX = installIndices(NamedNodeMap.prototype, NNM_IDX, n);
     if (st.map !== null) for (const at of st.map.values()) if (!live.has(at)) detachAttr(at, at._v);
+    if (n !== this.#own) this.#ownIndices(n);
+  }
+
+  /**
+   * jsdom's NamedNodeMap is a Proxy whose indices are own enumerable properties: kept exact (from `#own`, the
+   * count defined) on every `_sync` that sees a change (the `attributes` getter and every read sync), as shared
+   * accessors that read the live map. Names read through `installNamedProperties` (DESIGN §4.3).
+   */
+  #ownIndices(n) {
+    if (!Object.isExtensible(this)) return;
+    for (let i = this.#own; i < n; i++) {
+      let get = NNM_GET[i];
+      if (get === undefined) {
+        get = NNM_GET[i] = function () {
+          return #e in this ? this._get(i) : undefined;
+        };
+      }
+      Reflect.defineProperty(this, i, { get, enumerable: true, configurable: true });
+    }
+    for (let i = n; i < this.#own; i++) Reflect.deleteProperty(this, i);
+    this.#own = n;
+  }
+
+  static {
+    // the attributes' qualified names, except names with ASCII uppercase on an HTML element in an HTML document
+    installNamedProperties(NamedNodeMap.prototype, (m, key) => {
+      if (!(#e in m)) return undefined;
+      const el = m.#e;
+      if (/[A-Z]/.test(key) && el.namespaceURI === NS.HTML && (V.T[V.off(el._i) + F.META] & M.HTML_DOC) !== 0) return undefined;
+      return m.getNamedItem(key) ?? undefined;
+    });
   }
 
   _get(i) {
@@ -1578,7 +1617,9 @@ class Element extends Node {
 
   get attributes() {
     const st = attrState(this);
-    return st.nnm ?? (st.nnm = NamedNodeMap._for(this));
+    const m = st.nnm ?? (st.nnm = NamedNodeMap._for(this));
+    m._sync(); // own index and name properties (DESIGN §4.3); one compare when the attributes did not change
+    return m;
   }
 
   getAttributeNode(qualifiedName) {

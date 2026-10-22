@@ -3,9 +3,9 @@
 // `stepUp()` / `stepDown()`, ported from jsdom 30 (refs/jsdom/lib/jsdom/living/nodes/HTMLInputElement-impl.js and
 // helpers/number-and-date-inputs.js). Parsing a value string by type is Rust's (`formNumber`, the same
 // conversion `valueAsNumber` and validity use); what stays here is jsdom's Decimal stepping and the
-// number-to-string serializers, whose result is written through the `value` setter like any script write.
+// number-to-string serializers, whose result Rust stores as the raw value (`valueSetRaw`, jsdom's `#setValue`).
 
-const Decimal = require('decimal.js');
+let Decimal; // decimal.js, loaded on the first step (startup cost, DESIGN §15.2)
 const rt = require('./runtime.cjs');
 
 const { N } = rt;
@@ -121,6 +121,13 @@ function stepBase(el, type) {
   return toNumber(type, el.getAttribute('min')) ?? toNumber(type, el.getAttribute('value')) ?? (type === 'week' ? -259_200_000 : 0);
 }
 
+/** jsdom `#setValue`: the raw value, without the setter's sanitization or dirty flag (React's value tracker
+ * never sees it, so a following input event reaches onChange, as in jsdom). */
+function setRaw(el, v) {
+  N.valueSetRaw(el._i, v);
+  rt.mutated();
+}
+
 function stepAlign(v, step, base, up) {
   return new Decimal(v).minus(base).toNearest(step, up ? Decimal.ROUND_UP : Decimal.ROUND_DOWN).add(base);
 }
@@ -128,6 +135,7 @@ function stepAlign(v, step, base, up) {
 /** `stepUp(n)` / `stepDown(n)` (jsdom `_stepUpdate`). */
 function stepUpdate(el, type, n, isUp) {
   const name = isUp ? 'stepUp' : 'stepDown';
+  Decimal ??= require('decimal.js'); // eslint-disable-line global-require
   if (!NUMERIC.has(type)) {
     throw rt.domError(6, `Failed to invoke '${name}' method on 'HTMLInputElement': This input element does not support Number values.`);
   }
@@ -156,9 +164,9 @@ function stepUpdate(el, type, n, isUp) {
   if (min !== null && value.lt(min)) value = stepAlign(min, step, base, true);
   if (max !== null && value.gt(max)) value = stepAlign(max, step, base, false);
   if (isUp ? value.lt(before) : value.gt(before)) return;
-  el.value = numberToString(type, value.toNumber());
+  setRaw(el, numberToString(type, value.toNumber()));
 }
 
 const dateToString = (type, d) => DATE_TO_STRING[type](d);
 
-module.exports = { NUMERIC, DATE_TYPES, numberToString, dateToString, stringToDate, stepUpdate, parseFloatingPoint };
+module.exports = { setRaw, NUMERIC, DATE_TYPES, numberToString, dateToString, stringToDate, stepUpdate, parseFloatingPoint };

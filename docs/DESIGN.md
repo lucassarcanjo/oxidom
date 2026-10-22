@@ -1920,8 +1920,9 @@ helpers/number-and-date-inputs.js):
 - Value strings become numbers in Rust (`formNumber`, the `types::to_number` that `valueAsNumber` and validity
   already used), so min, max, step base and value agree with `validity` by construction.
 - `stepUp(n)` / `stepDown(n)` follow jsdom's `_stepUpdate` in decimal.js (now a dependency, as it is jsdom's), so
-  `0.1` steps give `0.3`, not `0.30000000000000004`. The result goes through the `value` setter like any script
-  write (sanitized, dirty flag set; jsdom writes the raw value, which is already sanitized).
+  `0.1` steps give `0.3`, not `0.30000000000000004`. The result is stored raw (`valueSetRaw`, jsdom's
+  `#setValue`): no sanitization, no dirty flag, and not through the `value` setter, so React's value tracker does
+  not record it and the next `input` event reaches `onChange`, as with jsdom.
 - `valueAsNumber` applies to every numeric type, `valueAsDate` to date, month, week and time; numbers serialize per
   type as jsdom's `convertNumberToStringByType` (UTC fields, ISO weeks, shortest times).
 - `<meter>` (min, max, value, low, high, optimum) and `<progress>` (value, max, position) compute from their

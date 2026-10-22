@@ -550,6 +550,15 @@ describe.each(DOMS)('forms [%s]', (kind) => {
     date.value = '2024-02-28';
     date.stepUp(2);
     expect(date.value).toBe('2024-03-01');
+    // jsdom's #setValue: the dirty flag stays clear, so the value still follows the attribute
+    const r = d.createElement('input');
+    r.type = 'range';
+    r.max = '10';
+    r.valueAsNumber = 100; // stored raw, not sanitized
+    expect(r.value).toBe('100');
+    r.stepDown();
+    r.setAttribute('value', '7');
+    expect(r.value).toBe('7');
     const t = d.createElement('input');
     t.type = 'text';
     expect(() => t.stepUp()).toThrow();
@@ -582,6 +591,9 @@ describe.each(DOMS)('forms [%s]', (kind) => {
       i.valueAsDate = 5;
     }).toThrow(/Date|object/);
     i.valueAsDate = null;
+    expect(i.value).toBe('');
+    i.value = '2020-01-01';
+    i.valueAsDate = undefined; // WebIDL object?: undefined is null
     expect(i.value).toBe('');
   });
 

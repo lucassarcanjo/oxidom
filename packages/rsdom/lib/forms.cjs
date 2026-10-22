@@ -1404,13 +1404,13 @@ function install(_rt, dom) {
       return N.inputNumber(this._i);
     },
     set valueAsNumber(v) {
-      const t = INPUT_TYPES[inputTypeOf(this._i)];
-      const n = Number(v);
+      const n = +v; // WebIDL unrestricted double (a BigInt throws)
       if (!Number.isFinite(n) && !Number.isNaN(n)) throw new TypeError('Failed to set infinite value as Number');
+      const t = INPUT_TYPES[inputTypeOf(this._i)];
       if (!inputNumber.NUMERIC.has(t)) {
         throw rt.domError(6, "Failed to set the 'valueAsNumber' property on 'HTMLInputElement': This input element does not support Number values.");
       }
-      this.value = Number.isNaN(n) ? '' : inputNumber.numberToString(t, n);
+      inputNumber.setRaw(this, Number.isNaN(n) ? '' : inputNumber.numberToString(t, n));
     },
     get valueAsDate() {
       const t = INPUT_TYPES[inputTypeOf(this._i)];
@@ -1420,6 +1420,11 @@ function install(_rt, dom) {
       return d === null ? null : new WDate(d.getTime());
     },
     set valueAsDate(v) {
+      // WebIDL `object?` first (undefined is null), then the type, then jsdom's `isDate`
+      if (v === undefined) v = null;
+      if (v !== null && typeof v !== 'object' && typeof v !== 'function') {
+        throw new TypeError("Failed to set the 'valueAsDate' property on 'HTMLInputElement': The provided value is not an object.");
+      }
       const t = INPUT_TYPES[inputTypeOf(this._i)];
       if (!inputNumber.DATE_TYPES.has(t)) {
         throw rt.domError(6, "Failed to set the 'valueAsDate' property on 'HTMLInputElement': This input element does not support Date values.");
@@ -1427,18 +1432,18 @@ function install(_rt, dom) {
       let time = null;
       if (v !== null) {
         try {
-          time = Date.prototype.getTime.call(v); // any realm's Date (jsdom `isDate`)
+          time = Date.prototype.getTime.call(v); // any realm's Date
         } catch {
           throw new TypeError("Failed to set the 'valueAsDate' property on 'HTMLInputElement': The provided value is not a Date.");
         }
       }
-      this.value = time === null || Number.isNaN(time) ? '' : inputNumber.dateToString(t, new Date(time));
+      inputNumber.setRaw(this, time === null || Number.isNaN(time) ? '' : inputNumber.dateToString(t, new Date(time)));
     },
     stepUp(n = 1) {
-      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], Number(n) | 0, true);
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], +n | 0, true); // WebIDL long
     },
     stepDown(n = 1) {
-      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], Number(n) | 0, false);
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], +n | 0, false); // WebIDL long
     },
     get files() {
       if (inputTypeOf(this._i) !== TY.FILE) return null;
@@ -1793,8 +1798,8 @@ function install(_rt, dom) {
     return v === null ? null : inputNumber.parseFloatingPoint(v);
   };
   const setDouble = (el, attr, iface, v) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) throw new TypeError(`Failed to set the '${attr}' property on '${iface}': The provided double value is non-finite.`);
+    const n = +v; // WebIDL double (a BigInt throws)
+    if (!Number.isFinite(n)) throw new TypeError(`Failed to set the '${attr}' property on '${iface}': The provided value is not a finite floating-point value.`);
     el.setAttribute(attr, String(n));
   };
   const meterMin = (el) => num(el, 'min') ?? 0;
@@ -1845,7 +1850,7 @@ function install(_rt, dom) {
       return progressMax(this);
     },
     set max(v) {
-      if (Number(v) > 0 || !Number.isFinite(Number(v))) setDouble(this, 'max', 'HTMLProgressElement', v); // [ReflectPositive]
+      if (!(+v <= 0)) setDouble(this, 'max', 'HTMLProgressElement', v); // [ReflectPositive]
     },
     get position() {
       return this.hasAttribute('value') ? progressValue(this) / progressMax(this) : -1;

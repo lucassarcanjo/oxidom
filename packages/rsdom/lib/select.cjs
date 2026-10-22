@@ -308,11 +308,11 @@ function install(rt, dom) {
 
   // jsdom Document-impl.js `#namedPropertyElements` / namedGet, one name at a time: `N.docNamed` walks the
   // document natively for the elements contributing `name` (HTML embed / form / iframe / img / object by name,
-  // object and named img by id). The answer is memoised per document and name on the tree epoch and EP[NAMED]
-  // (bumped by Rust only for a name / id change on a connected element of those five), so repeated probes of a
-  // missing member (`document.documentMode`) cost one stamp compare until the tree or a relevant attribute
-  // changes, then one native walk without wrappers.
-  const NAMED_DEPS = deps('TREE', 'NAMED');
+  // object and named img by id). The answer is memoised per document and name on EP[NAMED], which Rust bumps only
+  // when one of those five elements is connected or disconnected or its name / id changes (jsdom drops its cache
+  // on the same events), so probes of a missing member (`document.documentMode`) cost one stamp compare across
+  // unrelated mutations, and one native walk without wrappers after a relevant one.
+  const NAMED_DEPS = deps('NAMED');
   const NAMED = new WeakMap();
   function namedIds(doc, name) {
     let s = NAMED.get(doc);
@@ -351,7 +351,7 @@ function install(rt, dom) {
       }
       return c;
     },
-    { indices: true },
+    { indices: true, internal: true },
   );
 
   // Exposed for tests / benches (not part of the DOM surface).

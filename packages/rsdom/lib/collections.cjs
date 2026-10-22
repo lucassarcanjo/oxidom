@@ -110,15 +110,16 @@ function isArrayIndex(key) {
  * `lookup(receiver, key)`, which returns the item or undefined. Nothing is synced on mutation (own name
  * properties re-derived after every change made mutation loops 10-35x slower than jsdom); the price is that
  * names are not own: `in`, `hasOwnProperty`, `Object.keys` and descriptors don't see them (the `has` trap
- * has no receiver). Names the rest of the chain has, array indices (unless `indices`: an interface without an
- * indexed getter) and names starting with `_` never reach `lookup`: the facade keeps its fields (`_i`, `_ev`,
- * lazily set `_ct`, ...) as `_` properties, and a page's `<form name="_ct">` must not answer for one, nor a
- * wrapper's first `this._ev = null` run a lookup on a half-made object.
+ * has no receiver). Names the rest of the chain has and array indices (unless `indices`: an interface without an
+ * indexed getter) never reach `lookup`, nor, with `internal`, names starting with `_`: node wrappers keep their
+ * fields (`_i`, `_ev`, lazily set `_ct`, ...) as `_` properties, and a page's `<form name="_ct">` must not answer
+ * for one, nor a wrapper's first `this._ev = null` run a lookup on a half-made object. Collections keep their
+ * state in #private fields, so `form.elements._token` works.
  */
-function installNamedProperties(proto, lookup, { indices = false } = {}) {
+function installNamedProperties(proto, lookup, { indices = false, internal = false } = {}) {
   const base = Object.getPrototypeOf(proto);
   const named = (receiver, key) =>
-    typeof key === 'string' && key[0] !== '_' && !(key in base) && (indices || !isArrayIndex(key))
+    typeof key === 'string' && !(internal && key[0] === '_') && !(key in base) && (indices || !isArrayIndex(key))
       ? lookup(receiver, key)
       : undefined;
   const object = new Proxy(Object.create(base), {

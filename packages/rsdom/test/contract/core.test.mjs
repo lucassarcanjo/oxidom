@@ -60,6 +60,10 @@ describe.each(DOMS)('core [%s]', (kind) => {
     const form = d.forms.f;
     expect(form.id).toBe('f');
     expect(form.elements.email.value).toBe('x');
+    const token = d.createElement('input');
+    token.name = '_token'; // a CSRF field: `_` names work on collections
+    form.append(token);
+    expect(form.elements._token).toBe(token);
     const el = d.querySelector('input');
     expect(el.attributes.name.value).toBe('email');
     if (kind === 'happy-dom') return; // PINNED to jsdom

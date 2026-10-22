@@ -32,6 +32,18 @@ impl Env {
     /// an epoch value, so it never returns to an earlier value. `CONNECTED` is shadow-including, so a
     /// shadow tree's changes count too, where jsdom's parent chain stops at the shadow root.
     #[inline]
+    /// Bumps `EP[NAMED]` (Document's named properties) when `n` is an HTML embed / form / iframe / img /
+    /// object element: the only elements that can contribute (jsdom drops its cache on the same events).
+    #[inline]
+    fn bump_named_if_contributes(&mut self, n: NodeId) {
+        let r = self.rec(n);
+        if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+            && matches!(Atom(r.local), atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+        {
+            self.ep.bump(ep::NAMED);
+        }
+    }
+
     fn bump_doc_version(&mut self, n: NodeId) {
         let r = self.rec(n);
         if r.meta & meta::CONNECTED != 0 {
@@ -43,6 +55,7 @@ impl Env {
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_connected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
         crate::style::on_node_connected(self, id);
         crate::forms::on_node_connected(self, id);
     }
@@ -50,6 +63,7 @@ impl Env {
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_disconnected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
         crate::focus::on_node_disconnected(self, id);
         crate::style::on_node_disconnected(self, id);
         crate::forms::on_node_disconnected(self, id);
@@ -91,13 +105,11 @@ impl Env {
         let v = self.ep.bump(ep::ATTR);
         self.rec_mut(el).attr_ver = v;
         self.bump_doc_version(el);
-        if ns == Atom::NONE && matches!(local, atom::NAME | atom::ID) {
-            let r = self.rec(el);
-            if r.meta & (meta::KIND_MASK | meta::NS_MASK | meta::CONNECTED) == kind::ELEMENT | meta::CONNECTED
-                && matches!(Atom(r.local), atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
-            {
-                self.ep.bump(ep::NAMED);
-            }
+        if ns == Atom::NONE
+            && matches!(local, atom::NAME | atom::ID)
+            && self.rec(el).meta & meta::CONNECTED != 0
+        {
+            self.bump_named_if_contributes(el);
         }
         crate::mo::queue_attribute(self, el, local, ns, old);
         crate::style::on_attr_changed(self, el, local, ns, old);

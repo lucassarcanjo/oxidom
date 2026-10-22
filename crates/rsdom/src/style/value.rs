@@ -109,8 +109,12 @@ fn components_with(s: &str, custom: bool) -> Option<Comps<'_>> {
     Some(out)
 }
 
-/// Validates a nested block (recursively) and returns its first quoted string (a `url("...")` argument).
-fn scan_block<'i>(p: &mut Parser<'i>, custom: bool) -> Result<Option<CowRcStr<'i>>, cssparser::ParseError<()>> {
+/// Validates a nested block (recursively; a custom property value only at this level, as jsdom keeps
+/// any nesting depth there) and returns its first quoted string (a `url("...")` argument).
+fn scan_block<'i>(
+    p: &mut Parser<'i>,
+    custom: bool,
+) -> Result<Option<CowRcStr<'i>>, cssparser::ParseError<()>> {
     let mut first_str = None;
     loop {
         let nested = match p.next() {
@@ -125,9 +129,12 @@ fn scan_block<'i>(p: &mut Parser<'i>, custom: bool) -> Result<Option<CowRcStr<'i
             Ok(Token::AtKeyword(_) | Token::CurlyBracketBlock) if !custom => {
                 return Err(p.new_error_for_next_token());
             }
-            Ok(Token::Function(_) | Token::ParenthesisBlock | Token::SquareBracketBlock | Token::CurlyBracketBlock) => {
-                true
-            }
+            Ok(
+                Token::Function(_)
+                | Token::ParenthesisBlock
+                | Token::SquareBracketBlock
+                | Token::CurlyBracketBlock,
+            ) => !custom,
             Ok(_) => false,
         };
         if nested {
@@ -524,7 +531,8 @@ pub(crate) fn color(c: &Comp) -> Option<String> {
             match n.as_str() {
                 "rgb" | "rgba" => {
                     let (vals, a) = color_args(c.src)?;
-                    let is_pct = |v: &Comp| matches!(v.tok, Tok::Pct(_)) || calc_number(v).is_some_and(|(_, p)| p);
+                    let is_pct =
+                        |v: &Comp| matches!(v.tok, Tok::Pct(_)) || calc_number(v).is_some_and(|(_, p)| p);
                     let pct = is_pct(&vals[0]);
                     let mut rgb = [0u8; 3];
                     for (i, v) in vals.iter().enumerate() {
@@ -935,11 +943,14 @@ fn font_family(comps: &[Comp]) -> Option<String> {
             [Comp { tok: Tok::Str(s), .. }] => {
                 let _ = cssparser::serialize_string(s, &mut out);
             }
-            [Comp { tok: Tok::Ident(s), src }] => {
-                if **s == **src {
-                    out.push_str(src);
+            [Comp { tok: Tok::Ident(_), src }] => {
+                // kept as written, escapes included (like jsdom), but an escaped EOF is U+FFFD
+                let slashes = src.bytes().rev().take_while(|&b| b == b'\\').count();
+                if slashes % 2 == 1 {
+                    out.push_str(&src[..src.len() - 1]);
+                    out.push('\u{fffd}');
                 } else {
-                    let _ = cssparser::serialize_identifier(s, &mut out);
+                    out.push_str(src);
                 }
             }
             g if g.len() > 1 => {
@@ -1325,7 +1336,8 @@ fn background_layer(comps: &[Comp], last: bool) -> Option<[String; 8]> {
     }))
 }
 
-const POSITION_KW: &[&str] = &["left", "right", "top", "bottom", "center", "x-start", "x-end", "y-start", "y-end"];
+const POSITION_KW: &[&str] =
+    &["left", "right", "top", "bottom", "center", "x-start", "x-end", "y-start", "y-end"];
 
 /// One `<bg-position>` layer as jsdom 30 serializes it (`properties/backgroundPosition.js` `parseLayer`):
 /// a lone value gets `center` for the other axis, vertical-first keyword pairs are swapped, and
@@ -1360,8 +1372,12 @@ fn position_layer(comps: &[&Comp]) -> Option<String> {
         [a, b, c] if key_x(a) && key_y(b) && offset(c) => (a.to_string(), format!("{b} {c}")),
         [a, b, c] if key_y(a) && offset(b) && is_x(c) => (c.to_string(), format!("{a} {b}")),
         [a, b, c] if key_y(a) && key_x(b) && offset(c) => (format!("{b} {c}"), a.to_string()),
-        [a, b, c, d] if key_x(a) && offset(b) && key_y(c) && offset(d) => (format!("{a} {b}"), format!("{c} {d}")),
-        [a, b, c, d] if key_y(a) && offset(b) && key_x(c) && offset(d) => (format!("{c} {d}"), format!("{a} {b}")),
+        [a, b, c, d] if key_x(a) && offset(b) && key_y(c) && offset(d) => {
+            (format!("{a} {b}"), format!("{c} {d}"))
+        }
+        [a, b, c, d] if key_y(a) && offset(b) && key_x(c) && offset(d) => {
+            (format!("{c} {d}"), format!("{a} {b}"))
+        }
         _ => return None,
     };
     Some(format!("{x} {y}"))
@@ -1448,12 +1464,12 @@ fn gradient(c: &Comp) -> Option<String> {
             out.push_str(", ");
         }
         match g {
-            [one] if stop_position(one, conic).is_some() => {
+            [one] if let Some(hint) = stop_position(one, conic) => {
                 if after_hint {
                     return None;
                 }
                 after_hint = true;
-                out.push_str(&stop_position(one, conic)?);
+                out.push_str(&hint);
             }
             [col, pos @ ..] if pos.len() <= 2 => {
                 out.push_str(&color(col)?);
@@ -1497,8 +1513,17 @@ fn color_interpolation(p: &[String], i: usize) -> Option<usize> {
     }
     let cs = p.get(i + 1)?.as_str();
     const RECT: &[&str] = &[
-        "srgb", "srgb-linear", "display-p3", "a98-rgb", "prophoto-rgb", "rec2020", "lab", "oklab", "xyz",
-        "xyz-d50", "xyz-d65",
+        "srgb",
+        "srgb-linear",
+        "display-p3",
+        "a98-rgb",
+        "prophoto-rgb",
+        "rec2020",
+        "lab",
+        "oklab",
+        "xyz",
+        "xyz-d50",
+        "xyz-d65",
     ];
     if RECT.contains(&cs) {
         return Some(i + 2);
@@ -1517,7 +1542,10 @@ fn at_position(p: &[String], c: &[Comp], i: usize) -> Option<usize> {
     if p.get(i)? != "at" {
         return None;
     }
-    let n = c[i + 1..].iter().take_while(|x| kw(x, POSITION_KW).is_some() || length_pct(x, false).is_some()).count();
+    let n = c[i + 1..]
+        .iter()
+        .take_while(|x| kw(x, POSITION_KW).is_some() || length_pct(x, false).is_some())
+        .count();
     let n = n.min(4);
     let n = if n == 3 { 2 } else { n };
     let refs: SmallVec<[&Comp; 4]> = c[i + 1..i + 1 + n].iter().collect();
@@ -1526,11 +1554,13 @@ fn at_position(p: &[String], c: &[Comp], i: usize) -> Option<usize> {
 
 /// Index after a radial `<size>` at `i`.
 fn radial_size(p: &[String], c: &[Comp], i: usize) -> Option<usize> {
-    let extent = |s: &str| matches!(s, "closest-side" | "closest-corner" | "farthest-side" | "farthest-corner");
+    let extent =
+        |s: &str| matches!(s, "closest-side" | "closest-corner" | "farthest-side" | "farthest-corner");
     if extent(p.get(i)?) {
         return Some(if p.get(i + 1).is_some_and(|s| extent(s)) { i + 2 } else { i + 1 });
     }
-    let lp = |x: Option<&Comp>| x.is_some_and(|x| length_pct(x, true).is_some() && !matches!(x.tok, Tok::Func(_)));
+    let lp =
+        |x: Option<&Comp>| x.is_some_and(|x| length_pct(x, true).is_some() && !matches!(x.tok, Tok::Func(_)));
     if lp(c.get(i)) && lp(c.get(i + 1)) {
         return Some(i + 2);
     }
@@ -1741,7 +1771,7 @@ pub fn serialize_values(p: u32, vals: &[&str]) -> Option<String> {
         return Some(format!("{} {} {}", vals[0], vals[1], vals[2]));
     }
     if p == ids.background {
-        return Some(serialize_background(vals));
+        return serialize_background(vals);
     }
     if p == ids.font {
         let mut s = String::new();
@@ -1766,14 +1796,19 @@ pub fn serialize_values(p: u32, vals: &[&str]) -> Option<String> {
 
 /// `background` from its longhands (jsdom 30 `properties/background.js` getter): per layer, the non-initial
 /// values in image, position, size, repeat, origin/clip, attachment order, the colour on the last layer.
-fn serialize_background(vals: &[&str]) -> String {
+fn serialize_background(vals: &[&str]) -> Option<String> {
     // BACKGROUND_LONGHANDS indices in serialization order
     const ORDER: [usize; 8] = [0, 1, 2, 3, 5, 6, 4, 7];
     let lists: SmallVec<[SmallVec<[&str; 2]>; 8]> = vals.iter().map(|v| split_commas(v)).collect();
-    let layers = (0..7).filter(|&k| vals[k] != BACKGROUND_INITIAL[k]).map(|k| lists[k].len()).max().unwrap_or(0);
+    let mut counts = (0..7).filter(|&k| vals[k] != BACKGROUND_INITIAL[k]).map(|k| lists[k].len());
+    let layers = counts.next().unwrap_or(0);
+    // longhands with different layer counts have no shorthand (jsdom emits the longhands)
+    if counts.any(|n| n != layers) {
+        return None;
+    }
     let color = vals[7];
     if layers == 0 {
-        return if color == BACKGROUND_INITIAL[7] { "none".into() } else { color.to_string() };
+        return Some(if color == BACKGROUND_INITIAL[7] { "none".into() } else { color.to_string() });
     }
     let mut out = String::new();
     for i in 0..layers {
@@ -1827,7 +1862,7 @@ fn serialize_background(vals: &[&str]) -> String {
             out.push_str(part);
         }
     }
-    out
+    Some(out)
 }
 
 /// Splits `s` at top-level commas (outside parentheses and strings), trimming each part.
@@ -1963,7 +1998,8 @@ mod tests {
             Some("linear-gradient(rgb(1, 2, 3), blue 10%)")
         );
         assert_eq!(
-            one("background-image", "radial-gradient(ellipse farthest-corner at center, red, blue)").as_deref(),
+            one("background-image", "radial-gradient(ellipse farthest-corner at center, red, blue)")
+                .as_deref(),
             Some("radial-gradient(red, blue)")
         );
         assert_eq!(
@@ -1987,13 +2023,31 @@ mod tests {
             one("background", "linear-gradient(red,blue)no-repeat").as_deref(),
             Some("linear-gradient(red, blue) no-repeat")
         );
-        assert_eq!(one("background", "url(a.png)center/cover").as_deref(), Some("url(\"a.png\") center center / cover"));
+        assert_eq!(
+            one("background", "url(a.png)center/cover").as_deref(),
+            Some("url(\"a.png\") center center / cover")
+        );
         assert_eq!(
             one("background", "url(a.png) no-repeat, url(b.png) fixed red").as_deref(),
             Some("url(\"a.png\") no-repeat, url(\"b.png\") fixed red")
         );
         assert_eq!(one("background", "red, url(a.png)"), None);
-        assert_eq!(one("background", "url(a.png) content-box fixed").as_deref(), Some("url(\"a.png\") content-box fixed"));
+        let p = props().id("background").unwrap();
+        let bg = |v: &[&str]| serialize_values(p, v);
+        let two = "url(\"a.png\"), url(\"b.png\")";
+        assert_eq!(
+            bg(&[two, "0% 0%", "auto", "no-repeat", "scroll", "padding-box", "border-box", "red"]),
+            None
+        );
+        assert_eq!(
+            bg(&[two, "0% 0%", "auto", "no-repeat, repeat", "scroll", "padding-box", "border-box", "red"])
+                .as_deref(),
+            Some("url(\"a.png\") no-repeat, url(\"b.png\") red")
+        );
+        assert_eq!(
+            one("background", "url(a.png) content-box fixed").as_deref(),
+            Some("url(\"a.png\") content-box fixed")
+        );
     }
 
     #[test]
@@ -2005,8 +2059,12 @@ mod tests {
         assert_eq!(one("color", "rgb(calc(10% + 10%) 0% 0%)").as_deref(), Some("rgb(51, 0, 0)"));
         assert_eq!(one("color", "rgb(calc(1px) 0 0)"), None);
         assert_eq!(one("border", "rgb(calc(0) 0 0)solid 1px").as_deref(), Some("1px solid rgb(0, 0, 0)"));
-        assert_eq!(one("font-family", "Times  New\rRoman, serif").as_deref(), Some("\"Times New Roman\", serif"));
+        assert_eq!(
+            one("font-family", "Times  New\rRoman, serif").as_deref(),
+            Some("\"Times New Roman\", serif")
+        );
         assert_eq!(one("font-family", "a\0b").as_deref(), Some("a\u{fffd}b"));
+        assert_eq!(one("font-family", "F\\6f o, x").as_deref(), Some("F\\6f o, x"));
         assert_eq!(one("font-family", "a\\").as_deref(), Some("a\u{fffd}"));
         assert_eq!(one("font", "12px Times New Roman").as_deref(), Some("12px \"Times New Roman\""));
         let custom = CUSTOM_BASE + 1;

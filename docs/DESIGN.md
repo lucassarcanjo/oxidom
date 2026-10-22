@@ -591,7 +591,8 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
   - Multi-word `font-family` names are quoted.
   - At-keywords and `{}` blocks inside a function make the declaration invalid; custom properties keep them.
   - CR, CR LF and FF become LF, and NUL becomes U+FFFD (CSS Syntax input preprocessing).
-  - `calc()` of numbers or percentages is evaluated in `rgb()` / `hsl()` channels.
+  - `calc()` of numbers, or of percentages, is evaluated in `rgb()` channels and `hsl()` saturation / lightness (not in hues, alphas or `min()`, which jsdom also resolves).
+  - Longhands with different layer counts have no `background` shorthand. A removed `border-image` leaves `border` unserializable, where jsdom still serializes it from its stored shorthand.
 - **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on rsdom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
 - The `style` attribute string is serialised lazily, only when something reads it: getAttribute, outerHTML, attributes, or an MO old value.
 - `CSSStyleDeclaration` is created lazily per element.

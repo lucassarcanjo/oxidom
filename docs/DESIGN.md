@@ -1685,6 +1685,12 @@ the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom
 the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
 `test/contract/computed-style.test.mjs` checks the resolved values against jsdom.
 
+`:heading` / `:heading(levels)` (Selectors 5, 2026-10-22) are implemented in the selector adapter rather than left
+invalid: HTML `h1`-`h6`, whose level is the name's plus the `headingoffset`s of inclusive ancestors up to the
+nearest `headingreset` (whatwg/html#11086), at most 9; `headingoffset` / `headingreset` invalidate like other
+attributes selectors read, and HTMLElement reflects them (`headingOffset`, `headingReset`). jsdom 30 accepts
+neither, matching nothing, so on its passing subtests the two agree; it took the item's gap from 249 to 88.
+
 ## 31. The `JSDOM` class (ROADMAP Stage 2, 2026-10)
 
 `lib/jsdom.cjs` is jsdom 30's programmatic API (refs/jsdom/lib/api.js), exported from the package entry with

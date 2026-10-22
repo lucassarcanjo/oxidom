@@ -8,7 +8,7 @@ Most suites need only the configuration change. Read [the divergences](#known-di
 the switch, or before you switch if your suite relies on scripts, custom elements, iframes or XML, which rsdom
 does not support yet.
 
-Where things stand (2026-10-21): rsdom passes 90.9% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-21): rsdom passes 91.0% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -228,7 +228,8 @@ share one realm, so they do not apply there.
   `computed-values`.
 - **[gap] Some colours stay as specified:** `lab()`, `color-mix()`, `color-scheme`. Named colours, hex,
   `transparent`, system colours and `currentcolor` resolve to `rgb()` like jsdom. DESIGN §30.
-- **[gap] `:heading()` is not a valid selector.** DESIGN §30.
+- **[beyond] `:heading` and `:heading()` match headings** (with `headingoffset` / `headingreset`, and the
+  `headingOffset` / `headingReset` properties); jsdom accepts the selectors and matches nothing. DESIGN §30.
 - **[gap] Specified-value parsing:** rsdom accepts `none` for `column-rule-color` and rounds `1e-8in` to `0in`.
   DESIGN §30.
 - **[gap] Computed style is partly live.** `display`, `visibility`, `pointerEvents`, `opacity` and `position`

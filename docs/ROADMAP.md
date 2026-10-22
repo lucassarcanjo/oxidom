@@ -117,7 +117,8 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       (about 190, `computed-values`) and `customElements` (20).
 - [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`. Values
       done 2026-10-20 (DESIGN §30): 206 -> 265 of 297 suite files at parity, gap 3,147 -> 366 subtests, overall parity
-      88.8% -> 90.5%. Left: `:heading()` selectors (163), `insertRule` (`cssom`), `calc()` reduction.
+      88.8% -> 90.5%. `:heading()` 2026-10-22: gap 249 -> 88, overall 91.0%. Left: shorthand serialization quirks
+      of jsdom's cssstyle (border / background, about 60), CR/LF preprocessing in CSSOM text, `calc()` reduction.
 - [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
       createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
       init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':

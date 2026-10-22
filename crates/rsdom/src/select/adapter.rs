@@ -165,6 +165,8 @@ pub enum PseudoClass {
     /// `:dir(ltr)` (Some(false)) / `:dir(rtl)` (Some(true)); any other identifier is valid and never
     /// matches (None, the identifier kept for serialization)
     Dir(Option<bool>, Box<str>),
+    /// `:heading` (None) / `:heading(levels)`: HTML `h1`-`h6`, by the level in the name
+    Heading(Option<Box<[i32]>>),
     /// a pseudo-class that never matches in rsdom (`:hover`, `:visited`, `:target`, ...); index into
     /// [`NEVER_MATCHING`]
     Never(u8),
@@ -240,6 +242,17 @@ impl ToCss for PseudoClass {
                 cssparser::serialize_identifier(ident, dest)?;
                 return dest.write_str(")");
             }
+            PseudoClass::Heading(None) => ":heading",
+            PseudoClass::Heading(Some(levels)) => {
+                dest.write_str(":heading(")?;
+                for (i, x) in levels.iter().enumerate() {
+                    if i > 0 {
+                        dest.write_str(", ")?;
+                    }
+                    write!(dest, "{x}")?;
+                }
+                return dest.write_str(")");
+            }
             PseudoClass::Never(i) => {
                 dest.write_str(":")?;
                 return dest.write_str(NEVER_MATCHING.get(*i as usize).copied().unwrap_or("never"));
@@ -295,6 +308,7 @@ impl PseudoClass {
             PseudoClass::Link | PseudoClass::AnyLink => &[atom::HREF],
             PseudoClass::Lang(_) => &[atom::LANG],
             PseudoClass::Dir(..) => &[atom::DIR],
+            PseudoClass::Heading(_) => &[atom::HEADINGOFFSET, atom::HEADINGRESET],
             _ => &[],
         }
     }
@@ -424,6 +438,7 @@ impl<'i> selectors::Parser<'i> for SelParser {
             "open" => PseudoClass::Open,
             "valid" => PseudoClass::Valid,
             "invalid" => PseudoClass::Invalid,
+            "heading" => PseudoClass::Heading(None),
             other => match NEVER_MATCHING.iter().position(|x| *x == other) {
                 Some(i) => PseudoClass::Never(i as u8),
                 None => return Err(unsupported()),
@@ -458,6 +473,11 @@ impl<'i> selectors::Parser<'i> for SelParser {
                 };
                 Ok(PseudoClass::Dir(d, Box::from(t.as_ref())))
             }
+            "heading" => {
+                // Selectors 5: a comma-separated list of integers
+                let levels = parser.parse_comma_separated(|p| Ok(p.expect_integer()?))?;
+                Ok(PseudoClass::Heading(Some(levels.into_boxed_slice())))
+            }
             "state" => {
                 // Custom element states: no custom elements, never matches.
                 parser.expect_ident()?;
@@ -474,6 +494,51 @@ impl<'i> selectors::Parser<'i> for SelParser {
             None => Err(unsupported()),
         }
     }
+}
+
+/// HTML heading level of an `h1`-`h6` element (whatwg/html#11086): the name's level plus the `headingoffset`s of
+/// its shadow-including inclusive ancestors (each a non-negative integer, negative ones count as 0) up to and
+/// including the nearest one with `headingreset`, at most 9.
+fn heading_level(e: &Env, el: NodeId, base: i32) -> i32 {
+    let mut offset: i64 = 0;
+    let mut n = el;
+    while n != 0 {
+        let r = e.rec(n);
+        if r.meta & (meta::KIND_MASK | meta::SHADOW) == kind::FRAGMENT | meta::SHADOW {
+            n = r.payload; // a shadow root continues at its host
+            continue;
+        }
+        if r.meta & meta::KIND_MASK != kind::ELEMENT {
+            break;
+        }
+        if let Some(v) = e.get_attr(n, atom::HEADINGOFFSET) {
+            offset += parse_html_int(v.as_str()).map_or(0, |x| x.clamp(0, 9));
+        }
+        if e.get_attr(n, atom::HEADINGRESET).is_some() || offset >= 9 {
+            break;
+        }
+        n = r.parent;
+    }
+    (i64::from(base) + offset).min(9) as i32
+}
+
+/// HTML "rules for parsing integers".
+fn parse_html_int(s: &str) -> Option<i64> {
+    let t = s.trim_start_matches([' ', '\t', '\n', '\x0c', '\r']);
+    let (neg, t) = match t.as_bytes().first() {
+        Some(b'-') => (true, &t[1..]),
+        Some(b'+') => (false, &t[1..]),
+        _ => (false, t),
+    };
+    if !t.bytes().next().is_some_and(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    // saturating: only whether the value exceeds the 0..=9 range matters
+    let v = t
+        .bytes()
+        .take_while(u8::is_ascii_digit)
+        .fold(0i64, |v, d| (v * 10 + i64::from(d - b'0')).min(1 << 40));
+    Some(if neg { -v } else { v })
 }
 
 // --------------------------------------------------------------------------------------- matching
@@ -1124,6 +1189,12 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
             None => false,
         },
         PseudoClass::Dir(d, _) => d.is_some_and(|rtl| is_rtl(e, el) == rtl),
+        PseudoClass::Heading(levels) => {
+            html && (atom::H1.0..=atom::H6.0).contains(&l.0) && {
+                let level = heading_level(e, el, (l.0 - atom::H1.0 + 1) as i32);
+                levels.as_ref().is_none_or(|ls| ls.contains(&level))
+            }
+        }
         PseudoClass::Never(_) => false,
     }
 }

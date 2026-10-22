@@ -26,8 +26,6 @@ to-port-to-wpts/frame.js:
   "frame > test setting src multiple times": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > update named frames access on name change": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/jsonp.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/level1/core.js: [fail, "rsdom: XML documents are not supported (contentType …)"]
-to-port-to-wpts/level2/core.js: [fail, "rsdom: XML documents are not supported (contentType …)"]
 to-port-to-wpts/level2/html.js:
   "level2/html > HTMLDocument17": [fail, "missing method: .open()"]
   "level2/html > HTMLDocument18": [fail, "missing method: .close()"]
@@ -43,7 +41,11 @@ to-port-to-wpts/level2/style.js:
   "level2/style > HTMLStyleElement02": [fail, "Expected values to be strictly equal: … !== …"]
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/level3/xpath.js: [fail, "rsdom: XML documents are not supported (contentType …)", {pass: 65}]
+to-port-to-wpts/level3/xpath.js:
+  "xpath > testDocumentEvaluate": [fail, "read of null (._version)"]
+  "xpath > testDocumentEvaluate2": [fail, "read of null (._version)"]
+  "xpath > testDocumentEvaluateStringPred": [fail, "read of null (._version)"]
+  "xpath > testDocumentEvaluateWildcard": [fail, "read of null (._version)"]
 to-port-to-wpts/misc.js:
   "browser/index > parse_doublespacetags": [fail, "Got unwanted exception: setValue_throws_INVALID_CHARACTER_ERR Actual message: …"]
 to-port-to-wpts/misc2.js:
@@ -61,13 +63,5 @@ to-port-to-wpts/on-error.js:
   "on-error > onerror set during parsing catches exceptions thrown in sync script execution during parsing": [fail, "message equality + actual - expected + undefined - …"]
 to-port-to-wpts/parsing.js:
   "jsdom/parsing > <%= stuff %> inside <script> tags (GH-58)": [fail, "missing method: .write()"]
-  "jsdom/parsing > prefix on attribute named 'hasOwnProperty' (GH-1444)": [fail, "rsdom: XML documents are not supported (contentType …)"]
 to-port-to-wpts/post-message.js: [fail, "read of undefined (.document)"]
 to-port-to-wpts/script.js: [fail, "window should be the global context + actual - expected + undefined - …"]
-to-port-to-wpts/xml.js:
-  "jsdom/xml > XML mode makes directives accessible (GH-415)": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "jsdom/xml > attributes are case-sensitive in XML mode (GH-651)": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "jsdom/xml > parse5 can somewhat serialize XML docs": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "jsdom/xml > parsing XML keeps tag casing (GH-393)": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "jsdom/xml > should handle self-closing tags properly in xml docs": [fail, "rsdom: XML documents are not supported (contentType …)"]
-  "jsdom/xml > xml parser recognizes built-in schemas (GH-1276)": [fail, "rsdom: XML documents are not supported (contentType …)"]

@@ -13,7 +13,7 @@
 // console, as in jsdom), which receives the window's `console` calls, jsdomErrors for not-implemented window
 // methods and uncaught exceptions no `error` listener cancelled.
 //
-// Not implemented: XML content types (no XML parser yet: ROADMAP Stage 3 `xml`), `runScripts` (validated, then
+// XML content types parse with lib/xml.cjs (DESIGN §38). Not implemented: `runScripts` (validated, then
 // ignored: rsdom never runs scripts, so `getInternalVMContext()` throws as jsdom does without it),
 // `includeNodeLocations` (`nodeLocation()` throws as jsdom does without it), subresource loading (`resources`
 // beyond `userAgent`), and a cookie jar `document.cookie` reads (`cookieJar` is held for the getter only;
@@ -119,17 +119,18 @@ function undiciFetch(dispatcher) {
   return fetch;
 }
 
-/** jsdom's content type check; rsdom has no XML parser yet. Returns the content type as a string. */
+/**
+ * jsdom's content type check. Returns the content type as a string and, for an XML type, its essence (the XML
+ * document's `contentType`, DESIGN §38).
+ */
 function checkContentType(type) {
   const contentType = type === undefined ? 'text/html' : String(type);
   const essence = contentType.split(';')[0].trim().toLowerCase();
-  if (XML_ESSENCE.test(essence)) {
-    throw new Error(`rsdom: XML documents are not supported (contentType "${contentType}")`);
-  }
+  if (XML_ESSENCE.test(essence)) return { contentType, xml: essence };
   if (essence !== 'text/html') {
     throw new RangeError(`The given content type of "${contentType}" was not a HTML or XML content type`);
   }
-  return contentType;
+  return { contentType, xml: undefined };
 }
 
 /** An open context `adopt()` hands to the JSDOM constructor, or null. */
@@ -147,7 +148,7 @@ class JSDOM {
       this.#cookieJar = new CookieJar();
       return;
     }
-    const contentType = checkContentType(options.contentType);
+    const { contentType, xml } = checkContentType(options.contentType);
     // jsdom's normalizeOptions: `new URL(x)` throws a TypeError for anything but an absolute URL
     const url = options.url === undefined ? 'about:blank' : new URL(options.url).href;
     const referrer = options.referrer === undefined ? '' : new URL(options.referrer).href;
@@ -168,6 +169,7 @@ class JSDOM {
     const ctx = context.open({
       url,
       source: decode(input, contentType),
+      xml,
       settings: {
         pretendToBeVisual: Boolean(options.pretendToBeVisual),
         storageQuota: options.storageQuota === undefined ? 5000000 : Number(options.storageQuota),
@@ -205,6 +207,9 @@ class JSDOM {
   }
 
   serialize() {
+    const doc = this.#ctx.document;
+    const xml = require('./xml.cjs');
+    if (xml.inXmlDocument(doc)) return xml.serializeDocument(doc); // DESIGN §38
     let out = '';
     for (const n of this.#ctx.document.childNodes) {
       if (n.nodeType === 10) out += `<!DOCTYPE ${n.name}>`;
@@ -295,7 +300,7 @@ class JSDOM {
  * `storageQuota`. The rest (`runScripts`, `cookieJar`, ...) is ignored.
  */
 function environmentOptions(j, virtualConsole) {
-  checkContentType(j.contentType);
+  const { xml } = checkContentType(j.contentType);
   if (!(virtualConsole instanceof VirtualConsole)) {
     throw new TypeError('virtualConsole must be an instance of VirtualConsole');
   }
@@ -311,6 +316,7 @@ function environmentOptions(j, virtualConsole) {
     },
   };
   if (j.html !== undefined) open.source = String(j.html);
+  if (xml !== undefined) open.xml = xml;
   return open;
 }
 

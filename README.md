@@ -12,7 +12,7 @@ export default defineConfig({
 })
 ```
 
-> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 96.7% of what jsdom
+> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 97.3% of what jsdom
 > passes in jsdom's own test suite, but it is not on npm yet. See [what works](#compatibility), the
 > [migration guide](docs/MIGRATING.md) and the [roadmap](docs/ROADMAP.md).
 > Its npm name is `jetdom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm.
@@ -42,7 +42,7 @@ Measured against jsdom 30.1.3:
 
 | measure | rsdom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 96.7% (162,180 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
+| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.3% (163,127 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
 | real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
@@ -82,7 +82,7 @@ not-implemented window methods log "Not implemented: ..." through `console.error
 the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
 runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
-not `instanceof Error`. `customElements`, `XMLSerializer` and `DOMRect` are not there yet.
+not `instanceof Error`. `customElements` and `DOMRect` are not there yet.
 
 **TypeScript.** The packages ship their declarations; `jetdom`'s `JSDOM` API is typed as @types/jsdom types
 jsdom's. For the Vitest `jsdom` global, use `types: ["jetdom/vitest-globals"]` where you had `vitest/jsdom`.
@@ -108,7 +108,7 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 
 `JSDOM` takes jsdom's options (`url`, `referrer`, `contentType`, `pretendToBeVisual`, `storageQuota`,
 `virtualConsole`, `beforeParse`, `resources.userAgent`) and has `serialize()`, `reconfigure()`, `JSDOM.fragment()`,
-`JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet: XML content types, `runScripts`, `includeNodeLocations`
+`JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet: `runScripts`, `includeNodeLocations`
 and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
 
 ## Repository

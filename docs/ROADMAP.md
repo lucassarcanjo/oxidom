@@ -140,7 +140,11 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       (`browsing-contexts`).
 - [x] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`. Done
       2026-10-20 (DESIGN §25): 43 of 44 suite files at parity, the last one needs an XML document (`xml`).
-- [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.
+- [x] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`. Done 2026-10-22 (DESIGN §38): saxes and
+      w3c-xmlserializer as jsdom uses them, XML `innerHTML` / `outerHTML`, `new JSDOM(x, { contentType })` with XML
+      types, XML `responseXML`; 20 -> 37 of 39 suite files at parity, gap 789 -> 5, overall 96.7% -> 97.3%. Left:
+      `document.domain` of parsed documents (`core`), an invalid style attribute (`cssom`).
+- [ ] XPath (M) `xpath`.
 - [ ] DOMRect classes and the remaining Window members (S) `geometry`.
 - [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
       including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's

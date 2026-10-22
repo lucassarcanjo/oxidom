@@ -987,8 +987,6 @@ dom/nodes/Element-getElementsByTagNameNS.html:
 dom/nodes/Element-remove.html:
   "remove() should work if element does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-setAttributeNodeNS.html: [fail, "assert_equals: wrong value"]
-dom/nodes/Element-tagName.html:
-  "tagName should be updated when changing ownerDocument": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 dom/nodes/MutationObserver-childList.html:
   "childList ParentNode.replaceChildren: move an existing child": [fail, "assert_equals: wrong value"]
   "childList ParentNode.replaceChildren: self replacement of only child": [fail, "assert_equals: wrong value"]
@@ -996,7 +994,6 @@ dom/nodes/MutationObserver-document.html:
   "parser insertion mutations": [fail, "assert_unreached: wrong value"]
   "parser script insertion mutation": [fail, "assert_unreached: wrong value"]
   "removal of parent during parsing": [fail, "assert_unreached: wrong value"]
-dom/nodes/MutationObserver-textContent.html: [fail, "harness ERROR: Unhandled rejection: rsdom: DOMParser type … is not supported (XML parsing is out of scope…", {pass: 3}]
 dom/nodes/Node-appendChild-cereactions-vs-script.window.html: [fail, "missing global: customElements"]
 dom/nodes/Node-childNodes.html:
   "Iterator behavior of Node.childNodes": [fail, "assert_equals: wrong value"]
@@ -1050,17 +1047,10 @@ dom/nodes/ParentNode-append.html:
 dom/nodes/ParentNode-prepend.html:
   "DocumentFragment.prepend() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
   "Element.prepend() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
-dom/nodes/ParentNode-querySelector-All-scope.html:
-  "querySelectorAll with :scope in document where element moved": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "querySelectorAll with :scope in unattached svg document": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 dom/nodes/ParentNode-querySelector-escapes.html:
   "\"\\ud83dsurrogateFirst\" should never match with \"#\\\\d83d surrogateFirst\"": [fail, "assert_equals: wrong value"]
   "\"surrogateSecond\\udd11\" should never match with \"#surrogateSecond\\\\dd11\"": [fail, "assert_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-host-pseudo-class.html: [fail, "assert_equals: wrong value"]
-dom/nodes/ParentNode-querySelector-namespace-tagname-attribute.html: [fail, "harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-dom/nodes/ParentNode-querySelector-xml-capitalization.window.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-dom/nodes/ParentNode-querySelectorAll-namespace.html: [fail, "harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-dom/nodes/ParentNode-querySelectorAll-scope-change.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 dom/nodes/ParentNode-replaceChildren.html:
   "Document.replaceChildren() with a DocumentFragment containing a single element, replacing an existing doctype and element.": [fail, "assert_array_equals: wrong value"]
   "Document.replaceChildren() with a doctype, replacing an existing doctype and element.": [fail, "assert_array_equals: wrong value"]
@@ -1164,11 +1154,9 @@ dom/nodes/post-connection-steps-shadow-tree.html: [fail, "assert_equals: wrong v
 dom/nodes/prepend-on-Document.html:
   "Document.append() with only one element as an argument, on a Document having one child.": [fail, "assert_array_equals: wrong value"]
   "Document.prepend() with only one element as an argument, on a Document having no child.": [fail, "assert_array_equals: wrong value"]
-dom/nodes/processing-instruction-attributes.html: [fail, "missing method: .setAttribute()"]
+dom/nodes/processing-instruction-attributes.html: [fail, "missing method: .setAttribute()", {pass: 10}]
 dom/nodes/remove-next-sibling-during-replace-with.html: [fail, "assert_equals: wrong value"]
 dom/nodes/remove-unscopable.html: [fail, "read of undefined (.before)"]
-dom/ranges/StaticRange-constructor.html:
-  "Construct static range with CDATASection container": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domparsing/DOMParser-parseFromString-encoding.html: [fail, "harness ERROR: Error: assert_equals: the meta charset must be in effect, making the main document windows…"]
 domparsing/DOMParser-parseFromString-stylesheets.html:
   "DOMParser-created document should expose multiple style elements in styleSheets": [fail, "assert_equals: wrong value"]
@@ -1176,24 +1164,18 @@ domparsing/DOMParser-parseFromString-stylesheets.html:
   "DOMParser-created document styleSheets should contain CSSStyleSheet objects": [fail, "assert_equals: wrong value"]
   "DOMParser-created document styleSheets should have accessible cssRules": [fail, "assert_equals: wrong value"]
   "DOMParser-created document with full HTML structure should have accessible styleSheets": [fail, "assert_equals: wrong value"]
-domparsing/DOMParser-parseFromString-xml-CDATA.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-parseFromString-xml-doctype.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-parseFromString-xml-empty-nodes.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-parseFromString-xml-internal-subset.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-parseFromString-xml-parsererror.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
+domparsing/DOMParser-parseFromString-xml-doctype.html:
+  "Doctype parsing of System Id must fail on ommitted value": [fail, "assert_equals: wrong value"]
 domparsing/DOMParser-parseFromString-xml-scripting-support-disabled.html:
-  "parseFromString as XHTML, script, append adoptNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XHTML, script, append cloneNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XHTML, script, append importNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XHTML, whole root, append importNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "parseFromString as XML, svg script, append adoptNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "parseFromString as XML, svg script, append cloneNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "parseFromString as XML, svg script, append importNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "parseFromString as XML, svg script, append importNode result, but with namespace prefix": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "parseFromString as XML, svg script, appendChild": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-parseFromString-xml.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/DOMParser-xml-character-entities.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/XMLSerializer-serializeToString.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
+domparsing/XMLSerializer-serializeToString.html:
+  "Check if a prefix bound to an empty namespace URI (\"no namespace\") serialize": [fail, "assert_equals: wrong value"]
+  "Check if no special handling for XLink namespace unlike HTML serializer.": [fail, "assert_equals: wrong value"]
+  "Drop inconsistent xmlns=\"...\" by matching on local name": [fail, "assert_equals: wrong value"]
 domparsing/createContextualFragment.html:
   "<script>s should be run when appended to the document (but not before)": [fail, "assert_true: wrong value"]
 domparsing/parsed-document-origin.window.html:
@@ -1205,8 +1187,6 @@ domparsing/parsed-document-origin.window.html:
   "createHTMLDocument()": [fail, "assert_equals: wrong value"]
 domparsing/style_attribute_html.html:
   "Parsing of invalid style attribute": [fail, "assert_equals: wrong value"]
-domparsing/xml-parse-serialize-roundtrip.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-domparsing/xmldomparser.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domxpath/booleans.html: [fail, "missing global: XPathResult"]
 domxpath/elements-are-parents-of-their-attributes.html: [fail, "missing global: XPathResult"]
 domxpath/evaluate-non-node-set-result-type.html: [fail, "assert_equals: wrong value"]
@@ -2357,7 +2337,6 @@ html/semantics/scripting-1/the-script-element/script-type-whitespace.html:
   "Script shouldn't run with type=\"text/javascript&#x3000;\" (parser-inserted)": [fail, "assert_false: wrong value"]
 html/semantics/scripting-1/the-script-element/svg-script-fragment-parsed-not-executed-on-clone.html:
   "Sanity check: a normally-created SVG <script> runs when inserted": [fail, "assert_true: got undefined (missing attribute/API)"]
-html/semantics/scripting-1/the-template-element/additions-to-serializing-xhtml-documents/outerhtml.html: [fail, "assert_equals: wrong value"]
 html/semantics/scripting-1/the-template-element/reflect-html-for.html: [fail, "assert_equals: got undefined (missing attribute/API)", {pass: 287}]
 html/semantics/scripting-1/the-template-element/template-for/template-for-append-element.html: [fail, "assert_equals: wrong value"]
 html/semantics/scripting-1/the-template-element/template-for/template-for-append-text-and-element.html: [fail, "assert_equals: wrong value"]
@@ -2424,7 +2403,6 @@ html/semantics/tabular-data/the-table-element/createTBody.html:
   "Two nested tbody child nodes": [fail, "assert_array_equals: wrong value"]
   "Two tbody child nodes": [fail, "assert_array_equals: wrong value"]
   "Two tbody child nodes and a div": [fail, "assert_array_equals: wrong value"]
-html/semantics/tabular-data/the-table-element/tBodies.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 html/semantics/tabular-data/the-table-element/table-insertRow.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_true: wrong value"]
 html/semantics/tabular-data/the-tr-element/cells.html: [fail, "assert_array_equals: wrong value"]
@@ -2464,9 +2442,7 @@ html/syntax/serializing-html-fragments/initial-linefeed-pre.html:
   "pre2": [fail, "assert_equals: wrong value"]
   "textarea2": [fail, "assert_equals: wrong value"]
 html/syntax/serializing-html-fragments/processing-instructions.html: [fail, "assert_equals: wrong value"]
-html/syntax/serializing-html-fragments/serializing-cdata-in-html-document.html: [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
 html/syntax/serializing-html-fragments/serializing-lt-gt.html: [fail, "assert_equals: wrong value"]
-html/syntax/serializing-xml-fragments/outerHTML.html: [fail, "assert_equals: wrong value", {pass: 1}]
 html/webappapis/atob/base64.any.html:
   "atob() setup.": [fail, "promise_test: Unhandled rejection with value: object …"]
 html/webappapis/events/event-handler-object-environment-instantiation.html: [fail, "assert_equals: wrong value"]

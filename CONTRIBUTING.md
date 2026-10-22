@@ -273,8 +273,6 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
   of the code point, so `deleteData`/`insertData`/`replaceData`/`splitText` at such offsets edit whole code
   points (`'a😀b'.deleteData(1, 1)` removes nothing in rsdom; jsdom removes the high surrogate). A full fix
   needs WTF-8 or UTF-16 storage for character data.
-- **XML serialization.** Elements of XML documents use the HTML serializer (`<br></br>`, unescaped `<` in
-  attribute values) and `innerHTML =` on them uses the HTML fragment parser.
 - **Index getters bound.** Live-list index getters are installed up to the largest length any list access
   has seen (at least 256). A list held across a mutation that grows it past that bound and then indexed past
   it without any `length`/`item`/iteration/getter access returns `undefined`.

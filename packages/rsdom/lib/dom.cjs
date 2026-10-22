@@ -642,8 +642,13 @@ class Document extends Node {
   createElement(localName, _options = undefined) {
     let name = String(localName);
     const html = (V.T[V.off(this._i) + F.META] & M.HTML_DOC) !== 0;
-    // Non-HTML documents: the HTML namespace when the content type is application/xhtml+xml, else null.
-    if (!html) return this.createElementNS(this._ct === 'application/xhtml+xml' ? NS.HTML : null, name);
+    // Non-HTML documents: the HTML namespace when the content type is application/xhtml+xml, else null; the
+    // whole name is the local name (`a:b` is not split into a prefix, so needs no namespace)
+    if (!html) {
+      const id = checkId(N.createElement(this._i, elementAtom(name), this._ct === 'application/xhtml+xml' ? 0 : 3));
+      afterAlloc();
+      return wrap(id);
+    }
     if (/[A-Z]/.test(name)) name = asciiLower(name);
     const id = checkId(N.createElement(this._i, elementAtom(name), 0));
     afterAlloc();
@@ -703,8 +708,11 @@ class Document extends Node {
     const i = qn.indexOf(':');
     const prefix = i < 0 ? null : qn.slice(0, i);
     const local = i < 0 ? qn : qn.slice(i + 1);
-    if (prefix !== null && ns === null) throw domError(9);
     attrNameAtom(local);
+    // DOM "validate and extract" (the namespace half)
+    if (prefix !== null && ns === null) throw domError(9);
+    if (prefix === 'xml' && ns !== NS.XML) throw domError(9);
+    if ((qn === 'xmlns' || prefix === 'xmlns') !== (ns === NS.XMLNS)) throw domError(9);
     return makeAttr(null, internAtom(qn), ns === null ? 0 : internAtom(ns), prefix === null ? 0 : internAtom(prefix), internAtom(local), '', this);
   }
 
@@ -1908,7 +1916,7 @@ class DOMParser {
     const t = String(type);
     if (t !== 'text/html') {
       if (['text/xml', 'application/xml', 'application/xhtml+xml', 'image/svg+xml'].includes(t)) {
-        throw domError(7, `rsdom: DOMParser type '${t}' is not supported (XML parsing is out of scope)`);
+        return require('./xml.cjs').parseXmlDocument(String(string), t, context.currentDocument()?.URL ?? 'about:blank'); // DESIGN §38
       }
       throw new TypeError(`Failed to execute 'parseFromString' on 'DOMParser': The provided value '${t}' is not a valid enum value of type DOMParserSupportedType.`);
     }

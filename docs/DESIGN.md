@@ -1228,8 +1228,7 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
     response ends (abort, timeout, teardown) makes Node 22's undici open one extra connection that idles for its
     keep-alive timeout (~4 s), so a test server's `close()` waits that long unless `closeAllConnections()` runs
     first (jsdom: no wait).
-  - Missing: `responseXML` is null for XML types and `send(XMLDocument)` uses the HTML serializer (no XML parser,
-    Stage 3 `xml`); synchronous `send()` throws.
+  - Missing: synchronous `send()` throws. (XML `responseXML` and XML Document bodies arrived with §38.)
   - Decoding: Node 22's TextDecoder decodes windows-1252 (and its latin1 / us-ascii labels) 0x80-0x9F as latin1,
     so those bytes are mapped through a 32-entry table; it refuses the replacement and x-user-defined encodings,
     which are decoded by hand (one UTF-16 decode per body; 8 MB of x-user-defined in ~0.2 s) (WPT `encoding/replacement-encodings.any.html`).
@@ -1725,7 +1724,7 @@ test adapter, which is now a one-line re-export.
 - **Encoding.** Binary input (`Buffer`, `fromFile()`, `fromURL()`) is decoded by BOM, then the content type's
   `charset`, then a `<meta>` prescan of the first 1024 bytes, else UTF-8. `document.characterSet` still says
   `UTF-8`.
-- **Not implemented.** XML content types (ROADMAP `xml`), `runScripts` (validated, then ignored),
+- **Not implemented.** `runScripts` (validated, then ignored; XML content types arrived with §38),
   `includeNodeLocations`, subresource loading beyond `fromURL()`'s page (`resources` other than `userAgent`), a
   cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's
   (`... rsdom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
@@ -1966,3 +1965,36 @@ are cached per document ([SameObject]), as is `map.areas` per map. `object.conte
 
 Parity: the `reflection` gap went from 8,749 to 10 subtests (6 -> 16 of 17 files), and overall parity from 91.2%
 to 96.7%. The rest is `document.open()` / `close()` (`core`) and frame loading (`browsing-contexts`).
+
+## 38. XML documents (ROADMAP Stage 3, 2026-10)
+
+`lib/xml.cjs` ports jsdom's XML glue (refs/jsdom/lib/jsdom/browser/parser/xml.js, living/domparsing/*.js) over the
+two libraries jsdom itself uses, now dependencies and loaded on first use: **saxes** tokenizes, so what is well
+formed and every error message are jsdom's (`1:3: unclosed tag: a`), and **w3c-xmlserializer** serializes. Neither
+touches rsdom internals: the parser's events build the tree through the public DOM (`createElementNS`,
+`setAttributeNS`, `appendChild`, template contents for an HTML `template`), and the serializer reads the public DOM.
+XML documents are rare in tests and small, so a native tree builder is not worth its code; the parse is all in one
+call, and a well-formedness error throws before the result is used.
+
+- **Which documents are XML.** A document's parsing mode is its HTML_DOC bit, which every node of the document
+  carries: clear for `createDocument()`, `new Document()` and the documents made here.
+- **DOMParser** with `text/xml`, `application/xml`, `application/xhtml+xml` or `image/svg+xml` parses into a new
+  XML-mode document whose wrapper is a `Document` (as in jsdom); a well-formedness error gives jsdom's `<parsererror
+  xmlns="http://www.mozilla.org/newlayout/xml/parsererror.xml">` document with saxes's message.
+- **`new JSDOM(x, { contentType })`** with an XML type, and the test environments' `contentType`, open the context
+  with an XML document (`context.open({ xml })`); an error throws a SyntaxError prefixed with the URL, as in jsdom.
+  `serialize()` serializes the children without requiring well-formedness.
+- **innerHTML / outerHTML / insertAdjacentHTML / Range#createContextualFragment** on nodes of XML documents serialize
+  with `requireWellFormed` (InvalidStateError otherwise) and parse as XML fragments whose prefixes resolve through
+  the context element. xml.cjs wraps the existing members and defers to them for HTML documents, so the HTML path is
+  unchanged.
+- **XMLSerializer#serializeToString**, without requiring well-formedness.
+- **XMLHttpRequest:** `responseXML` for XML MIME types (null when not well formed), and an XML Document body
+  serialized as XML.
+- **createElement in an XML document** keeps the whole name as the local name (`a:B`: no prefix, no namespace
+  check) through a new namespace code of the `createElement` native; `createAttributeNS` now applies the namespace
+  rules of "validate and extract" (`xml:` / `xmlns`).
+
+Parity: the `xml` gap went from 789 to 5 subtests (20 -> 37 of 39 files), `ranges` reached 0, and overall parity
+went from 96.7% to 97.3%. The rest is `document.domain` of parsed documents (`core`) and one invalid style
+attribute (`cssom`).

@@ -622,6 +622,14 @@ describe.each(DOMS)('XMLHttpRequest responses [%s]', (kind) => {
     expect(c.x.response.type).toBe('text/x-y');
   });
 
+  it('responseXML parses an XML body (DESIGN §38)', async () => {
+    if (HD) return; // PINNED to jsdom
+    const a = await request(same(), 'GET', `${base}/xml`);
+    expect(a.x.responseXML.documentElement.localName).toBe('r');
+    expect(a.x.responseXML.contentType).toBe('application/xml');
+    expect(a.x.responseXML.documentElement.firstChild.localName).toBe('a');
+  });
+
   it("responseType 'document' parses HTML; responseXML is null for '' and HTML", async () => {
     const w = same();
     const a = await request(w, 'GET', `${base}/html`, { setup: (x) => (x.responseType = 'document') });
@@ -963,8 +971,4 @@ describe('spec-correct divergences from jsdom (asserted)', () => {
     expect(r.h('sec-fetch-mode')).toBe(pick(kind, null, 'cors'));
   });
 
-  it.each(kinds)('responseXML for XML types: null without an XML parser [%s]', async (kind) => {
-    const { x } = await request(makeWindow(kind, { url: `${base}/dir/page.html` }), 'GET', `${base}/xml`);
-    expect(x.responseXML === null).toBe(pick(kind, false, true));
-  });
 });

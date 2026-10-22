@@ -349,7 +349,7 @@ describe('spec-correct divergences from jsdom (asserted)', () => {
     if (rs) expect(r).toEqual([10, 20]);
   });
 
-  it('KNOWN GAP (not spec): elements of XML documents use the HTML serializer', () => {
+  it('elements of XML documents use the XML serializer (DESIGN §38)', () => {
     const [j, r] = both((d) => {
       const x = d.implementation.createDocument(null, 'Foo');
       x.documentElement.setAttribute('a', '<&"');
@@ -357,7 +357,7 @@ describe('spec-correct divergences from jsdom (asserted)', () => {
       return x.documentElement.outerHTML;
     });
     expect(j).toBe('<Foo a="&lt;&amp;&quot;"><br/></Foo>');
-    if (rs) expect(r).toBe('<Foo a="<&amp;&quot;"><br></br></Foo>');
+    if (rs) expect(r).toBe(j);
   });
 
   it('KNOWN GAP: a UTF-16 offset inside a surrogate pair rounds to the code point start', () => {

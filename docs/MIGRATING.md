@@ -8,7 +8,7 @@ Most suites need only the configuration change. Read [the divergences](#known-di
 the switch, or before you switch if your suite relies on scripts, custom elements, iframes or XML, which rsdom
 does not support yet.
 
-Where things stand (2026-10-21): rsdom passes 91.2% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-22): rsdom passes 96.7% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -171,8 +171,6 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[design] Jest globals.** Members a jsdom window has are copied from Node (`URL`, `TextEncoder`,
   `AbortController`, `atob`, `performance`, `crypto`, ...); `fetch` and `structuredClone` stay undefined, as
   under jest-environment-jsdom. DESIGN §32.
-- **[gap] Missing reflected attributes and ARIAMixin.** `el.role`, `el.ariaLabel` and many reflected HTML
-  attributes are undefined. `reflection`.
 - **[gap] Missing Window members:** `postMessage`, `name`, `length`, `Plugin`, `MimeType`, `BarProp`,
   `External`, `Audio`, `PromiseRejectionEvent`, `CloseEvent`, `ElementInternals`. `geometry`, `core`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
@@ -251,8 +249,9 @@ share one realm, so they do not apply there.
 
 - **[gap] `ElementInternals`** is missing. `stepUp()` / `stepDown()`, `valueAsNumber`, `valueAsDate`, `<meter>`
   and `<progress>` work like jsdom (DESIGN §36). `forms`.
-- **[gap] `document.forms`, `document.links` and `document.images` are undefined.** Use
-  `querySelectorAll('form')` and the like. `core`.
+- **[gap] `document.forms.<name>`** and other named access on HTMLCollection is undefined; use
+  `namedItem(name)`. `core`.
+- **[gap] `document.open()`, `write()` and `close()` are missing.** `core`.
 - **[gap] `:invalid` / `:valid` ignore `pattern`:** `validity.patternMismatch` is right, but
   `matches(':invalid')` is false for a pattern mismatch. `forms`.
 - **[gap] `control.labels` and `document.getElementsByName()` return static NodeLists**, a new one on each

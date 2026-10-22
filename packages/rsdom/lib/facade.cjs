@@ -2,7 +2,8 @@
 // The facade, loaded once per native env through lib/index.cjs (which documents it).
 //
 // Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> cssom -> forms -> events -> mo -> window
-// -> xhr -> observers -> range -> shadow -> file-api.
+// -> xhr -> observers -> range -> shadow -> file-api -> selection -> tables -> reflection (last: it only fills in
+// reflected attributes no other area defined).
 
 const rt = require('./runtime.cjs');
 const dom = require('./dom.cjs');
@@ -22,6 +23,8 @@ const areas = [
   require('./shadow.cjs'),
   require('./file-api.cjs'),
   require('./selection.cjs'),
+  require('./tables.cjs'),
+  require('./reflection.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);
 // WebIDL: interface members are enumerable (class syntax made them non-enumerable).

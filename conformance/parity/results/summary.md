@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1943 | 162751 | 149557 | 91.9% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 152 | 2578 | 2373 | 92.0% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 756 | 42.4% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2007 | 162751 | 158479 | 97.4% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 154 | 2578 | 2382 | 92.4% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 1067 | 59.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 250 | 40.7% |
-| **all** | **2615** | **2101** | **167724** | **152936** | **91.2%** |
+| **all** | **2615** | **2167** | **167724** | **162178** | **96.7%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -31,20 +31,20 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 223 | 219 | 87.8% | assert_equals: wrong value (187); missing global: customElements (20); assert_true: wrong value (4) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 277 | 84 | 97.9% | assert_equals: wrong value (78); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 98 | 60 | 89.1% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
-| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 247 | 62 | 98.2% | harness ERROR: read of undefined (.fm1) (16); assert_equals: wrong value (15); assert_array_equals: wrong value (9) |
+| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 248 | 57 | 98.4% | assert_equals: wrong value (15); harness ERROR: read of undefined (.fm1) (9); assert_array_equals: wrong value (9) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
-| 3 | Reflected IDL attributes and ARIAMixin | 17 | 6 | 8749 | 82.5% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (338); read of undefined (.length) (319) |
+| 3 | Reflected IDL attributes and ARIAMixin | 17 | 16 | 10 | 100.0% | missing method: .open() (5); TIMEOUT: Timeout of …ms exceeded (2); missing method: .close() (1) |
 | 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 43 | 1 | 100.0% | rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 20 | 789 | 14.5% | rsdom: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 756 | 1090 | 95.6% | assert_equals: wrong value (194); harness ERROR: Array.prototype.forEach called on null or undefined (190); assert_array_equals: wrong value (181) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 84 | 260 | 69.1% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (42) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 811 | 597 | 97.6% | assert_array_equals: wrong value (182); assert_equals: wrong value (167); assert_true: wrong value (58) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 84 | 259 | 69.2% | assert_equals: wrong value (98); missing method: .assignedNodes() (54); assert_true: wrong value (41) |
 | 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
-| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 75 | 82.4% | TIMEOUT: Timeout of …ms exceeded (33); read of undefined (.document) (9); assert_equals: wrong value (6) |
+| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 71 | 83.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
 
 ## Gaps outside every roadmap item
 

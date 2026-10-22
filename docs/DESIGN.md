@@ -1931,3 +1931,38 @@ helpers/number-and-date-inputs.js):
 
 Parity: the `forms` gap went from 314 to 62 subtests (218 -> 247 of 277 files). Most of the rest reads
 `document.forms.<name>`, which needs named properties on HTMLCollection (`core`).
+
+## 37. Reflected attributes, ARIA, tables and document collections (ROADMAP Stage 3, 2026-10)
+
+Reflected IDL attributes are data, not code. `scripts/gen-interfaces.mjs` reads every `[Reflect*]` attribute of
+jsdom's webidl (refs/jsdom/lib/jsdom/living/nodes/*.webidl and aria/ARIAMixin.webidl, mixins folded into the
+interfaces that include them) into the `reflect` table of `data/interfaces.json`: property, content attribute,
+how it reflects (`str`, `str?` nullable, `str0` [LegacyNullToEmptyString], `url`, `bool`, `long`, `ulong`) and
+ReflectDefault / ReflectRange / ReflectNonNegative / ReflectPositive(WithFallback). `lib/reflection.cjs` installs
+the table last, after every other area, and skips a property an area already defines, so hand-written accessors
+with behaviour beyond the attribute (input `value`, `src` loading, form owners) win. The accessors follow jsdom's
+generated code (webidl2js): unsigned values parse as non-negative integers and clamp to ReflectRange, `0` throws
+IndexSizeError for ReflectPositive, ARIA attributes and `crossOrigin` are `null` when absent and removed by
+`null`.
+
+Reflection reads and writes through `Element.prototype.getAttribute` / `setAttribute` captured at install, not
+`this.getAttribute`: an instance that overrides those methods does not see reflection, as in jsdom (whose impl
+objects have no overrides). The forms.cjs helpers changed the same way.
+
+Two enumerated attributes jsdom implements by hand: `th.scope` / `td.scope` (row, col, rowgroup, colgroup, ASCII
+case-insensitive) and `document.dir` (the document element's `dir`).
+
+`lib/tables.cjs` ports jsdom's table API (HTMLTable*Element-impl.js): `caption`, `tHead`, `tFoot` with their
+create / delete methods, `createTBody`, `rows` (thead rows, then body rows, then tfoot rows), `tBodies`,
+`insertRow` / `deleteRow` on tables and sections, `cells`, `rowIndex`, `sectionRowIndex`, `insertCell` /
+`deleteCell` and `cellIndex`. Every query walks the children through the public DOM and every change is an
+`insertBefore` / `removeChild`; `rows`, `tBodies` and `cells` are live HTMLCollections over the tree epoch
+(`deps('TREE')`), one per element.
+
+`document.images`, `embeds` (= `plugins`), `forms` and `scripts` are jsdom's `getElementsByTagName` with
+upper-case names (so an XML document's lower-case `img` does not match, as in jsdom); `links` (`a[href]`,
+`area[href]`) and `anchors` (`a[name]`) are Rust selector queries kept to HTML elements; `applets` is empty. All
+are cached per document ([SameObject]), as is `map.areas` per map. `object.contentDocument` is `null`.
+
+Parity: the `reflection` gap went from 8,749 to 10 subtests (6 -> 16 of 17 files), and overall parity from 91.2%
+to 96.7%. The rest is `document.open()` / `close()` (`core`) and frame loading (`browsing-contexts`).

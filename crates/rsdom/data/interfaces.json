@@ -395,5 +395,464 @@
   "rtc",
   "strike",
   "tt"
- ]
+ ],
+ "reflect": {
+  "Element": [
+   ["id", "id", "str"],
+   ["className", "class", "str"],
+   ["slot", "slot", "str"],
+   ["role", "role", "str?"],
+   ["ariaAtomic", "aria-atomic", "str?"],
+   ["ariaAutoComplete", "aria-autocomplete", "str?"],
+   ["ariaBusy", "aria-busy", "str?"],
+   ["ariaChecked", "aria-checked", "str?"],
+   ["ariaColCount", "aria-colcount", "str?"],
+   ["ariaColIndex", "aria-colindex", "str?"],
+   ["ariaColIndexText", "aria-colindextext", "str?"],
+   ["ariaColSpan", "aria-colspan", "str?"],
+   ["ariaCurrent", "aria-current", "str?"],
+   ["ariaDescription", "aria-description", "str?"],
+   ["ariaDisabled", "aria-disabled", "str?"],
+   ["ariaExpanded", "aria-expanded", "str?"],
+   ["ariaHasPopup", "aria-haspopup", "str?"],
+   ["ariaHidden", "aria-hidden", "str?"],
+   ["ariaInvalid", "aria-invalid", "str?"],
+   ["ariaKeyShortcuts", "aria-keyshortcuts", "str?"],
+   ["ariaLabel", "aria-label", "str?"],
+   ["ariaLevel", "aria-level", "str?"],
+   ["ariaLive", "aria-live", "str?"],
+   ["ariaModal", "aria-modal", "str?"],
+   ["ariaMultiLine", "aria-multiline", "str?"],
+   ["ariaMultiSelectable", "aria-multiselectable", "str?"],
+   ["ariaOrientation", "aria-orientation", "str?"],
+   ["ariaPlaceholder", "aria-placeholder", "str?"],
+   ["ariaPosInSet", "aria-posinset", "str?"],
+   ["ariaPressed", "aria-pressed", "str?"],
+   ["ariaReadOnly", "aria-readonly", "str?"],
+   ["ariaRequired", "aria-required", "str?"],
+   ["ariaRoleDescription", "aria-roledescription", "str?"],
+   ["ariaRowCount", "aria-rowcount", "str?"],
+   ["ariaRowIndex", "aria-rowindex", "str?"],
+   ["ariaRowIndexText", "aria-rowindextext", "str?"],
+   ["ariaRowSpan", "aria-rowspan", "str?"],
+   ["ariaSelected", "aria-selected", "str?"],
+   ["ariaSetSize", "aria-setsize", "str?"],
+   ["ariaSort", "aria-sort", "str?"],
+   ["ariaValueMax", "aria-valuemax", "str?"],
+   ["ariaValueMin", "aria-valuemin", "str?"],
+   ["ariaValueNow", "aria-valuenow", "str?"],
+   ["ariaValueText", "aria-valuetext", "str?"],
+   ["ariaRelevant", "aria-relevant", "str?"]
+  ],
+  "HTMLAnchorElement": [
+   ["target", "target", "str"],
+   ["download", "download", "str"],
+   ["rel", "rel", "str"],
+   ["hreflang", "hreflang", "str"],
+   ["type", "type", "str"],
+   ["coords", "coords", "str"],
+   ["charset", "charset", "str"],
+   ["name", "name", "str"],
+   ["rev", "rev", "str"],
+   ["shape", "shape", "str"]
+  ],
+  "HTMLAreaElement": [
+   ["alt", "alt", "str"],
+   ["coords", "coords", "str"],
+   ["shape", "shape", "str"],
+   ["target", "target", "str"],
+   ["rel", "rel", "str"],
+   ["noHref", "nohref", "bool"]
+  ],
+  "HTMLBRElement": [
+   ["clear", "clear", "str"]
+  ],
+  "HTMLBaseElement": [
+   ["target", "target", "str"]
+  ],
+  "HTMLBodyElement": [
+   ["text", "text", "str0"],
+   ["link", "link", "str0"],
+   ["vLink", "vlink", "str0"],
+   ["aLink", "alink", "str0"],
+   ["bgColor", "bgcolor", "str0"],
+   ["background", "background", "str"]
+  ],
+  "HTMLButtonElement": [
+   ["autofocus", "autofocus", "bool"],
+   ["disabled", "disabled", "bool"],
+   ["formNoValidate", "formnovalidate", "bool"],
+   ["formTarget", "formtarget", "str"],
+   ["name", "name", "str"],
+   ["value", "value", "str"]
+  ],
+  "HTMLCanvasElement": [
+   ["width", "width", "ulong", {"d": 300}],
+   ["height", "height", "ulong", {"d": 150}]
+  ],
+  "HTMLDListElement": [
+   ["compact", "compact", "bool"]
+  ],
+  "HTMLDataElement": [
+   ["value", "value", "str"]
+  ],
+  "HTMLDetailsElement": [
+   ["open", "open", "bool"]
+  ],
+  "HTMLDialogElement": [
+   ["open", "open", "bool"]
+  ],
+  "HTMLDirectoryElement": [
+   ["compact", "compact", "bool"]
+  ],
+  "HTMLDivElement": [
+   ["align", "align", "str"]
+  ],
+  "HTMLElement": [
+   ["title", "title", "str"],
+   ["lang", "lang", "str"],
+   ["hidden", "hidden", "bool"],
+   ["accessKey", "accesskey", "str"],
+   ["nonce", "nonce", "str"]
+  ],
+  "HTMLEmbedElement": [
+   ["src", "src", "url"],
+   ["type", "type", "str"],
+   ["width", "width", "str"],
+   ["height", "height", "str"],
+   ["align", "align", "str"],
+   ["name", "name", "str"]
+  ],
+  "HTMLFieldSetElement": [
+   ["disabled", "disabled", "bool"],
+   ["name", "name", "str"]
+  ],
+  "HTMLFontElement": [
+   ["color", "color", "str0"],
+   ["face", "face", "str"],
+   ["size", "size", "str"]
+  ],
+  "HTMLFormElement": [
+   ["acceptCharset", "accept-charset", "str"],
+   ["name", "name", "str"],
+   ["noValidate", "novalidate", "bool"],
+   ["target", "target", "str"]
+  ],
+  "HTMLFrameElement": [
+   ["name", "name", "str"],
+   ["scrolling", "scrolling", "str"],
+   ["src", "src", "url"],
+   ["frameBorder", "frameborder", "str"],
+   ["longDesc", "longdesc", "url"],
+   ["noResize", "noresize", "bool"],
+   ["marginHeight", "marginheight", "str0"],
+   ["marginWidth", "marginwidth", "str0"]
+  ],
+  "HTMLFrameSetElement": [
+   ["cols", "cols", "str"],
+   ["rows", "rows", "str"]
+  ],
+  "HTMLHRElement": [
+   ["align", "align", "str"],
+   ["color", "color", "str"],
+   ["noShade", "noshade", "bool"],
+   ["size", "size", "str"],
+   ["width", "width", "str"]
+  ],
+  "HTMLHeadingElement": [
+   ["align", "align", "str"]
+  ],
+  "HTMLHtmlElement": [
+   ["version", "version", "str"]
+  ],
+  "HTMLIFrameElement": [
+   ["src", "src", "url"],
+   ["srcdoc", "srcdoc", "str"],
+   ["name", "name", "str"],
+   ["allowFullscreen", "allowfullscreen", "bool"],
+   ["width", "width", "str"],
+   ["height", "height", "str"],
+   ["align", "align", "str"],
+   ["scrolling", "scrolling", "str"],
+   ["frameBorder", "frameborder", "str"],
+   ["longDesc", "longdesc", "url"],
+   ["marginHeight", "marginheight", "str0"],
+   ["marginWidth", "marginwidth", "str0"]
+  ],
+  "HTMLImageElement": [
+   ["alt", "alt", "str"],
+   ["src", "src", "url"],
+   ["srcset", "srcset", "str"],
+   ["sizes", "sizes", "str"],
+   ["crossOrigin", "crossorigin", "str?"],
+   ["useMap", "usemap", "str"],
+   ["isMap", "ismap", "bool"],
+   ["name", "name", "str"],
+   ["lowsrc", "lowsrc", "url"],
+   ["align", "align", "str"],
+   ["hspace", "hspace", "ulong"],
+   ["vspace", "vspace", "ulong"],
+   ["longDesc", "longdesc", "url"],
+   ["border", "border", "str0"]
+  ],
+  "HTMLInputElement": [
+   ["accept", "accept", "str"],
+   ["alt", "alt", "str"],
+   ["autocomplete", "autocomplete", "str"],
+   ["autofocus", "autofocus", "bool"],
+   ["defaultChecked", "checked", "bool"],
+   ["dirName", "dirname", "str"],
+   ["disabled", "disabled", "bool"],
+   ["formNoValidate", "formnovalidate", "bool"],
+   ["formTarget", "formtarget", "str"],
+   ["inputMode", "inputmode", "str"],
+   ["max", "max", "str"],
+   ["maxLength", "maxlength", "long", {"nonNeg":true}],
+   ["min", "min", "str"],
+   ["minLength", "minlength", "long", {"nonNeg":true}],
+   ["multiple", "multiple", "bool"],
+   ["name", "name", "str"],
+   ["pattern", "pattern", "str"],
+   ["placeholder", "placeholder", "str"],
+   ["readOnly", "readonly", "bool"],
+   ["required", "required", "bool"],
+   ["size", "size", "ulong", {"d": 20, "pos":true}],
+   ["src", "src", "url"],
+   ["step", "step", "str"],
+   ["defaultValue", "value", "str"],
+   ["align", "align", "str"],
+   ["useMap", "usemap", "str"]
+  ],
+  "HTMLLIElement": [
+   ["value", "value", "long"],
+   ["type", "type", "str"]
+  ],
+  "HTMLLabelElement": [
+   ["htmlFor", "for", "str"]
+  ],
+  "HTMLLegendElement": [
+   ["align", "align", "str"]
+  ],
+  "HTMLLinkElement": [
+   ["href", "href", "url"],
+   ["crossOrigin", "crossorigin", "str?"],
+   ["rel", "rel", "str"],
+   ["media", "media", "str"],
+   ["hreflang", "hreflang", "str"],
+   ["type", "type", "str"],
+   ["charset", "charset", "str"],
+   ["rev", "rev", "str"],
+   ["target", "target", "str"]
+  ],
+  "HTMLMapElement": [
+   ["name", "name", "str"]
+  ],
+  "HTMLMarqueeElement": [
+   ["behavior", "behavior", "str"],
+   ["bgColor", "bgcolor", "str"],
+   ["direction", "direction", "str"],
+   ["height", "height", "str"],
+   ["hspace", "hspace", "ulong"],
+   ["scrollAmount", "scrollamount", "ulong"],
+   ["scrollDelay", "scrolldelay", "ulong"],
+   ["trueSpeed", "truespeed", "bool"],
+   ["vspace", "vspace", "ulong"],
+   ["width", "width", "str"]
+  ],
+  "HTMLMediaElement": [
+   ["src", "src", "url"],
+   ["crossOrigin", "crossorigin", "str?"],
+   ["preload", "preload", "str"],
+   ["autoplay", "autoplay", "bool"],
+   ["loop", "loop", "bool"],
+   ["controls", "controls", "bool"],
+   ["defaultMuted", "muted", "bool"]
+  ],
+  "HTMLMenuElement": [
+   ["compact", "compact", "bool"]
+  ],
+  "HTMLMetaElement": [
+   ["name", "name", "str"],
+   ["httpEquiv", "http-equiv", "str"],
+   ["content", "content", "str"],
+   ["scheme", "scheme", "str"]
+  ],
+  "HTMLModElement": [
+   ["cite", "cite", "url"],
+   ["dateTime", "datetime", "str"]
+  ],
+  "HTMLOListElement": [
+   ["reversed", "reversed", "bool"],
+   ["start", "start", "long", {"d": 1}],
+   ["type", "type", "str"],
+   ["compact", "compact", "bool"]
+  ],
+  "HTMLObjectElement": [
+   ["data", "data", "url"],
+   ["type", "type", "str"],
+   ["name", "name", "str"],
+   ["useMap", "usemap", "str"],
+   ["width", "width", "str"],
+   ["height", "height", "str"],
+   ["align", "align", "str"],
+   ["archive", "archive", "str"],
+   ["code", "code", "str"],
+   ["declare", "declare", "bool"],
+   ["hspace", "hspace", "ulong"],
+   ["standby", "standby", "str"],
+   ["vspace", "vspace", "ulong"],
+   ["codeBase", "codebase", "url"],
+   ["codeType", "codetype", "str"],
+   ["border", "border", "str0"]
+  ],
+  "HTMLOptGroupElement": [
+   ["disabled", "disabled", "bool"],
+   ["label", "label", "str"]
+  ],
+  "HTMLOptionElement": [
+   ["disabled", "disabled", "bool"],
+   ["defaultSelected", "selected", "bool"]
+  ],
+  "HTMLOutputElement": [
+   ["name", "name", "str"]
+  ],
+  "HTMLParagraphElement": [
+   ["align", "align", "str"]
+  ],
+  "HTMLParamElement": [
+   ["name", "name", "str"],
+   ["value", "value", "str"],
+   ["type", "type", "str"],
+   ["valueType", "valuetype", "str"]
+  ],
+  "HTMLPreElement": [
+   ["width", "width", "long"]
+  ],
+  "HTMLProgressElement": [
+   ["max", "max", "double", {"d": 1, "pos":true}]
+  ],
+  "HTMLQuoteElement": [
+   ["cite", "cite", "url"]
+  ],
+  "HTMLScriptElement": [
+   ["src", "src", "url"],
+   ["type", "type", "str"],
+   ["defer", "defer", "bool"],
+   ["crossOrigin", "crossorigin", "str?"],
+   ["charset", "charset", "str"],
+   ["event", "event", "str"],
+   ["htmlFor", "for", "str"]
+  ],
+  "HTMLSelectElement": [
+   ["autofocus", "autofocus", "bool"],
+   ["disabled", "disabled", "bool"],
+   ["multiple", "multiple", "bool"],
+   ["name", "name", "str"],
+   ["required", "required", "bool"],
+   ["size", "size", "ulong"]
+  ],
+  "HTMLSlotElement": [
+   ["name", "name", "str"]
+  ],
+  "HTMLSourceElement": [
+   ["src", "src", "url"],
+   ["type", "type", "str"],
+   ["srcset", "srcset", "str"],
+   ["sizes", "sizes", "str"],
+   ["media", "media", "str"]
+  ],
+  "HTMLStyleElement": [
+   ["media", "media", "str"],
+   ["type", "type", "str"]
+  ],
+  "HTMLTableCaptionElement": [
+   ["align", "align", "str"]
+  ],
+  "HTMLTableCellElement": [
+   ["colSpan", "colspan", "ulong", {"d": 1, "range": [1, 1000]}],
+   ["rowSpan", "rowspan", "ulong", {"d": 1, "range": [0, 65534]}],
+   ["headers", "headers", "str"],
+   ["abbr", "abbr", "str"],
+   ["align", "align", "str"],
+   ["axis", "axis", "str"],
+   ["height", "height", "str"],
+   ["width", "width", "str"],
+   ["ch", "char", "str"],
+   ["chOff", "charoff", "str"],
+   ["noWrap", "nowrap", "bool"],
+   ["vAlign", "valign", "str"],
+   ["bgColor", "bgcolor", "str0"]
+  ],
+  "HTMLTableColElement": [
+   ["span", "span", "ulong", {"d": 1, "range": [1, 1000]}],
+   ["align", "align", "str"],
+   ["ch", "char", "str"],
+   ["chOff", "charoff", "str"],
+   ["vAlign", "valign", "str"],
+   ["width", "width", "str"]
+  ],
+  "HTMLTableElement": [
+   ["align", "align", "str"],
+   ["border", "border", "str"],
+   ["frame", "frame", "str"],
+   ["rules", "rules", "str"],
+   ["summary", "summary", "str"],
+   ["width", "width", "str"],
+   ["bgColor", "bgcolor", "str0"],
+   ["cellPadding", "cellpadding", "str0"],
+   ["cellSpacing", "cellspacing", "str0"]
+  ],
+  "HTMLTableRowElement": [
+   ["align", "align", "str"],
+   ["ch", "char", "str"],
+   ["chOff", "charoff", "str"],
+   ["vAlign", "valign", "str"],
+   ["bgColor", "bgcolor", "str0"]
+  ],
+  "HTMLTableSectionElement": [
+   ["align", "align", "str"],
+   ["ch", "char", "str"],
+   ["chOff", "charoff", "str"],
+   ["vAlign", "valign", "str"]
+  ],
+  "HTMLTextAreaElement": [
+   ["autocomplete", "autocomplete", "str"],
+   ["autofocus", "autofocus", "bool"],
+   ["cols", "cols", "ulong", {"d": 20, "posFb":true}],
+   ["dirName", "dirname", "str"],
+   ["disabled", "disabled", "bool"],
+   ["inputMode", "inputmode", "str"],
+   ["maxLength", "maxlength", "long", {"nonNeg":true}],
+   ["minLength", "minlength", "long", {"nonNeg":true}],
+   ["name", "name", "str"],
+   ["placeholder", "placeholder", "str"],
+   ["readOnly", "readonly", "bool"],
+   ["required", "required", "bool"],
+   ["rows", "rows", "ulong", {"d": 2, "posFb":true}],
+   ["wrap", "wrap", "str"]
+  ],
+  "HTMLTimeElement": [
+   ["dateTime", "datetime", "str"]
+  ],
+  "HTMLTrackElement": [
+   ["kind", "kind", "str"],
+   ["src", "src", "url"],
+   ["srclang", "srclang", "str"],
+   ["label", "label", "str"],
+   ["default", "default", "bool"]
+  ],
+  "HTMLUListElement": [
+   ["compact", "compact", "bool"],
+   ["type", "type", "str"]
+  ],
+  "HTMLVideoElement": [
+   ["width", "width", "ulong"],
+   ["height", "height", "ulong"],
+   ["poster", "poster", "url"],
+   ["playsInline", "playsinline", "bool"]
+  ],
+  "SVGElement": [
+   ["nonce", "nonce", "str"]
+  ]
+ }
 }

@@ -106,13 +106,20 @@ function queueSelect(el) {
 
 // ===================================================================================== reflection
 
+// Element.prototype's attribute methods, set by install(): reflection reads and writes the content attribute
+// directly, so an instance that overrides getAttribute / setAttribute does not see it (jsdom reflects on the
+// impl; WPT html/dom/reflection-overridden-methods.html).
+let getAttr;
+let setAttr;
+let removeAttr;
+
 function reflectStr(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      return this.getAttribute(attr) ?? '';
+      return getAttr.call(this, attr) ?? '';
     },
     set(v) {
-      this.setAttribute(attr, v);
+      setAttr.call(this, attr, v);
     },
     enumerable: false,
     configurable: true,
@@ -122,11 +129,11 @@ function reflectStr(C, prop, attr = prop.toLowerCase()) {
 function reflectBool(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      return this.hasAttribute(attr);
+      return getAttr.call(this, attr) !== null;
     },
     set(v) {
-      if (v) this.setAttribute(attr, '');
-      else this.removeAttribute(attr);
+      if (v) setAttr.call(this, attr, '');
+      else removeAttr.call(this, attr);
     },
     enumerable: false,
     configurable: true,
@@ -145,7 +152,7 @@ function parseInteger(v) {
 function reflectLong(C, prop, attr, dflt, nonNeg = false) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return dflt;
       const n = parseInteger(v);
       if (n === null || n < -2147483648 || n > 2147483647 || (nonNeg && n < 0)) return dflt;
@@ -154,7 +161,7 @@ function reflectLong(C, prop, attr, dflt, nonNeg = false) {
     set(v) {
       const n = Number(v) | 0;
       if (nonNeg && n < 0) throw rt.domError(5, `The value provided (${n}) is negative.`);
-      this.setAttribute(attr, String(n));
+      setAttr.call(this, attr, String(n));
     },
     enumerable: false,
     configurable: true,
@@ -165,7 +172,7 @@ function reflectLong(C, prop, attr, dflt, nonNeg = false) {
 function reflectULong(C, prop, attr, dflt, positive = false) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return dflt;
       const n = parseInteger(v);
       if (n === null || n < 0 || n > 2147483647 || (positive && n === 0)) return dflt;
@@ -175,7 +182,7 @@ function reflectULong(C, prop, attr, dflt, positive = false) {
       let n = Number(v) >>> 0;
       if (n > 2147483647) n = dflt;
       if (positive && n === 0) throw rt.domError(5, 'The value provided is 0, which is not a valid positive value.');
-      this.setAttribute(attr, String(n));
+      setAttr.call(this, attr, String(n));
     },
     enumerable: false,
     configurable: true,
@@ -256,12 +263,12 @@ function parseURL(el, v) {
 function reflectURL(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return '';
       return parseURL(this, v) ?? v;
     },
     set(v) {
-      this.setAttribute(attr, v);
+      setAttr.call(this, attr, v);
     },
     enumerable: false,
     configurable: true,
@@ -1208,6 +1215,7 @@ function runUaTasks() {
 function install(_rt, dom) {
   const C = rt.classes;
   const { HTMLElement, SVGElement, Element, Document } = dom;
+  ({ getAttribute: getAttr, setAttribute: setAttr, removeAttribute: removeAttr } = Element.prototype);
   rt.setUaTaskHandler(runUaTasks);
   attrSetAtom = dom.attrSetAtom;
 
@@ -1767,6 +1775,12 @@ function install(_rt, dom) {
 
   // <object> is a listed element (src/forms/mod.rs `is_listed`): form owner only (shadow-root thread, DESIGN §22)
   defineAll(C.HTMLObjectElement, FormAssociated);
+  defineAll(C.HTMLObjectElement, {
+    // No nested browsing contexts (ROADMAP Stage 4 `browsing-contexts`); jsdom's is null too.
+    get contentDocument() {
+      return null;
+    },
+  });
 
   const Output = C.HTMLOutputElement;
   defineAll(Output, {
@@ -1920,13 +1934,6 @@ function install(_rt, dom) {
     decode() {
       return Promise.resolve();
     },
-    get crossOrigin() {
-      return this.getAttribute('crossorigin');
-    },
-    set crossOrigin(v) {
-      if (v === null) this.removeAttribute('crossorigin');
-      else this.setAttribute('crossorigin', v);
-    },
   });
   reflectURL(Img, 'src');
   reflectURL(Img, 'lowsrc');
@@ -2001,6 +2008,19 @@ function install(_rt, dom) {
       this.textContent = v;
     },
   });
+  // jsdom: the "child text content" (the Text children only), set as textContent.
+  const childText = {
+    get text() {
+      let s = '';
+      for (let c = this.firstChild; c !== null; c = c.nextSibling) if (c.nodeType === 3) s += c.data;
+      return s;
+    },
+    set text(v) {
+      this.textContent = v;
+    },
+  };
+  defineAll(C.HTMLScriptElement, childText);
+  defineAll(C.HTMLTitleElement, childText);
   for (const p of ['coords', 'charset', 'name', 'rev', 'shape']) reflectStr(C.HTMLAnchorElement, p);
   reflectStr(C.HTMLAreaElement, 'alt');
   reflectStr(C.HTMLAreaElement, 'coords');
@@ -2017,5 +2037,5 @@ function install(_rt, dom) {
 
 module.exports = {
   install, INPUT_TYPES, DOMTokenList, ValidityState, focusingSteps, unfocusingSteps, currentFocus, formEntries,
-  baseURL,
+  baseURL, reflectStr, reflectBool, reflectLong, reflectURL, parseInteger,
 };

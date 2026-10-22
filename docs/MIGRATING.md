@@ -175,8 +175,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   `External`, `Audio`, `PromiseRejectionEvent`, `CloseEvent`, `ElementInternals`. `geometry`, `core`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
 - **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4),
-  `DOMRect` / `DOMRectReadOnly` (rects are plain objects; `geometry`), XPath (`document.evaluate`;
-  `xpath`), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
+  `DOMRect` / `DOMRectReadOnly` (rects are plain objects; `geometry`), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] Brand checks are skipped on hot paths.** `Object.getOwnPropertyDescriptor(Node.prototype,
   'firstChild').get.call({})` returns `null` instead of throwing `TypeError`. CONTRIBUTING §8.
 - **[design] Element wrappers have enumerable own fields** (`_ev`, `_i` and others): `Object.keys(div)` is not

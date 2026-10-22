@@ -1998,3 +1998,23 @@ call, and a well-formedness error throws before the result is used.
 Parity: the `xml` gap went from 789 to 5 subtests (20 -> 37 of 39 files), `ranges` reached 0, and overall parity
 went from 96.7% to 97.3%. The rest is `document.domain` of parsed documents (`core`) and one invalid style
 attribute (`cssom`).
+
+## 39. XPath (ROADMAP Stage 3, 2026-10)
+
+`lib/xpath.cjs` is jsdom's own XPath 1.0 engine (refs/jsdom/lib/jsdom/level3/xpath.js, MIT), vendored with jsdom's
+formatting and in sloppy mode, so a diff against upstream stays readable. It reads only the public DOM (`parentNode`,
+`childNodes`, `attributes`, `getElementById`, ...), so it runs over rsdom's wrappers unchanged and matches jsdom result
+for result, quirks included: `XPathException` is a plain `Error` with a `code`, and its `DOMException`s pass the
+legacy code as the message, as jsdom's do. It installs `XPathEvaluator`, `XPathExpression`, `XPathResult` and
+`XPathException` globals and `Document#evaluate` / `createExpression` / `createNSResolver`.
+
+The one change is `invalidIteratorState`. jsdom compares the document's internal `_version`, which child-list and
+attribute changes bump. xpath.cjs stamps the TREE and ATTR epoch slots and the env generation instead, and compares
+them directly rather than through a `memo.cjs` stamp, which is never fresh under RSDOM_NO_MEMO=1. The epochs are
+env-wide, so a mutation of another document of the same env also invalidates an iterator, where jsdom's per-document
+counter would not. That case is rare in tests and leans the safe way.
+
+jsdom's legacy `level3/xpath.js` test installs jsdom's module over the window and reads `Document#_version`, so it
+measures jsdom's XPath, not rsdom's; it is marked `skip` (expectations/legacy.yaml). Parity: the `xpath` gap went from
+66 to 5 subtests (8 -> 25 of 27 files). Four remaining subtests compare results with `hasOwnProperty` on an
+HTMLCollection, whose live indices are prototype getters (§4.3); one needs a declarative shadow root.

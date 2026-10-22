@@ -144,13 +144,23 @@ tag(DOMRect);
 
 // ================================================================================ BarProp, External
 
+/** Instances made by the TOKEN constructors below (jsdom's brand checks; none of these is on a hot path). */
+const BRAND = new WeakSet();
+
+/** jsdom's brand check: `what` is `'get x'` for a getter, the method name otherwise. */
+function brand(o, what, iface) {
+  if (!BRAND.has(o)) throw new TypeError(`'${what}' called on an object that is not a valid instance of ${iface}.`);
+}
+
 /** BarProp (`locationbar`, `menubar`, ...): `visible` is always true, as in jsdom. */
 class BarProp {
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+    BRAND.add(this);
   }
 
   get visible() {
+    brand(this, 'get visible', 'BarProp');
     return true;
   }
 }
@@ -160,11 +170,16 @@ tag(BarProp);
 class External {
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+    BRAND.add(this);
   }
 
-  AddSearchProvider() {}
+  AddSearchProvider() {
+    brand(this, 'AddSearchProvider', 'External');
+  }
 
-  IsSearchProviderInstalled() {}
+  IsSearchProviderInstalled() {
+    brand(this, 'IsSearchProviderInstalled', 'External');
+  }
 }
 tag(External);
 
@@ -174,12 +189,12 @@ function needArg(len, method, iface) {
   if (len < 1) throw new TypeError(`Failed to execute '${method}' on '${iface}': 1 argument required, but only 0 present.`);
 }
 
-/** An interface no instance of which ever exists (jsdom reports no plugins): every member is a failing brand check. */
+/** An interface no instance of which ever exists (jsdom reports no plugins): every member fails its brand check. */
 function emptyInterface(name, getters, methods) {
   const C = { [name]: class { constructor() { illegal(); } } }[name];
   for (const k of methods) {
     Object.defineProperty(C.prototype, k, {
-      value: { [k]() { throw new TypeError('Illegal invocation'); } }[k],
+      value: { [k]() { brand(this, k, name); } }[k],
       writable: true,
       enumerable: false,
       configurable: true,
@@ -187,7 +202,7 @@ function emptyInterface(name, getters, methods) {
   }
   for (const k of getters) {
     Object.defineProperty(C.prototype, k, {
-      get: { get [k]() { throw new TypeError('Illegal invocation'); } }.__lookupGetter__(k),
+      get: Object.getOwnPropertyDescriptor({ get [k]() { brand(this, `get ${k}`, name); return undefined; } }, k).get,
       enumerable: false,
       configurable: true,
     });
@@ -201,53 +216,65 @@ emptyInterface('MimeType', ['type', 'description', 'suffixes', 'enabledPlugin'],
 class PluginArray {
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+    BRAND.add(this);
   }
 
-  refresh() {}
+  refresh() {
+    brand(this, 'refresh', 'PluginArray');
+  }
 
   item(index) {
+    brand(this, 'item', 'PluginArray');
     needArg(arguments.length, 'item', 'PluginArray');
     return null;
   }
 
   namedItem(name) {
+    brand(this, 'namedItem', 'PluginArray');
     needArg(arguments.length, 'namedItem', 'PluginArray');
     return null;
   }
 
   get length() {
+    brand(this, 'get length', 'PluginArray');
     return 0;
   }
 
 }
-PluginArray.prototype[Symbol.iterator] = Array.prototype.values;
+Object.defineProperty(PluginArray.prototype, Symbol.iterator, { value: Array.prototype.values, writable: true, configurable: true });
 tag(PluginArray);
 
 /** `navigator.mimeTypes`: always empty. */
 class MimeTypeArray {
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+    BRAND.add(this);
   }
 
   item(index) {
+    brand(this, 'item', 'MimeTypeArray');
     needArg(arguments.length, 'item', 'MimeTypeArray');
     return null;
   }
 
   namedItem(name) {
+    brand(this, 'namedItem', 'MimeTypeArray');
     needArg(arguments.length, 'namedItem', 'MimeTypeArray');
     return null;
   }
 
   get length() {
+    brand(this, 'get length', 'MimeTypeArray');
     return 0;
   }
 
 }
-MimeTypeArray.prototype[Symbol.iterator] = Array.prototype.values;
+Object.defineProperty(MimeTypeArray.prototype, Symbol.iterator, { value: Array.prototype.values, writable: true, configurable: true });
 tag(MimeTypeArray);
 
 function install() {
+  // WebIDL static operations are enumerable
+  for (const C of [DOMRectReadOnly, DOMRect]) Object.defineProperty(C, 'fromRect', { enumerable: true });
   // Document's legacy no-op methods (jsdom's Document-impl.js; the Window's are in lib/window.cjs)
   const D = rt.classes.Document.prototype;
   for (const k of ['captureEvents', 'releaseEvents']) {

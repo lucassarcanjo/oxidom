@@ -1032,7 +1032,7 @@ function makeWindow(ctx, global = undefined, ownTimers = false) {
   def('Audio', Audio, false);
   def('postMessage', function postMessage(message, targetOrigin) {
     if (arguments.length < 2) throw new TypeError("'postMessage' requires 2 arguments: 'message' and 'targetOrigin'");
-    const target = String(targetOrigin);
+    const target = `${targetOrigin}`; // DOMString: a Symbol throws TypeError
     // "/" needs the incumbent settings object, which jsdom does not track either
     if (target === '/') return;
     if (target !== '*') {
@@ -1044,8 +1044,12 @@ function makeWindow(ctx, global = undefined, ownTimers = false) {
       }
       if (origin !== url.origin) return;
     }
-    // jsdom: no source / origin / ports, and `data` is not structured-cloned
-    ctx.queueTask(() => win.dispatchEvent(new events.MessageEvent('message', { data: message })));
+    // jsdom: a trusted event with no source / origin / ports, and `data` is not structured-cloned. A closed
+    // context runs no task (jsdom's _queueATask checks _isDestroyed)
+    if (ctx.closed) return;
+    ctx.queueTask(() => {
+      if (!ctx.closed) events.fire(ctx.wt, 'message', { data: message }, events.MessageEvent);
+    });
   });
   def('localStorage', createStorage(settings.storageQuota));
   def('sessionStorage', createStorage(settings.storageQuota));

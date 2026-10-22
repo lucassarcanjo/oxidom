@@ -33,12 +33,12 @@ describe.each(DOMS)('geometry and Window members [%s]', (kind) => {
   it('postMessage dispatches a message event on the window asynchronously', async () => {
     if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom sets origin and source
     const got = [];
-    w.addEventListener('message', (e) => got.push([e.data, e.origin, e.source]));
+    w.addEventListener('message', (e) => got.push([e.data, e.origin, e.source, e.isTrusted]));
     w.postMessage({ a: 1 }, '*');
     w.postMessage('dropped', 'http://other.example'); // another origin: not delivered
     expect(got).toEqual([]);
     await new Promise((r) => setTimeout(r, 20));
-    expect(got).toEqual([[{ a: 1 }, '', null]]);
+    expect(got).toEqual([[{ a: 1 }, '', null, true]]);
     expect(() => w.postMessage(1)).toThrow(/2 arguments/);
   });
 

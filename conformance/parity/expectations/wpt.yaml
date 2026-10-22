@@ -1917,7 +1917,7 @@ html/semantics/embedded-content/media-elements/interfaces/TextTrackList/onremove
 html/semantics/embedded-content/media-elements/interfaces/TrackEvent/constructor.html: [fail, "missing global: TrackEvent"]
 html/semantics/embedded-content/media-elements/interfaces/TrackEvent/createEvent.html: [fail, "missing method: .createEvent()"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-candidate-insert-before.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor.html: [fail, "missing global: Audio"]
+html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-audio-constructor.html: [fail, "assert_unreached: Reached unreachable code"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source-not-in-document.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-insert-source.html: [fail, "assert_unreached: wrong value"]
 html/semantics/embedded-content/media-elements/loading-the-media-resource/resource-selection-invoke-load.html: [fail, "missing method: .load()"]

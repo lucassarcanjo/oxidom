@@ -2036,10 +2036,12 @@ lib/window.cjs creates the per-window members as it does the others (writable da
 `external`, `name` / `status` (empty strings), `length` (0: iframes have no windows yet, `browsing-contexts`),
 `captureEvents` / `releaseEvents` (also on Document), `Audio` (jsdom's factory: no `new` needed, `preload="auto"`)
 and `postMessage`. `postMessage` follows jsdom: two arguments required, `"/"` does nothing, an unparsable target
-origin throws SyntaxError, another origin drops the message, and otherwise a `message` event with only `data` (not
-structured-cloned) is dispatched at the window on `ctx.queueTask`. `navigator.plugins` / `mimeTypes` are [SameObject]
-getters on Navigator. CloseEvent, PromiseRejectionEvent and BlobEvent are `simpleEvent`s (events.cjs), which take an
-optional check for required arguments and dictionary members.
+origin throws SyntaxError, another origin drops the message, and otherwise a trusted `message` event with only
+`data` (not structured-cloned) is fired at the window on `ctx.queueTask`, unless the context has closed. These cold
+interfaces keep jsdom's brand checks (a WeakSet of the instances the TOKEN constructors made). `navigator.plugins` / `mimeTypes` are [SameObject]
+getters on Navigator. CloseEvent, PromiseRejectionEvent and BlobEvent are `simpleEvent`s (events.cjs), which now take
+required dictionary members and a constructor arity of 2 for them, read after Event's own init members, as jsdom's
+generated conversions do.
 
 Not here: `ElementInternals` and `customElements` (`custom-elements`), the SVG value types, `webkitURL` (an alias of
 the realm's `URL`, which a non-global window does not carry; §32). Parity: 3 files progressed (the Audio constructor,

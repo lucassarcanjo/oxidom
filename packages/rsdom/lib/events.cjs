@@ -1024,28 +1024,31 @@ class SubmitEvent extends Event {
 tag(SubmitEvent);
 
 /**
- * Event subclasses with a few plain members: [name, Base, [[member, default, convert]...]]. `check(argc, init)`,
- * when given, runs first (required arguments and dictionary members).
+ * Event subclasses with a few plain members: [name, Base, [[member, default, convert, required?]...]], members
+ * in WebIDL dictionary order (sorted). `arity` is 2 when the dictionary has a required member.
  */
-function simpleEvent(name, Base, members, check = null) {
+function simpleEvent(name, Base, members, arity = 1) {
   const keys = members.map((m) => m[0]);
   const C = {
     [name]: class extends Base {
       constructor(type, eventInitDict = undefined) {
-        need(arguments.length, name);
-        if (check !== null) check(arguments.length, eventInitDict);
+        if (arguments.length < arity) {
+          throw new TypeError(`Failed to construct '${name}': ${arity} argument${arity > 1 ? 's' : ''} required, but only ${arguments.length} present.`);
+        }
         super(type, eventInitDict);
         const d = initDict(eventInitDict, name);
         const vals = new Array(members.length);
         for (let i = 0; i < members.length; i++) {
-          const [k, dflt, conv] = members[i];
+          const [k, dflt, conv, req] = members[i];
           const v = d[k];
+          if (v === undefined && req) throw new TypeError(`${k} is required in '${name}Init'`);
           vals[i] = v === undefined ? dflt : conv(v, k);
         }
         STATE.set(this, vals);
       }
     },
   }[name];
+  if (arity !== 1) Object.defineProperty(C, 'length', { value: arity });
   for (let i = 0; i < keys.length; i++) {
     Object.defineProperty(C.prototype, keys[i], {
       get() {
@@ -1098,22 +1101,23 @@ StorageEvent.prototype.initStorageEvent = {
 }.initStorageEvent;
 
 // refs/jsdom/lib/jsdom/living/events/{CloseEvent,PromiseRejectionEvent,BlobEvent}-impl.js (DESIGN §40)
-const CloseEvent = simpleEvent('CloseEvent', Event, [['wasClean', false, bool], ['code', 0, toUShort], ['reason', '', (v) => str(v).toWellFormed()]]);
-/** A constructor whose dictionary has a required member: two arguments, and `key` present. */
-const required = (name, key) => (argc, init) => {
-  if (argc < 2) throw new TypeError(`Failed to construct '${name}': 2 arguments required, but only ${argc} present.`);
-  if (init !== null && typeof init === 'object' && init[key] === undefined) throw new TypeError(`${key} is required in '${name}Init'`);
-};
+const CloseEvent = simpleEvent('CloseEvent', Event, [['code', 0, toUShort], ['reason', '', (v) => str(v).toWellFormed()], ['wasClean', false, bool]]);
 const PromiseRejectionEvent = simpleEvent('PromiseRejectionEvent', Event, [['promise', null, (v) => {
   if (v === null || (typeof v !== 'object' && typeof v !== 'function')) {
     throw new TypeError("Failed to construct 'PromiseRejectionEvent': parameter 2 has member 'promise' that is not an object.");
   }
   return v;
-}], ['reason', undefined, any]], required('PromiseRejectionEvent', 'promise'));
+}, true], ['reason', undefined, any]], 2);
+/** Node's Blob brand (rsdom's Blob extends it; lib/file-api.cjs): its `size` getter rejects anything else. */
+const blobSize = Object.getOwnPropertyDescriptor(require('node:buffer').Blob.prototype, 'size').get;
 const BlobEvent = simpleEvent('BlobEvent', Event, [['data', null, (v) => {
-  if (!(v instanceof rt.classes.Blob)) throw new TypeError("Failed to construct 'BlobEvent': parameter 2 has member 'data' that is not of type 'Blob'.");
+  try {
+    blobSize.call(v);
+  } catch {
+    throw new TypeError("Failed to construct 'BlobEvent': parameter 2 has member 'data' that is not of type 'Blob'.");
+  }
   return v;
-}], ['timecode', NaN, (v) => Number(v)]], required('BlobEvent', 'data'));
+}, true], ['timecode', NaN, (v) => toDouble(v, "Failed to construct 'BlobEvent': parameter 2 has member 'timecode' that")]], 2);
 
 // ======================================================== createEvent and its classes (DESIGN §28)
 // refs/jsdom/lib/jsdom/living/events/{BeforeUnloadEvent,DeviceMotionEvent,DeviceOrientationEvent,MessageEvent}-impl.js

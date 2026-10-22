@@ -173,7 +173,9 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   under jest-environment-jsdom. DESIGN §32.
 - **[gap] Missing Window members:** `ElementInternals` and `customElements` (`custom-elements`, Stage 4),
   `webkitURL`, the SVG value types (`SVGRect`, `SVGNumber`, `SVGStringList`, `SVGAnimated*`,
-  `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`.
+  `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`. `length` is 0 even
+  with iframes (`browsing-contexts`); `status`, `length`, `external` and the bars are data properties (jsdom: replaceable
+  accessors), so `status = 5` reads back `5`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
 - **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] XPath iterators and shadow trees:** a change inside a connected shadow tree sets

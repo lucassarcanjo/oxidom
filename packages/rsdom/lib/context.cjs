@@ -186,6 +186,9 @@ class BrowsingContext {
  */
 function openContext(options = {}) {
   const url = new URL(options.url ?? DEFAULT_URL);
+  if (options.xml !== undefined && options.html !== undefined) {
+    throw new TypeError('rsdom: context.open() takes `source` (the whole document) for an XML document, not `html`');
+  }
   if (options.source !== undefined && options.html !== undefined) {
     throw new TypeError('rsdom: context.open() takes `html` (body markup) or `source` (a whole document), not both');
   }

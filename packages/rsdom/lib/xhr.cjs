@@ -560,7 +560,8 @@ function documentResponse(s) {
     d._ct = 'text/html';
   } else {
     const xml = require('./xml.cjs');
-    d = xml.newXmlDocument(m === null ? 'application/xml' : m.essence, s.responseURL);
+    // jsdom gives the response document no content type, so it is application/xml whatever the response's
+    d = xml.newXmlDocument('application/xml', s.responseURL);
     try {
       xml.parseInto(d, t);
     } catch {

@@ -75,4 +75,20 @@ describe('JSDOM with an XML content type', () => {
     expect(dom.serialize()).toBe('<cfg xmlns="urn:c"><Item Name="x"/></cfg>');
     expect(() => new JSDOM('<a>', { contentType: 'text/xml' })).toThrow(/unclosed tag/);
   });
+
+  it('decodes bytes by the XML declaration, not a meta prescan', () => {
+    const { JSDOM } = require('../../lib/index.cjs');
+    const latin1 = (t) => Buffer.from(t, 'latin1');
+    const a = new JSDOM(latin1('<?xml version="1.0" encoding="ISO-8859-1"?><r>\xe9</r>'), { contentType: 'application/xml' });
+    expect(a.window.document.documentElement.textContent).toBe('\u00e9');
+    const b = new JSDOM(latin1('<r><meta charset="windows-1252"/>\xe9</r>'), { contentType: 'application/xml' });
+    expect(b.window.document.documentElement.textContent).toBe('\ufffd');
+  });
+
+  it('the wrapped innerHTML accessors keep their names', () => {
+    const { JSDOM } = require('../../lib/index.cjs');
+    const { Element } = new JSDOM('').window;
+    const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+    expect([d.get.name, d.set.name]).toEqual(['get innerHTML', 'set innerHTML']);
+  });
 });

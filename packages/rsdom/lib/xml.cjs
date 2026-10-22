@@ -16,9 +16,13 @@ let serializeXml; // w3c-xmlserializer, loaded on the first XML serialization
 
 const PARSERERROR_NS = 'http://www.mozilla.org/newlayout/xml/parsererror.xml';
 
-/** True when `node` belongs to an XML document (every node carries its document's HTML_DOC bit). */
+/**
+ * True when `node` belongs to an XML document (every node carries its document's HTML_DOC bit). Anything without
+ * a node id (an Attr, a non-node receiver) is not: the HTML path keeps handling (and rejecting) it.
+ */
 function inXmlDocument(node) {
-  return (V.T[V.off(node._i) + F.META] & M.HTML_DOC) === 0;
+  const id = node?._i;
+  return typeof id === 'number' && id > 0 && (V.T[V.off(id) + F.META] & M.HTML_DOC) === 0;
 }
 
 // ------------------------------------------------------------------------------------------ parsing
@@ -170,17 +174,19 @@ Object.defineProperty(XMLSerializer.prototype, Symbol.toStringTag, { value: 'XML
 function wrapMember(C, prop, xml) {
   const d = Object.getOwnPropertyDescriptor(C.prototype, prop);
   const nd = { ...d };
-  if (xml.get !== undefined) {
-    nd.get = function get() {
+  // computed-key accessors keep the names `get innerHTML` / `set innerHTML`
+  const named = {
+    get [prop]() {
       return inXmlDocument(this) ? xml.get.call(this) : d.get.call(this);
-    };
-  }
-  if (xml.set !== undefined) {
-    nd.set = function set(v) {
+    },
+    set [prop](v) {
       if (inXmlDocument(this)) xml.set.call(this, v);
       else d.set.call(this, v);
-    };
-  }
+    },
+  };
+  const acc = Object.getOwnPropertyDescriptor(named, prop);
+  if (xml.get !== undefined) nd.get = acc.get;
+  if (xml.set !== undefined) nd.set = acc.set;
   if (xml.value !== undefined) {
     const orig = d.value;
     nd.value = {
@@ -255,10 +261,12 @@ function install(_rt, dom) {
     value: {
       createContextualFragment(fragment) {
         const node = this.startContainer;
-        if (arguments.length === 0 || !inXmlDocument(node)) return ccf.apply(this, arguments);
+        // jsdom handles these start nodes (others are its "Internal error: Invalid range start node")
+        const t = node.nodeType;
+        if (arguments.length === 0 || !inXmlDocument(node) || t === 7 || t === 10) return ccf.apply(this, arguments);
         let element = null;
-        if (node.nodeType === 1) element = node;
-        else if (node.nodeType === 3 || node.nodeType === 4 || node.nodeType === 8) element = node.parentElement;
+        if (t === 1) element = node;
+        else if (t === 3 || t === 4 || t === 8) element = node.parentElement;
         if (element === null) element = (node.nodeType === 9 ? node : node.ownerDocument).createElementNS(NS.HTML, 'body');
         return parseFragment(String(fragment), element);
       },

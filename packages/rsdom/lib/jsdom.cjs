@@ -33,14 +33,48 @@ const XML_ESSENCE = /^(?:text\/xml|application\/xml|application\/xhtml\+xml|imag
  * jsdom's decoding of binary input (HTML "determine the character encoding", simplified): a BOM, then the
  * content type's `charset`, then a `<meta charset>` / `http-equiv` prescan of the first 1024 bytes, else UTF-8
  * (jsdom's default is windows-1252 only for a missing charset on a `fromURL()` response; rsdom keeps UTF-8).
+ * XML (`xml`): html-encoding-sniffer's XML mode, the XML declaration's `encoding` instead of the meta prescan.
  */
-function decode(input, contentType) {
+function decode(input, contentType, xml = false) {
   let bytes;
   if (Buffer.isBuffer(input)) bytes = input;
   else if (types.isAnyArrayBuffer(input)) bytes = new Uint8Array(input);
   else if (ArrayBuffer.isView(input)) bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   else return String(input);
-  return new TextDecoder(sniffEncoding(bytes, contentType)).decode(bytes);
+  return new TextDecoder(xml ? sniffXmlEncoding(bytes, contentType) : sniffEncoding(bytes, contentType)).decode(bytes);
+}
+
+/** A WHATWG encoding label's name, or null. */
+function encodingName(l) {
+  try {
+    return new TextDecoder(l).encoding;
+  } catch {
+    return null;
+  }
+}
+
+/** html-encoding-sniffer's XML mode (refs: node_modules/html-encoding-sniffer, jsdom's dependency). */
+function sniffXmlEncoding(bytes, contentType) {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return 'utf-16be';
+  const m = contentType && /charset\s*=\s*["']?([^"'\s;>]+)/i.exec(contentType);
+  const fromType = m ? encodingName(m[1]) : null;
+  if (fromType !== null) return fromType;
+  if (bytes.length >= 8) {
+    const b = bytes;
+    if (b[0] === 0x3c && b[1] === 0 && b[2] === 0x3f && b[3] === 0 && b[4] === 0x78 && b[5] === 0) return 'utf-16le';
+    if (b[0] === 0 && b[1] === 0x3c && b[2] === 0 && b[3] === 0x3f && b[4] === 0 && b[5] === 0x78) return 'utf-16be';
+    // the XML declaration: case-sensitive `<?xml` at the start, the first `encoding` before its `>`
+    const head = Buffer.from(b.subarray(0, 1024)).toString('latin1');
+    const end = head.indexOf('>', 5);
+    if (head.startsWith('<?xml') && end !== -1) {
+      const d = /encoding[\x00-\x20]*=[\x00-\x20]*(["'])([^\x00-\x20"']*)\1/.exec(head.slice(5, end + 1));
+      const enc = d === null ? null : encodingName(d[2]);
+      if (enc !== null) return enc.startsWith('utf-16') ? 'utf-8' : enc;
+    }
+  }
+  return 'utf-8';
 }
 
 function sniffEncoding(bytes, contentType) {
@@ -168,7 +202,7 @@ class JSDOM {
 
     const ctx = context.open({
       url,
-      source: decode(input, contentType),
+      source: decode(input, contentType, xml !== undefined),
       xml,
       settings: {
         pretendToBeVisual: Boolean(options.pretendToBeVisual),
@@ -316,7 +350,11 @@ function environmentOptions(j, virtualConsole) {
     },
   };
   if (j.html !== undefined) open.source = String(j.html);
-  if (xml !== undefined) open.xml = xml;
+  if (xml !== undefined) {
+    open.xml = xml;
+    // Vitest's jsdom environment's default document, which an XML document must parse too (jsdom then throws)
+    open.source ??= '<!DOCTYPE html>';
+  }
   return open;
 }
 

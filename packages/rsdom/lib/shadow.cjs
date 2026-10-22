@@ -145,4 +145,9 @@ function install(rt, dom) {
   });
 }
 
-module.exports = { install, isShadowRoot, retarget };
+/** True while the env may hold a shadow root (events.cjs takes the composed dispatch path then, DESIGN §42). */
+function shadowsExist() {
+  return alive(shadowGen);
+}
+
+module.exports = { install, isShadowRoot, retarget, rootOf, isShadowIncludingInclusiveAncestor, shadowsExist };

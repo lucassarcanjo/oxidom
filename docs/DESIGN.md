@@ -2076,3 +2076,52 @@ are fixed values or a few stored ones per element (a WeakMap): `paused` true, `r
 as jsdom's does: no promise), `pause()`, `load()` and `addTextTrack()` report "Not implemented" on the virtual
 console. The NETWORK_* / HAVE_* constants are on the interface and its prototype. Reflected attributes (`src`,
 `preload`, `autoplay`, `loop`, `controls`, `defaultMuted`, `crossOrigin`) come from reflection.cjs (§37).
+
+---
+
+## 42. Event retargeting and slots (ROADMAP Stage 4 `shadow-dom`, 2026-10)
+
+Stage 4 design note. §22 left shadow trees without retargeting: listeners outside a shadow tree saw the inner
+target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_dispatch`, `Event-impl.js`
+`composedPath`) and, as part 2, slots (`helpers/shadow-dom.js`, `HTMLSlotElement-impl.js`).
+
+**Part 1: retargeting** (`lib/events.cjs`).
+- **Two dispatch paths.** The plain walk (§5) stays for every dispatch that cannot meet a shadow root: no shadow
+  root in the env yet (`shadow.cjs` `shadowsExist`, the env-generation guard of §22), or a target outside shadow
+  trees whose `relatedTarget` is outside them too (its parent walk never reaches a shadow root). Otherwise
+  `composedDispatch` runs. It builds jsdom's path structs
+  `{id, item, sat (shadow-adjusted target), eff (closest non-null sat, cached as jsdom does), rel, inShadow,
+  rootOfClosedTree, slotInClosedTree}`, and:
+  - retargets the related target per entry, and ends the path when a parent equals it;
+  - sets `target` / `relatedTarget` before each entry's listeners. Entries without listeners skip that update, and
+    the last selected entry's targets are applied after the loops, as in jsdom;
+  - does not update `window.event` for listeners inside a shadow tree;
+  - clears `target` and `relatedTarget` after dispatch when the last shadow-adjusted target or its related target is
+    in a shadow tree;
+  - gives `composedPath()` jsdom's hidden-level walk, so closed trees are hidden from listeners outside them.
+- **The walk works on node ids.** "Get the parent" is `parentId`. A document's parent is the WIN sentinel, which
+  becomes the WindowTarget, and is dropped for `load` or a window-less document. Wrapping happens once per entry.
+  An entry's root is found in one backward pass (`markShadowItems`), not a root walk per entry. "Is the target's
+  root a shadow-including ancestor of this parent" is one table read (CONNECTED bit plus owner) when that root is a
+  document, which is the common case.
+- **relatedTarget.** `MouseEvent` and `FocusEvent` keep it private. Their static blocks export get/set pairs
+  (`mouseRel`, `focusRel`) for the dispatch, the same pattern as `forceCancel`.
+- **Cost** (2026-10-22, Node 22.22, median of 7 samples):
+
+  | case | before | after | jsdom |
+  | --- | ---: | ---: | ---: |
+  | bubbling event at depth 21, no shadow root in the env | 537 ns | 555 ns | |
+  | the same, with a shadow root elsewhere in the env | 524 ns | 626 ns | |
+  | composed bubbling event from inside a shadow tree (27-entry path) | 712 ns | 1783 ns | 6689 ns |
+
+  The last row is the price of retargeting: one struct per entry, plus a `shadowMode` call per shadow root.
+- **Verification.** Parity `--item shadow-dom`: gap 259 -> 197 subtests, 84 -> 89 of 128 files at parity; 10 files progressed (`event-composed-path*`,
+  `event-with-related-target`, `event-post-dispatch*`, `Extensions-to-Event-Interface`, ...), and `events`
+  progressed too. The rest of those files' gaps are slot cases (part 2). `test/contract/shadow-root.test.mjs` now
+  asserts jsdom's retargeted `target`, the AT_TARGET phase at the host, `relatedTarget` retargeting and clearing,
+  and a closed tree's `composedPath()`. happy-dom 21 does not retarget, and the test pins that.
+
+**Part 2: slots** (next): `HTMLSlotElement` (`name`, `assignedNodes({ flatten })`, `assignedElements`), `slot` /
+`assignedSlot` on slottables, named slot assignment on tree and attribute changes, `slotchange` through the
+MutationObserver microtask, and the event path through assigned slots (`slotInClosedTree`). The light-DOM shortcut
+above then also has to check for an assigned slot.

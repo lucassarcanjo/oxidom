@@ -3,8 +3,8 @@
 // cases add what libraries do with a shadow tree (MUI's `instanceof ShadowRoot`, focus traps reading
 // `activeElement` and `getRootNode()`, events from inside a shadow tree reaching document listeners) and the
 // tree paths that run inside rsdom natives (connectivity, the id map, adoption, cloning, innerHTML). Every
-// assertion runs on jsdom, happy-dom and rsdom; jsdom wins disagreements. Event retargeting is Stage 4
-// (`shadow-dom`): the one assertion on it is an explicit divergence.
+// assertion runs on jsdom, happy-dom and rsdom; jsdom wins disagreements. Event retargeting (DESIGN §42) is
+// asserted like jsdom's; happy-dom 21 does not retarget.
 import { createRequire } from 'node:module';
 import { describe, it, expect, beforeEach } from 'vitest';
 
@@ -229,20 +229,49 @@ describe.each(DOMS)('shadow root [%s]', (kind) => {
     expect(log.filter((x) => x.endsWith('capture'))).toEqual(['win:capture', 'doc:capture', 'host:capture', 'root:capture', 'inner:capture']);
     expect(log.filter((x) => !x.endsWith('capture'))).toEqual(['inner:2', 'root:3', 'host:2', 'doc:3', 'win:3'].map((x) => {
       // jsdom: at the host the retargeted target is the host itself, so its listeners run AT_TARGET (2)
-      if (kind !== 'jsdom' && x === 'host:2') return 'host:3'; // rsdom DIVERGENCE: no retargeting until Stage 4 `shadow-dom` (happy-dom 21 agrees)
+      if (kind === 'happy-dom' && x === 'host:2') return 'host:3'; // happy-dom 21 does not retarget
       return x;
     }));
     // a click from inside a shadow tree reaches document listeners (React's root listener, user-event)
     let target = null;
     d.addEventListener('click', (e) => { target = e.target; });
     inner.click();
-    // rsdom DIVERGENCE: no retargeting until Stage 4 `shadow-dom` (happy-dom 21 does not retarget either)
-    if (kind !== 'jsdom') expect(target).toBe(inner);
+    // happy-dom 21 does not retarget
+    if (kind === 'happy-dom') expect(target).toBe(inner);
     else expect(target).toBe(h);
     let path = null;
     inner.addEventListener('pong', (e) => { path = e.composedPath(); });
     inner.dispatchEvent(new w.Event('pong', { composed: true }));
     expect(path).toEqual([inner, s, h, d.body, d.documentElement, d, w]);
+  });
+
+  it('events: relatedTarget is retargeted and the targets are cleared after dispatch', () => {
+    const h = host();
+    const s = h.attachShadow({ mode: 'closed' });
+    const a = s.appendChild(d.createElement('button'));
+    const b = s.appendChild(d.createElement('button'));
+    const outside = d.body.appendChild(d.createElement('button'));
+    const seen = [];
+    for (const [name, t] of [['b', b], ['host', h], ['doc', d]]) {
+      t.addEventListener('focusin', (e) => seen.push(`${name}:${e.target === b ? 'b' : e.target === h ? 'host' : '?'}:${e.relatedTarget === a ? 'a' : e.relatedTarget === h ? 'host' : e.relatedTarget === outside ? 'outside' : String(e.relatedTarget)}`));
+    }
+    const ev = new w.FocusEvent('focusin', { bubbles: true, composed: true, relatedTarget: a });
+    b.dispatchEvent(ev);
+    if (kind === 'happy-dom') return; // happy-dom 21 does not retarget
+    // inside the tree both are visible; outside, the target and the related target are both the host, so the
+    // event stops at the shadow root (DOM "dispatch": a parent equal to the retargeted relatedTarget ends the path)
+    expect(seen).toEqual(['b:b:a']);
+    expect(ev.target).toBe(null);
+    expect(ev.relatedTarget).toBe(null);
+    seen.length = 0;
+    const ev2 = new w.FocusEvent('focusin', { bubbles: true, composed: true, relatedTarget: outside });
+    b.dispatchEvent(ev2);
+    expect(seen).toEqual(['b:b:outside', 'host:host:outside', 'doc:host:outside']);
+    expect(ev2.target).toBe(h); // the last shadow-adjusted target is the host, outside the shadow tree: kept
+    let path = null;
+    d.addEventListener('pong', (e) => { path = e.composedPath(); });
+    b.dispatchEvent(new w.Event('pong', { bubbles: true, composed: true }));
+    expect(path).toEqual([h, d.body, d.documentElement, d, w]);
   });
 
   it('MutationObserver on the host does not see the shadow tree', async () => {

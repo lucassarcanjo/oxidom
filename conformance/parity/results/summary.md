@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1913 | 162751 | 149268 | 91.7% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 151 | 2578 | 2369 | 91.9% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1943 | 162751 | 149557 | 91.9% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 152 | 2578 | 2373 | 92.0% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 756 | 42.4% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 250 | 40.7% |
-| **all** | **2615** | **2070** | **167724** | **152643** | **91.0%** |
+| **all** | **2615** | **2101** | **167724** | **152936** | **91.2%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -29,12 +29,12 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 364 | 40.7% | rsdom: XML documents are not supported (contentType …) (183); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 223 | 219 | 87.8% | assert_equals: wrong value (187); missing global: customElements (20); assert_true: wrong value (4) |
-| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 276 | 88 | 97.7% | assert_equals: wrong value (82); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
+| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 277 | 84 | 97.9% | assert_equals: wrong value (78); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 98 | 60 | 89.1% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
-| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 218 | 314 | 91.1% | assert_equals: got undefined (missing attribute/API) (82); missing method: .stepUp() (70); assert_equals: wrong value (32) |
+| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 247 | 62 | 98.2% | harness ERROR: read of undefined (.fm1) (16); assert_equals: wrong value (15); assert_array_equals: wrong value (9) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
-| 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8786 | 82.4% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (375); read of undefined (.length) (319) |
+| 3 | Reflected IDL attributes and ARIAMixin | 17 | 6 | 8749 | 82.5% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (338); read of undefined (.length) (319) |
 | 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 43 | 1 | 100.0% | rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 20 | 789 | 14.5% | rsdom: XML documents are not supported (contentType …) (552); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (122); assert_equals: wrong value (115) |
 | 3 | XPath | 28 | 8 | 159 | 29.3% | rsdom: XML documents are not supported (contentType …) (97); missing global: XPathResult (43); harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope) (11) |

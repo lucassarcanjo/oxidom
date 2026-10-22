@@ -126,11 +126,6 @@ css/cssom/style-mutation-reentrancy.html:
   "Style mutation via setProperty() reenters via setProperty() in attributeChangedCallback": [fail, "missing global: customElements"]
 css/cssom/stylesheet-tree-order.html: [fail, "assert_equals: wrong value"]
 css/selectors/i18n/css3-selectors-lang-014-dont-upstream.html: [fail, "assert_true: wrong value"]
-css/selectors/invalidation/form-state-computed-style.html:
-  "Clearing an input through valueAsDate = an invalid Date updates validity-dependent styles": [fail, "assert_equals: wrong value"]
-  "Clearing an input through valueAsDate = null updates validity-dependent styles": [fail, "assert_equals: wrong value"]
-  "input stepUp and form reset update validity-dependent styles": [fail, "assert_equals: wrong value"]
-  "input valueAsDate and form reset update validity-dependent styles": [fail, "assert_equals: wrong value"]
 css/selectors/selectors-4/lang-009-dont-upstream.html: [fail, "assert_equals: wrong value"]
 css/selectors/selectors-4/lang-017-dont-upstream.html: [fail, "assert_equals: wrong value"]
 custom-elements/ElementInternals-labels.html: [fail, "missing global: customElements"]

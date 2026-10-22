@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@types/node": "*",
+    "decimal.js": "^10.6.0",
     "tough-cookie": "^6.0.2"
   },
   "devDependencies": {

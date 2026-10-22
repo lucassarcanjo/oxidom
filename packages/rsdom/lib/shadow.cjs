@@ -133,7 +133,7 @@ function install(rt, dom) {
       return slotNodes(this, flattenOption(options, 'assignedNodes'));
     },
     assignedElements(options = undefined) {
-      return slotNodes(this, flattenOption(options, 'assignedElements')).filter((n) => n instanceof Element);
+      return slotNodes(this, flattenOption(options, 'assignedElements')).filter((n) => n instanceof rt.classes.HTMLElement); // jsdom: `HTMLElement.is`
     },
   });
   const assignedSlot = {

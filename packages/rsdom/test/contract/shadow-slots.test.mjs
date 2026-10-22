@@ -106,6 +106,21 @@ describe.each(DOMS.filter((k) => k !== 'happy-dom'))('slots [%s]', (kind) => {
     expect(loose.assignedNodes({ flatten: true })).toEqual([]);
   });
 
+  it('assignedElements keeps HTML elements only, and unslotted content is not focusable', () => {
+    const t = tree('<svg></svg><b id=b></b><input id=in slot=none>', '<slot id=s></slot><slot name=x><input id=fb></slot>');
+    // jsdom filters with HTMLElement.is; the spec keeps every element
+    expect(ids(t.slot('#s').assignedElements())).toEqual(['b']);
+    const input = d.getElementById('in');
+    input.focus();
+    expect(d.activeElement).toBe(d.body);
+    input.slot = 'x';
+    input.focus();
+    expect(d.activeElement).toBe(input);
+    // fallback content of a slot with assigned nodes is not in the flat tree
+    t.root.querySelector('#fb').focus();
+    expect(t.root.activeElement).toBe(null);
+  });
+
   it('slotchange fires once per slot after mutation observers, and bubbles', async () => {
     const t = tree('', '<div><slot id=s></slot></div>');
     const s = t.slot('#s');

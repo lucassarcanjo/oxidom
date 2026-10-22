@@ -140,29 +140,29 @@ impl Env {
     }
 
     /// Sets slot `s`'s assigned nodes to `nodes` (the tail of DOM "assign slottables"): signals a slot change
-    /// if the list differs, unassigns the nodes that left (unless another slot took them already) and assigns
-    /// the new ones.
+    /// if the list differs, unassigns the old nodes that `s` still holds, then assigns the new ones (linear:
+    /// a node that stays is unassigned and assigned again).
     fn set_assigned(&mut self, s: NodeId, nodes: Nodes) {
-        let old = self.shadow.assigned_nodes.get(&s).map_or(&[][..], |v| v.as_slice());
-        if old == nodes.as_slice() {
+        let st = &mut self.shadow;
+        let old = st.assigned_nodes.remove(&s).unwrap_or_default();
+        if old.as_slice() == nodes.as_slice() {
+            if !old.is_empty() {
+                st.assigned_nodes.insert(s, old);
+            }
             return;
         }
-        let old: Nodes = old.iter().copied().collect();
-        self.slot_signal(s);
-        let st = &mut self.shadow;
         for n in old {
-            if !nodes.contains(&n) && st.assigned_slot.get(&n) == Some(&s) {
+            if st.assigned_slot.get(&n) == Some(&s) {
                 st.assigned_slot.remove(&n);
             }
         }
         for &n in &nodes {
             st.assigned_slot.insert(n, s);
         }
-        if nodes.is_empty() {
-            st.assigned_nodes.remove(&s);
-        } else {
+        if !nodes.is_empty() {
             st.assigned_nodes.insert(s, nodes.into_vec());
         }
+        self.slot_signal(s);
     }
 
     /// DOM "assign slottables" for slot `s`.
@@ -219,7 +219,17 @@ impl Env {
     #[cold]
     pub(crate) fn slot_insert(&mut self, parent: NodeId, n: NodeId) {
         if self.shadow_root_of(parent) != 0 && self.is_slottable(n) {
-            self.assign_slot(n);
+            if self.rec(n).next == 0 {
+                // appended: every other child keeps its slot, so `n` joins the end of its slot's list
+                let s = self.find_slot(n, false);
+                if s != 0 {
+                    self.shadow.assigned_nodes.entry(s).or_default().push(n);
+                    self.shadow.assigned_slot.insert(n, s);
+                    self.slot_signal(s);
+                }
+            } else {
+                self.assign_slot(n);
+            }
         }
         let root = self.root_of(parent);
         if !self.is_shadow_root(root) {
@@ -247,7 +257,15 @@ impl Env {
     pub(crate) fn slot_remove(&mut self, parent: NodeId, n: NodeId, in_shadow: bool, has_slot: bool) {
         let s = self.assigned_slot(n);
         if s != 0 {
-            self.assign_slottables(s);
+            // the other children keep their slots: drop `n` from its slot's list
+            self.shadow.assigned_slot.remove(&n);
+            if let Some(list) = self.shadow.assigned_nodes.get_mut(&s) {
+                list.retain(|&x| x != n);
+                if list.is_empty() {
+                    self.shadow.assigned_nodes.remove(&s);
+                }
+            }
+            self.slot_signal(s);
         }
         if in_shadow && self.is_slot(parent) && self.slot_assigned_nodes(parent).is_empty() {
             self.slot_signal(parent);
@@ -308,6 +326,28 @@ impl Env {
             }
         }
         out
+    }
+
+    /// jsdom `flatTreeParentElement` (helpers/shadow-dom.js) of element `el`: a shadow root's host, a host
+    /// child's slot, nothing for fallback content of a slot with assigned nodes or a non-element parent.
+    pub fn flat_tree_parent_element(&self, el: NodeId) -> NodeId {
+        let parent = self.rec(el).parent;
+        if parent == 0 {
+            return 0;
+        }
+        if self.is_shadow_root(parent) {
+            return self.shadow_host(parent);
+        }
+        if !self.is_element(parent) {
+            return 0;
+        }
+        if self.shadow_root_of(parent) != 0 {
+            return self.find_slot(el, false);
+        }
+        if self.is_slot(parent) && !self.slot_assigned_nodes(parent).is_empty() {
+            return 0;
+        }
+        parent
     }
 
     /// Takes the signal slot list (DOM "notify mutation observers" step 3), into OUT; returns its length.

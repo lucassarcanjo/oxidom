@@ -10,10 +10,10 @@ expectations are left out. Method: `../README.md`.
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2153 | 162751 | 159424 | 98.0% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 166 | 2578 | 2469 | 95.8% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 168 | 2578 | 2481 | 96.2% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2330** | **167724** | **163900** | **97.7%** |
+| **all** | **2615** | **2332** | **167724** | **163912** | **97.7%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -30,7 +30,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 226 | 107 | 94.0% | assert_equals: wrong value (77); missing global: customElements (20); harness TIMEOUT: (no message) (3) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 23 | 99.4% | assert_equals: wrong value (17); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 102 | 48 | 91.3% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); assert_equals: wrong value (11); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 104 | 36 | 93.4% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1); custom-elements: customElements.define (1) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 261 | 19 | 99.5% | assert_true: wrong value (7); assert_false: wrong value (4); assert_equals: wrong value (3) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |

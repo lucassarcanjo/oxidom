@@ -2133,8 +2133,12 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
 - **"Assign slottables for a tree" in one walk.** One walk lists the tree's slots and the first slot of each name,
   one pass over the host's children fills their lists, and the slots are then updated in tree order (the order
   their changes are signalled in). jsdom walks the tree once per slot and the host's children once per slot. The
-  insertion step skips the walk when the inserted subtree has no slot (it cannot change an assignment).
-- **Two deliberate differences from jsdom**, both what the spec and browsers do: a node that leaves a slot loses its
+  insertion step skips the walk when the inserted subtree has no slot (it cannot change an assignment). Two fast
+  paths keep long slotted lists linear: a slottable appended as the host's last child joins the end of its slot's
+  list, and a removed slotted node leaves its slot's list, without recomputing either. Appending then removing
+  8,000 children of a host takes 8 + 10 ms (jsdom: 2,906 + 2,650 ms).
+- **Two deliberate differences from jsdom**, both what the spec and browsers do (`assignedElements` keeps jsdom's
+  HTML-elements-only filter, though): a node that leaves a slot loses its
   assigned slot (jsdom keeps a stale `_assignedSlot` that its event path follows), and a slottable is an element or
   any Text (jsdom's insertion step skips CDATASection, its recomputation does not).
 - **slotchange.** "Signal a slot change" sets bit 0 of `EP[MO_PENDING]`, so the next `mutated()` queues the
@@ -2146,6 +2150,9 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
   `M.SHADOW`). The struct walk sets `slotInClosedTree` and marks slotted entries, whose root `markShadowItems`
   looks up instead of inheriting. The light-DOM shortcut becomes `pathMeetsShadow`: the target's ancestor walk also
   stops at a node with an assigned slot.
+- **Focusability.** With a shadow root in the env, `is_focusable` walks jsdom's `flatTreeInclusiveAncestors`
+  (`flat_tree_parent_element`): an unassigned host child, or fallback content of a slot with assigned nodes, is
+  not focusable, and `display: none` on a slot or its ancestors hides what is slotted into it.
 - **Facade.** `HTMLSlotElement.assignedNodes({ flatten })` and `assignedElements` read `slotAssignedNodes`, which
   flattens with an explicit stack. `assignedSlot` on Element and Text is "find a slot" with the open flag
   (`slotFind`).
@@ -2157,6 +2164,6 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
   `event-with-related-target`, ...). `imperative-slot-api-slotchange` loses 2 subtests that jsdom also fails: they
   passed only because nothing fired `slotchange` (manual assignment is unimplemented in jsdom and rsdom alike).
   `test/contract/shadow-slots.test.mjs` covers assignment, flattening, `slotchange` and the slotted event path;
-  happy-dom 21 has no slot assignment, so it is pinned out. Overall parity 163,756 -> 163,900 subtests (97.7%);
-  `uievents/focusevents/focusable-area-flat-tree` progressed too. The rest of the gap: `delegatesFocus`, custom
+  happy-dom 21 has no slot assignment, so it is pinned out. Overall parity 163,756 -> 163,912 subtests (97.7%);
+  `uievents/focusevents/focusable-area-flat-tree` and `focusable-area` (12 subtests) progressed too. The rest of the gap: `delegatesFocus`, custom
   elements, focus retargeting, `slotchange.html`'s `onslotchange` case (a jsdom TIMEOUT).

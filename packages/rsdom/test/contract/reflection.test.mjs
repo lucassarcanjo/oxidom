@@ -117,6 +117,21 @@ describe.each(DOMS)('reflection [%s]', (kind) => {
     expect(t.caption).toBe(null);
   });
 
+  it('deleteRow / deleteCell require their index; textarea cols falls back on 0', () => {
+    const t = d.createElement('table');
+    t.innerHTML = '<tr><td>a</td></tr>';
+    expect(() => t.deleteRow()).toThrow(/argument/);
+    expect(() => t.rows[0].deleteCell()).toThrow(/argument/);
+    expect(t.rows.length).toBe(1);
+    if (kind === 'happy-dom') return; // PINNED to jsdom
+    const ta = d.createElement('textarea');
+    ta.cols = 0; // [ReflectPositiveWithFallback]
+    expect(ta.getAttribute('cols')).toBe('20');
+    const s = d.createElement('script');
+    s.text = null;
+    expect(s.text).toBe('null');
+  });
+
   it('insertRow on an empty table creates a tbody', () => {
     const t = d.createElement('table');
     const tr = t.insertRow();

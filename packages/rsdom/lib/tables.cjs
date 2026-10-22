@@ -57,6 +57,12 @@ function live(el, key, items) {
 /** WebIDL `long` with a default of -1 (the optional index arguments). */
 const index = (v) => (v === undefined ? -1 : Number(v) | 0);
 
+/** WebIDL `long`, a required argument of `name`. */
+function required(args, name, iface) {
+  if (args.length === 0) throw new TypeError(`Failed to execute '${name}' on '${iface}': 1 argument required, but only 0 present.`);
+  return Number(args[0]) | 0;
+}
+
 function nullableOf(C, v, prop, type) {
   if (v === null || v === undefined) return null;
   if (!(v instanceof C)) {
@@ -145,7 +151,7 @@ function install(_rt, _dom) {
       const c = this.caption;
       if (c !== null) c.parentNode.removeChild(c);
     },
-    insertRow(i) {
+    insertRow(i = undefined) {
       i = index(i);
       const rows = tableRows(this);
       if (i < -1 || i > rows.length) {
@@ -166,8 +172,8 @@ function install(_rt, _dom) {
       }
       return tr;
     },
-    deleteRow(i) {
-      i = Number(i) | 0;
+    deleteRow(_i) {
+      let i = required(arguments, 'deleteRow', 'HTMLTableElement');
       const rows = tableRows(this);
       if (i < -1 || i >= rows.length) throw rt.domError(5, `Cannot delete a row at index ${i}, where no row exists`);
       if (i === -1) {
@@ -182,7 +188,7 @@ function install(_rt, _dom) {
     get rows() {
       return live(this, 'rows', () => childrenNamed(this, 'tr'));
     },
-    insertRow(i) {
+    insertRow(i = undefined) {
       i = index(i);
       const rows = childrenNamed(this, 'tr');
       if (i < -1 || i > rows.length) {
@@ -193,8 +199,8 @@ function install(_rt, _dom) {
       else this.insertBefore(tr, rows[i]);
       return tr;
     },
-    deleteRow(i) {
-      i = Number(i) | 0;
+    deleteRow(_i) {
+      const i = required(arguments, 'deleteRow', 'HTMLTableSectionElement');
       const rows = childrenNamed(this, 'tr');
       if (i < -1 || i >= rows.length) throw rt.domError(5, `Cannot delete a row at index ${i}, where no row exists`);
       if (i === -1) {
@@ -223,7 +229,7 @@ function install(_rt, _dom) {
       if (parent instanceof C.HTMLTableSectionElement) return childrenNamed(parent, 'tr').indexOf(this);
       return -1;
     },
-    insertCell(i) {
+    insertCell(i = undefined) {
       i = index(i);
       const td = this.ownerDocument.createElement('td');
       const cells = childrenNamed(this, CELLS);
@@ -232,8 +238,8 @@ function install(_rt, _dom) {
       else this.insertBefore(td, cells[i]);
       return td;
     },
-    deleteCell(i) {
-      i = Number(i) | 0;
+    deleteCell(_i) {
+      let i = required(arguments, 'deleteCell', 'HTMLTableRowElement');
       const cells = childrenNamed(this, CELLS);
       if (i < -1 || i >= cells.length) throw rt.domError(5, 'The index is not in the allowed range.');
       if (i === -1) {

@@ -1515,8 +1515,6 @@ function install(_rt, dom) {
   reflectBool(TextArea, 'readOnly', 'readonly');
   reflectLong(TextArea, 'maxLength', 'maxlength', -1, true);
   reflectLong(TextArea, 'minLength', 'minlength', -1, true);
-  reflectULong(TextArea, 'cols', 'cols', 20, true);
-  reflectULong(TextArea, 'rows', 'rows', 2, true);
 
   // ----------------------------------------------------------------------------------- select
   const Select = C.HTMLSelectElement;
@@ -2016,7 +2014,7 @@ function install(_rt, dom) {
       return s;
     },
     set text(v) {
-      this.textContent = v;
+      this.textContent = String(v); // DOMString: null is "null" (textContent would make it empty)
     },
   };
   defineAll(C.HTMLScriptElement, childText);

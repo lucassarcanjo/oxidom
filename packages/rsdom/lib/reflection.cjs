@@ -9,6 +9,7 @@
 const rt = require('./runtime.cjs');
 const forms = require('./forms.cjs');
 const { reflect } = require('./generated/interfaces.cjs');
+const { parseFloatingPoint } = require('./input-number.cjs');
 
 const { reflectStr, reflectBool, reflectLong, reflectURL, parseInteger } = forms;
 const MAX = 2147483647;
@@ -96,11 +97,30 @@ function installEnumerated(C) {
     'dir',
     function get() {
       const e = this.documentElement;
-      return e === null ? '' : `${e.dir}`;
+      return e instanceof C.HTMLElement ? e.dir : '';
     },
     function set(v) {
       const e = this.documentElement;
-      if (e !== null) e.dir = v;
+      if (e instanceof C.HTMLElement) e.dir = v;
+    },
+  );
+}
+
+/** `double` with ReflectPositive (progress `max`): non-positive values are ignored. */
+function reflectDouble(C, prop, attr, o) {
+  const dflt = o.d ?? 0;
+  define(
+    C,
+    prop,
+    function get() {
+      const v = getAttr.call(this, attr);
+      const n = v === null ? null : parseFloatingPoint(v);
+      return n === null || (o.pos && n <= 0) ? dflt : n;
+    },
+    function set(v) {
+      const n = Number(v);
+      if (!Number.isFinite(n)) throw new TypeError(`Failed to set the '${prop}' property: The provided double value is non-finite.`);
+      if (!o.pos || n > 0) setAttr.call(this, attr, String(n));
     },
   );
 }
@@ -134,6 +154,9 @@ function install(_rt, dom) {
           break;
         case 'ulong':
           reflectUnsigned(C, prop, attr, o);
+          break;
+        case 'double':
+          reflectDouble(C, prop, attr, o);
           break;
         default:
           throw new Error(`rsdom: no reflection for ${iface}.${prop} (${kind})`);

@@ -41,11 +41,6 @@ to-port-to-wpts/level2/style.js:
   "level2/style > HTMLStyleElement02": [fail, "Expected values to be strictly equal: … !== …"]
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/level3/xpath.js:
-  "xpath > testDocumentEvaluate": [fail, "read of null (._version)"]
-  "xpath > testDocumentEvaluate2": [fail, "read of null (._version)"]
-  "xpath > testDocumentEvaluateStringPred": [fail, "read of null (._version)"]
-  "xpath > testDocumentEvaluateWildcard": [fail, "read of null (._version)"]
 to-port-to-wpts/misc.js:
   "browser/index > parse_doublespacetags": [fail, "Got unwanted exception: setValue_throws_INVALID_CHARACTER_ERR Actual message: …"]
 to-port-to-wpts/misc2.js:

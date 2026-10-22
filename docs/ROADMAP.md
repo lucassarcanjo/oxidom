@@ -144,7 +144,9 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       w3c-xmlserializer as jsdom uses them, XML `innerHTML` / `outerHTML`, `new JSDOM(x, { contentType })` with XML
       types, XML `responseXML`; 20 -> 37 of 39 suite files at parity, gap 789 -> 5, overall 96.7% -> 97.3%. Left:
       `document.domain` of parsed documents (`core`), an invalid style attribute (`cssom`).
-- [ ] XPath (M) `xpath`.
+- [x] XPath (M) `xpath`. Done 2026-10-22 (DESIGN §39): jsdom's XPath 1.0 engine vendored as `lib/xpath.cjs`; 8 -> 26
+      of 28 suite files at parity, gap 66 -> 5. Left: `hasOwnProperty` on live collection indices (DESIGN §4.3, `core`),
+      declarative shadow roots (`shadow-dom`).
 - [ ] DOMRect classes and the remaining Window members (S) `geometry`.
 - [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
       including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's

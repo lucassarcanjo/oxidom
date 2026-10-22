@@ -19,7 +19,8 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | cssom | CSSOM rule objects (`cssom`) | `claude/project-thread-8t2nkv` | §35 | done |
 | forms | Forms remainder (`forms`) | `claude/project-thread-8t2nkv` | §36 | done |
 | reflection | Reflected IDL attributes and ARIAMixin (`reflection`) | `claude/project-thread-8t2nkv` | §37 | done |
-| xml | XML documents, XMLSerializer, DOMParser for XML types (`xml`) | `claude/project-thread-8t2nkv` | §38 | in review |
+| xml | XML documents, XMLSerializer, DOMParser for XML types (`xml`) | `claude/project-thread-8t2nkv` | §38 | done |
+| xpath | XPath (`xpath`) | `claude/project-thread-8t2nkv` | §39 | in review |
 
 A thread works inside its item. Something it needs that belongs to another item goes to the coordinator (the session
 that created the threads) instead of into the PR. Small enablers (an exported helper, an atom) are fine when called

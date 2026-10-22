@@ -265,8 +265,8 @@ class Event {
     isInitialized = (ev) => ev.#initialized;
 
     /**
-     * DOM "dispatch" for a target without shadow trees. `target` is a node wrapper, a WindowTarget or a
-     * plain EventTarget. Returns `!canceled`. `trusted`: the UA fires it (`isTrusted`); script
+     * DOM "dispatch" for a path without shadow roots (composedDispatch handles the rest, DESIGN §42).
+     * `target` is a node wrapper, a WindowTarget or a plain EventTarget. Returns `!canceled`. `trusted`: the UA fires it (`isTrusted`); script
      * `dispatchEvent` and `el.click()` dispatch untrusted events.
      */
     dispatchImpl = (target, ev, trusted = false) => {
@@ -281,21 +281,21 @@ class Event {
       const isClick = type === 'click' && ev instanceof MouseEvent;
       // A target outside shadow trees, with no related target inside one, has a path that never meets a
       // shadow root (no slots yet), so nothing to retarget: the plain walk below.
-      if (isNode && shadow().shadowsExist() && (inShadowTree(target) || inShadowTree(getRel(ev)))) {
-        return composedDispatch(target, ev, isClick);
+      if (shadow().shadowsExist()) {
+        const rel = getRel(ev);
+        if (isNode && (inShadowTree(target) || inShadowTree(rel))) return composedDispatch(target, ev, isClick);
+        // a window or plain EventTarget: jsdom's one-entry path still retargets the related target (against
+        // no node: the outermost host), and leaves it so after dispatch
+        if (!isNode && inShadowTree(rel)) setRel(ev, wrap(shadow().retarget(rel._i, 0)));
       }
       if (isNode) {
         let id = target._i;
         if (isClick && hasActivation(id)) activation = target;
         let last = id;
         for (let p = V.T[V.off(id) + F.PARENT]; ; p = V.T[V.off(p) + F.PARENT]) {
-          if (!(p > 0)) { // `> 0`: a stale view (undefined) ends the walk
-            // A shadow root's "get the parent" (DESIGN §22): its host for a composed event; a non-composed
-            // one stops at the target's own shadow root, the first one this walk reaches. No retargeting.
-            if (p !== 0 || !ev.#composed || (V.T[V.off(last) + F.META] & (M.KIND | M.SHADOW)) !== (K.FRAGMENT | M.SHADOW)) break;
-            p = rt.N.shadowHost(last);
-            if (!(p > 0)) break;
-          }
+          // `> 0`: a stale view (undefined) ends the walk. This walk never meets a shadow root: targets in
+          // shadow trees take composedDispatch above.
+          if (!(p > 0)) break;
           const w = wrap(p);
           path.push(w);
           if (isClick && activation === null && ev.#bubbles && hasActivation(p)) activation = w;

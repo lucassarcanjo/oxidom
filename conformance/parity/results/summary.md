@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2007 | 162751 | 158479 | 97.4% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2007 | 162751 | 158481 | 97.4% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 154 | 2578 | 2382 | 92.4% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 1067 | 59.9% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 250 | 40.7% |
-| **all** | **2615** | **2167** | **167724** | **162178** | **96.7%** |
+| **all** | **2615** | **2167** | **167724** | **162180** | **96.7%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -44,7 +44,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
-| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 71 | 83.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
+| 4 | iframes, script execution (runScripts) and resource loading | 120 | 111 | 69 | 83.8% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
 
 ## Gaps outside every roadmap item
 

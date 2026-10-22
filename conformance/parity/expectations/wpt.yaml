@@ -1771,7 +1771,7 @@ html/dom/historical.html:
   "document.all cannot find applet": [fail, "read of undefined (.war)"]
 html/dom/reflection-embedded.html: [fail, "assert_equals: got undefined (missing attribute/API)", {pass: 7499}]
 html/dom/reflection-forms-weekmonth.html: [fail, "assert_equals: wrong value", {pass: 1433}]
-html/dom/reflection-forms.html: [fail, "assert_equals: wrong value", {pass: 7488}]
+html/dom/reflection-forms.html: [fail, "assert_equals: wrong value", {pass: 7490}]
 html/dom/reflection-grouping.html: [fail, "assert_equals: got undefined (missing attribute/API)", {pass: 4812}]
 html/dom/reflection-metadata.html: [fail, "assert_equals: wrong value", {pass: 2442}]
 html/dom/reflection-misc.html: [fail, "assert_equals: got undefined (missing attribute/API)", {pass: 4045}]
@@ -2349,8 +2349,6 @@ html/semantics/scripting-1/the-script-element/script-referrerpolicy-idl.html: [f
 html/semantics/scripting-1/the-script-element/script-supports.html: [fail, "missing method: .supports()"]
 html/semantics/scripting-1/the-script-element/script-text.html:
   "Setter (non-empty string)": [fail, "assert_array_equals: wrong value"]
-  "Setter (null)": [fail, "assert_equals: wrong value"]
-  "Setter (undefined)": [fail, "assert_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/script-type-and-language-js.html: [fail, "assert_equals: wrong value", {pass: 238}]
 html/semantics/scripting-1/the-script-element/script-type-whitespace.html:
   "Script shouldn't run with type=\"text/javascript&#x000B;\" (parser-inserted)": [fail, "assert_false: wrong value"]

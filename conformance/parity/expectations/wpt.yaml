@@ -916,8 +916,6 @@ dom/nodes/Element-children.html:
   "HTMLCollection edge cases 1": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-getElementsByTagName.html:
   "hasOwnProperty, getOwnPropertyDescriptor, getOwnPropertyNames": [fail, "assert_equals: got undefined (missing attribute/API)"]
-dom/nodes/Element-setAttributeNodeNS.html:
-  "Replacing an attribute prefix preserves other attributes with the old qualified name": [fail, "assert_equals: wrong value"]
 dom/nodes/MutationObserver-childList.html:
   "childList ParentNode.replaceChildren: move an existing child": [fail, "assert_equals: wrong value"]
   "childList ParentNode.replaceChildren: self replacement of only child": [fail, "assert_equals: wrong value"]

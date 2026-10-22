@@ -1296,6 +1296,21 @@ function install(_rt, dom) {
     set translate(v) {
       this.setAttribute('translate', v ? 'yes' : 'no');
     },
+    // [Reflect, ReflectRange=(0, 8)] unsigned long (whatwg/html#11086); `:heading()` reads the attribute in Rust
+    get headingOffset() {
+      const m = /^[\t\n\f\r ]*\+?(\d+)/.exec(this.getAttribute('headingoffset') ?? '');
+      return m === null ? 0 : Math.min(8, Number(m[1]));
+    },
+    set headingOffset(v) {
+      const n = Number(v) >>> 0;
+      this.setAttribute('headingoffset', String(n > 2147483647 ? 0 : n));
+    },
+    get headingReset() {
+      return this.hasAttribute('headingreset');
+    },
+    set headingReset(v) {
+      this.toggleAttribute('headingreset', Boolean(v));
+    },
     get draggable() {
       const v = rt.asciiLower(this.getAttribute('draggable') ?? '');
       if (v === 'true') return true;

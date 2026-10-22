@@ -96,6 +96,28 @@ describe.each(DOMS)('selectors [%s]', (kind) => {
     expect(frag.querySelectorAll('*').length).toBe(1);
   });
 
+  it(':heading / :heading() with headingoffset and headingreset (Selectors 5, whatwg/html#11086)', () => {
+    // PINNED to the spec: jsdom 30 (dom-selector) and happy-dom do not support :heading.
+    if (kind !== 'rsdom') return;
+    d.body.innerHTML =
+      '<h1 id="a"></h1><h7 id="b"></h7><div headingoffset="2"><h1 id="c"></h1><h6 id="d"></h6>' +
+      '<section headingreset><h2 id="e"></h2></section><h1 id="f" headingoffset="1" headingreset></h1></div>';
+    const q = (s) => [...d.querySelectorAll(s)].map(id);
+    expect(q(':heading')).toEqual(['a', 'c', 'd', 'e', 'f']);
+    expect(q(':heading(1)')).toEqual(['a']);
+    expect(q(':heading(3)')).toEqual(['c']);
+    expect(q(':heading(8)')).toEqual(['d']); // h6 + 2
+    expect(q(':heading(2)')).toEqual(['e', 'f']);
+    const c = d.getElementById('c');
+    c.headingReset = true;
+    expect(c.matches(':heading(1)')).toBe(true);
+    c.headingOffset = 20;
+    expect(c.getAttribute('headingoffset')).toBe('20');
+    expect(c.headingOffset).toBe(8);
+    expect(c.matches(':heading(9)')).toBe(true);
+    expect(() => d.querySelector(':heading(a)')).toThrow();
+  });
+
   it('static NodeList from querySelectorAll; fresh object each call', () => {
     const a = d.querySelectorAll('li');
     const b = d.querySelectorAll('li');

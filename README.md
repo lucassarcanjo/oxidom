@@ -12,7 +12,7 @@ export default defineConfig({
 })
 ```
 
-> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 90.9% of what jsdom
+> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 91.0% of what jsdom
 > passes in jsdom's own test suite, but it is not on npm yet. See [what works](#compatibility), the
 > [migration guide](docs/MIGRATING.md) and the [roadmap](docs/ROADMAP.md).
 > Its npm name is `jetdom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm.
@@ -42,7 +42,7 @@ Measured against jsdom 30.1.3:
 
 | measure | rsdom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 90.9% (152,482 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-21) |
+| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 91.0% (152,643 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-21) |
 | real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 

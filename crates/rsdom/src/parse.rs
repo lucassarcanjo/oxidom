@@ -184,6 +184,13 @@ impl TreeSink for Sink<'_> {
                 list.push(Attr { local: alocal, qname, ns: ans, prefix: apfx, value: Str::from(&*a.value) });
             }
             env.init_attrs(el, list);
+            // HTML "create an element for a token": the `is` attribute is the `is` value (crate::ce)
+            if let Some(is) = attrs.iter().find(|a| a.name.ns.is_empty() && &*a.name.local == "is")
+                && ns == crate::node::Ns::Html.uri()
+            {
+                let is = env.intern(&is.value);
+                env.ce_set_is(el, is);
+            }
         }
         drop(env);
         let i = (el - self.base) as usize;

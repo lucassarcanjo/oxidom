@@ -73,7 +73,8 @@ css/cssom/stylesheet-tree-order.html: [fail, "assert_equals: wrong value"]
 css/selectors/i18n/css3-selectors-lang-014-dont-upstream.html: [fail, "assert_true: wrong value"]
 css/selectors/selectors-4/lang-009-dont-upstream.html: [fail, "assert_equals: wrong value"]
 css/selectors/selectors-4/lang-017-dont-upstream.html: [fail, "assert_equals: wrong value"]
-custom-elements/ElementInternals-labels.html: [fail, "missing global: customElements"]
+custom-elements/ElementInternals-labels.html:
+  "ElementInternals labels are correct inside a form-associated custom element constructor": [fail, "assert_array_equals: wrong value"]
 dom/collections/HTMLCollection-namedItem-liveness.html:
   "Supported property names follow attribute changes": [fail, "assert_true: wrong value"]
 dom/nodes/Node-proxy-brand-checks.html:

@@ -1011,6 +1011,7 @@ function makeWindow(ctx, global = undefined, ownTimers = false) {
   state.set(navigator, { ctx });
   def('navigator', navigator);
   def('screen', new Screen(rt.TOKEN));
+  def('customElements', require('./custom-elements.cjs').registryFor(ctx));
   // jsdom's remaining Window members (refs/jsdom/lib/jsdom/browser/Window.js; DESIGN §40)
   const { BarProp, External } = require('./geometry.cjs');
   for (const k of ['locationbar', 'menubar', 'personalbar', 'scrollbars', 'statusbar', 'toolbar']) def(k, new BarProp(rt.TOKEN));

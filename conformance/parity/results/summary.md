@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2153 | 162751 | 159424 | 98.0% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 168 | 2578 | 2481 | 96.2% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2209 | 162751 | 162167 | 99.6% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 168 | 2578 | 2482 | 96.3% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2332** | **167724** | **163912** | **97.7%** |
+| **all** | **2615** | **2388** | **167724** | **166656** | **99.4%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -41,7 +41,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
 | 3 | Core DOM and HTML behaviour no other item claims | 955 | 888 | 172 | 99.3% | assert_true: wrong value (44); assert_equals: wrong value (33); harness ERROR: read of undefined (.define) (25) |
 | 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 105 | 58 | 93.1% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16); harness ERROR: missing global: customElements (7) |
-| 4 | Custom elements and customElements | 147 | 52 | 2993 | 0.3% | missing global: customElements (2625); harness ERROR: missing global: customElements (241); harness TIMEOUT: (no message) (122) |
+| 4 | Custom elements and customElements | 147 | 108 | 249 | 91.7% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (84); missing global: customElements (18) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
 | 4 | iframes, script execution (runScripts) and resource loading | 120 | 112 | 67 | 84.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |

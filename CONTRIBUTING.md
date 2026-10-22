@@ -60,6 +60,7 @@ allocations below still hold.
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `src/shadow.rs`, `lib/shadow.cjs` | ShadowRoot and `attachShadow`, without retargeting (DESIGN §22) | a shadow root is a fragment record with `meta::SHADOW` (bit 20, also set on its host) and its host in `payload`; connect / disconnect / adopt walks are shadow-including, the id map holds document-tree elements only |
+| `src/ce.rs`, `lib/custom-elements.cjs` | custom elements (DESIGN §43) | Rust keeps element states, definitions, observed attributes and the reaction queue (`meta::CE_CUSTOM` bit 21, `meta::CE_UNDEFINED` bit 22); JS owns constructors, callbacks and promises and drains the queue from `mutated()` (bit 2 of `EP[MO_PENDING]`) |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `lib/history.cjs` | session history (DESIGN §23) | facade only; one `SessionHistory` per browsing context (`ctx.history`), driven by `History` and `Location` in `window.cjs` |
 | `lib/file-api.cjs` | Blob, File, FileReader (DESIGN §27) | facade only; Blob and File subclass Node's (the bytes stay in Node's blob store) |
@@ -71,7 +72,7 @@ Reserved bit/slot ranges (declare constants in your own module; add a one-line c
 
 | resource | A | B | C |
 |---|---|---|---|
-| `NodeRec.meta` free bits (16..31) | 16-19 (20: `meta::SHADOW`, DESIGN §22) | 21-25 | 26-31 |
+| `NodeRec.meta` free bits (16..31) | 16-19 (20: `meta::SHADOW`, DESIGN §22) | 21-25 (21-22: `meta::CE_CUSTOM` / `meta::CE_UNDEFINED`, custom elements, DESIGN §43) | 26-31 |
 | `NodeRec.state` (forms/focus layout is fixed by DESIGN §2.2) | - | all of `state` | - |
 | `NodeRec.res[0..2]` (words 14-15) | `res[0]` (e.g. attribute bloom) | - | `res[1]` |
 | epoch page slots 13-15 | 13 | 14 | 15 (bench counters) |

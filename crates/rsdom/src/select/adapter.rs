@@ -152,7 +152,7 @@ pub enum PseudoClass {
     Link,
     /// `:any-link`
     AnyLink,
-    /// `:defined` (no custom elements are ever defined)
+    /// `:defined`
     Defined,
     /// `:open` (details / dialog with `open`)
     Open,
@@ -294,6 +294,7 @@ impl PseudoClass {
                 | PseudoClass::Valid
                 | PseudoClass::Invalid
                 | PseudoClass::Dir(..)
+                | PseudoClass::Defined
         )
     }
 
@@ -1176,10 +1177,8 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
         PseudoClass::Link | PseudoClass::AnyLink => {
             html && matches!(l, atom::A | atom::AREA) && e.has_attr(el, atom::HREF)
         }
-        PseudoClass::Defined => {
-            // Autonomous custom elements (HTML names with a hyphen) are never defined (no registry).
-            !(html && e.atoms.name(l).contains('-'))
-        }
+        // custom element state "uncustomized" or "custom" (DESIGN §43: the other states set CE_UNDEFINED)
+        PseudoClass::Defined => e.rec(el).meta & crate::ce::CE_UNDEFINED == 0,
         PseudoClass::Open => html && matches!(l, atom::DETAILS | atom::DIALOG) && e.has_attr(el, atom::OPEN),
         PseudoClass::InRange | PseudoClass::OutOfRange => {
             html && l == atom::INPUT

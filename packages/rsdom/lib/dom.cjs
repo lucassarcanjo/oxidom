@@ -19,6 +19,8 @@ const {
   coverIndices, installNamedProperties,
 } = require('./collections.cjs');
 const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
+/** lib/custom-elements.cjs, loaded on the first HTML element creation (it requires this module). */
+let CE = null;
 
 const { N, V, EPI, F, M, K, NSC, NS, W, TOKEN } = rt;
 const {
@@ -241,6 +243,7 @@ class Node extends EventTarget {
   cloneNode(deep = false) {
     const id = checkId(N.cloneNode(this._i, !!deep));
     afterAlloc();
+    mutated(); // upgrade reactions of cloned custom elements (DESIGN §43)
     const w = wrap(id);
     if (this instanceof Document) {
       // Document cloning steps: URL and content type travel with the clone (kept on the wrapper; a clone
@@ -663,9 +666,10 @@ class Document extends Node {
     return this._impl ?? (this._impl = makeImplementation(this));
   }
 
-  createElement(localName, _options = undefined) {
+  createElement(localName, options = undefined) {
     let name = String(localName);
     const html = (V.T[V.off(this._i) + F.META] & M.HTML_DOC) !== 0;
+    const isValue = options !== null && typeof options === 'object' && options.is !== undefined ? String(options.is) : null;
     // Non-HTML documents: the HTML namespace when the content type is application/xhtml+xml, else null; the
     // whole name is the local name (`a:b` is not split into a prefix, so needs no namespace)
     if (!html) {
@@ -674,14 +678,37 @@ class Document extends Node {
       return wrap(id);
     }
     if (/[A-Z]/.test(name)) name = asciiLower(name);
-    const id = checkId(N.createElement(this._i, elementAtom(name), 0));
+    return this._createHtml(name, isValue, () => N.createElement(this._i, elementAtom(name), 0));
+  }
+
+  /** DOM "create an element" in the HTML namespace with the synchronous custom elements flag (DESIGN §43). */
+  _createHtml(name, isValue, plain, prefix = null) {
+    CE ??= require('./custom-elements.cjs');
+    const def = CE.lookup(this, name, isValue);
+    if (def !== null) {
+      const el = CE.createSync(this, def, name, isValue, prefix);
+      mutated();
+      return el;
+    }
+    const id = checkId(plain());
     afterAlloc();
+    if (isValue !== null) N.ceSetIs(id, isValue);
     return wrap(id);
   }
 
-  createElementNS(namespace, qualifiedName, _options = undefined) {
+  createElementNS(namespace, qualifiedName, options = undefined) {
     const ns = namespace === null || namespace === undefined ? null : String(namespace);
-    const id = checkId(N.createElementNS(this._i, ns, String(qualifiedName)));
+    const qn = String(qualifiedName);
+    const plain = () => N.createElementNS(this._i, ns, qn);
+    if (ns === NS.HTML) {
+      const isValue = options !== null && typeof options === 'object' && options.is !== undefined ? String(options.is) : null;
+      // a prefixed name never matches a definition here (the prefix is not carried into a constructed element)
+      const c = qn.indexOf(':');
+      if (c === -1) return this._createHtml(qn, isValue, plain);
+      checkId(N.validateQName(qn)); // the name must be valid before a constructor runs
+      return this._createHtml(qn.slice(c + 1), isValue, plain, qn.slice(0, c));
+    }
+    const id = checkId(plain());
     afterAlloc();
     return wrap(id);
   }
@@ -744,6 +771,7 @@ class Document extends Node {
     if (node instanceof Attr) return makeAttr(null, node._q, node._n, node._p, node._l, node.value, this);
     const id = checkId(N.importNode(this._i, nodeArg(node, 'importNode', 'Document'), !!deep));
     afterAlloc();
+    mutated();
     return wrap(id);
   }
 
@@ -1781,6 +1809,13 @@ function makeRect() {
 // ---------------------------------------------------------------------------------- HTML elements
 
 class HTMLElement extends Element {
+  // [HTMLConstructor] (DESIGN §43): `new` on a custom element class (or a customized built-in's, through the
+  // default constructors of the interface subclasses) creates or upgrades the element in lib/custom-elements.cjs
+  constructor(t = undefined) {
+    if (t !== TOKEN) return require('./custom-elements.cjs').htmlConstructor(new.target);
+    super(t);
+  }
+
   get innerText() {
     return this.textContent;
   }
@@ -2044,8 +2079,13 @@ function reflectLong(C, prop, attr = prop.toLowerCase(), dflt = 0) {
   });
 }
 
+/** Forgets the cached namespace / prefix of element `id` (custom elements set the prefix after construction). */
+function dropNsx(id) {
+  NSX.delete(id);
+}
+
 module.exports = {
-  EventTarget, Node, Document, HTMLDocument, XMLDocument, DocumentFragment, DocumentType, CharacterData, Text,
+  dropNsx, EventTarget, Node, Document, HTMLDocument, XMLDocument, DocumentFragment, DocumentType, CharacterData, Text,
   CDATASection, Comment, ProcessingInstruction, Attr, NamedNodeMap, Element, HTMLElement, HTMLUnknownElement,
   SVGElement, MathMLElement, DOMImplementation, DOMParser, NodeList, HTMLCollection,
   nodeArg, convertNodes, staticNodeListFromIds, isHtml, firstDescendant, attrQName, attrLookup, attrSetAtom, makeRect,

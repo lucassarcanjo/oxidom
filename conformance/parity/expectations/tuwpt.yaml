@@ -48,32 +48,12 @@ css/cssom/shadow-template-computed-style.html: [fail, "harness ERROR: read of un
 css/cssom/style-background-shorthand.html:
   "Update longhand with var() sets empty background value": [fail, "assert_equals: wrong value"]
   "`transparent` sets default longhand values": [fail, "assert_equals: wrong value"]
-css/cssom/style-mutation-reentrancy.html:
-  "Style mutation via cssText reenters via cssText in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via cssText reenters via property assignment in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via cssText reenters via removeAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via cssText reenters via setAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via cssText reenters via setProperty() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via property assignment reenters via cssText in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via property assignment reenters via property assignment in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via property assignment reenters via removeAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via property assignment reenters via setAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via property assignment reenters via setProperty() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setAttribute() reenters via cssText in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setAttribute() reenters via property assignment in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setAttribute() reenters via removeAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setAttribute() reenters via setAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setAttribute() reenters via setProperty() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setProperty() reenters via cssText in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setProperty() reenters via property assignment in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setProperty() reenters via removeAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setProperty() reenters via setAttribute() in attributeChangedCallback": [fail, "missing global: customElements"]
-  "Style mutation via setProperty() reenters via setProperty() in attributeChangedCallback": [fail, "missing global: customElements"]
 css/cssom/stylesheet-tree-order.html: [fail, "assert_equals: wrong value"]
 css/selectors/i18n/css3-selectors-lang-014-dont-upstream.html: [fail, "assert_true: wrong value"]
 css/selectors/selectors-4/lang-009-dont-upstream.html: [fail, "assert_equals: wrong value"]
 css/selectors/selectors-4/lang-017-dont-upstream.html: [fail, "assert_equals: wrong value"]
-custom-elements/ElementInternals-labels.html: [fail, "missing global: customElements"]
+custom-elements/ElementInternals-labels.html:
+  "ElementInternals labels are correct inside a form-associated custom element constructor": [fail, "assert_array_equals: wrong value"]
 dom/collections/HTMLCollection-namedItem-liveness.html:
   "Supported property names follow attribute changes": [fail, "assert_true: wrong value"]
 dom/nodes/Node-proxy-brand-checks.html:
@@ -85,7 +65,6 @@ dom/nodes/Node-proxy-brand-checks.html:
   "appendChild rejects a transparent proxy as its receiver": [fail, "assert_true: wrong value"]
 dom/nodes/adoption-tag-name.html:
   "Adoption updates cached tag names in a detached template subtree": [fail, "assert_equals: wrong value"]
-dom/nodes/attribute-change-steps.html: [fail, "missing global: customElements"]
 html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling-dont-upstream.html:
   "Returning false must not cancel the event, because it's coerced to the DOMString \"false\" which does not cancel CustomEvents: CustomEvent, cancelable": [fail, "assert_false: wrong value"]
 html/browsers/the-window-object/named-access-on-the-window-object/element-contributions.html:

@@ -465,6 +465,9 @@ impl Env {
             self.link(n, parent, child);
             if connected {
                 self.connect_subtree(n);
+                if self.ce.defined() {
+                    self.ce_connected(n);
+                }
             }
             if self.shadow.any() {
                 self.slot_insert(parent, n);
@@ -505,6 +508,9 @@ impl Env {
         self.unlink(node);
         if was_connected {
             self.disconnect_subtree(node);
+            if self.ce.defined() {
+                self.ce_disconnected(node);
+            }
         }
         if let Some((in_shadow, has_slot)) = slots {
             self.slot_remove(parent, node, in_shadow, has_slot);
@@ -552,6 +558,9 @@ impl Env {
                 }
                 n = self.next_in_subtree(n, root);
             }
+        }
+        if self.ce.defined() {
+            self.ce_adopted(node, old_doc, doc);
         }
         if !self.traversal.is_empty() {
             // NodeIterators rooted in the moved nodes now belong to their new document (crate::traversal)

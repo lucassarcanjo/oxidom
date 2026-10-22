@@ -63,6 +63,10 @@ pub mod meta {
     pub const FREE_SHIFT: u32 = 16;
     /// Shadow root (on a DocumentFragment) or shadow host (on an element); crate::shadow, DESIGN §22.
     pub const SHADOW: u32 = 1 << 20;
+    /// Custom element state "custom"; crate::ce, DESIGN §43.
+    pub const CE_CUSTOM: u32 = 1 << 21;
+    /// Custom element state "undefined", "failed" or "precustomized" (not `:defined`); crate::ce, DESIGN §43.
+    pub const CE_UNDEFINED: u32 = 1 << 22;
 }
 
 /// `NodeRec.state` bits (owned by forms.rs / focus.rs; layout fixed by DESIGN §2.2).

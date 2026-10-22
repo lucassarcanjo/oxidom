@@ -85,6 +85,10 @@ impl Env {
             crate::mo::queue_attribute(self, el, local, ns, old.as_ref());
         }
         self.bump_doc_version(el);
+        if self.rec(el).meta & crate::ce::CE_CUSTOM != 0 {
+            let old = self.get_attr_by_atoms(el, ns, local).cloned();
+            self.ce_attr_changed(el, local, ns, old.as_ref());
+        }
         // forms only tests `old.is_some()` (the attribute was present: it still is)
         crate::forms::on_attr_changed(self, el, local, ns, Some(&Str::default()));
     }
@@ -112,6 +116,9 @@ impl Env {
             self.bump_named_if_contributes(el);
         }
         crate::mo::queue_attribute(self, el, local, ns, old);
+        if self.rec(el).meta & crate::ce::CE_CUSTOM != 0 {
+            self.ce_attr_changed(el, local, ns, old);
+        }
         if self.shadow.any() && ns == Atom::NONE && matches!(local, atom::SLOT | atom::NAME) {
             self.slot_attr_changed(el, local, old);
         }
@@ -135,6 +142,9 @@ impl Env {
     #[inline]
     pub(crate) fn hook_cloned(&mut self, src: NodeId, dst: NodeId) {
         crate::forms::on_cloned(self, src, dst);
+        if self.ce.any() {
+            self.ce_cloned(src, dst);
+        }
     }
 
     /// See module docs. The parser links nodes raw (no per-node hooks); this lets areas initialise state

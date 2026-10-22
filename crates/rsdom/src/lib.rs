@@ -22,6 +22,7 @@ pub mod ffi;
 pub mod atom_hash;
 pub mod atoms;
 pub mod attrs;
+pub mod ce;
 pub mod chunk;
 pub mod counters;
 pub mod dom;

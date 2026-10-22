@@ -2167,3 +2167,72 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
   happy-dom 21 has no slot assignment, so it is pinned out. Overall parity 163,756 -> 163,912 subtests (97.7%);
   `uievents/focusevents/focusable-area-flat-tree` and `focusable-area` (12 subtests) progressed too. The rest of the gap: `delegatesFocus`, custom
   elements, focus retargeting, `slotchange.html`'s `onslotchange` case (a jsdom TIMEOUT).
+
+## 43. Custom elements (ROADMAP Stage 4 `custom-elements`, 2026-10)
+
+Stage 4 design note. A port of jsdom 30's custom elements (`living/custom-elements/CustomElementRegistry-impl.js`,
+`living/helpers/custom-elements.js`, `helpers/html-constructor.js`, the `createElement` and parser hooks). The
+constraint is §7's: Rust never calls JS, yet every mutation in Rust can owe a custom element a callback.
+
+**Split.**
+- **JS owns the definitions' functions**: constructors, lifecycle callbacks, `whenDefined` promises, the
+  construction stack. One `CustomElementRegistry` per window (`window.customElements`); interface classes are shared
+  by all windows of the env (one realm), so `HTMLElement`'s constructor finds the definition by `new.target` in a
+  ctor -> definition map.
+- **Rust owns what mutations need to decide**: per document, its window's registry id (`ceBindDoc`; documents
+  without a window have none, as in jsdom). Per definition: registry, name, local name, which callbacks exist, the
+  observed attribute local names (`ceDefine`). Per element: its custom element state (undefined, failed,
+  uncustomized, precustomized, custom), definition and `is` value, in `CeState`, mirrored into two meta bits for the
+  hot paths (`CE_CUSTOM`: state custom; `CE_UNDEFINED`: undefined, failed or precustomized, which `:defined` also
+  reads). An env with neither bit anywhere and no definition pays one `ce.any()` test per hook.
+
+**Reactions are queued in Rust and invoked by the facade.** The mutation algorithms enqueue, at jsdom's points:
+- connect pass: `connectedCallback` for a custom element, "try to upgrade" for an undefined one;
+- disconnect pass: `disconnectedCallback`;
+- adopt: `adoptedCallback(oldDocument, newDocument)` for each shadow-including inclusive descendant;
+- attribute change (both attribute hooks, same-value sets included): `attributeChangedCallback(local, old, new,
+  namespace)` when the local name is observed;
+- element creation with a definition and no synchronous construction (fragment parsing, cloning, `importNode`):
+  an upgrade reaction; `customElements.define` enqueues upgrades for the document's shadow-including candidates.
+
+Each is a record in `CeState.queue` (element, kind, arguments; attribute values as strings). Enqueuing sets bit 2 of
+`EP[MO_PENDING]`, so the `mutated()` epilogue every mutating facade method already runs drains the queue
+(`ceTake`) and invokes the reactions before the method returns: the [CEReactions] post-steps. Records are grouped
+per element in first-enqueue order, each element's reactions run in order, and a reaction's own DOM calls drain
+their reactions at their own epilogue, which is the custom element reactions stack. Errors are reported to the
+window (`reportException`), as in jsdom. Enqueuing filters on what Rust knows (state custom, the callback exists,
+the attribute is observed), so ordinary pages queue nothing.
+
+**Construction.**
+- `HTMLElement` (and every HTML element interface, for customized built-ins) gets jsdom's [HTMLConstructor]: a
+  constructor call without the internal token looks up `new.target`; with an empty construction stack it creates
+  the element (`ceCreate`: state custom, no upgrade reaction) and returns its wrapper with `new.target.prototype`;
+  during an upgrade it returns the element on top of the construction stack, reprototyped. Wrappers are held
+  strongly in `W`, so the prototype sticks.
+- `document.createElement(name, { is })` with a definition constructs synchronously in JS (jsdom's checks and the
+  HTMLUnknownElement fallback on error); without one it calls the native as today, which marks valid custom element
+  names (and `is` values) undefined.
+- Upgrades run in the facade (`upgradeElement`): it enqueues the attribute and connected callbacks on the element's
+  JS-side queue, runs the constructor with the element on the construction stack, and moves the state through
+  failed / precustomized / custom (`ceSetState`).
+- Document parsing in rsdom never runs JS during the parse, so elements jsdom would construct synchronously (a
+  definition that exists while a window's document is parsed) are created undefined and upgraded in tree order
+  right after it. Fragment parsing (`innerHTML`) already matches jsdom: undefined plus an upgrade reaction.
+
+**Scope of the first part:** the registry (`define`, `get`, `getName`, `whenDefined`, `upgrade`), autonomous and
+customized built-in elements, the four lifecycle callbacks, upgrades, `:defined`. Part 2: `ElementInternals`,
+form-associated custom elements, custom states (`:state()`), `disabledFeatures` on `attachShadow`.
+
+**Known differences from jsdom.** `:defined` reads the element state, so it follows upgrades and does not match a
+failed element; jsdom's selector engine matches by registry lookup and caches results, so it can report a stale
+answer after `define` (it keeps `:not(:defined) { display: none }` in effect for an upgraded element). It also
+matches an element whose `is` value has no definition (`createElement('div', { is: 'x-unknown' })`) and a failed
+synchronous construction; rsdom follows the spec (state undefined or failed). `:defined` is a state pseudo-class
+for the selector memos (`EP[REC]`). Interface classes are shared by every window, so a constructor defined in two
+windows' registries creates its `new` elements in the window that defined it last, where jsdom uses the realm of
+the `HTMLElement` it extends. A registry kept past `rt.reset()` ignores `define` and `upgrade`.
+
+**Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests. What remains is mostly
+tests that build their documents in iframes (`test_with_window`, Stage 4 `browsing-contexts`), documents fetched by
+XHR, and part 2 (`ElementInternals`, form-associated elements). test/contract/custom-elements.test.mjs covers the
+callback order library code depends on.

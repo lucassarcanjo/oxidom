@@ -566,6 +566,7 @@ class Range extends AbstractRange {
     const doc = t === K.DOCUMENT ? node : node.ownerDocument;
     const fid = rt.checkId(rt.N.parseFragment(ctx, String(fragment), doc._i));
     rt.afterAlloc();
+    rt.mutated(); // upgrade reactions of parsed custom elements (DESIGN §43)
     return dom.wrap(fid);
   }
 

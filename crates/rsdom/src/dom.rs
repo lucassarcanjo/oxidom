@@ -448,7 +448,12 @@ impl Env {
         }
         let rec = self.new_rec(doc, bits, local.0, payload);
         self.elems.push(ElementData { ns: ns_uri, prefix, ..ElementData::default() });
-        self.alloc_node(rec)
+        let el = self.alloc_node(rec);
+        // a valid custom element name starts undefined (crate::ce, DESIGN §43)
+        if ns == Ns::Html && self.atoms.name(local).contains('-') {
+            self.ce_created(el, local, Atom::NONE);
+        }
+        el
     }
 
     /// `createElementNS` (validate and extract).

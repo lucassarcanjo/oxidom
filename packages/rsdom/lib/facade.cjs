@@ -29,6 +29,7 @@ const areas = [
   require('./media.cjs'),
   require('./tables.cjs'),
   require('./reflection.cjs'),
+  require('./custom-elements.cjs'),
 ];
 for (const a of areas) a.install(rt, dom);
 // WebIDL: interface members are enumerable (class syntax made them non-enumerable).

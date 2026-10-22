@@ -133,7 +133,11 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
       named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
       gap 1,205 -> 0.
-- [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
+- [x] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`. Done 2026-10-22 (DESIGN §37): every
+      `[Reflect*]` attribute of jsdom's webidl from a generated table, ARIA, the table API (`rows`, `insertRow`,
+      `cells`, ...) and `document.images` / `links` / `forms` / `anchors`; 6 -> 16 of 17 suite files at parity, gap
+      8,749 -> 10, overall 91.2% -> 96.7%. Left: `document.open()` / `close()` (`core`) and frame loading
+      (`browsing-contexts`).
 - [x] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`. Done
       2026-10-20 (DESIGN §25): 43 of 44 suite files at parity, the last one needs an XML document (`xml`).
 - [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.

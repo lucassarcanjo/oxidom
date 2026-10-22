@@ -156,12 +156,10 @@ html/browsers/the-window-object/named-access-on-the-window-object/element-contri
 html/dom/documents/dom-tree-accessors/Document-currentScript-external-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/Document-currentScript-inline-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/nameditem-subtree-mutations.html: [fail, "assert_true: wrong value"]
-html/semantics/embedded-content/the-canvas-element/canvas-element-dont-upstream.html:
-  "Canvas dimensions default to 300 by 150 and reflect converted IDL values": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Canvas dimensions reflect attributes set after creation": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Canvas dimensions reflect parsed attributes": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/embedded-content/the-canvas-element/canvas-serialization.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/forms/the-fieldset-element/HTMLFieldSetElement-dont-upstream.html: [fail, "harness ERROR: read of undefined (.fm1)"]
+html/semantics/forms/the-fieldset-element/HTMLFieldSetElement-dont-upstream.html:
+  "The controls must root at the fieldset element": [fail, "read of undefined (.querySelector)"]
+  "The form attribute must return the fieldset's form owner": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/forms/the-input-element/radio-form-owner-tree-changes.html:
   "Moving a checked radio directly between disconnected forms": [fail, "assert_false: wrong value"]
   "Moving a checked radio inside a subtree between disconnected forms": [fail, "assert_false: wrong value"]
@@ -170,7 +168,6 @@ html/semantics/forms/the-option-element/option-ask-for-a-reset.html:
 html/semantics/scripting-1/the-script-element/current-script-after-nested-exception.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/execution-timing/insert-script.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/src-attribute-preparation.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/tabular-data/the-th-element/scope-dont-upstream.html: [fail, "assert_equals: wrong value"]
 jsdom-only/failure-example-1.html: [fail, "assert_true: wrong value"]
 jsdom-only/failure-example-2.html:
   "failing test": [fail, "assert_true: wrong value"]

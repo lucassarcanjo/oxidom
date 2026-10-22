@@ -257,6 +257,53 @@ function install(rt, dom) {
     },
   });
 
+  // ------------------------------------------------- HTMLDocument collections, HTMLMapElement.areas
+
+  // jsdom Document-impl.js: getElementsByTagName with jsdom's upper-case names (so an XML document's
+  // lower-case `img` does not match), or a selector query kept to HTML elements; [SameObject], so cached.
+  const DOC_LISTS = new WeakMap();
+  function docList(node, key, make) {
+    let m = DOC_LISTS.get(node);
+    if (m === undefined) DOC_LISTS.set(node, (m = {}));
+    return (m[key] ??= make());
+  }
+  function htmlQuery(doc, selectors) {
+    const root = doc._i;
+    const c = sel(selectors);
+    return liveQueryCollection({
+      deps: TREE_ATTR_DEPS,
+      items: () => wrapAll(rt.outIds(N.qsa(root, c.id))).filter((e) => e.namespaceURI === rt.NS.HTML),
+    });
+  }
+  const byTag = (key, tag) =>
+    function get() {
+      return docList(this, key, () => this.getElementsByTagName(tag));
+    };
+  const embeds = byTag('embeds', 'EMBED');
+  for (const [prop, get] of Object.entries({
+    images: byTag('images', 'IMG'),
+    embeds,
+    plugins: embeds,
+    forms: byTag('forms', 'FORM'),
+    scripts: byTag('scripts', 'SCRIPT'),
+    links() {
+      return docList(this, 'links', () => htmlQuery(this, 'a[href], area[href]'));
+    },
+    anchors() {
+      return docList(this, 'anchors', () => htmlQuery(this, 'a[name]'));
+    },
+    applets() {
+      return docList(this, 'applets', () => liveQueryCollection({ deps: TREE_DEPS, items: () => [] }));
+    },
+  })) {
+    Object.defineProperty(Document.prototype, prop, { get, enumerable: false, configurable: true });
+  }
+  Object.defineProperty(rt.classes.HTMLMapElement.prototype, 'areas', {
+    get: byTag('areas', 'AREA'),
+    enumerable: false,
+    configurable: true,
+  });
+
   // Exposed for tests / benches (not part of the DOM surface).
   rt.select = { sel, SF, memoSize: () => MEMO_MAP.size, selSize: () => SEL.size };
 }

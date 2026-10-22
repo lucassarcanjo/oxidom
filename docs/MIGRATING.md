@@ -184,8 +184,10 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   'firstChild').get.call({})` returns `null` instead of throwing `TypeError`. CONTRIBUTING §8.
 - **[design] Element wrappers have enumerable own fields** (`_ev`, `_i` and others): `Object.keys(div)` is not
   `[]` (jsdom: `[]`). Code that enumerates a node's own keys sees them.
-- **[gap] Indexed properties of live lists are own properties as of the last `length` read** (jsdom: always
-  exact), and `i in list` holds for indices past the end. `select[i]` and `form[i]` are prototype accessors only,
+- **[gap] Indexed properties of live lists are own properties as of the last `length` read or
+  `childNodes` / `children` access** (jsdom: always exact), and `i in list` holds for indices past the end. A list
+  held across a mutation and compared with `toEqual` before either is re-read can see stale own entries. The own
+  properties are accessors, so `console.log(list)` prints `[Getter]`s (jsdom prints the nodes). `select[i]` and `form[i]` are prototype accessors only,
   so `Object.keys(select)` lists no indices. Reading, writing, iterating and `Array.from` match jsdom. DESIGN
   §4.3, §14.1.
 - **[design] Async work leaked past a file's end throws**, in every pool. The environment is reset between

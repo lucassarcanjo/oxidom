@@ -68,22 +68,33 @@ const OWN_SET = [];
  * past them still reach the prototype getters.
  */
 function syncOwn(list, have, n) {
+  // a list the user froze or sealed keeps what it has (jsdom refuses the freeze; `length` must keep working)
+  if (!Object.isExtensible(list)) return have;
   // a collection with an indexed setter (HTMLOptionsCollection) routes assignments through `_setIndex`
   const settable = typeof list._setIndex === 'function';
   for (let i = have; i < n; i++) {
     let get = OWN_GET[i];
     if (get === undefined) {
       get = OWN_GET[i] = function () {
-        return this._get(i);
+        // a copy of the descriptors onto another object (Jest's failure diff) reads undefined, not a throw
+        return isLiveList(this) ? this._get(i) : undefined;
       };
       OWN_SET[i] = function (v) {
-        this._setIndex(i, v);
+        if (isLiveList(this)) this._setIndex(i, v);
       };
     }
-    Object.defineProperty(list, i, { get, set: settable ? OWN_SET[i] : undefined, enumerable: true, configurable: true });
+    // Reflect: an index the user redefined as non-configurable is left alone instead of throwing
+    Reflect.defineProperty(list, i, { get, set: settable ? OWN_SET[i] : undefined, enumerable: true, configurable: true });
   }
-  for (let i = n; i < have; i++) delete list[i];
+  for (let i = n; i < have; i++) Reflect.deleteProperty(list, i);
   return n;
+}
+
+/** True for NodeList / HTMLCollection instances (their static blocks set the brand checks). */
+let isNodeList;
+let isHTMLCollection;
+function isLiveList(o) {
+  return isNodeList(o) || isHTMLCollection(o);
 }
 
 function ensureNL(n) {
@@ -187,6 +198,15 @@ class NodeList {
     if (t !== TOKEN) illegal();
   }
 
+  static {
+    isNodeList = (o) => o !== null && typeof o === 'object' && #own in o;
+  }
+
+  /** The `childNodes` getter's sync (it knows the length: CHILD_LEN), so lists handed out are current. */
+  _own(n) {
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
+  }
+
   static _live(id) {
     // eslint-disable-next-line no-use-before-define
     const l = new LiveNodeList(TOKEN);
@@ -253,7 +273,10 @@ class NodeList {
       const a = this.#a;
       return a === null ? 0 : a.length;
     }
-    if (!alive(this.#g)) return 0;
+    if (!alive(this.#g)) {
+      if (this.#own !== 0) this.#own = syncOwn(this, this.#own, 0);
+      return 0;
+    }
     const n = V.T[V.off(p) + F.CHILD_LEN];
     if (n > IDX.nl) ensureNL(n);
     if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
@@ -357,6 +380,10 @@ class HTMLCollection {
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+  }
+
+  static {
+    isHTMLCollection = (o) => o !== null && typeof o === 'object' && #own in o;
   }
 
   static _children(id) {

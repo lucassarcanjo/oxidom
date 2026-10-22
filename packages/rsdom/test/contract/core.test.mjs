@@ -26,6 +26,24 @@ describe.each(DOMS)('core [%s]', (kind) => {
     expect(Object.keys(ps)).toEqual(['0']);
   });
 
+  it('two equal live lists compare equal after one had its length read', () => {
+    d.body.innerHTML = '<ul><li>a</li></ul><ul><li>a</li></ul>';
+    const [u1, u2] = d.querySelectorAll('ul');
+    expect(u1.children.length).toBe(1);
+    expect(u1.children).toEqual(u2.children);
+    expect(u1.childNodes).toEqual(u2.childNodes);
+  });
+
+  it('a frozen live list keeps answering length', () => {
+    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom's lists are arrays
+    const kids = d.body.childNodes;
+    try {
+      Object.freeze(kids); // jsdom's Proxy refuses this
+    } catch {}
+    d.body.append(d.createElement('p'));
+    expect(kids.length).toBe(1);
+  });
+
   it('select.options keeps its indexed setter on own indices', () => {
     if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom ignores the assignment
     d.body.innerHTML = '<select><option>a</option><option>b</option></select>';

@@ -813,17 +813,11 @@ custom-elements/upgrading/upgrading-parser-created-element.html: [fail, "missing
 dom/collections/HTMLCollection-as-prototype.html:
   "HTMLCollection as a prototype and setting own properties": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-delete.html:
-  "Loose name": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Strict id": [fail, "assert_true: wrong value"]
   "Strict name": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-live-mutations.window.html:
   "HTMLCollection live mutations: HTMLCollection ownPropertyNames": [fail, "assert_object_equals: wrong value"]
-dom/collections/HTMLCollection-own-props.html:
-  "Setting non-array index while named property exists (loose)": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Setting non-array index while named property exists (strict)": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/collections/HTMLCollection-supported-property-indices.html:
-  "Handling of property names that look like integers around 2^32": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "Handling of property names that look like negative integers": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Trying to delete an indexed property name should never work": [fail, "read of undefined (.value)"]
   "Trying to set an expando that would shadow an already-existing indexed property": [fail, "read of undefined (.value)"]
   "Trying to set an expando with an indexed property name past the end of the list": [fail, "assert_true: wrong value"]
@@ -831,8 +825,8 @@ dom/collections/HTMLCollection-supported-property-names.html:
   "Object.getOwnPropertyNames on HTMLCollection": [fail, "assert_array_equals: wrong value"]
   "Object.getOwnPropertyNames on HTMLCollection with expando object": [fail, "assert_array_equals: wrong value"]
   "Object.getOwnPropertyNames on HTMLCollection with non-HTML namespace": [fail, "assert_array_equals: wrong value"]
-  "Trying to set an expando that shadows a named property that gets added later": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Trying to set an expando that would shadow an already-existing named property": [fail, "read of undefined (.value)"]
+dom/collections/namednodemap-supported-property-names.html: [fail, "assert_array_equals: wrong value"]
 dom/events/Body-FrameSet-Event-Handlers.html:
   "Forward HTMLBodyElement.onblur to Window": [fail, "assert_equals: wrong value"]
   "Forward HTMLBodyElement.onerror to Window": [fail, "assert_equals: wrong value"]
@@ -955,9 +949,6 @@ dom/nodes/ParentNode-querySelector-escapes.html:
   "\"surrogateSecond\\udd11\" should never match with \"#surrogateSecond\\\\dd11\"": [fail, "assert_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-host-pseudo-class.html: [fail, "assert_equals: wrong value"]
 dom/nodes/Text-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
-dom/nodes/attributes-namednodemap.html:
-  "setNamedItem and removeNamedItem on `attributes` should add and remove fields from `attributes`": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "setNamedItem and removeNamedItem on `attributes` should not interfere with existing method names": [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/nodes/getElementsByClassName-14.htm:
   "document.getElementsByClassName(): case-insensitive (quirks mode)": [fail, "assert_array_equals: wrong value"]
 dom/nodes/insertion-removing-steps/Node-append-form-and-script-from-fragment.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -1163,6 +1154,14 @@ html/dom/aria-element-reflection.html:
   "shadow DOM behaviour for FrozenArray element reflection.": [fail, "assert_array_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/Document.body.html:
   "Setting document.body to a string.": [fail, "assert_equals: wrong value"]
+html/dom/documents/dom-tree-accessors/document.forms.html:
+  "document.forms getOwnPropertyNames": [fail, "assert_array_equals: wrong value"]
+html/dom/documents/dom-tree-accessors/document.images.html:
+  "Two img elements with the same id": [fail, "assert_true: wrong value"]
+  "Two img elements with the same name": [fail, "assert_true: wrong value"]
+  "img with id": [fail, "assert_true: wrong value"]
+  "img with id and name": [fail, "assert_true: wrong value"]
+  "img with name": [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/document.title-09.html:
   "No title element in SVG document": [fail, "assert_equals: wrong value"]
   "Title element in SVG document": [fail, "assert_equals: wrong value"]
@@ -1658,7 +1657,6 @@ html/infrastructure/common-dom-interfaces/collections/htmlallcollection.html:
   "namedItem method with undefined": [fail, "read of undefined (.namedItem)"]
 html/infrastructure/common-dom-interfaces/collections/htmloptionscollection.html:
   "Add non-option to collection": [fail, "assert_true: wrong value"]
-  "HTMLOptionsCollection [name] method return the item with name": [fail, "assert_true: wrong value"]
   "Insert <p><option>6</option></p> into <select>": [fail, "assert_equals: wrong value"]
 html/interaction/focus/focus-selection.html: [fail, "Selection.getRangeAt() throws: … is not a valid index."]
 html/interaction/focus/processing-model/focus-fixup-rule-one-no-dialogs.html:
@@ -2254,6 +2252,7 @@ html/semantics/tabular-data/processing-model-1/rowspan-0-quirks.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
 html/semantics/tabular-data/processing-model-1/rowspan-0.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
+html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/text-level-semantics/the-a-element/a-stringifier.html:
   "HTMLAnchorElement stringifier 10": [fail, "assert_equals: wrong value"]
   "HTMLAnchorElement stringifier 2": [fail, "assert_true: wrong value"]

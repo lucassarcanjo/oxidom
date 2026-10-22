@@ -63,10 +63,17 @@ describe.each(DOMS)('core [%s]', (kind) => {
     const el = d.querySelector('input');
     expect(el.attributes.name.value).toBe('email');
     if (kind === 'happy-dom') return; // PINNED to jsdom
-    expect(Object.keys(form.elements)).toEqual(['0', 'email']); // no [LegacyUnenumerableNamedProperties]
+    const held = form.elements;
+    const attrs = el.attributes;
+    el.name = 'renamed'; // a held collection / map answers names as of now
     el.setAttribute('data-x', '1');
-    expect(el.attributes['data-x'].value).toBe('1');
-    expect(Object.keys(el.attributes)).toEqual(['0', '1', '2']); // names are not enumerable
+    expect([held.email, held.renamed]).toEqual([undefined, el]);
+    expect(attrs['data-x'].value).toBe('1');
+    expect(attrs.DATA_X).toBe(undefined);
+    expect(attrs.length).toBe(3); // own indices are synced on reads (DESIGN §4.3)
+    expect(Object.keys(attrs)).toEqual(['0', '1', '2']); // names are not enumerable
+    expect(d.body.children.f).toBe(form);
+    expect(form.elements.item).toBe(d.defaultView.HTMLFormControlsCollection.prototype.item); // the prototype wins
   });
 
   it('HTMLMediaElement: state, volume / rate events as tasks, play() not implemented', async () => {

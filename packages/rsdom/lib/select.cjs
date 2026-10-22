@@ -265,8 +265,7 @@ function install(rt, dom) {
   function docList(node, key, make) {
     let m = DOC_LISTS.get(node);
     if (m === undefined) DOC_LISTS.set(node, (m = {}));
-    const c = (m[key] ??= make());
-    return c._withNames(); // own index and named properties (collections.cjs, DESIGN §4.3)
+    return (m[key] ??= make());
   }
   function htmlQuery(doc, selectors) {
     const root = doc._i;

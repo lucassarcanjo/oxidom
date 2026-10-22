@@ -7,6 +7,7 @@
 
 const rt = require('./runtime.cjs');
 const events = require('./events.cjs');
+const context = require('./context.cjs');
 
 /** element -> its media state (created on first use) */
 const STATE = new WeakMap();
@@ -31,7 +32,8 @@ function stateOf(el, what) {
   let s = STATE.get(el);
   if (s === undefined) {
     s = {
-      muted: false, volume: 1, rate: 1, defaultRate: 1, currentTime: 0,
+      // jsdom's rates start undefined (read as 1), so the first assignment of 1 still fires `ratechange`
+      muted: false, volume: 1, rate: undefined, defaultRate: undefined, currentTime: 0,
       buffered: timeRanges(), played: timeRanges(), seekable: timeRanges(),
       audioTracks: [], videoTracks: [], textTracks: [],
     };
@@ -58,9 +60,12 @@ function notImplemented(el, method) {
   }
 }
 
-/** HTML "queue a media element task" to fire `type` (jsdom: `_queueATask`, so never synchronously). */
+/**
+ * HTML "queue a media element task" to fire `type` (jsdom: `_queueATask`, so never synchronously). jsdom queues on
+ * the element's realm, so an element of `createHTMLDocument()` (no context of its own) uses the current one.
+ */
 function queueEvent(el, type) {
-  const ctx = el.ownerDocument?._ctx;
+  const ctx = el.ownerDocument?._ctx ?? context.current();
   if (ctx === undefined || ctx === null || ctx.closed) return;
   ctx.queueTask(() => events.fire(el, type));
 }
@@ -136,7 +141,7 @@ const members = {
     return true;
   },
   get defaultPlaybackRate() {
-    return stateOf(this, 'get defaultPlaybackRate').defaultRate;
+    return stateOf(this, 'get defaultPlaybackRate').defaultRate ?? 1;
   },
   set defaultPlaybackRate(v) {
     const s = stateOf(this, 'set defaultPlaybackRate');
@@ -148,7 +153,7 @@ const members = {
     }
   },
   get playbackRate() {
-    return stateOf(this, 'get playbackRate').rate;
+    return stateOf(this, 'get playbackRate').rate ?? 1;
   },
   set playbackRate(v) {
     const s = stateOf(this, 'set playbackRate');

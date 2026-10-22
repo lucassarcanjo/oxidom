@@ -51,8 +51,7 @@ const LIVE = new WeakMap();
 function live(el, key, items) {
   let s = LIVE.get(el);
   if (s === undefined) LIVE.set(el, (s = {}));
-  const c = (s[key] ??= liveQueryCollection({ deps: TREE_DEPS, items }));
-  return c._withNames(); // own index and named properties (collections.cjs, DESIGN §4.3)
+  return (s[key] ??= liveQueryCollection({ deps: TREE_DEPS, items }));
 }
 
 /** WebIDL `long` with a default of -1 (the optional index arguments). */

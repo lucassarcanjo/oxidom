@@ -97,8 +97,15 @@ describe.each(DOMS)('selectors [%s]', (kind) => {
   });
 
   it(':heading / :heading() with headingoffset and headingreset (Selectors 5, whatwg/html#11086)', () => {
-    // PINNED to the spec: jsdom 30 (dom-selector) and happy-dom do not support :heading.
-    if (kind !== 'rsdom') return;
+    // PINNED to the spec ([beyond], MIGRATING): jsdom 30 (dom-selector) accepts :heading and matches nothing, and
+    // has no headingOffset; happy-dom rejects it.
+    if (kind === 'happy-dom') return;
+    if (kind === 'jsdom') {
+      d.body.innerHTML = '<h1></h1>';
+      expect(d.querySelectorAll(':heading, :heading(1)').length).toBe(0);
+      expect(d.body.firstChild.headingOffset).toBe(undefined);
+      return;
+    }
     d.body.innerHTML =
       '<h1 id="a"></h1><h7 id="b"></h7><div headingoffset="2"><h1 id="c"></h1><h6 id="d"></h6>' +
       '<section headingreset><h2 id="e"></h2></section><h1 id="f" headingoffset="1" headingreset></h1></div>';
@@ -115,6 +122,15 @@ describe.each(DOMS)('selectors [%s]', (kind) => {
     expect(c.getAttribute('headingoffset')).toBe('20');
     expect(c.headingOffset).toBe(8);
     expect(c.matches(':heading(9)')).toBe(true);
+    c.setAttribute('headingoffset', '0000000000001');
+    expect(c.headingOffset).toBe(1);
+    expect(c.matches(':heading(2)')).toBe(true);
+    // shadow-including ancestors: a shadow root continues at its host
+    const host = d.createElement('div');
+    host.setAttribute('headingoffset', '1');
+    d.body.appendChild(host);
+    const h = host.attachShadow({ mode: 'open' }).appendChild(d.createElement('h1'));
+    expect(h.matches(':heading(2)')).toBe(true);
     expect(() => d.querySelector(':heading(a)')).toThrow();
   });
 

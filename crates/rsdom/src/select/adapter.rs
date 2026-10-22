@@ -497,19 +497,27 @@ impl<'i> selectors::Parser<'i> for SelParser {
 }
 
 /// HTML heading level of an `h1`-`h6` element (whatwg/html#11086): the name's level plus the `headingoffset`s of
-/// its inclusive ancestors (each a non-negative integer, negative ones count as 0) up to and including the
-/// nearest one with `headingreset`, at most 9.
+/// its shadow-including inclusive ancestors (each a non-negative integer, negative ones count as 0) up to and
+/// including the nearest one with `headingreset`, at most 9.
 fn heading_level(e: &Env, el: NodeId, base: i32) -> i32 {
     let mut offset: i64 = 0;
     let mut n = el;
-    while n != 0 && e.rec(n).meta & meta::KIND_MASK == kind::ELEMENT {
+    while n != 0 {
+        let r = e.rec(n);
+        if r.meta & (meta::KIND_MASK | meta::SHADOW) == kind::FRAGMENT | meta::SHADOW {
+            n = r.payload; // a shadow root continues at its host
+            continue;
+        }
+        if r.meta & meta::KIND_MASK != kind::ELEMENT {
+            break;
+        }
         if let Some(v) = e.get_attr(n, atom::HEADINGOFFSET) {
             offset += parse_html_int(v.as_str()).map_or(0, |x| x.clamp(0, 9));
         }
         if e.get_attr(n, atom::HEADINGRESET).is_some() || offset >= 9 {
             break;
         }
-        n = e.rec(n).parent;
+        n = r.parent;
     }
     (i64::from(base) + offset).min(9) as i32
 }
@@ -522,11 +530,14 @@ fn parse_html_int(s: &str) -> Option<i64> {
         Some(b'+') => (false, &t[1..]),
         _ => (false, t),
     };
-    let digits = t.bytes().take_while(u8::is_ascii_digit).count();
-    if digits == 0 {
+    if !t.bytes().next().is_some_and(|b| b.is_ascii_digit()) {
         return None;
     }
-    let v: i64 = t[..digits.min(12)].parse().ok()?;
+    // saturating: only whether the value exceeds the 0..=9 range matters
+    let v = t
+        .bytes()
+        .take_while(u8::is_ascii_digit)
+        .fold(0i64, |v, d| (v * 10 + i64::from(d - b'0')).min(1 << 40));
     Some(if neg { -v } else { v })
 }
 

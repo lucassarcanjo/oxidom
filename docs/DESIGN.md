@@ -2009,12 +2009,16 @@ legacy code as the message, as jsdom's do. It installs `XPathEvaluator`, `XPathE
 `XPathException` globals and `Document#evaluate` / `createExpression` / `createNSResolver`.
 
 The one change is `invalidIteratorState`. jsdom compares the document's internal `_version`, which child-list and
-attribute changes bump. xpath.cjs stamps the TREE and ATTR epoch slots and the env generation instead, and compares
-them directly rather than through a `memo.cjs` stamp, which is never fresh under RSDOM_NO_MEMO=1. The epochs are
-env-wide, so a mutation of another document of the same env also invalidates an iterator, where jsdom's per-document
-counter would not. That case is rare in tests and leans the safe way.
+attribute changes of nodes rooted in the document bump (same-value sets included). Rust keeps the same counter: the
+document record's ATTRS word, which documents do not otherwise use, is incremented by the children-changed and both
+attribute hooks when the mutated node is connected (crates/rsdom/src/hooks.rs `bump_doc_version`: one branch and one
+write per mutation). xpath.cjs stamps it with the env generation and reads it directly, not through a memo, so
+RSDOM_NO_MEMO=1 does not change it. Mutations of detached nodes, template contents and other documents leave the
+iterator valid, as in jsdom. One difference: `CONNECTED` is shadow-including, so a connected shadow tree's changes
+invalidate too, where jsdom's parent chain stops at the shadow root.
 
-jsdom's legacy `level3/xpath.js` test installs jsdom's module over the window and reads `Document#_version`, so it
-measures jsdom's XPath, not rsdom's; it is marked `skip` (expectations/legacy.yaml). Parity: the `xpath` gap went from
-66 to 5 subtests (8 -> 25 of 27 files). Four remaining subtests compare results with `hasOwnProperty` on an
-HTMLCollection, whose live indices are prototype getters (§4.3); one needs a declarative shadow root.
+jsdom's legacy `level3/xpath.js` test calls the engine's factory itself (`require('lib/jsdom/level3/xpath')(window)`);
+the parity worker redirects that require to rsdom's copy under rsdom (conformance/parity/mocha/xpath-shim.cjs), so its
+162 subtests measure rsdom. Parity: the `xpath` gap went from 66 to 5 subtests (8 -> 26 of 28 files). Four remaining
+subtests compare results with `hasOwnProperty` on an HTMLCollection, whose live indices are prototype getters
+(§4.3); one needs a declarative shadow root.

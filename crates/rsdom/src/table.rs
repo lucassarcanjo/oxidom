@@ -40,7 +40,8 @@ pub struct NodeRec {
     /// 10: CHECKED | SELECTED | INDETERMINATE | DIRTY_* | INPUT_TYPE(5b)<<8 | FOCUSED<<16 (forms/focus)
     pub state: u32,
     /// 11: elements: bumped on any attribute change; character data: data version (`DATA_VER`), set to
-    /// the new `EP[TEXT]` on every data change (facade data memo key)
+    /// the new `EP[TEXT]` on every data change (facade data memo key); documents: the document version,
+    /// incremented on child-list and attribute changes of connected nodes (hooks.rs `bump_doc_version`)
     pub attr_ver: u32,
     /// 12: bumped on value/checked/selected/selection change (forms value memo)
     pub form_ver: u32,

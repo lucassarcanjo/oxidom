@@ -2,21 +2,22 @@
 // (refs/jsdom/lib/jsdom/level3/xpath.js, MIT, Copyright (c) 2010 Elijah Insua; see jsdom's LICENSE.txt). It works
 // on the public DOM only, so it runs over rsdom's nodes unchanged and matches jsdom result for result, including
 // its quirks (XPathException is a plain Error; DOMException arguments in code-first order). The one change:
-// `invalidIteratorState` compares rsdom's tree and attribute epochs instead of jsdom's `Document#_version`
+// `invalidIteratorState` compares Rust's document version instead of jsdom's `Document#_version`
 // (marked "rsdom:" below). Kept in sloppy mode and jsdom's formatting, so a diff against the upstream file stays
 // readable.
 
 const rt = require('./runtime.cjs');
 
-const { V, EPI } = rt;
+const { NODE, nodeVersion, envGen, alive } = require('./memo.cjs');
 
 /**
- * What jsdom's `_version` counts: child list and attribute changes. Not a memo (lib/memo.cjs `deps` stamps go
- * stale under RSDOM_NO_MEMO=1), so these compare the epochs directly.
+ * jsdom's `Document#_version`: Rust's document version (the document record's ATTRS word, bumped on child-list
+ * and attribute changes of the document's connected nodes; crates/rsdom/src/hooks.rs `bump_doc_version`). Read
+ * directly, not as a memo, so RSDOM_NO_MEMO=1 does not change it.
  */
 const MUTATIONS = {
-  stamp: () => [V.EP[EPI.TREE], V.EP[EPI.ATTR], V.envGen],
-  fresh: (s) => s[0] === V.EP[EPI.TREE] && s[1] === V.EP[EPI.ATTR] && s[2] === V.envGen,
+  stamp: (doc) => [doc._i, nodeVersion(doc._i, NODE.ATTRS), envGen()],
+  fresh: (s) => alive(s[2]) && nodeVersion(s[0], NODE.ATTRS) === s[1],
 };
 
 /* The upstream header, for reference:
@@ -1775,8 +1776,8 @@ function vendored(core) {
 
     if (this.resultType === XPathResult.UNORDERED_NODE_ITERATOR_TYPE ||
         this.resultType === XPathResult.ORDERED_NODE_ITERATOR_TYPE) {
-      // rsdom: the tree / attribute epochs stand in for jsdom's per-document `_version` (DESIGN §39)
-      this._documentVersion = MUTATIONS.stamp();
+      // rsdom: Rust's document version stands in for jsdom's `_version` (DESIGN §39)
+      this._documentVersion = MUTATIONS.stamp(doc);
     }
   }
   XPathResult.ANY_TYPE = 0;
@@ -1897,4 +1898,5 @@ function install() {
   C.XPathEvaluator = xpath.XPathEvaluator;
 }
 
-module.exports = { install };
+// `vendored` for conformance/parity/mocha/xpath-shim.cjs (jsdom's legacy XPath tests call the factory)
+module.exports = { install, vendored };

@@ -40,6 +40,25 @@ describe.each(DOMS)('XPath [%s]', (kind) => {
     expect(() => snap.numberValue).toThrow(/NUMBER_TYPE/);
   });
 
+  it('an iterator survives mutations outside its document', () => {
+    if (kind === 'happy-dom') return; // PINNED to jsdom
+    const it2 = d.evaluate('//li', d, null, w.XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+    const out = [];
+    let n;
+    while ((n = it2.iterateNext())) {
+      const s = d.createElement('span'); // detached: not the document's tree
+      s.setAttribute('data-x', n.textContent);
+      out.push(s);
+    }
+    expect(out.map((s) => s.dataset.x)).toEqual(['one', 'two', 'three']);
+    const other = d.implementation.createHTMLDocument('');
+    const it3 = d.evaluate('//li', d, null, w.XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
+    other.body.append(other.createElement('p'));
+    expect(it3.invalidIteratorState).toBe(false);
+    d.querySelector('li').className = 'b';
+    expect(it3.invalidIteratorState).toBe(true);
+  });
+
   it('XPathEvaluator and createExpression', () => {
     if (kind === 'happy-dom') return; // PINNED to jsdom
     const expr = new w.XPathEvaluator().createExpression('//li[last()]');

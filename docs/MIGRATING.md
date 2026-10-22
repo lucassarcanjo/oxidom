@@ -124,7 +124,7 @@ missing" now gets rsdom's version instead:
 | `scrollIntoView`, element `scrollTo` / `scrollBy`, pointer capture | absent | present (no-ops or stored) | nothing |
 | `<dialog>` `showModal` / `close` | absent | present | nothing |
 | `InputEvent#getTargetRanges` | absent | present | nothing; editors take their `beforeinput` path |
-| `customElements`, `XMLSerializer`, `DOMRect`, canvas `getContext` | present | absent | keep a polyfill, or wait for the roadmap items |
+| `customElements`, canvas `getContext` | present | absent | keep a polyfill, or wait for the roadmap items |
 
 Shims that assign unconditionally (`window.ResizeObserver = MockResizeObserver`) keep working: rsdom's built-ins
 are ordinary writable properties.
@@ -171,11 +171,11 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[design] Jest globals.** Members a jsdom window has are copied from Node (`URL`, `TextEncoder`,
   `AbortController`, `atob`, `performance`, `crypto`, ...); `fetch` and `structuredClone` stay undefined, as
   under jest-environment-jsdom. DESIGN §32.
-- **[gap] Missing Window members:** `postMessage`, `name`, `length`, `Plugin`, `MimeType`, `BarProp`,
-  `External`, `Audio`, `PromiseRejectionEvent`, `CloseEvent`, `ElementInternals`. `geometry`, `core`.
+- **[gap] Missing Window members:** `ElementInternals` and `customElements` (`custom-elements`, Stage 4),
+  `webkitURL`, the SVG value types (`SVGRect`, `SVGNumber`, `SVGStringList`, `SVGAnimated*`,
+  `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`.
 - **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
-- **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4),
-  `DOMRect` / `DOMRectReadOnly` (rects are plain objects; `geometry`), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
+- **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] XPath iterators and shadow trees:** a change inside a connected shadow tree sets
   `invalidIteratorState` on a document's XPath iterators; jsdom ignores shadow-tree changes there. DESIGN §39.
 - **[gap] Brand checks are skipped on hot paths.** `Object.getOwnPropertyDescriptor(Node.prototype,

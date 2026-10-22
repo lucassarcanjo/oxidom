@@ -500,6 +500,19 @@ class Navigator {
   javaEnabled() {
     return false;
   }
+
+  /** Always empty (lib/geometry.cjs, DESIGN §40); one object per navigator, as jsdom's [SameObject] */
+  get plugins() {
+    const s = state.get(this);
+    if (s === undefined) throw new TypeError('Illegal invocation');
+    return (s.plugins ??= new (require('./geometry.cjs').PluginArray)(rt.TOKEN));
+  }
+
+  get mimeTypes() {
+    const s = state.get(this);
+    if (s === undefined) throw new TypeError('Illegal invocation');
+    return (s.mimeTypes ??= new (require('./geometry.cjs').MimeTypeArray)(rt.TOKEN));
+  }
 }
 tag(Navigator);
 
@@ -998,6 +1011,42 @@ function makeWindow(ctx, global = undefined, ownTimers = false) {
   state.set(navigator, { ctx });
   def('navigator', navigator);
   def('screen', new Screen(rt.TOKEN));
+  // jsdom's remaining Window members (refs/jsdom/lib/jsdom/browser/Window.js; DESIGN §40)
+  const { BarProp, External } = require('./geometry.cjs');
+  for (const k of ['locationbar', 'menubar', 'personalbar', 'scrollbars', 'statusbar', 'toolbar']) def(k, new BarProp(rt.TOKEN));
+  def('external', new External(rt.TOKEN));
+  def('name', '');
+  def('status', '');
+  // no child browsing contexts (iframes have no window yet: `browsing-contexts`)
+  def('length', 0);
+  def('captureEvents', function captureEvents() {});
+  def('releaseEvents', function releaseEvents() {});
+  /** `new Audio(src)` (legacy factory function): jsdom's needs no `new`. */
+  function Audio(src) {
+    const audio = document.createElement('audio');
+    audio.setAttributeNS(null, 'preload', 'auto');
+    if (src !== undefined) audio.setAttributeNS(null, 'src', String(src));
+    return audio;
+  }
+  Object.defineProperty(Audio, 'prototype', { value: rt.classes.HTMLAudioElement.prototype, writable: false, enumerable: false, configurable: false });
+  def('Audio', Audio, false);
+  def('postMessage', function postMessage(message, targetOrigin) {
+    if (arguments.length < 2) throw new TypeError("'postMessage' requires 2 arguments: 'message' and 'targetOrigin'");
+    const target = String(targetOrigin);
+    // "/" needs the incumbent settings object, which jsdom does not track either
+    if (target === '/') return;
+    if (target !== '*') {
+      let origin;
+      try {
+        origin = new URL(target).origin;
+      } catch {
+        throw new rt.classes.DOMException(`Failed to execute 'postMessage' on 'Window': Invalid target origin '${target}' in a call to 'postMessage'.`, 'SyntaxError');
+      }
+      if (origin !== url.origin) return;
+    }
+    // jsdom: no source / origin / ports, and `data` is not structured-cloned
+    ctx.queueTask(() => win.dispatchEvent(new events.MessageEvent('message', { data: message })));
+  });
   def('localStorage', createStorage(settings.storageQuota));
   def('sessionStorage', createStorage(settings.storageQuota));
 

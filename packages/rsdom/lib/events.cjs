@@ -1023,13 +1023,17 @@ class SubmitEvent extends Event {
 }
 tag(SubmitEvent);
 
-/** Event subclasses with a few plain members: [name, Base, [[member, default, convert]...]]. */
-function simpleEvent(name, Base, members) {
+/**
+ * Event subclasses with a few plain members: [name, Base, [[member, default, convert]...]]. `check(argc, init)`,
+ * when given, runs first (required arguments and dictionary members).
+ */
+function simpleEvent(name, Base, members, check = null) {
   const keys = members.map((m) => m[0]);
   const C = {
     [name]: class extends Base {
       constructor(type, eventInitDict = undefined) {
         need(arguments.length, name);
+        if (check !== null) check(arguments.length, eventInitDict);
         super(type, eventInitDict);
         const d = initDict(eventInitDict, name);
         const vals = new Array(members.length);
@@ -1092,6 +1096,24 @@ StorageEvent.prototype.initStorageEvent = {
     vals[4] = area === undefined ? null : storageArea(area, 'storageArea');
   },
 }.initStorageEvent;
+
+// refs/jsdom/lib/jsdom/living/events/{CloseEvent,PromiseRejectionEvent,BlobEvent}-impl.js (DESIGN §40)
+const CloseEvent = simpleEvent('CloseEvent', Event, [['wasClean', false, bool], ['code', 0, toUShort], ['reason', '', (v) => str(v).toWellFormed()]]);
+/** A constructor whose dictionary has a required member: two arguments, and `key` present. */
+const required = (name, key) => (argc, init) => {
+  if (argc < 2) throw new TypeError(`Failed to construct '${name}': 2 arguments required, but only ${argc} present.`);
+  if (init !== null && typeof init === 'object' && init[key] === undefined) throw new TypeError(`${key} is required in '${name}Init'`);
+};
+const PromiseRejectionEvent = simpleEvent('PromiseRejectionEvent', Event, [['promise', null, (v) => {
+  if (v === null || (typeof v !== 'object' && typeof v !== 'function')) {
+    throw new TypeError("Failed to construct 'PromiseRejectionEvent': parameter 2 has member 'promise' that is not an object.");
+  }
+  return v;
+}], ['reason', undefined, any]], required('PromiseRejectionEvent', 'promise'));
+const BlobEvent = simpleEvent('BlobEvent', Event, [['data', null, (v) => {
+  if (!(v instanceof rt.classes.Blob)) throw new TypeError("Failed to construct 'BlobEvent': parameter 2 has member 'data' that is not of type 'Blob'.");
+  return v;
+}], ['timecode', NaN, (v) => Number(v)]], required('BlobEvent', 'data'));
 
 // ======================================================== createEvent and its classes (DESIGN §28)
 // refs/jsdom/lib/jsdom/living/events/{BeforeUnloadEvent,DeviceMotionEvent,DeviceOrientationEvent,MessageEvent}-impl.js

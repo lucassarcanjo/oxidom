@@ -91,6 +91,10 @@ describe.each(DOMS)('core [%s]', (kind) => {
     expect(dup.length).toBe(1);
     expect(d.dup).toBe(d.forms[1]);
     expect(d.createElement).toBe(d.defaultView.Document.prototype.createElement);
+    const parsed = new d.defaultView.DOMParser().parseFromString('<form name="p"></form>', 'text/html');
+    expect(parsed.p).toBe(parsed.forms[0]); // a fresh document answers on first read
+    d.body.firstChild.setAttribute('name', 'renamed');
+    expect([d.login, d.renamed]).toEqual([undefined, d.forms[0]]);
   });
 
   it('HTMLMediaElement: state, volume / rate events as tasks, play() not implemented', async () => {

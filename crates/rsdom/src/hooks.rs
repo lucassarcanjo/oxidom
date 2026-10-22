@@ -19,9 +19,9 @@
 //! hooks, and it queues the MutationObserver childList records itself (they need the exact
 //! added/removed/prev/next of each step, or the merged record of replace / replace-all).
 
-use crate::atoms::Atom;
+use crate::atoms::{Atom, atom};
 use crate::env::{Env, ep};
-use crate::node::meta;
+use crate::node::{kind, meta};
 use crate::string::Str;
 use crate::table::NodeId;
 
@@ -91,6 +91,14 @@ impl Env {
         let v = self.ep.bump(ep::ATTR);
         self.rec_mut(el).attr_ver = v;
         self.bump_doc_version(el);
+        if ns == Atom::NONE && matches!(local, atom::NAME | atom::ID) {
+            let r = self.rec(el);
+            if r.meta & (meta::KIND_MASK | meta::NS_MASK | meta::CONNECTED) == kind::ELEMENT | meta::CONNECTED
+                && matches!(Atom(r.local), atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+            {
+                self.ep.bump(ep::NAMED);
+            }
+        }
         crate::mo::queue_attribute(self, el, local, ns, old);
         crate::style::on_attr_changed(self, el, local, ns, old);
         crate::forms::on_attr_changed(self, el, local, ns, old);

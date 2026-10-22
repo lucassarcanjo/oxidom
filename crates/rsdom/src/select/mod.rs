@@ -672,6 +672,34 @@ impl Env {
         self.ids = ids;
         self.write_ids()
     }
+
+    /// The elements behind `document[name]` (HTML "dom-document-nameditem-filter", jsdom Document-impl.js
+    /// `#namedPropertyElements`), in tree order, into OUT: HTML embed / form / iframe / img / object elements
+    /// named `name`, and object elements, or img elements with a non-empty name, whose id is `name`. Null-namespace
+    /// attributes only.
+    pub fn doc_named(&mut self, doc: NodeId, name: &str) -> u32 {
+        let mut ids = std::mem::take(&mut self.ids);
+        ids.clear();
+        let mut n = if name.is_empty() { 0 } else { self.next_in_subtree(doc, doc) };
+        while n != 0 {
+            let r = self.rec(n);
+            let local = Atom(r.local);
+            if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                && matches!(local, atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+            {
+                let own_name = self.get_attr_ns(n, None, "name").map(|v| v.as_str());
+                let by_id = (local == atom::OBJECT
+                    || (local == atom::IMG && own_name.is_some_and(|v| !v.is_empty())))
+                    && self.get_attr_ns(n, None, "id").is_some_and(|v| v.as_str() == name);
+                if by_id || own_name == Some(name) {
+                    ids.push(n);
+                }
+            }
+            n = self.next_in_subtree(n, doc);
+        }
+        self.ids = ids;
+        self.write_ids()
+    }
 }
 
 /// One preorder walk over the descendants of `root`.
@@ -758,6 +786,10 @@ natives! {
     /// document.getElementsByName(name) into OUT; returns the count.
     fn byName(e, doc: u32, name: str) -> u32 {
         e.by_name(doc, name)
+    }
+    /// The elements behind `document[name]` (Document's named getter) into OUT; returns the count.
+    fn docNamed(e, doc: u32, name: str) -> u32 {
+        e.doc_named(doc, name)
     }
 }
 

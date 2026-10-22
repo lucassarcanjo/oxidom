@@ -306,56 +306,53 @@ function install(rt, dom) {
 
   // ------------------------------------------------- Document named properties (`document.loginForm`)
 
-  // jsdom Document-impl.js `#namedPropertyElements`: name -> the HTML embed / form / iframe / img / object
-  // elements contributing it, in tree order (an element's id first: object always, img only alongside a non-empty
-  // name). A memo per document, validated by the tree and attribute epochs; one native query rebuilds it.
+  // jsdom Document-impl.js `#namedPropertyElements` / namedGet, one name at a time: `N.docNamed` walks the
+  // document natively for the elements contributing `name` (HTML embed / form / iframe / img / object by name,
+  // object and named img by id). The answer is memoised per document and name on the tree epoch and EP[NAMED]
+  // (bumped by Rust only for a name / id change on a connected element of those five), so repeated probes of a
+  // missing member (`document.documentMode`) cost one stamp compare until the tree or a relevant attribute
+  // changes, then one native walk without wrappers.
+  const NAMED_DEPS = deps('TREE', 'NAMED');
   const NAMED = new WeakMap();
-  const namedSel = sel('embed, form, iframe, img, object');
-  function namedElements(doc) {
+  function namedIds(doc, name) {
     let s = NAMED.get(doc);
-    if (s === undefined) NAMED.set(doc, (s = { stamp: null, map: null, colls: new Map() }));
-    if (s.map === null || !MEMO || !TREE_ATTR_DEPS.fresh(s.stamp)) {
-      s.stamp = TREE_ATTR_DEPS.stamp(s.stamp);
-      const map = new Map();
-      const add = (name, el) => {
-        const els = map.get(name);
-        if (els === undefined) map.set(name, [el]);
-        else if (els[els.length - 1] !== el) els.push(el);
-      };
-      for (const el of wrapAll(rt.outIds(N.qsa(doc._i, namedSel.id)))) {
-        if (el.namespaceURI !== rt.NS.HTML) continue;
-        const name = el.getAttribute('name');
-        const hasName = name !== null && name !== '';
-        const id = el.getAttribute('id');
-        const ln = el.localName;
-        if (id !== null && id !== '' && (ln === 'object' || (ln === 'img' && hasName))) add(id, el);
-        if (hasName) add(name, el);
-      }
-      s.map = map;
+    if (s === undefined) NAMED.set(doc, (s = { names: new Map(), colls: new Map() }));
+    let m = s.names.get(name);
+    if (m === undefined || !NAMED_DEPS.fresh(m.stamp)) {
+      if (m === undefined && s.names.size >= 256) s.names.clear(); // probes of many distinct names
+      const stamp = NAMED_DEPS.stamp(m === undefined ? null : m.stamp);
+      m = { stamp, ids: rt.outIds(N.docNamed(doc._i, name)).slice() };
+      s.names.set(name, m);
     }
-    return s;
+    return { s, ids: m.ids };
   }
   // Document's named getter (no [LegacyOverrideBuiltIns]: Document's own members win), through the
   // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe would
   // answer its content window; rsdom's iframes have none), several a live HTMLCollection, the same per name.
-  installNamedProperties(Document.prototype, (doc, name) => {
-    if (!(doc instanceof Document)) return undefined;
-    let s;
-    try {
-      s = namedElements(doc);
-    } catch {
-      return undefined; // a document of a torn-down env: a probe for a missing member must not throw
-    }
-    const els = s.map.get(name);
-    if (els === undefined) return undefined;
-    if (els.length === 1) return els[0];
-    let c = s.colls.get(name);
-    if (c === undefined) {
-      c = liveQueryCollection({ deps: TREE_ATTR_DEPS, items: () => namedElements(doc).map.get(name) ?? [] });
-      s.colls.set(name, c);
-    }
-    return c;
-  });
+  // Document has no indexed getter, so `document[0]` is a name too.
+  installNamedProperties(
+    Document.prototype,
+    (doc, name) => {
+      // a wrapper still being made (`_i` unset) or of a torn-down env answers nothing and memoises nothing
+      if (!(doc instanceof Document) || typeof doc._i !== 'number' || doc._i === 0) return undefined;
+      let r;
+      try {
+        r = namedIds(doc, name);
+      } catch {
+        return undefined; // a probe for a missing member must not throw
+      }
+      const { s, ids } = r;
+      if (ids.length === 0) return undefined;
+      if (ids.length === 1) return wrap(ids[0]);
+      let c = s.colls.get(name);
+      if (c === undefined) {
+        c = liveQueryCollection({ deps: NAMED_DEPS, items: () => namedIds(doc, name).ids.map(wrap) });
+        s.colls.set(name, c);
+      }
+      return c;
+    },
+    { indices: true },
+  );
 
   // Exposed for tests / benches (not part of the DOM surface).
   rt.select = { sel, SF, memoSize: () => MEMO_MAP.size, selSize: () => SEL.size };

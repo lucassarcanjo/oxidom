@@ -183,7 +183,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[gap] Document named properties** (`document.loginForm`) read like jsdom's with the same limits as
   collections' (not own, not seen by `in`), and a named element never shadows a `Document` member (jsdom's
   `<img name="title">` makes `document.title` the element). A lone named iframe answers the element, not a
-  window. DESIGN §4.3.
+  window. Names starting with `_` (collections' and the document's) are not exposed. DESIGN §4.3.
 - **[gap] Media events of elements in a windowless document** (`createHTMLDocument()`, `DOMParser`): the
   `volumechange` / `ratechange` task is queued on the current window, not the creating one, so it still fires
   after the creating window closed if another is current, and is dropped when no window is open. DESIGN §41.

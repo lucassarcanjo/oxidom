@@ -32,6 +32,7 @@ function wrap(id) {
 
 /** Input type names indexed by the Rust type code, and the codes (generated from src/forms/types.rs). */
 const { NAMES: INPUT_TYPES, TY } = require('./generated/input-types.cjs');
+const inputNumber = require('./input-number.cjs');
 
 /** Validity bits (src/forms/mod.rs `vbits`). */
 const VB = {
@@ -1405,11 +1406,39 @@ function install(_rt, dom) {
     set valueAsNumber(v) {
       const t = INPUT_TYPES[inputTypeOf(this._i)];
       const n = Number(v);
-      if (t !== 'number' && t !== 'range') {
+      if (!Number.isFinite(n) && !Number.isNaN(n)) throw new TypeError('Failed to set infinite value as Number');
+      if (!inputNumber.NUMERIC.has(t)) {
         throw rt.domError(6, "Failed to set the 'valueAsNumber' property on 'HTMLInputElement': This input element does not support Number values.");
       }
-      if (!Number.isFinite(n) && !Number.isNaN(n)) throw new TypeError('Failed to set infinite value as Number');
-      this.value = Number.isNaN(n) ? '' : String(n);
+      this.value = Number.isNaN(n) ? '' : inputNumber.numberToString(t, n);
+    },
+    get valueAsDate() {
+      const t = INPUT_TYPES[inputTypeOf(this._i)];
+      if (!inputNumber.DATE_TYPES.has(t)) return null;
+      const d = inputNumber.stringToDate(t, this.value);
+      const WDate = this.ownerDocument.defaultView?.Date ?? Date;
+      return d === null ? null : new WDate(d.getTime());
+    },
+    set valueAsDate(v) {
+      const t = INPUT_TYPES[inputTypeOf(this._i)];
+      if (!inputNumber.DATE_TYPES.has(t)) {
+        throw rt.domError(6, "Failed to set the 'valueAsDate' property on 'HTMLInputElement': This input element does not support Date values.");
+      }
+      let time = null;
+      if (v !== null) {
+        try {
+          time = Date.prototype.getTime.call(v); // any realm's Date (jsdom `isDate`)
+        } catch {
+          throw new TypeError("Failed to set the 'valueAsDate' property on 'HTMLInputElement': The provided value is not a Date.");
+        }
+      }
+      this.value = time === null || Number.isNaN(time) ? '' : inputNumber.dateToString(t, new Date(time));
+    },
+    stepUp(n = 1) {
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], Number(n) | 0, true);
+    },
+    stepDown(n = 1) {
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], Number(n) | 0, false);
     },
     get files() {
       if (inputTypeOf(this._i) !== TY.FILE) return null;
@@ -1756,6 +1785,72 @@ function install(_rt, dom) {
   }, ConstraintValidation, FormAssociated, Labelable);
   reflectStr(Output, 'name');
   tokenListAccessor(Output, 'htmlFor', 'for');
+
+  // ------------------------------------------------------------------------------- meter, progress
+  // jsdom HTMLMeterElement-impl.js / HTMLProgressElement-impl.js: computed from the attributes on every read.
+  const num = (el, attr) => {
+    const v = el.getAttribute(attr);
+    return v === null ? null : inputNumber.parseFloatingPoint(v);
+  };
+  const setDouble = (el, attr, iface, v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) throw new TypeError(`Failed to set the '${attr}' property on '${iface}': The provided double value is non-finite.`);
+    el.setAttribute(attr, String(n));
+  };
+  const meterMin = (el) => num(el, 'min') ?? 0;
+  const meterMax = (el) => Math.max(num(el, 'max') ?? 1, meterMin(el));
+  const clampMeter = (el, v) => Math.min(Math.max(v, meterMin(el)), meterMax(el));
+  const meterLow = (el) => clampMeter(el, num(el, 'low') ?? meterMin(el));
+  const meterHigh = (el) => Math.min(Math.max(num(el, 'high') ?? meterMax(el), meterLow(el)), meterMax(el));
+  const METER = {
+    value: (el) => clampMeter(el, num(el, 'value') ?? 0),
+    min: meterMin,
+    max: meterMax,
+    low: meterLow,
+    high: meterHigh,
+    optimum: (el) => clampMeter(el, num(el, 'optimum') ?? (meterMin(el) + meterMax(el)) / 2),
+  };
+  const Meter = C.HTMLMeterElement;
+  for (const [prop, get] of Object.entries(METER)) {
+    Object.defineProperty(Meter.prototype, prop, {
+      get() {
+        return get(this);
+      },
+      set(v) {
+        setDouble(this, prop, 'HTMLMeterElement', v);
+      },
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  defineAll(Meter, Labelable);
+
+  const progressMax = (el) => {
+    const m = num(el, 'max');
+    return m !== null && m > 0 ? m : 1;
+  };
+  const progressValue = (el) => {
+    const v = num(el, 'value');
+    return Math.min(v !== null && v > 0 ? v : 0, progressMax(el));
+  };
+  const Progress = C.HTMLProgressElement;
+  defineAll(Progress, {
+    get value() {
+      return this.hasAttribute('value') ? progressValue(this) : 0;
+    },
+    set value(v) {
+      setDouble(this, 'value', 'HTMLProgressElement', v);
+    },
+    get max() {
+      return progressMax(this);
+    },
+    set max(v) {
+      if (Number(v) > 0 || !Number.isFinite(Number(v))) setDouble(this, 'max', 'HTMLProgressElement', v); // [ReflectPositive]
+    },
+    get position() {
+      return this.hasAttribute('value') ? progressValue(this) / progressMax(this) : -1;
+    },
+  }, Labelable);
 
   const Details = C.HTMLDetailsElement;
   reflectBool(Details, 'open');

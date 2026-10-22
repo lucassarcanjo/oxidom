@@ -1912,3 +1912,21 @@ dropped (the parser recurses). An observed sheet keeps removed rules (script may
 keeps its tree until the env goes away: memory is bounded by what the env's script did, as with jsdom's objects.
 Parity: 138 -> 223 of 260 suite files, gap 681 -> 219 subtests. The rest is value serialization owned by
 `computed-values` (serialize-values, shorthands, about 190) and `customElements` (20).
+
+## 36. Numeric and date inputs, meter and progress (ROADMAP Stage 3, 2026-10)
+
+`lib/input-number.cjs` ports jsdom 30's stepping and conversions (HTMLInputElement-impl.js,
+helpers/number-and-date-inputs.js):
+- Value strings become numbers in Rust (`formNumber`, the `types::to_number` that `valueAsNumber` and validity
+  already used), so min, max, step base and value agree with `validity` by construction.
+- `stepUp(n)` / `stepDown(n)` follow jsdom's `_stepUpdate` in decimal.js (now a dependency, as it is jsdom's), so
+  `0.1` steps give `0.3`, not `0.30000000000000004`. The result goes through the `value` setter like any script
+  write (sanitized, dirty flag set; jsdom writes the raw value, which is already sanitized).
+- `valueAsNumber` applies to every numeric type, `valueAsDate` to date, month, week and time; numbers serialize per
+  type as jsdom's `convertNumberToStringByType` (UTC fields, ISO weeks, shortest times).
+- `<meter>` (min, max, value, low, high, optimum) and `<progress>` (value, max, position) compute from their
+  attributes on every read with jsdom's clamping; setters take a finite double (`max` on progress ignores
+  non-positive values, `[ReflectPositive]`); both are labelable.
+
+Parity: the `forms` gap went from 314 to 62 subtests (218 -> 247 of 277 files). Most of the rest reads
+`document.forms.<name>`, which needs named properties on HTMLCollection (`core`).

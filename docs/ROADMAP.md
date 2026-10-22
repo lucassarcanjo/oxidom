@@ -123,7 +123,10 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
       init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':
       inline handlers, shadow retargeting, CSSOM).
-- [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
+- [x] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
+      Done 2026-10-22 (DESIGN §36): jsdom's Decimal stepping, number and date conversions for every numeric type,
+      `<meter>` / `<progress>`; 218 -> 247 of 277 suite files at parity, gap 314 -> 62, overall 91.2%. Left:
+      `document.forms.name` (HTMLCollection named properties, `core`), form owner and select edge cases.
 - [x] FileReader with DOM Blob and File (S) `file-api`. Done 2026-10-20 (DESIGN §27): FileReader, and Blob and File
       as WebIDL-converting subclasses of Node's; 16 -> 36 of 37 suite files at parity, gap 137 -> 1 (an HTMLCollection
       iterator detail that belongs to `core`).

@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1913 | 162751 | 149268 | 91.7% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 1942 | 162751 | 149520 | 91.9% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 151 | 2578 | 2369 | 91.9% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 4 | 1781 | 756 | 42.4% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 250 | 40.7% |
-| **all** | **2615** | **2070** | **167724** | **152643** | **91.0%** |
+| **all** | **2615** | **2099** | **167724** | **152895** | **91.2%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -31,7 +31,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 223 | 219 | 87.8% | assert_equals: wrong value (187); missing global: customElements (20); assert_true: wrong value (4) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 276 | 88 | 97.7% | assert_equals: wrong value (82); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
 | 3 | document.createEvent, init*Event and the missing event classes | 108 | 98 | 60 | 89.1% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); shadow-dom: event retargeting, relatedTarget and slots (24); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
-| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 218 | 314 | 91.1% | assert_equals: got undefined (missing attribute/API) (82); missing method: .stepUp() (70); assert_equals: wrong value (32) |
+| 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 247 | 62 | 98.2% | harness ERROR: read of undefined (.fm1) (16); assert_equals: wrong value (15); assert_array_equals: wrong value (9) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 5 | 8786 | 82.4% | assert_equals: got undefined (missing attribute/API) (8091); assert_equals: wrong value (375); read of undefined (.length) (319) |

@@ -8,7 +8,7 @@ Most suites need only the configuration change. Read [the divergences](#known-di
 the switch, or before you switch if your suite relies on scripts, custom elements, iframes or XML, which rsdom
 does not support yet.
 
-Where things stand (2026-10-21): rsdom passes 91.0% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-21): rsdom passes 91.2% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
@@ -249,8 +249,8 @@ share one realm, so they do not apply there.
 
 ### Forms
 
-- **[gap] Missing form APIs:** `stepUp()` / `stepDown()`, `valueAsDate`, `<meter>` and `<progress>` members,
-  `ElementInternals`. `valueAsNumber` exists. `forms`.
+- **[gap] `ElementInternals`** is missing. `stepUp()` / `stepDown()`, `valueAsNumber`, `valueAsDate`, `<meter>`
+  and `<progress>` work like jsdom (DESIGN §36). `forms`.
 - **[gap] `document.forms`, `document.links` and `document.images` are undefined.** Use
   `querySelectorAll('form')` and the like. `core`.
 - **[gap] `:invalid` / `:valid` ignore `pattern`:** `validity.patternMismatch` is right, but

@@ -1520,6 +1520,11 @@ natives! {
         let t = input_type(e, id);
         if is_input(e, id) && types::is_numeric(t) { types::to_number(t, raw(e, id)).unwrap_or(f64::NAN) } else { f64::NAN }
     }
+    /// `s` as a number for input type `ty` (the value-string conversion of numeric types; NaN when invalid).
+    fn formNumber(e, ty: str, s: str) -> f64 {
+        let _ = e;
+        types::to_number(types::parse_type(Some(ty)), s).unwrap_or(f64::NAN)
+    }
     /// output default-value override (null = none).
     fn outputOverride(e, id: u32) -> Option<&str> {
         e.output_override(id)

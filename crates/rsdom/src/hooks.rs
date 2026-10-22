@@ -26,12 +26,6 @@ use crate::string::Str;
 use crate::table::NodeId;
 
 impl Env {
-    /// Bumps the document version (the document record's `attr_ver`: documents have no attributes) when `n`
-    /// is connected: what jsdom's `Document#_version` counts, child-list and attribute changes in the
-    /// document, for XPathResult's `invalidIteratorState` (lib/xpath.cjs, DESIGN §39). A plain increment, not
-    /// an epoch value, so it never returns to an earlier value. `CONNECTED` is shadow-including, so a
-    /// shadow tree's changes count too, where jsdom's parent chain stops at the shadow root.
-    #[inline]
     /// Bumps `EP[NAMED]` (Document's named properties) when `n` is an HTML embed / form / iframe / img /
     /// object element: the only elements that can contribute (jsdom drops its cache on the same events).
     #[inline]
@@ -44,6 +38,12 @@ impl Env {
         }
     }
 
+    /// Bumps the document version (the document record's `attr_ver`: documents have no attributes) when `n`
+    /// is connected: what jsdom's `Document#_version` counts, child-list and attribute changes in the
+    /// document, for XPathResult's `invalidIteratorState` (lib/xpath.cjs, DESIGN §39). A plain increment, not
+    /// an epoch value, so it never returns to an earlier value. `CONNECTED` is shadow-including, so a
+    /// shadow tree's changes count too, where jsdom's parent chain stops at the shadow root.
+    #[inline]
     fn bump_doc_version(&mut self, n: NodeId) {
         let r = self.rec(n);
         if r.meta & meta::CONNECTED != 0 {

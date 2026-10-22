@@ -465,7 +465,7 @@ impl Env {
             self.link(n, parent, child);
             if connected {
                 self.connect_subtree(n);
-                if self.ce.any() {
+                if self.ce.defined() {
                     self.ce_connected(n);
                 }
             }
@@ -508,7 +508,7 @@ impl Env {
         self.unlink(node);
         if was_connected {
             self.disconnect_subtree(node);
-            if self.ce.any() {
+            if self.ce.defined() {
                 self.ce_disconnected(node);
             }
         }
@@ -559,7 +559,7 @@ impl Env {
                 n = self.next_in_subtree(n, root);
             }
         }
-        if self.ce.any() {
+        if self.ce.defined() {
             self.ce_adopted(node, old_doc, doc);
         }
         if !self.traversal.is_empty() {

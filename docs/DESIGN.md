@@ -2222,3 +2222,17 @@ the attribute is observed), so ordinary pages queue nothing.
 **Scope of the first part:** the registry (`define`, `get`, `getName`, `whenDefined`, `upgrade`), autonomous and
 customized built-in elements, the four lifecycle callbacks, upgrades, `:defined`. Part 2: `ElementInternals`,
 form-associated custom elements, custom states (`:state()`), `disabledFeatures` on `attachShadow`.
+
+**Known differences from jsdom.** `:defined` reads the element state, so it follows upgrades and does not match a
+failed element; jsdom's selector engine matches by registry lookup and caches results, so it can report a stale
+answer after `define` (it keeps `:not(:defined) { display: none }` in effect for an upgraded element). It also
+matches an element whose `is` value has no definition (`createElement('div', { is: 'x-unknown' })`) and a failed
+synchronous construction; rsdom follows the spec (state undefined or failed). `:defined` is a state pseudo-class
+for the selector memos (`EP[REC]`). Interface classes are shared by every window, so a constructor defined in two
+windows' registries creates its `new` elements in the window that defined it last, where jsdom uses the realm of
+the `HTMLElement` it extends. A registry kept past `rt.reset()` ignores `define` and `upgrade`.
+
+**Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests. What remains is mostly
+tests that build their documents in iframes (`test_with_window`, Stage 4 `browsing-contexts`), documents fetched by
+XHR, and part 2 (`ElementInternals`, form-associated elements). test/contract/custom-elements.test.mjs covers the
+callback order library code depends on.

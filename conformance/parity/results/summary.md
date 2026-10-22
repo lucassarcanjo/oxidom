@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2209 | 162751 | 162167 | 99.6% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 168 | 2578 | 2482 | 96.3% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2218 | 162751 | 162207 | 99.7% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 170 | 2578 | 2503 | 97.1% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2388** | **167724** | **166656** | **99.4%** |
+| **all** | **2615** | **2399** | **167724** | **166717** | **99.4%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -22,26 +22,26 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | stage | item | files | files at parity | gap (subtests) | parity | main causes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | 1 | TreeWalker / NodeIterator / NodeFilter | 17 | 17 | 0 | 100.0% |  |
-| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 23 | 7 | 98.6% | harness ERROR: missing global: customElements (6); assert_true: wrong value (1) |
+| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 23 | 3 | 99.4% | assert_throws_dom: did not throw (2); assert_true: wrong value (1) |
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no tests selected |  |
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
 | 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 330 | 46.3% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
-| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 226 | 107 | 94.0% | assert_equals: wrong value (77); missing global: customElements (20); harness TIMEOUT: (no message) (3) |
+| 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 227 | 87 | 95.1% | assert_equals: wrong value (77); harness TIMEOUT: (no message) (3); assert_not_equals: wrong value (2) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 23 | 99.4% | assert_equals: wrong value (17); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 104 | 36 | 93.4% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1); custom-elements: customElements.define (1) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 105 | 35 | 93.6% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 261 | 19 | 99.5% | assert_true: wrong value (7); assert_false: wrong value (4); assert_equals: wrong value (3) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
 | 3 | Reflected IDL attributes and ARIAMixin | 17 | 16 | 9 | 100.0% | missing method: .open() (5); TIMEOUT: Timeout of …ms exceeded (2); missing method: .close() (1) |
 | 3 | Range comparison and stringification, then Range mutation with live boundaries | 44 | 44 | 0 | 100.0% |  |
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 37 | 5 | 99.5% | assert_equals: wrong value (4); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
-| 3 | XPath | 28 | 27 | 1 | 99.6% | read of null (.getElementById) (1) |
+| 3 | XPath | 28 | 28 | 0 | 100.0% |  |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 888 | 172 | 99.3% | assert_true: wrong value (44); assert_equals: wrong value (33); harness ERROR: read of undefined (.define) (25) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 105 | 58 | 93.1% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16); harness ERROR: missing global: customElements (7) |
-| 4 | Custom elements and customElements | 147 | 108 | 249 | 91.7% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (84); missing global: customElements (18) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 889 | 148 | 99.4% | assert_true: wrong value (44); assert_equals: wrong value (33); assert_array_equals: wrong value (25) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 106 | 53 | 93.7% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16); assert_throws_dom: did not throw (2) |
+| 4 | Custom elements and customElements | 147 | 114 | 239 | 92.0% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (84); missing global: customElements (11) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
 | 4 | iframes, script execution (runScripts) and resource loading | 120 | 112 | 67 | 84.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |

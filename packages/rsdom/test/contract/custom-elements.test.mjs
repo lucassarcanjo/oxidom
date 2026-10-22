@@ -150,6 +150,8 @@ describe.each(DOMS.filter((k) => k !== 'happy-dom'))('custom elements [%s]', (ki
     const made = d.createElement('p', { is: 'x-p' });
     expect(made).toBeInstanceOf(XP);
     expect(made.outerHTML).toBe('<p is="x-p"></p>');
+    expect(made.cloneNode().outerHTML).toBe('<p is="x-p"></p>');
+    expect(d.createElement('x-z', { is: 'x-y' }).cloneNode().outerHTML).toBe('<x-z is="x-y"></x-z>');
     expect(d.getElementById('e').matches(':not(:defined)')).toBe(true);
     w.customElements.define('x-e', class extends w.HTMLElement {});
     expect(d.getElementById('e').matches(':defined')).toBe(true);

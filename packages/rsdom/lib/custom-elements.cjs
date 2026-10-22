@@ -10,6 +10,7 @@
 
 const rt = require('./runtime.cjs');
 const interfaces = require('./generated/interfaces.cjs');
+const { envGen, alive } = require('./memo.cjs');
 
 const { N, V, F, M, EPI, TOKEN, afterAlloc, mutated, atomName } = rt;
 
@@ -90,6 +91,8 @@ function report(id, err) {
 class CustomElementRegistry {
   #ctx;
   #reg;
+  /** env generation of `#reg`: a registry kept past `rt.reset()` must not define into the next env's registry */
+  #gen;
   /** name -> definition */
   #defs = new Map();
   #running = false;
@@ -99,13 +102,15 @@ class CustomElementRegistry {
   constructor(t = undefined, ctx = undefined) {
     if (t !== TOKEN) illegal();
     this.#ctx = ctx;
+    this.#gen = envGen();
     this.#reg = nextReg++;
     N.ceBindDoc(ctx.document._i, this.#reg);
   }
 
   /** HTML "look up a custom element definition" in this registry. */
   _lookup(localName, isValue) {
-    for (const d of this.#defs.values()) if (d.name === localName && d.localName === localName) return d;
+    const a = this.#defs.get(localName);
+    if (a !== undefined && a.localName === localName) return a;
     if (isValue === null || isValue === undefined) return null;
     const d = this.#defs.get(isValue);
     return d !== undefined && d.localName === localName ? d : null;
@@ -128,6 +133,7 @@ class CustomElementRegistry {
     if (!isValidCustomElementName(name)) {
       throw new rt.classes.DOMException('Name argument is not a valid custom element name.', 'SyntaxError');
     }
+    if (!alive(this.#gen)) return; // the window is gone (a callback or timer outliving its test)
     if (this.#defs.has(name)) {
       throw new rt.classes.DOMException('This name has already been registered in the registry.', 'NotSupportedError');
     }
@@ -228,6 +234,7 @@ class CustomElementRegistry {
     if (!(root instanceof rt.classes.Node) || root._i === 0) {
       throw new TypeError("Failed to execute 'upgrade' on 'CustomElementRegistry': parameter 1 is not of type 'Node'.");
     }
+    if (!alive(this.#gen)) return;
     N.ceUpgradeTree(root._i);
     mutated();
   }

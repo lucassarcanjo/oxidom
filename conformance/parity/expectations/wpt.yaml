@@ -470,8 +470,6 @@ css/selectors/i18n/css3-selectors-lang-054.html: [fail, "assert_equals: wrong va
 css/selectors/i18n/css3-selectors-lang-055.html: [fail, "assert_equals: wrong value"]
 css/selectors/i18n/css3-selectors-lang-056.html: [fail, "assert_equals: wrong value"]
 css/selectors/invalidation/attribute-or-elemental-selectors-in-has.html: [fail, "harness ERROR: missing global: div_descendant", {pass: 14}]
-css/selectors/invalidation/defined-in-has.html: [fail, "assert_equals: wrong value"]
-css/selectors/invalidation/defined.html: [fail, "assert_equals: wrong value"]
 css/selectors/invalidation/empty-pseudo-in-has-display-none.html:
   "Visible after inserting non-empty element into #child": [fail, "assert_greater_than: wrong value"]
   "Visible after inserting text into #child": [fail, "assert_greater_than: wrong value"]
@@ -649,11 +647,6 @@ css/selectors/webkit-pseudo-element.html:
   "webkit-prefix without dash is invalid": [fail, "read of undefined (.cssRules)"]
   "webkit-prefixed pseudo-element selectors should be accessible from CSSOM": [fail, "read of undefined (.cssRules)"]
 custom-elements/Document-createElement.html: [timeout, "harness TIMEOUT: (no message)"]
-custom-elements/Document-createElementNS-customized-builtins.html:
-  "builtin: document.createElementNS should create custom elements with prefixes.": [fail, "assert_true: wrong value"]
-custom-elements/Document-createElementNS-prefix-timing.html: [fail, "missing global: customElements"]
-custom-elements/Document-createElementNS.html:
-  "autonomous: document.createElementNS should create custom elements with prefixes.": [fail, "missing global: customElements"]
 custom-elements/ElementInternals-accessibility-values.html: [fail, "harness ERROR: missing global: customElements"]
 custom-elements/ElementInternals-accessibility.html: [fail, "harness ERROR: missing global: customElements"]
 custom-elements/HTMLElement-attachInternals.html: [fail, "missing global: customElements"]
@@ -687,7 +680,6 @@ custom-elements/htmlconstructor/newtarget.html: [timeout, "harness TIMEOUT: (no 
 custom-elements/microtasks-and-constructors.html:
   "Microtasks evaluate immediately when the stack is empty inside the parser": [fail, "assert_array_equals: wrong value"]
   "Microtasks evaluate immediately when the stack is empty inside the parser, causing the checks on no attributes to fail": [fail, "assert_true: wrong value"]
-custom-elements/overwritten-customElements-global.html: [fail, "missing global: customElements"]
 custom-elements/parser/parser-constructs-custom-element-synchronously.html: [fail, "harness ERROR: missing global: customElements"]
 custom-elements/parser/parser-fallsback-to-unknown-element.html: [fail, "assert_true: wrong value"]
 custom-elements/parser/parser-sets-attributes-and-children.html:
@@ -695,8 +687,6 @@ custom-elements/parser/parser-sets-attributes-and-children.html:
   "HTML parser must set the attributes or append children before calling constructor": [fail, "assert_equals: wrong value"]
   "HTML parser should call connectedCallback before appending child nodes.": [fail, "assert_equals: wrong value"]
 custom-elements/parser/parser-uses-constructed-element.html: [fail, "harness ERROR: missing global: customElements"]
-custom-elements/parser/serializing-html-fragments-customized-builtins.html:
-  "\"is\" value should be serialized if the custom element has no \"is\" content attribute": [fail, "assert_equals: wrong value"]
 custom-elements/perform-microtask-checkpoint-before-construction.html: [timeout, "harness TIMEOUT: (no message)"]
 custom-elements/reactions/Animation.html: [fail, "missing global: customElements"]
 custom-elements/reactions/AriaMixin-element-attributes.html: [fail, "missing global: customElements"]
@@ -729,8 +719,6 @@ custom-elements/reactions/HTMLTableElement.html: [timeout, "harness TIMEOUT: (no
 custom-elements/reactions/HTMLTableRowElement.html: [timeout, "harness TIMEOUT: (no message)"]
 custom-elements/reactions/HTMLTableSectionElement.html: [timeout, "harness TIMEOUT: (no message)"]
 custom-elements/reactions/HTMLTitleElement.html: [timeout, "harness TIMEOUT: (no message)"]
-custom-elements/reactions/Range.html:
-  "createContextualFragment on Range must construct a custom element": [fail, "assert_equals: wrong value"]
 custom-elements/reactions/ShadowRoot.html: [timeout, "harness TIMEOUT: (no message)"]
 custom-elements/reactions/customized-builtins/HTMLButtonElement.html:
   "formEnctype on HTMLButtonElement must enqueue an attributeChanged reaction when adding a new attribute": [fail, "assert_array_equals: wrong value"]
@@ -827,7 +815,6 @@ dom/events/Event-dispatch-single-activation-behavior.html: [fail, "browsing-cont
 dom/events/Event-isTrusted.any.html: [fail, "deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction)"]
 dom/events/Event-timestamp-high-resolution.html: [fail, "assert_less_than_equal: wrong value"]
 dom/events/EventListener-invoke-legacy.html: [timeout, "harness TIMEOUT: (no message)"]
-dom/events/EventTarget-add-listener-platform-object.html: [fail, "custom-elements: customElements.define"]
 dom/events/EventTarget-dispatchEvent.html:
   "If the event's initialized flag is not set, an InvalidStateError must be thrown (DragEvent).": [fail, "missing method: .createEvent()"]
   "If the event's initialized flag is not set, an InvalidStateError must be thrown (TextEvent).": [fail, "missing method: .createEvent()"]
@@ -1026,7 +1013,7 @@ domxpath/text-html-elements.html:
   "SVG elements namespace prefix": [fail, "assert_array_equals: wrong value"]
   "SVG elements no namespace prefix": [fail, "assert_array_equals: wrong value"]
   "Throw with invalid prefix": [fail, "assert_throws_dom: did not throw"]
-domxpath/xpath-shadow-dom.html: [fail, "read of null (.getElementById)"]
+domxpath/xpath-shadow-dom.html: [fail, "read of null (.getElementById)", {pass: 1}]
 domxpath/xpathevaluatorbase-creatensresolver.html: [fail, "harness ERROR: missing global: XPathEvaluator"]
 encoding/big5-encoder.html:
   "big5 encoder: A Plane 2 character whose low 16 bits match a BMP character that has a lower pointer": [fail, "assert_equals: wrong value"]
@@ -2172,7 +2159,9 @@ html/semantics/scripting-1/the-template-element/template-for/template-for-supers
 html/semantics/scripting-1/the-template-element/template-for/template-for-title.html: [fail, "assert_equals: wrong value"]
 html/semantics/selectors/pseudo-classes/autofill.html: [fail, "Cannot destructure property … of … as it is undefined."]
 html/semantics/selectors/pseudo-classes/focus-autofocus.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/selectors/pseudo-classes/readwrite-readonly.html: [fail, "harness ERROR: read of undefined (.define)"]
+html/semantics/selectors/pseudo-classes/readwrite-readonly.html:
+  "The :read-only pseudo-class must not match elements that are editing hosts": [fail, "assert_array_equals: wrong value"]
+  "The :read-write pseudo-class must match elements that are editing hosts": [fail, "assert_array_equals: wrong value"]
 html/semantics/selectors/pseudo-classes/valid-invalid.html:
   "':invalid' matches elements that do not satisfy their pattern constraints": [fail, "assert_array_equals: wrong value"]
   "':invalid' matches new elements that do not satisfy their constraints": [fail, "assert_array_equals: wrong value"]
@@ -2322,7 +2311,9 @@ selection/textcontrols/selectionchange.html:
 selection/toString-user-select-none.html: [fail, "assert_equals: wrong value"]
 shadow-dom/Document-prototype-currentScript.html: [timeout, "harness TIMEOUT: (no message)", {pass: 2}]
 shadow-dom/DocumentOrShadowRoot-prototype-elementFromPoint.html: [fail, "harness ERROR: missing global: customElements"]
-shadow-dom/Element-interface-attachShadow-custom-element.html: [fail, "harness ERROR: missing global: customElements"]
+shadow-dom/Element-interface-attachShadow-custom-element.html:
+  "Element.attachShadow for a customized built-in element with disabledFeatures=[\"shadow\"] should throw a NotSupportedError": [fail, "assert_throws_dom: did not throw"]
+  "Element.attachShadow for an autonomous custom element with disabledFeatures=[\"shadow\"] should throw a NotSupportedError": [fail, "assert_throws_dom: did not throw"]
 shadow-dom/HighlightRegistry-highlightsFromPoint.html: [fail, "missing method: .setHTMLUnsafe()"]
 shadow-dom/MouseEvent-prototype-offsetX-offsetY.html: [fail, "assert_equals: wrong value"]
 shadow-dom/ShadowRoot-interface.html:
@@ -2358,7 +2349,6 @@ shadow-dom/declarative/declarative-shadow-dom-repeats.html: [fail, "assert_true:
 shadow-dom/declarative/declarative-shadow-dom-serialization.html: [fail, "missing method: .getHTML()"]
 shadow-dom/declarative/declarative-shadow-dom-slot-assignment-serialization.html: [fail, "missing method: .setHTMLUnsafe()"]
 shadow-dom/declarative/declarative-shadow-dom-slot-assignment.html: [fail, "missing method: .setHTMLUnsafe()"]
-shadow-dom/declarative/declarative-with-disabled-shadow.html: [fail, "harness ERROR: missing global: customElements"]
 shadow-dom/declarative/gethtml-ordering.html: [fail, "harness ERROR: missing global: NodeFilter"]
 shadow-dom/declarative/gethtml.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
 shadow-dom/declarative/innerhtml-before-closing-tag.html: [fail, "assert_true: wrong value"]

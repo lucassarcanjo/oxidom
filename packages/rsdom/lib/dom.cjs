@@ -19,6 +19,8 @@ const {
   coverIndices, installNamedProperties,
 } = require('./collections.cjs');
 const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
+/** lib/custom-elements.cjs, loaded on the first HTML element creation (it requires this module). */
+let CE = null;
 
 const { N, V, EPI, F, M, K, NSC, NS, W, TOKEN } = rt;
 const {
@@ -681,7 +683,7 @@ class Document extends Node {
 
   /** DOM "create an element" in the HTML namespace with the synchronous custom elements flag (DESIGN §43). */
   _createHtml(name, isValue, plain, prefix = null) {
-    const CE = require('./custom-elements.cjs');
+    CE ??= require('./custom-elements.cjs');
     const def = CE.lookup(this, name, isValue);
     if (def !== null) {
       const el = CE.createSync(this, def, name, isValue, prefix);

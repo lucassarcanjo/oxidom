@@ -9,8 +9,8 @@
 //!   [`CE_CUSTOM`] / [`CE_UNDEFINED`] meta bits; uncustomized elements (nearly all) have no entry.
 //! - Reactions: [`CeState::queue`], drained by `ceTake`. Enqueuing sets [`CE_BIT`] in `EP[MO_PENDING]`.
 //!
-//! The hooks (`ce_*` on [`Env`]) run behind `ce.any()`: until the env's first definition or potential custom
-//! element nothing here runs.
+//! The hooks (`ce_*` on [`Env`]) run behind `ce.any()` (creation, attributes, cloning) or `ce.defined()` (connect,
+//! disconnect, adopt): until the env's first potential custom element, or its first definition, nothing here runs.
 
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
@@ -21,10 +21,10 @@ use crate::node::{Ns, kind, meta};
 use crate::string::{Str, utf16_len};
 use crate::table::NodeId;
 
-/// `NodeRec.meta` bit (area B range 21-25): custom element state "custom".
-pub const CE_CUSTOM: u32 = 1 << 21;
+/// `NodeRec.meta` bit: custom element state "custom".
+pub const CE_CUSTOM: u32 = meta::CE_CUSTOM;
 /// `NodeRec.meta` bit: custom element state "undefined", "failed" or "precustomized" (not `:defined`).
-pub const CE_UNDEFINED: u32 = 1 << 22;
+pub const CE_UNDEFINED: u32 = meta::CE_UNDEFINED;
 /// Bit of `EP[MO_PENDING]` set while custom element reactions are queued.
 pub const CE_BIT: u32 = 4;
 
@@ -102,6 +102,21 @@ impl CeState {
     #[inline(always)]
     pub fn any(&self) -> bool {
         !self.elems.is_empty() || !self.defs.is_empty()
+    }
+
+    /// True once the env has a definition: the guard of the connect / disconnect / adopt hooks, which only act on
+    /// custom elements (state custom needs a definition) and on upgrade candidates (an upgrade needs one).
+    #[inline(always)]
+    pub fn defined(&self) -> bool {
+        !self.defs.is_empty()
+    }
+
+    /// Drops the upgrade reaction "create an element" just queued for `el`, if any: the last record, since
+    /// nothing runs between an element's creation and this call.
+    fn unqueue_created(&mut self, el: NodeId) {
+        if self.queue.last().is_some_and(|r| r.el == el) {
+            self.queue.pop();
+        }
     }
 }
 
@@ -267,7 +282,7 @@ impl Env {
     /// Gives freshly created HTML element `el` the `is` value `is` (createElement's `{ is }`, the parser's `is`
     /// attribute): "create an element" with that `is` value instead of none.
     pub(crate) fn ce_set_is(&mut self, el: NodeId, is: Atom) {
-        self.ce.queue.retain(|r| r.el != el);
+        self.ce.unqueue_created(el);
         let local = Atom(self.rec(el).local);
         self.ce_created(el, local, is);
     }
@@ -276,11 +291,8 @@ impl Env {
     #[cold]
     pub(crate) fn ce_cloned(&mut self, src: NodeId, dst: NodeId) {
         let is = self.ce_elem(src).is;
-        if !is.is_none() && self.ce_elem(dst).state == state::UNCUSTOMIZED {
-            let local = Atom(self.rec(dst).local);
-            if self.ns_of(dst) == Ns::Html {
-                self.ce_created(dst, local, is);
-            }
+        if !is.is_none() && self.ns_of(dst) == Ns::Html {
+            self.ce_set_is(dst, is);
         }
     }
 
@@ -370,7 +382,7 @@ natives! {
         let local = e.intern(local);
         let is = if is.is_empty() { Atom::NONE } else { e.intern(is) };
         let el = e.create_element_full(doc, local, Ns::Html.uri(), Atom::NONE);
-        e.ce.queue.retain(|r| r.el != el);
+        e.ce.unqueue_created(el);
         e.ce_set(el, state::CUSTOM, def, is);
         el
     }

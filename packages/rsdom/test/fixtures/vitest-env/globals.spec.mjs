@@ -120,9 +120,16 @@ test('React feature-detection prerequisites', () => {
 });
 
 test('unimplemented names are not defined', () => {
-  for (const k of ['customElements', 'DataTransfer', 'requestIdleCallback']) {
+  for (const k of ['DataTransfer', 'requestIdleCallback']) {
     expect(k in globalThis, k).toBe(false);
   }
+});
+
+test('customElements is a global (DESIGN §43)', () => {
+  class XGlobal extends HTMLElement {}
+  customElements.define('x-global', XGlobal);
+  expect(window.customElements).toBe(customElements);
+  expect(document.createElement('x-global')).toBeInstanceOf(XGlobal);
 });
 
 test("observers are globals a test's own polyfill replaces (DESIGN §24)", () => {

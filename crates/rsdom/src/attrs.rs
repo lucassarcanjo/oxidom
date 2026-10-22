@@ -104,6 +104,24 @@ impl Env {
 
     /// `setAttributeNS(ns, qname, value)`.
     pub fn set_attr_ns(&mut self, el: NodeId, ns: Option<&str>, qname: &str, value: &str) -> DomResult {
+        self.set_attr_ns_impl(el, ns, qname, value, false)
+    }
+
+    /// `setAttributeNode(NS)(attr)` of a namespaced or prefixed Attr: like [`Self::set_attr_ns`], but an existing
+    /// attribute with the same namespace and local name is REPLACED, so it takes the new Attr's prefix and
+    /// qualified name (DOM "replace an attribute"; `setAttributeNS` keeps the old prefix).
+    pub fn set_attr_node_ns(&mut self, el: NodeId, ns: Option<&str>, qname: &str, value: &str) -> DomResult {
+        self.set_attr_ns_impl(el, ns, qname, value, true)
+    }
+
+    fn set_attr_ns_impl(
+        &mut self,
+        el: NodeId,
+        ns: Option<&str>,
+        qname: &str,
+        value: &str,
+        replace: bool,
+    ) -> DomResult {
         if self.elem(el).is_none() {
             return Err(DomError::Type);
         }
@@ -112,7 +130,12 @@ impl Env {
         let d = self.elem_mut(el).ok_or(DomError::Type)?;
         match d.find_ns(ns, local) {
             Some(i) => {
-                if has_derived_state(local, ns) && d.attrs[i].value.as_str() == value {
+                let renamed = replace && d.attrs[i].qname != qn;
+                if renamed {
+                    d.attrs[i].qname = qn;
+                    d.attrs[i].prefix = prefix;
+                }
+                if !renamed && has_derived_state(local, ns) && d.attrs[i].value.as_str() == value {
                     self.hook_attr_same_value(el, local, ns);
                     return Ok(());
                 }
@@ -349,6 +372,11 @@ natives! {
     /// setAttributeNS. Returns 0 or an error code.
     fn setAttrNS(e, id: u32, ns: ostr, qname: str, value: str) -> Code {
         code(e.set_attr_ns(id, ns, qname, value))
+    }
+    /// setAttributeNode(NS) of a namespaced / prefixed Attr: an existing (namespace, local) attribute takes the
+    /// new prefix and qualified name. Returns 0 or an error code.
+    fn setAttrNodeNS(e, id: u32, ns: ostr, qname: str, value: str) -> Code {
+        code(e.set_attr_node_ns(id, ns, qname, value))
     }
     /// removeAttributeNS; true if removed.
     fn removeAttrNS(e, id: u32, ns: ostr, local: str) -> bool {

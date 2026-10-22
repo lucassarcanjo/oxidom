@@ -1391,6 +1391,13 @@ natives! {
     fn setSelected(e, id: u32, on: bool) -> () {
         e.set_selected(id, on)
     }
+    /// An option's selectedness alone, as `new Option(..., selected)` sets it (jsdom Window.js: no dirtiness,
+    /// no reset: the option has no select yet).
+    fn setSelectedness(e, id: u32, on: bool) -> () {
+        if e.is_html_elem(id, atom::OPTION) {
+            e.set_selectedness(id, on)
+        }
+    }
     /// select.selectedIndex (-1 when nothing is selected).
     fn selectedIndexGet(e, id: u32) -> i32 {
         e.selected_index(id)

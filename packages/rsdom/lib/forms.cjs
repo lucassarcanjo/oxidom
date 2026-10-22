@@ -1612,7 +1612,7 @@ function install(_rt, dom) {
       this.textContent = v;
     },
     get label() {
-      return this.getAttribute('label') ?? N.optionText(this._i);
+      return this.getAttributeNS(null, 'label') ?? N.optionText(this._i); // null namespace, as jsdom's
     },
     set label(v) {
       this.setAttribute('label', v);
@@ -1638,9 +1638,11 @@ function install(_rt, dom) {
     const o = doc.createElement('option');
     text = str(text);
     if (text !== '') o.appendChild(doc.createTextNode(text));
-    if (value !== undefined) o.setAttribute('value', value);
-    if (defaultSelected) o.setAttribute('selected', '');
-    o.selected = !!selected;
+    if (value !== undefined) o.setAttributeNS(null, 'value', value);
+    if (defaultSelected) o.setAttributeNS(null, 'selected', '');
+    // jsdom Window.js: the selectedness alone, so the selected attribute keeps driving it (not `o.selected`, which
+    // would set the dirtiness flag)
+    N.setSelectedness(o._i, !!selected);
     return o;
   }
   OptionFactory.prototype = Option.prototype;

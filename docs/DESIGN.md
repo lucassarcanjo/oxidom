@@ -1109,6 +1109,8 @@ non-negative-integer parsers that disagreed with jsdom on `-0` and on overflow).
   `matches_valid` / `subtree_matches_valid` (dom-selector's `:valid` / `:invalid`, which replace the answer
   with a `maxlength` / `minlength` length check: jsdom's `validity` never reports tooLong / tooShort, so the
   two disagree there in jsdom too);
+- `matches_in_range` (dom-selector's `:in-range` / `:out-of-range`, 2026-10: the `readonly` / `disabled`
+  attributes alone, the raw `type` attribute, then the range bits of `validity_bits`);
 - `has_datalist_ancestor`.
 
 Where jsdom answers one question two ways (its selector engine and its element implementations), both answers

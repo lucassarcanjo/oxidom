@@ -23,7 +23,7 @@ const MEMO_MAX = 64;
 
 function install(rt, dom) {
   const { N, V, F, M } = rt;
-  const { liveQueryCollection, staticNodeListShared, wrapAll } = require('./collections.cjs');
+  const { liveQueryCollection, staticNodeListShared, wrapAll, installNamedProperties } = require('./collections.cjs');
   const { MEMO, PREFILTER, deps } = require('./memo.cjs');
   const { Element, Document, DocumentFragment, staticNodeListFromIds, wrap } = dom;
 
@@ -302,6 +302,59 @@ function install(rt, dom) {
     get: byTag('areas', 'AREA'),
     enumerable: false,
     configurable: true,
+  });
+
+  // ------------------------------------------------- Document named properties (`document.loginForm`)
+
+  // jsdom Document-impl.js `#namedPropertyElements`: name -> the HTML embed / form / iframe / img / object
+  // elements contributing it, in tree order (an element's id first: object always, img only alongside a non-empty
+  // name). A memo per document, validated by the tree and attribute epochs; one native query rebuilds it.
+  const NAMED = new WeakMap();
+  const namedSel = sel('embed, form, iframe, img, object');
+  function namedElements(doc) {
+    let s = NAMED.get(doc);
+    if (s === undefined) NAMED.set(doc, (s = { stamp: null, map: null, colls: new Map() }));
+    if (s.map === null || !MEMO || !TREE_ATTR_DEPS.fresh(s.stamp)) {
+      s.stamp = TREE_ATTR_DEPS.stamp(s.stamp);
+      const map = new Map();
+      const add = (name, el) => {
+        const els = map.get(name);
+        if (els === undefined) map.set(name, [el]);
+        else if (els[els.length - 1] !== el) els.push(el);
+      };
+      for (const el of wrapAll(rt.outIds(N.qsa(doc._i, namedSel.id)))) {
+        if (el.namespaceURI !== rt.NS.HTML) continue;
+        const name = el.getAttribute('name');
+        const hasName = name !== null && name !== '';
+        const id = el.getAttribute('id');
+        const ln = el.localName;
+        if (id !== null && id !== '' && (ln === 'object' || (ln === 'img' && hasName))) add(id, el);
+        if (hasName) add(name, el);
+      }
+      s.map = map;
+    }
+    return s;
+  }
+  // Document's named getter (no [LegacyOverrideBuiltIns]: Document's own members win), through the
+  // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe would
+  // answer its content window; rsdom's iframes have none), several a live HTMLCollection, the same per name.
+  installNamedProperties(Document.prototype, (doc, name) => {
+    if (!(doc instanceof Document)) return undefined;
+    let s;
+    try {
+      s = namedElements(doc);
+    } catch {
+      return undefined; // a document of a torn-down env: a probe for a missing member must not throw
+    }
+    const els = s.map.get(name);
+    if (els === undefined) return undefined;
+    if (els.length === 1) return els[0];
+    let c = s.colls.get(name);
+    if (c === undefined) {
+      c = liveQueryCollection({ deps: TREE_ATTR_DEPS, items: () => namedElements(doc).map.get(name) ?? [] });
+      s.colls.set(name, c);
+    }
+    return c;
   });
 
   // Exposed for tests / benches (not part of the DOM surface).

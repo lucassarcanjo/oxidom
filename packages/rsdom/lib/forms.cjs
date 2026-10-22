@@ -383,6 +383,8 @@ class DOMTokenList {
   replace(token, newToken) {
     token = str(token);
     newToken = str(newToken);
+    // both empty checks (SyntaxError) come before both whitespace checks (InvalidCharacterError)
+    if (token === '' || newToken === '') validateToken('');
     validateToken(token);
     validateToken(newToken);
     const cur = this.#sync();
@@ -1974,10 +1976,16 @@ function install(_rt, dom) {
       const u = h === null ? null : parseURL(this, h);
       return u === null ? '' : new URL(u).origin;
     },
+    // the [stringifier] href: brand-checked, and the interface's own getter (not an overridden `this.href`)
     toString() {
-      return this.href;
+      const C = rt.classes;
+      if (!(this instanceof C.HTMLAnchorElement || this instanceof C.HTMLAreaElement)) {
+        throw new TypeError("'toString' called on an object that is not a valid instance of HTMLAnchorElement.");
+      }
+      return hrefOf.call(this);
     },
   };
+  const hrefOf = Object.getOwnPropertyDescriptor(Hyperlink, 'href').get;
   for (const part of URL_PARTS) {
     Object.defineProperty(Hyperlink, part, {
       get() {

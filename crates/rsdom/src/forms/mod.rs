@@ -297,7 +297,14 @@ impl Env {
             }
             Some(v) => {
                 let Some(a) = self.atoms.get(v) else { return 0 };
-                let f = self.get_element_by_id(self.root_of(id), a);
+                let root = self.root_of(id);
+                // the root itself counts (a disconnected `<form id=f>` holding `<input form=f>`), as in
+                // jsdom's firstElementWithId
+                let f = if attr(self, root, atom::ID) == Some(v) {
+                    root
+                } else {
+                    self.get_element_by_id(root, a)
+                };
                 if self.is_html_elem(f, atom::FORM) { f } else { 0 }
             }
         }

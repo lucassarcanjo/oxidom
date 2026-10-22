@@ -150,7 +150,13 @@ html/browsers/the-window-object/named-access-on-the-window-object/element-contri
   "Removing one of equal id and name attributes preserves the other contribution": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/dom/documents/dom-tree-accessors/Document-currentScript-external-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/Document-currentScript-inline-dont-upstream.html: [fail, "assert_true: wrong value"]
-html/dom/documents/dom-tree-accessors/nameditem-subtree-mutations.html: [fail, "assert_true: wrong value"]
+html/dom/documents/dom-tree-accessors/nameditem-subtree-mutations.html:
+  "A embed with a name nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
+  "A form with a name nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
+  "A iframe with a name nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
+  "A img with a name nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
+  "A object with a id nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
+  "A object with a name nested in an inserted or removed subtree updates the named properties": [fail, "assert_true: wrong value"]
 html/semantics/embedded-content/the-canvas-element/canvas-serialization.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/forms/the-input-element/radio-form-owner-tree-changes.html:
   "Moving a checked radio directly between disconnected forms": [fail, "assert_false: wrong value"]

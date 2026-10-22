@@ -122,9 +122,7 @@ svg/struct/scripted/element-svg.html:
   "requiredExtensions": [fail, "missing global: SVGStringList"]
   "systemLanguage": [fail, "missing global: SVGStringList"]
 svg/types/scripted/SVGStringList.html: [fail, "missing global: SVGStringList"]
-uievents/focusevents/focusable-area-flat-tree.html: [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
 uievents/focusevents/focusable-area.html:
   "Calling focus() on an element inside an inert shadow host does nothing": [fail, "assert_not_equals: wrong value"]
-  "Calling focus() on an element slotted into display: none slot does nothing": [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
   "Calling focus() on an element with an inert ancestor does nothing": [fail, "assert_not_equals: wrong value"]
   "Calling focus() on an inert element does nothing": [fail, "assert_not_equals: wrong value"]

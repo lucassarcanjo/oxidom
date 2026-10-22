@@ -112,6 +112,9 @@ impl Env {
             self.bump_named_if_contributes(el);
         }
         crate::mo::queue_attribute(self, el, local, ns, old);
+        if self.shadow.any() && ns == Atom::NONE && matches!(local, atom::SLOT | atom::NAME) {
+            self.slot_attr_changed(el, local, old);
+        }
         crate::style::on_attr_changed(self, el, local, ns, old);
         crate::forms::on_attr_changed(self, el, local, ns, old);
     }

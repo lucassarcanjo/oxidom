@@ -66,7 +66,12 @@ impl Env {
             return false;
         }
         // jsdom: no flat-tree inclusive ancestor may compute to `display: none` (area A's cascade).
-        if crate::style::cascade::display_none_inclusive_ancestor(self, id) {
+        let hidden = if self.shadow.any() {
+            self.flat_tree_hidden(id, r.owner)
+        } else {
+            crate::style::cascade::display_none_inclusive_ancestor(self, id)
+        };
+        if hidden {
             return false;
         }
         let tabindex = |e: &Env| {
@@ -98,6 +103,30 @@ impl Env {
             },
             Ns::Svg => tabindex(self) || (r.local == atom::A.0 && self.has_attr_ns_null(id, atom::HREF)),
             _ => false,
+        }
+    }
+
+    /// jsdom's display test over `flatTreeInclusiveAncestors` (helpers/shadow-dom.js): true if an element on
+    /// the flat-tree path from connected `id` to `doc`'s document element computes to `display: none`, or the
+    /// path breaks (an unassigned host child, fallback content of a slot that has assigned nodes).
+    fn flat_tree_hidden(&mut self, id: NodeId, doc: NodeId) -> bool {
+        let mut root = self.rec(doc).first;
+        while root != 0 && !self.is_element(root) {
+            root = self.rec(root).next;
+        }
+        let mut n = id;
+        loop {
+            if (crate::style::cascade::core(self, n) >> crate::style::cascade::pack::DISPLAY_SHIFT) & 31 == 2
+            {
+                return true;
+            }
+            if n == root {
+                return false;
+            }
+            n = self.flat_tree_parent_element(n);
+            if n == 0 {
+                return true;
+            }
         }
     }
 

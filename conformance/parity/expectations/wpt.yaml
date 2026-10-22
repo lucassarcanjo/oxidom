@@ -901,10 +901,6 @@ dom/lists/DOMTokenList-iteration.html:
 dom/nodes/CharacterData-appendData.html:
   "Comment.appendData()": [fail, "assert_true: wrong value"]
   "Text.appendData()": [fail, "assert_true: wrong value"]
-dom/nodes/CharacterData-remove.html:
-  "remove() should work if PI does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
-  "remove() should work if comment does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
-  "remove() should work if text does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
 dom/nodes/CharacterData-substringData.html:
   "Comment.substringData() with too few arguments": [fail, "assert_true: wrong value"]
   "Text.substringData() with too few arguments": [fail, "assert_true: wrong value"]
@@ -926,31 +922,8 @@ dom/nodes/Document-constructor.html:
 dom/nodes/Document-doctype.html:
   "Window document with doctype": [fail, "assert_equals: wrong value"]
 dom/nodes/Document-getElementsByTagName.html:
-  "Element in HTML namespace, no prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in HTML namespace, prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, no prefix, lowercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, no prefix, uppercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, lowercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, uppercase name": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName('*')": [fail, "assert_array_equals: wrong value"]
   "hasOwnProperty, getOwnPropertyDescriptor, getOwnPropertyNames": [fail, "assert_equals: got undefined (missing attribute/API)"]
-dom/nodes/Document-getElementsByTagNameNS.html:
-  "ABC element in html namespace": [fail, "assert_array_equals: wrong value"]
-  "AÇ, case sensitivity": [fail, "assert_array_equals: wrong value"]
-  "BODY element in test namespace, no prefix": [fail, "assert_array_equals: wrong value"]
-  "BODY element in test namespace, prefix": [fail, "assert_array_equals: wrong value"]
-  "Empty string namespace": [fail, "assert_array_equals: wrong value"]
-  "abc element in html namespace": [fail, "assert_array_equals: wrong value"]
-  "body element in test namespace, no prefix": [fail, "assert_array_equals: wrong value"]
-  "body element in test namespace, prefix": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('*', '*')": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('*', 'body')": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('http://www.w3.org/1999/xhtml', '*')": [fail, "assert_array_equals: wrong value"]
 dom/nodes/DocumentType-literal.html: [fail, "assert_equals: wrong value"]
-dom/nodes/DocumentType-remove.html:
-  "remove() should work if doctype does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-children.html:
   "HTMLCollection edge cases 1": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-classlist.html:
@@ -959,33 +932,8 @@ dom/nodes/Element-classlist.html:
   "classList.replace(\" \", \"\") with attribute value null (XHTML node)": [fail, "assert_throws_dom: wrong exception"]
   "classList.replace(\" \", \"\") with attribute value null (XML node with null namespace)": [fail, "assert_throws_dom: wrong exception"]
   "classList.replace(\" \", \"\") with attribute value null (foo node)": [fail, "assert_throws_dom: wrong exception"]
-dom/nodes/Element-getElementsByClassName.html:
-  "getElementsByClassName should work on disconnected subtrees.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-getElementsByTagName.html:
-  "Element in HTML namespace, no prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in HTML namespace, prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, no prefix, lowercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, no prefix, uppercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, lowercase name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, non-ascii characters in name": [fail, "assert_array_equals: wrong value"]
-  "Element in non-HTML namespace, prefix, uppercase name": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName('*')": [fail, "assert_array_equals: wrong value"]
   "hasOwnProperty, getOwnPropertyDescriptor, getOwnPropertyNames": [fail, "assert_equals: got undefined (missing attribute/API)"]
-dom/nodes/Element-getElementsByTagNameNS.html:
-  "ABC element in html namespace": [fail, "assert_array_equals: wrong value"]
-  "AÇ, case sensitivity": [fail, "assert_array_equals: wrong value"]
-  "BODY element in test namespace, no prefix": [fail, "assert_array_equals: wrong value"]
-  "BODY element in test namespace, prefix": [fail, "assert_array_equals: wrong value"]
-  "Empty string namespace": [fail, "assert_array_equals: wrong value"]
-  "abc element in html namespace": [fail, "assert_array_equals: wrong value"]
-  "body element in test namespace, no prefix": [fail, "assert_array_equals: wrong value"]
-  "body element in test namespace, prefix": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('*', '*')": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('*', 'body')": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagNameNS('http://www.w3.org/1999/xhtml', '*')": [fail, "assert_array_equals: wrong value"]
-dom/nodes/Element-remove.html:
-  "remove() should work if element does have a parent and siblings": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Element-setAttributeNodeNS.html: [fail, "assert_equals: wrong value"]
 dom/nodes/MutationObserver-childList.html:
   "childList ParentNode.replaceChildren: move an existing child": [fail, "assert_equals: wrong value"]
@@ -1001,17 +949,6 @@ dom/nodes/Node-childNodes.html:
   "Node.childNodes on a DocumentFragment.": [fail, "assert_array_equals: wrong value"]
   "Node.childNodes on an Element.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Node-cloneNode-document-allow-declarative-shadow-roots.window.html: [fail, "missing method: .write()"]
-dom/nodes/Node-insertBefore.html:
-  "If the context node is a document and a doctype is following the reference child, inserting a DocumentFragment with an element should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document and a doctype is following the reference child, inserting an element should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document with and element child, appending a doctype should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a DocumentFragment with an element before the doctype should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a DocumentFragment with an element if there already is an element child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a doctype after the document element should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a doctype if there already is a doctype child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting an element before the doctype should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting an element if there already is an element child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "Inserting a node before itself should not move the node": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Node-lookupNamespaceURI.html:
   "Disconnected Attr has no namespace URI matching \"xml\"": [fail, "assert_equals: wrong value"]
   "Disconnected Attr has no namespace URI matching \"xmlns\"": [fail, "assert_equals: wrong value"]
@@ -1021,77 +958,21 @@ dom/nodes/Node-lookupNamespaceURI.html:
   "DocumentFragment should have null namespace, prefix \"xmlns\"": [fail, "assert_equals: wrong value"]
   "DocumentType should have null namespace, prefix \"xml\"": [fail, "assert_equals: wrong value"]
   "DocumentType should have null namespace, prefix \"xmlns\"": [fail, "assert_equals: wrong value"]
-dom/nodes/Node-normalize.html:
-  "Empty text nodes": [fail, "assert_array_equals: wrong value"]
-  "Empty text nodes separated by a non-empty text node": [fail, "assert_array_equals: wrong value"]
-  "Non-text nodes with empty textContent values.": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-dom/nodes/Node-replaceChild.html:
-  "If the context node is a document, inserting a DocumentFragment with an element before the doctype should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a DocumentFragment with an element if there already is an element child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a doctype after the document element should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a doctype if there already is a doctype child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting a new doctype should work.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting an element before the doctype should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "If the context node is a document, inserting an element if there already is an element child should throw a HierarchyRequestError.": [fail, "assert_array_equals: wrong value"]
-  "Replacing a node with its next sibling should work (2 children)": [fail, "assert_array_equals: wrong value"]
-  "Replacing a node with its next sibling should work (4 children)": [fail, "assert_array_equals: wrong value"]
-  "Replacing a node with itself should not move the node": [fail, "assert_array_equals: wrong value"]
-  "Replacing the document element with a DocumentFragment containing a single element and comments should work.": [fail, "assert_array_equals: wrong value"]
-  "Replacing the document element with a DocumentFragment containing a single element should work.": [fail, "assert_array_equals: wrong value"]
-  "Replacing the document element with a single element should work.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/NodeList-live-mutations.window.html:
   "NodeList live mutations: NodeList ownPropertyNames": [fail, "assert_object_equals: wrong value"]
-dom/nodes/ParentNode-append.html:
-  "DocumentFragment.append() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
-  "Element.append() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
-dom/nodes/ParentNode-prepend.html:
-  "DocumentFragment.prepend() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
-  "Element.prepend() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-escapes.html:
   "\"\\ud83dsurrogateFirst\" should never match with \"#\\\\d83d surrogateFirst\"": [fail, "assert_equals: wrong value"]
   "\"surrogateSecond\\udd11\" should never match with \"#surrogateSecond\\\\dd11\"": [fail, "assert_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-host-pseudo-class.html: [fail, "assert_equals: wrong value"]
-dom/nodes/ParentNode-replaceChildren.html:
-  "Document.replaceChildren() with a DocumentFragment containing a single element, replacing an existing doctype and element.": [fail, "assert_array_equals: wrong value"]
-  "Document.replaceChildren() with a doctype, replacing an existing doctype and element.": [fail, "assert_array_equals: wrong value"]
-  "Document.replaceChildren() with an element, replacing an existing doctype and element.": [fail, "assert_array_equals: wrong value"]
-  "DocumentFragment.replaceChildren() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
-  "Element.replaceChildren() with only one element as an argument, on a parent having no child.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/Text-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
-dom/nodes/append-on-Document.html:
-  "Document.append() with only one element as an argument, on a Document having no child.": [fail, "assert_array_equals: wrong value"]
-  "Document.append() with only one element as an argument, on a Document having one child.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/attributes-namednodemap.html:
   "an attribute set by setAttribute should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
   "an attribute with a null namespace should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
   "an attribute with a set namespace should be accessible as a field on the `attributes` field of an Element": [fail, "read of undefined (.value)"]
   "setNamedItem and removeNamedItem on `attributes` should add and remove fields from `attributes`": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "setNamedItem and removeNamedItem on `attributes` should not interfere with existing method names": [fail, "assert_equals: got undefined (missing attribute/API)"]
-dom/nodes/case.html:
-  "getElementsByTagName ABC": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName Abc": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName abc": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName Ä": [fail, "assert_array_equals: wrong value"]
-  "getElementsByTagName ä": [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-01.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-02.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-03.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-04.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-05.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-06.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-07.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-08.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-09.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-13.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-14.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-15.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-16.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-17.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-18.htm: [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-32.html:
-  "finds the class name": [fail, "assert_array_equals: wrong value"]
-  "finds the same element with multiple class names": [fail, "assert_array_equals: wrong value"]
-dom/nodes/getElementsByClassName-whitespace-class-names.html: [fail, "assert_array_equals: wrong value"]
+dom/nodes/getElementsByClassName-14.htm:
+  "document.getElementsByClassName(): case-insensitive (quirks mode)": [fail, "assert_array_equals: wrong value"]
 dom/nodes/insertion-removing-steps/Node-append-form-and-script-from-fragment.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
 dom/nodes/insertion-removing-steps/Node-appendChild-script-and-button-from-div.html: [fail, "assert_equals: wrong value"]
 dom/nodes/insertion-removing-steps/Node-appendChild-script-and-custom-from-fragment.html: [fail, "assert_true: wrong value"]
@@ -1151,9 +1032,6 @@ dom/nodes/moveBefore/stylesheet-no-refetch.html: [timeout, "harness TIMEOUT: (no
 dom/nodes/name-validation.html:
   "Valid and invalid characters in setAttributeNS and createAttributeNS.": [fail, "assert_throws_dom: did not throw"]
 dom/nodes/post-connection-steps-shadow-tree.html: [fail, "assert_equals: wrong value"]
-dom/nodes/prepend-on-Document.html:
-  "Document.append() with only one element as an argument, on a Document having one child.": [fail, "assert_array_equals: wrong value"]
-  "Document.prepend() with only one element as an argument, on a Document having no child.": [fail, "assert_array_equals: wrong value"]
 dom/nodes/processing-instruction-attributes.html: [fail, "missing method: .setAttribute()", {pass: 10}]
 dom/nodes/remove-next-sibling-during-replace-with.html: [fail, "assert_equals: wrong value"]
 dom/nodes/remove-unscopable.html: [fail, "read of undefined (.before)"]
@@ -1205,13 +1083,9 @@ domxpath/text-html-attributes.html:
   "Select SVG elements with refX attribute": [fail, "assert_array_equals: wrong value"]
   "Select both HTML and SVG elements based on mixed case attribute": [fail, "assert_array_equals: wrong value"]
 domxpath/text-html-elements.html:
-  "HTML elements mixed case": [fail, "assert_array_equals: wrong value"]
   "HTML elements mixed use of prefix": [fail, "assert_array_equals: wrong value"]
   "HTML elements namespace prefix": [fail, "assert_array_equals: wrong value"]
-  "HTML elements no namespace prefix": [fail, "assert_array_equals: wrong value"]
-  "Non-ascii HTML element": [fail, "assert_array_equals: wrong value"]
   "Non-ascii HTML element2": [fail, "assert_array_equals: wrong value"]
-  "Non-ascii HTML element3": [fail, "assert_array_equals: wrong value"]
   "SVG elements namespace prefix": [fail, "assert_array_equals: wrong value"]
   "SVG elements no namespace prefix": [fail, "assert_array_equals: wrong value"]
   "Throw with invalid prefix": [fail, "assert_throws_dom: did not throw"]
@@ -1305,11 +1179,9 @@ html/dom/documents/dom-tree-accessors/Document.body.html:
 html/dom/documents/dom-tree-accessors/document.forms.html:
   "document.forms": [fail, "read of undefined (.id)"]
   "document.forms getOwnPropertyNames": [fail, "assert_array_equals: wrong value"]
-  "document.forms iteration": [fail, "assert_array_equals: wrong value"]
 html/dom/documents/dom-tree-accessors/document.images.html:
   "Two img elements with the same id": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "Two img elements with the same name": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "document.images should contain all HTML img elements": [fail, "assert_array_equals: wrong value"]
   "img with id": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "img with id and name": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "img with name": [fail, "assert_equals: got undefined (missing attribute/API)"]
@@ -1808,7 +1680,6 @@ html/infrastructure/common-dom-interfaces/collections/htmlallcollection.html:
   "namedItem method with undefined": [fail, "read of undefined (.namedItem)"]
 html/infrastructure/common-dom-interfaces/collections/htmlformcontrolscollection.html:
   "HTMLFormControlsCollection[name] must return the named item": [fail, "assert_equals: got undefined (missing attribute/API)"]
-  "The controls in the form element must be sorted in tree order": [fail, "assert_array_equals: wrong value"]
 html/infrastructure/common-dom-interfaces/collections/htmloptionscollection.html:
   "Add non-option to collection": [fail, "assert_true: wrong value"]
   "HTMLOptionsCollection [name] method return the item with name": [fail, "assert_true: wrong value"]
@@ -2111,7 +1982,6 @@ html/semantics/forms/the-form-element/form-elements-matches.html:
 html/semantics/forms/the-form-element/form-elements-nameditem-01.html:
   "elements collection should include fieldsets": [fail, "read of undefined (.form)"]
   "elements collection should return elements or RadioNodeLists": [fail, "read of undefined (.form)"]
-html/semantics/forms/the-form-element/form-elements-nameditem-02.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/forms/the-form-element/form-indexed-element-shadow.html: [fail, "assert_true: wrong value"]
 html/semantics/forms/the-form-element/form-indexed-element.html:
   "Trying to delete an indexed property name should never work": [fail, "read of undefined (.value)"]
@@ -2206,14 +2076,7 @@ html/semantics/forms/the-select-element/option-selectedness-script-mutation.html
   "multi-select keeps multiple selected options when selected attribute changes from script": [fail, "assert_equals: wrong value"]
   "single-select responds to removing selected attribute from script": [fail, "assert_equals: wrong value"]
   "single-select responds to setting selected attribute from script": [fail, "assert_equals: wrong value"]
-html/semantics/forms/the-select-element/select-remove.html:
-  "select.options.remove(n) should work": [fail, "assert_array_equals: wrong value"]
-  "select.remove(n) should work": [fail, "assert_array_equals: wrong value"]
 html/semantics/forms/the-select-element/select-selectedOptions-nesting.window.html: [fail, "assert_equals: wrong value"]
-html/semantics/forms/the-select-element/select-selectedOptions.html:
-  ".selectedOptions with no selected option": [fail, "assert_array_equals: wrong value"]
-  ".selectedOptions with one selected option": [fail, "assert_array_equals: wrong value"]
-  ".selectedOptions without the 'multiple' attribute but more than one selected option should return the last one": [fail, "assert_array_equals: wrong value"]
 html/semantics/forms/the-select-element/select-validity.html:
   "Remove and add back the placeholder label option": [fail, "assert_false: wrong value"]
 html/semantics/forms/the-select-element/select-value.html:
@@ -2328,8 +2191,6 @@ html/semantics/scripting-1/the-script-element/script-for-event.html:
   "Script 9": [fail, "assert_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/script-referrerpolicy-idl.html: [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/scripting-1/the-script-element/script-supports.html: [fail, "missing method: .supports()"]
-html/semantics/scripting-1/the-script-element/script-text.html:
-  "Setter (non-empty string)": [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/script-type-and-language-js.html: [fail, "assert_equals: wrong value", {pass: 238}]
 html/semantics/scripting-1/the-script-element/script-type-whitespace.html:
   "Script shouldn't run with type=\"text/javascript&#x000B;\" (parser-inserted)": [fail, "assert_false: wrong value"]
@@ -2390,23 +2251,7 @@ html/semantics/tabular-data/processing-model-1/rowspan-0-quirks.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
 html/semantics/tabular-data/processing-model-1/rowspan-0.html:
   "clientHeight": [fail, "assert_greater_than: wrong value"]
-html/semantics/tabular-data/the-table-element/createTBody.html:
-  "A tbody and a tfoot child node": [fail, "assert_array_equals: wrong value"]
-  "A tbody and a thead child node": [fail, "assert_array_equals: wrong value"]
-  "A tbody node inside a tfoot child node": [fail, "assert_array_equals: wrong value"]
-  "A tbody node inside a tfoot child node after a tbody child node": [fail, "assert_array_equals: wrong value"]
-  "A tbody node inside a thead child node": [fail, "assert_array_equals: wrong value"]
-  "A tbody node inside a thead child node after a tbody child node": [fail, "assert_array_equals: wrong value"]
-  "A tfoot and a tbody child node": [fail, "assert_array_equals: wrong value"]
-  "A thead and a tbody child node": [fail, "assert_array_equals: wrong value"]
-  "One HTML and one namespaced tbody child node": [fail, "assert_array_equals: wrong value"]
-  "One tbody child node": [fail, "assert_array_equals: wrong value"]
-  "Two nested tbody child nodes": [fail, "assert_array_equals: wrong value"]
-  "Two tbody child nodes": [fail, "assert_array_equals: wrong value"]
-  "Two tbody child nodes and a div": [fail, "assert_array_equals: wrong value"]
-html/semantics/tabular-data/the-table-element/table-insertRow.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/tabular-data/the-table-element/table-rows.html: [fail, "assert_true: wrong value"]
-html/semantics/tabular-data/the-tr-element/cells.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/text-level-semantics/the-a-element/a-stringifier.html:
   "HTMLAnchorElement stringifier 10": [fail, "assert_equals: wrong value"]
   "HTMLAnchorElement stringifier 2": [fail, "assert_true: wrong value"]

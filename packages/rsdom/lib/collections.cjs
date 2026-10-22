@@ -2,10 +2,12 @@
 // NodeList (live childNodes + static), HTMLCollection (live children + live queries). No Proxies
 // (DESIGN §4.3).
 //
-// LIVE lists keep NO own numeric properties: indices are getters installed on the prototype on demand
-// (`installIndices`), each calling `_get(i)`, which re-validates against the Rust-written version
-// (`child_ver` / the query's epoch slots; lib/memo.cjs) on every read. So a list held across a mutation is
-// always current, also when indexed without touching `length` first (live-list semantics, like jsdom).
+// LIVE lists: indices are getters installed on the prototype on demand (`installIndices`), each calling
+// `_get(i)`, which re-validates against the Rust-written version (`child_ver` / the query's epoch slots;
+// lib/memo.cjs) on every read. So a list held across a mutation is always current, also when indexed without
+// touching `length` first (live-list semantics, like jsdom). On top of that, every `length` read whose answer
+// changed makes the list's OWN enumerable index accessors cover exactly [0, length) (`syncOwn`), so
+// `hasOwnProperty(i)` and `Object.keys` match jsdom's Proxies as of the last `length` read (DESIGN §4.3).
 // Element lookup uses a cursor cache (Blink's CollectionIndexCache): sequential `list[i]` / iteration and
 // `[0]` are O(1), random access walks from the nearest of first / last / cursor. `childNodes.length` is CHILD_LEN (O(1)).
 // Measured: ~100 ns per indexed read through the prototype getter (jsdom ~195, happy-dom ~145), ~1 ns
@@ -14,7 +16,7 @@
 // STATIC lists (querySelectorAll results) are snapshots: own numeric data properties (fast).
 //
 // Internal state is in #private fields, so Object.keys/entries, JSON.stringify and Vitest's
-// `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes.
+// `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes: the indices.
 
 const rt = require('./runtime.cjs');
 const { MEMO, NODE, nodeVersion, envGen, alive } = require('./memo.cjs');
@@ -52,6 +54,36 @@ function installIndices(proto, have, n) {
     });
   }
   return target;
+}
+
+/** Shared own-index getters (`OWN_GET[i]` returns `this._get(i)`), grown on demand. */
+const OWN_GET = [];
+/** Shared own-index setters (`OWN_SET[i]` calls `this._setIndex(i, v)`). */
+const OWN_SET = [];
+
+/**
+ * Makes a live list's own index properties cover exactly [0, n) (from `have`): jsdom's lists are Proxies whose
+ * supported property indices are own, enumerable properties (`hasOwnProperty(i)`, `Object.keys`). Run on every
+ * `length` read whose answer differs from the last one, so they are exact as of the last `length` read; reads
+ * past them still reach the prototype getters.
+ */
+function syncOwn(list, have, n) {
+  // a collection with an indexed setter (HTMLOptionsCollection) routes assignments through `_setIndex`
+  const settable = typeof list._setIndex === 'function';
+  for (let i = have; i < n; i++) {
+    let get = OWN_GET[i];
+    if (get === undefined) {
+      get = OWN_GET[i] = function () {
+        return this._get(i);
+      };
+      OWN_SET[i] = function (v) {
+        this._setIndex(i, v);
+      };
+    }
+    Object.defineProperty(list, i, { get, set: settable ? OWN_SET[i] : undefined, enumerable: true, configurable: true });
+  }
+  for (let i = n; i < have; i++) delete list[i];
+  return n;
 }
 
 function ensureNL(n) {
@@ -148,6 +180,8 @@ class NodeList {
   #cid = 0;
   /** static: the entries */
   #a = null;
+  /** live: own index properties [0, #own) (syncOwn) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -222,6 +256,7 @@ class NodeList {
     if (!alive(this.#g)) return 0;
     const n = V.T[V.off(p) + F.CHILD_LEN];
     if (n > IDX.nl) ensureNL(n);
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
     return n;
   }
 
@@ -317,6 +352,8 @@ class HTMLCollection {
   #src = null;
   #a = null;
   #k = null;
+  /** own index properties [0, #own) (syncOwn) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -399,8 +436,9 @@ class HTMLCollection {
 
   get length() {
     this._sync();
-    if (this.#src !== null) return this.#a.length;
-    return this.#p === 0 ? 0 : this.#count();
+    const n = this.#src !== null ? this.#a.length : this.#p === 0 ? 0 : this.#count();
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
+    return n;
   }
 
   item(index) {

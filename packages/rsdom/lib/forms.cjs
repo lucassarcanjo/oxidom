@@ -828,6 +828,11 @@ function idsToWrappers(ids) {
 }
 
 class HTMLOptionsCollection extends HTMLCollection {
+  /** The indexed setter, for the own index properties collections.cjs `syncOwn` defines. */
+  _setIndex(i, v) {
+    setOptionAt(this, i, v, 'HTMLOptionsCollection');
+  }
+
   get length() {
     const n = super.length;
     coverOptionIndices(n);

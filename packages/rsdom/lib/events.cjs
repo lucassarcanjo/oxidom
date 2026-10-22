@@ -99,6 +99,26 @@ let isCanceled;
 let uninitialize;
 /** The event's initialized flag. */
 let isInitialized;
+/** [get, set] of MouseEvent's / FocusEvent's relatedTarget (retargeted per path entry, DESIGN §42). */
+let mouseRel;
+let focusRel;
+
+function getRel(ev) {
+  if (ev instanceof MouseEvent) return mouseRel[0](ev);
+  if (ev instanceof FocusEvent) return focusRel[0](ev);
+  return null;
+}
+
+function setRel(ev, v) {
+  if (ev instanceof MouseEvent) mouseRel[1](ev, v);
+  else if (ev instanceof FocusEvent) focusRel[1](ev, v);
+}
+
+/** lib/shadow.cjs, loaded on first use (it loads after this module). */
+let shadowMod = null;
+function shadow() {
+  return shadowMod ??= require('./shadow.cjs');
+}
 
 function tag(C, name = C.name) {
   Object.defineProperty(C.prototype, Symbol.toStringTag, { value: name, configurable: true });
@@ -121,6 +141,8 @@ class Event {
   #dispatching = false;
   #trusted = false;
   #path = NO_PATH;
+  /** The event path as DOM path structs while a dispatch through shadow trees runs (DESIGN §42), else null. */
+  #spath = null;
   #ts = 0;
   #initialized = true;
 
@@ -210,6 +232,7 @@ class Event {
   }
 
   composedPath() {
+    if (this.#spath !== null) return composedPathOf(this.#spath, this.#currentTarget);
     const p = this.#path;
     if (p.length === 0 || this.#currentTarget === null) return [];
     const out = new Array(p.length);
@@ -242,8 +265,8 @@ class Event {
     isInitialized = (ev) => ev.#initialized;
 
     /**
-     * DOM "dispatch" for a target without shadow trees. `target` is a node wrapper, a WindowTarget or a
-     * plain EventTarget. Returns `!canceled`. `trusted`: the UA fires it (`isTrusted`); script
+     * DOM "dispatch" for a path without shadow roots (composedDispatch handles the rest, DESIGN §42).
+     * `target` is a node wrapper, a WindowTarget or a plain EventTarget. Returns `!canceled`. `trusted`: the UA fires it (`isTrusted`); script
      * `dispatchEvent` and `el.click()` dispatch untrusted events.
      */
     dispatchImpl = (target, ev, trusted = false) => {
@@ -256,18 +279,23 @@ class Event {
       let activation = null;
       const isNode = target instanceof rt.classes.Node && target._i !== 0;
       const isClick = type === 'click' && ev instanceof MouseEvent;
+      // A target outside shadow trees, with no related target inside one, has a path that never meets a
+      // shadow root (no slots yet), so nothing to retarget: the plain walk below.
+      if (shadow().shadowsExist()) {
+        const rel = getRel(ev);
+        if (isNode && (inShadowTree(target) || inShadowTree(rel))) return composedDispatch(target, ev, isClick);
+        // a window or plain EventTarget: jsdom's one-entry path still retargets the related target (against
+        // no node: the outermost host), and leaves it so after dispatch
+        if (!isNode && inShadowTree(rel)) setRel(ev, wrap(shadow().retarget(rel._i, 0)));
+      }
       if (isNode) {
         let id = target._i;
         if (isClick && hasActivation(id)) activation = target;
         let last = id;
         for (let p = V.T[V.off(id) + F.PARENT]; ; p = V.T[V.off(p) + F.PARENT]) {
-          if (!(p > 0)) { // `> 0`: a stale view (undefined) ends the walk
-            // A shadow root's "get the parent" (DESIGN §22): its host for a composed event; a non-composed
-            // one stops at the target's own shadow root, the first one this walk reaches. No retargeting.
-            if (p !== 0 || !ev.#composed || (V.T[V.off(last) + F.META] & (M.KIND | M.SHADOW)) !== (K.FRAGMENT | M.SHADOW)) break;
-            p = rt.N.shadowHost(last);
-            if (!(p > 0)) break;
-          }
+          // `> 0`: a stale view (undefined) ends the walk. This walk never meets a shadow root: targets in
+          // shadow trees take composedDispatch above.
+          if (!(p > 0)) break;
           const w = wrap(p);
           path.push(w);
           if (isClick && activation === null && ev.#bubbles && hasActivation(p)) activation = w;
@@ -321,6 +349,115 @@ class Event {
     };
 
     /**
+     * DOM "dispatch" once the env has a shadow root (DESIGN §42): jsdom 30 `EventTarget-impl.js` `_dispatch`
+     * with path structs, so listeners see `target` / `relatedTarget` retargeted to their tree, and the targets
+     * are cleared afterwards when they were in a shadow tree. Called with the dispatch flag already set.
+     */
+    function composedDispatch(target, ev, isClick) {
+      const S = shadow();
+      const origRel = getRel(ev);
+      const relNode = origRel instanceof rt.classes.Node && origRel._i !== 0 ? origRel._i : 0;
+      // ids: a node id, or WIN for the window
+      const relId = (against) => (relNode === 0 ? 0 : S.retarget(relNode, against));
+      const relOf = (rid) => (relNode === 0 ? origRel : wrap(rid));
+      const path = [];
+      ev.#spath = path;
+      const tId0 = target._i;
+      let tId = tId0;
+      let tRoot = S.rootOf(tId);
+      let rid = relId(tId);
+      let activation = null;
+      let clearTargets = false;
+      let packed = 0;
+      let win = null;
+      let wt = null;
+      if (relNode === 0 || rid !== tId || relNode === tId) {
+        appendStruct(path, tId, target, target, relOf(rid), false);
+        if (isClick && hasActivation(tId)) activation = target;
+        const load = ev.#type === 'load';
+        const composed = ev.#composed;
+        let pid = parentId(S, tId, tId0, composed);
+        while (pid !== 0) {
+          let item;
+          if (pid === WIN) {
+            if (load) break;
+            if (wt === null) wt = windowTargetOf(wrap(path[path.length - 1].id));
+            if (wt === null) break;
+            item = wt;
+          } else item = wrap(pid);
+          rid = pid === WIN ? relId(0) : relId(pid);
+          if (pid === WIN || underRoot(S, tRoot, pid)) {
+            if (isClick && ev.#bubbles && activation === null && pid !== WIN && hasActivation(pid)) activation = item;
+            appendStruct(path, pid, item, null, relOf(rid), false);
+          } else if (relNode !== 0 && pid === rid) {
+            break;
+          } else {
+            tId = pid;
+            tRoot = S.rootOf(pid);
+            if (isClick && activation === null && hasActivation(pid)) activation = item;
+            appendStruct(path, pid, item, item, relOf(rid), false);
+          }
+          pid = pid === WIN ? 0 : parentId(S, pid, tId0, composed);
+        }
+        markShadowItems(S, path);
+        if (path[path.length - 1].id === WIN) win = wt;
+        else {
+          const od = wrap(V.T[V.off(tId0) + F.OWNER]);
+          if (od !== null) win = windowTargetOf(od);
+        }
+        let clear = null;
+        for (let i = path.length - 1; i >= 0 && clear === null; i--) if (path[i].sat !== null) clear = path[i];
+        clearTargets = inShadowTree(clear.sat) || inShadowTree(clear.rel);
+
+        if (activation !== null && (V.T[V.off(activation._i) + F.LOCAL]) === A.input) packed = N.preActivate(activation._i);
+
+        for (let i = path.length - 1; i >= 0; i--) {
+          const st = path[i];
+          ev.#phase = st.sat !== null ? 2 : 1;
+          invokeStruct(st, ev, true, win);
+        }
+        let last = null;
+        for (let i = 0; i < path.length; i++) {
+          const st = path[i];
+          if (st.sat !== null) ev.#phase = 2;
+          else if (!ev.#bubbles) continue;
+          else ev.#phase = 3;
+          last = st;
+          invokeStruct(st, ev, false, win);
+        }
+        // listenerless entries skip the target update: apply the last selected entry's (jsdom does the same)
+        if (last !== null) {
+          ev.#target = pub(last.eff);
+          setRel(ev, last.rel);
+        }
+      }
+      ev.#phase = 0;
+      ev.#currentTarget = null;
+      ev.#spath = null;
+      ev.#dispatching = false;
+      ev.#stop = false;
+      ev.#stopImm = false;
+      if (clearTargets) {
+        ev.#target = null;
+        setRel(ev, null);
+      }
+      if (activation !== null) {
+        if (!ev.#canceled) activationBehavior(activation, ev, packed);
+        else if (packed !== 0) N.cancelActivation(activation._i, packed);
+      }
+      return !ev.#canceled;
+    }
+
+    /** DOM "invoke" of one path struct: update the targets when the item has listeners, then inner invoke. */
+    function invokeStruct(st, ev, capturePhase, win) {
+      const list = evList(st.item._ev, ev.#type);
+      if (list === undefined || list.length === 0) return;
+      ev.#target = pub(st.eff);
+      setRel(ev, st.rel);
+      invoke(st.item, ev, capturePhase, win, st.inShadow);
+    }
+
+    /**
      * HTML "the event handler processing algorithm" for an `on*` listener `l` of `item` (one shared code
      * path instead of a closure per handler: React sets `onclick` on every element with an onClick).
      */
@@ -334,7 +471,7 @@ class Event {
     }
 
     /** DOM "inner invoke" over a snapshot of `item`'s listeners of the event's type. */
-    function invoke(item, ev, capturePhase, win) {
+    function invoke(item, ev, capturePhase, win, inShadow = false) {
       const list = evList(item._ev, ev.#type);
       if (list === undefined || list.length === 0) return;
       if (ev.#stop) return;
@@ -349,7 +486,7 @@ class Event {
         let prev;
         if (win !== null) {
           prev = win.cur;
-          win.cur = ev;
+          if (!inShadow) win.cur = ev;
         }
         if (l.passive) ev.#inPassive = true;
         try {
@@ -588,6 +725,12 @@ class MouseEvent extends UIEvent {
       | (metaKey ? 1 << 13 : 0);
     this.#button = toShort(button);
     this.#relatedTarget = relatedTarget;
+  }
+
+  static {
+    mouseRel = [(ev) => ev.#relatedTarget, (ev, v) => {
+      ev.#relatedTarget = v;
+    }];
   }
 }
 tag(MouseEvent);
@@ -851,6 +994,12 @@ class FocusEvent extends UIEvent {
 
   get relatedTarget() {
     return this.#relatedTarget;
+  }
+
+  static {
+    focusRel = [(ev) => ev.#relatedTarget, (ev, v) => {
+      ev.#relatedTarget = v;
+    }];
   }
 }
 tag(FocusEvent);
@@ -1321,6 +1470,115 @@ function windowTargetOf(doc) {
 function defaultWindowTarget() {
   const c = context.current();
   return c === null ? null : c.wt;
+}
+
+/** True if `x` is a node in a shadow tree. */
+function inShadowTree(x) {
+  if (!(x instanceof rt.classes.Node) || x._i === 0) return false;
+  const S = shadow();
+  return S.isShadowRoot(S.rootOf(x._i));
+}
+
+/** Path-struct id of the window (node ids are positive). */
+const WIN = -1;
+
+/** DOM "append to an event path" (jsdom caches the effective target, the closest non-null shadow-adjusted one). */
+function appendStruct(path, id, item, sat, rel, slotInClosedTree) {
+  path.push({
+    id,
+    item,
+    sat,
+    eff: sat === null ? path[path.length - 1].eff : sat,
+    rel,
+    inShadow: false, // markShadowItems
+    rootOfClosedTree: id > 0 && shadow().isShadowRoot(id) && N.shadowMode(id) === 1,
+    slotInClosedTree,
+  });
+}
+
+/**
+ * Sets `inShadow` (the item's root is a shadow root) on every node item of a built path in one backward pass:
+ * the walk goes up a tree until its root, so an item's root is the first tree root at or after it.
+ */
+function markShadowItems(S, path) {
+  let inShadow = false;
+  for (let i = path.length - 1; i >= 0; i--) {
+    const id = path[i].id;
+    if (id === WIN) continue;
+    if (!(V.T[V.off(id) + F.PARENT] > 0)) inShadow = S.isShadowRoot(id);
+    path[i].inShadow = inShadow;
+  }
+}
+
+/**
+ * DOM "shadow-including inclusive ancestor" of `root` (a tree root) over `id`. A document root is an ancestor of
+ * every connected node it owns (one table read); other roots walk.
+ */
+function underRoot(S, root, id) {
+  const o = V.off(id);
+  if ((V.T[V.off(root) + F.META] & M.KIND) === K.DOCUMENT) {
+    return (V.T[o + F.META] & M.CONNECTED) !== 0 && V.T[o + F.OWNER] === root;
+  }
+  return S.isShadowIncludingInclusiveAncestor(root, id);
+}
+
+/**
+ * DOM "get the parent" of node `id` for an event first dispatched at `first`: the parent node, WIN for a
+ * document (the caller drops it for `load` or a window-less document), a shadow root's host unless the event
+ * is not composed and this is the target's own root; 0 for none.
+ */
+function parentId(S, id, first, composed) {
+  const o = V.off(id);
+  const p = V.T[o + F.PARENT];
+  if (p > 0) return p;
+  const meta = V.T[o + F.META];
+  if ((meta & M.KIND) === K.DOCUMENT) return WIN;
+  if ((meta & (M.KIND | M.SHADOW)) === (K.FRAGMENT | M.SHADOW)) {
+    if (!composed && id === S.rootOf(first)) return 0;
+    return N.shadowHost(id);
+  }
+  return 0;
+}
+
+/** Event#composedPath over path structs (jsdom `Event-impl.js`: closed shadow trees are hidden). */
+function composedPathOf(path, currentTarget) {
+  if (path.length === 0) return [];
+  const out = [currentTarget];
+  const cur = currentTarget === null ? null : currentTarget;
+  let curIndex = 0;
+  let curLevel = 0;
+  for (let i = path.length - 1; i >= 0; i--) {
+    const st = path[i];
+    if (st.rootOfClosedTree) curLevel++;
+    if (pub(st.item) === cur) {
+      curIndex = i;
+      break;
+    }
+    if (st.slotInClosedTree) curLevel--;
+  }
+  let level = curLevel;
+  let max = curLevel;
+  for (let i = curIndex - 1; i >= 0; i--) {
+    const st = path[i];
+    if (st.rootOfClosedTree) level++;
+    if (level <= max) out.unshift(pub(st.item));
+    if (st.slotInClosedTree) {
+      level--;
+      if (level < max) max = level;
+    }
+  }
+  level = curLevel;
+  max = curLevel;
+  for (let i = curIndex + 1; i < path.length; i++) {
+    const st = path[i];
+    if (st.slotInClosedTree) level++;
+    if (level <= max) out.push(pub(st.item));
+    if (st.rootOfClosedTree) {
+      level--;
+      if (level < max) max = level;
+    }
+  }
+  return out;
 }
 
 /** jsdom `defaultPassiveValue`: wheel/touch listeners on window, document, html, body default to passive. */

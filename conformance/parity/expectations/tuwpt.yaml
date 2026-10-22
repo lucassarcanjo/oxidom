@@ -122,8 +122,6 @@ svg/struct/scripted/element-svg.html:
   "requiredExtensions": [fail, "missing global: SVGStringList"]
   "systemLanguage": [fail, "missing global: SVGStringList"]
 svg/types/scripted/SVGStringList.html: [fail, "missing global: SVGStringList"]
-uievents/focusevents/focus-unfocus-steps.html:
-  "Entering and leaving a shadow tree delivers each host focus event once": [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
 uievents/focusevents/focusable-area-flat-tree.html: [fail, "shadow-dom: event retargeting, relatedTarget and slots"]
 uievents/focusevents/focusable-area.html:
   "Calling focus() on an element inside an inert shadow host does nothing": [fail, "assert_not_equals: wrong value"]

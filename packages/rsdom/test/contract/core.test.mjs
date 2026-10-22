@@ -54,4 +54,39 @@ describe.each(DOMS)('core [%s]', (kind) => {
     opts[1] = o;
     expect(opts[1].textContent).toBe('c');
   });
+
+  it('named properties on form.elements, document.forms and attributes', () => {
+    d.body.innerHTML = '<form id="f"><input name="email" value="x"></form>';
+    const form = d.forms.f;
+    expect(form.id).toBe('f');
+    expect(form.elements.email.value).toBe('x');
+    const el = d.querySelector('input');
+    expect(el.attributes.name.value).toBe('email');
+    if (kind === 'happy-dom') return; // PINNED to jsdom
+    expect(Object.keys(form.elements)).toEqual(['0', 'email']); // no [LegacyUnenumerableNamedProperties]
+    el.setAttribute('data-x', '1');
+    expect(el.attributes['data-x'].value).toBe('1');
+    expect(Object.keys(el.attributes)).toEqual(['0', '1', '2']); // names are not enumerable
+  });
+
+  it('HTMLMediaElement: state, volume / rate events as tasks, play() not implemented', async () => {
+    if (kind === 'happy-dom') return; // PINNED to jsdom: happy-dom's play() returns a promise
+    const v = d.createElement('video');
+    expect([v.paused, v.readyState, v.currentSrc, v.canPlayType('video/mp4')]).toEqual([true, 0, '', '']);
+    expect(Number.isNaN(v.duration)).toBe(true);
+    expect(v.buffered).toBe(v.buffered);
+    const seen = [];
+    v.addEventListener('volumechange', () => seen.push('volume'));
+    v.addEventListener('ratechange', () => seen.push('rate'));
+    v.muted = true;
+    v.playbackRate = 2;
+    expect(seen).toEqual([]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(seen).toEqual(['volume', 'rate']);
+    expect(() => {
+      v.volume = 2;
+    }).toThrow(/allowed range/);
+    expect(v.play()).toBe(undefined);
+    expect(d.defaultView.HTMLMediaElement.HAVE_ENOUGH_DATA).toBe(4);
+  });
 });

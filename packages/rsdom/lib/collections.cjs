@@ -21,7 +21,7 @@
 const rt = require('./runtime.cjs');
 const { MEMO, NODE, nodeVersion, envGen, alive } = require('./memo.cjs');
 
-const { V, F, M, K, TOKEN, W } = rt;
+const { V, F, M, K, TOKEN, W, EPI } = rt;
 
 function wrapSlow(id) {
   return rt.wrap(id);
@@ -377,6 +377,11 @@ class HTMLCollection {
   #k = null;
   /** own index properties [0, #own) (syncOwn) */
   #own = 0;
+  /** own named properties (`#syncNames`) and what they were computed from: [items key, EP[ATTR], env gen] */
+  #names = [];
+  #nameKey = null;
+  /** named properties wanted (`_withNames`): the collections where `coll.name` is idiomatic; 2 = enumerable */
+  #named = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -465,7 +470,62 @@ class HTMLCollection {
     this._sync();
     const n = this.#src !== null ? this.#a.length : this.#p === 0 ? 0 : this.#count();
     if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
+    if (!this.#named) return n;
+    const k = this.#nameKey;
+    const items = this.#src !== null ? this.#a : this.#v;
+    if (k === null || k[0] !== items || k[1] !== V.EP[EPI.ATTR] || k[2] !== V.envGen) {
+      this.#nameKey = [items, V.EP[EPI.ATTR], V.envGen];
+      this.#syncNames(n);
+    }
     return n;
+  }
+
+  /**
+   * Turns on named properties for this collection and syncs them (and the own indices): the getters of
+   * `form.elements`, `fieldset.elements`, `document.forms` / `images` / ..., and the table collections call it.
+   * Other collections (`children`, getElementsBy*) skip them: recomputing names is O(n) after every change, which
+   * made a `while (el.children.length) el.lastChild.remove()` loop quadratic. `enumerable` is for the subclasses
+   * without [LegacyUnenumerableNamedProperties] (HTMLFormControlsCollection, HTMLOptionsCollection).
+   */
+  _withNames(enumerable = false) {
+    this.#named = enumerable ? 2 : 1;
+    void this.length;
+    return this;
+  }
+
+  /**
+   * jsdom's named properties: each element's `id`, then the `name` of HTML elements, in tree order, as own
+   * accessors (non-enumerable, [LegacyUnenumerableNamedProperties], unless `_withNames(true)`) that call `namedItem` (so `form.elements.email`).
+   * Names the prototype chain has, or that are array indices, are left out. Recomputed by the `length` getter
+   * of a `_withNames` collection after its items or any attribute changed (DESIGN §4.3).
+   */
+  #syncNames(n) {
+    if (!Object.isExtensible(this)) return;
+    const names = [];
+    const seen = new Set();
+    const proto = Object.getPrototypeOf(this);
+    const add = (v) => {
+      if (v === null || v === '' || seen.has(v)) return;
+      seen.add(v);
+      if (v in proto || String(v >>> 0) === v) return;
+      names.push(v);
+    };
+    for (let i = 0; i < n; i++) {
+      const el = this._get(i);
+      if (el === undefined) break;
+      add(el.getAttribute('id'));
+      if (el.namespaceURI === rt.NS.HTML) add(el.getAttribute('name'));
+    }
+    const keep = new Set(names);
+    for (const k of this.#names) if (!keep.has(k)) Reflect.deleteProperty(this, k);
+    const defined = [];
+    for (const name of names) {
+      const get = function () {
+        return isLiveList(this) ? this.namedItem(name) ?? undefined : undefined;
+      };
+      if (Reflect.defineProperty(this, name, { get, enumerable: this.#named === 2, configurable: true })) defined.push(name);
+    }
+    this.#names = defined;
   }
 
   item(index) {

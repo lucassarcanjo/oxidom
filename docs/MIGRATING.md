@@ -176,7 +176,10 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`. `length` is 0 even
   with iframes (`browsing-contexts`); `status`, `length`, `external` and the bars are data properties (jsdom: replaceable
   accessors), so `status = 5` reads back `5`.
-- **[gap] `NamedNodeMap` named properties** (`el.attributes['id']`) are undefined. `core`.
+- **[gap] Named properties of collections** (`form.elements.email`, `select.options.o1`, `document.forms.login`, `table.rows.foo`,
+  `el.attributes.id`) are own properties synced when the collection is fetched or its `length` read; a collection
+  held across a change sees them stale until then. `el.children` and `getElementsBy*` results have none
+  (`children.namedItem('x')` works). DESIGN §4.3.
 - **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] XPath iterators and shadow trees:** a change inside a connected shadow tree sets
   `invalidIteratorState` on a document's XPath iterators; jsdom ignores shadow-tree changes there. DESIGN §39.

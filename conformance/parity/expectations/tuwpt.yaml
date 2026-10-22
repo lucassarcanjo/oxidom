@@ -152,9 +152,6 @@ html/dom/documents/dom-tree-accessors/Document-currentScript-external-dont-upstr
 html/dom/documents/dom-tree-accessors/Document-currentScript-inline-dont-upstream.html: [fail, "assert_true: wrong value"]
 html/dom/documents/dom-tree-accessors/nameditem-subtree-mutations.html: [fail, "assert_true: wrong value"]
 html/semantics/embedded-content/the-canvas-element/canvas-serialization.html: [timeout, "harness TIMEOUT: (no message)"]
-html/semantics/forms/the-fieldset-element/HTMLFieldSetElement-dont-upstream.html:
-  "The controls must root at the fieldset element": [fail, "read of undefined (.querySelector)"]
-  "The form attribute must return the fieldset's form owner": [fail, "assert_equals: got undefined (missing attribute/API)"]
 html/semantics/forms/the-input-element/radio-form-owner-tree-changes.html:
   "Moving a checked radio directly between disconnected forms": [fail, "assert_false: wrong value"]
   "Moving a checked radio inside a subtree between disconnected forms": [fail, "assert_false: wrong value"]

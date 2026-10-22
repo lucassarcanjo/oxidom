@@ -22,7 +22,7 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | xml | XML documents, XMLSerializer, DOMParser for XML types (`xml`) | `claude/project-thread-8t2nkv` | §38 | done |
 | xpath | XPath (`xpath`) | `claude/project-thread-8t2nkv` | §39 | done |
 | geometry | DOMRect and the remaining Window members (`geometry`) | `claude/project-thread-8t2nkv` | §40 | done |
-| core | Core DOM and HTML gaps (`core`) | `claude/project-thread-8t2nkv` | §4.3 | in progress: own collection indices in review |
+| core | Core DOM and HTML gaps (`core`) | `claude/project-thread-8t2nkv` | §4.3 | in progress: part 2 (media, named properties) in review |
 
 A thread works inside its item. Something it needs that belongs to another item goes to the coordinator (the session
 that created the threads) instead of into the PR. Small enablers (an exported helper, an atom) are fine when called

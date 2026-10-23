@@ -40,6 +40,12 @@ impl ScriptState {
         !self.docs.is_empty()
     }
 
+    /// True once some document runs scripts or some script element has flags (the cloning hook's guard).
+    #[inline(always)]
+    pub fn any(&self) -> bool {
+        !self.docs.is_empty() || !self.flags.is_empty()
+    }
+
     /// Marks a script element the HTML parser created: parser-inserted, and already started (`started`) when the
     /// parser is the fragment parsing algorithm's or scripting is disabled (`DOMParser`), as HTML "create an
     /// element for the token" says, so neither it nor a clone of it ever runs.
@@ -86,9 +92,12 @@ impl Env {
     }
 
     /// Hook: attribute (`ns`, `local`) of element `el` changed (or was set to the same value).
-    #[cold]
+    #[inline]
     pub(crate) fn script_attr_changed(&mut self, el: NodeId, local: Atom, ns: Atom) {
-        if ns != Atom::NONE || !self.script.docs.contains(&self.node_doc(el)) {
+        if ns != Atom::NONE
+            || (local != atom::SRC && !is_handler_name(self.atoms.name(local)))
+            || !self.script.docs.contains(&self.node_doc(el))
+        {
             return;
         }
         if local == atom::SRC {
@@ -141,7 +150,7 @@ impl Env {
         {
             self.script.flags.insert(dst, STARTED);
         }
-        if self.script.docs.contains(&self.node_doc(dst)) {
+        if self.script.on() && self.script.docs.contains(&self.node_doc(dst)) {
             self.script_handlers_of(dst);
         }
     }

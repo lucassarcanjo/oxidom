@@ -64,13 +64,16 @@ function run(ctx, code, filename) {
 function execute(ctx, el, code) {
   const doc = el.ownerDocument;
   const old = doc._currentScript;
+  const oldWrite = doc._writeAfterElement;
   doc._currentScript = el.getRootNode() instanceof rt.classes.ShadowRoot ? null : el;
+  doc._writeAfterElement = el;
   try {
     run(ctx, code, doc.URL);
   } catch (e) {
     require('./events.cjs').reportException(ctx.window, e);
   } finally {
     doc._currentScript = old;
+    doc._writeAfterElement = oldWrite;
   }
 }
 
@@ -121,6 +124,11 @@ function bind(ctx) {
   const doc = ctx.document;
   N.scriptBindDoc(doc._i, 1);
   ctx.onClose(() => N.scriptBindDoc(doc._i, 0));
+  runParsed(doc);
+}
+
+/** Runs a parsed document's `on*` attributes and scripts in tree order (the parser's order). */
+function runParsed(doc) {
   const w = rt.outIds(N.scriptParsed(doc._i));
   for (let i = 0; i < w.length; i += 3) {
     if (w[i] === 128) handlerChanged(w[i + 1], rt.atomName(w[i + 2]));
@@ -156,4 +164,51 @@ function startLoad(ctx) {
   });
 }
 
-module.exports = { postConnection, handlerChanged, bind, startLoad, run };
+/** jsdom `Document#open()`: removes the document's children. */
+function open(doc) {
+  if (require('./xml.cjs').inXmlDocument(doc)) {
+    throw new rt.classes.DOMException('Cannot use document.open on XML documents', 'InvalidStateError');
+  }
+  while (doc.firstChild !== null) doc.removeChild(doc.firstChild);
+  return doc;
+}
+
+/**
+ * jsdom `Document#write()`: from a running script, the markup goes right after it (its scripts run, as jsdom's
+ * `_isMovingDueToDocumentWrite` lets them); while the document loads, it becomes the last element's content;
+ * afterwards it replaces the document.
+ */
+function write(doc, text) {
+  if (require('./xml.cjs').inXmlDocument(doc)) {
+    throw new rt.classes.DOMException('Cannot use document.write on XML documents', 'InvalidStateError');
+  }
+  const after = doc._writeAfterElement;
+  if (after !== undefined && after !== null) {
+    const div = doc.createElement('div');
+    div.innerHTML = text;
+    // fragment-parsed scripts are "already started": these are the parser's, so they run once inserted
+    for (const s of div.getElementsByTagName('script')) N.scriptSetFlags(s._i, 0);
+    let previous = after;
+    const parent = after.parentNode;
+    while (parent !== null && div.firstChild !== null) {
+      const node = div.firstChild;
+      parent.insertBefore(node, previous.nextSibling);
+      previous = node;
+    }
+  } else if (doc.readyState === 'loading' && doc.lastChild !== null) {
+    let node = doc;
+    while (node.lastChild !== null && node.lastChild.nodeType === 1) node = node.lastChild;
+    node.innerHTML = text;
+  } else if (text !== '' || doc.readyState === 'loading') {
+    open(doc);
+    const scripting = doc._ctx !== undefined && doc._ctx.settings.runScripts === 'dangerously';
+    const parsed = rt.wrap(rt.checkId(N.parseDocument(text, scripting ? 1 : 0)));
+    for (const n of [...parsed.childNodes]) doc.appendChild(doc.adoptNode(n));
+    // the parser's handlers and scripts run as a parsed document's do (`bind`); adoption kept the scripts' flags
+    if (scripting) runParsed(doc);
+  }
+}
+
+module.exports = {
+  open,
+  write, postConnection, handlerChanged, bind, startLoad, run };

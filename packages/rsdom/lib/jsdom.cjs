@@ -238,8 +238,9 @@ class JSDOM {
     }
     this.#ctx = ctx;
     const scripts = require('./scripts.cjs');
-    scripts.bind(ctx);
+    // "loading" before the parsed scripts run, as during jsdom's parse
     scripts.startLoad(ctx);
+    scripts.bind(ctx);
   }
 
   get window() {

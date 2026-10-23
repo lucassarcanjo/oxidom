@@ -2332,9 +2332,10 @@ Without `runScripts` the window stays the plain object it is today. Interface ob
 and text; classic types only (jsdom's MIME list; modules are skipped, as in jsdom); `event`/`for`; then run inline
 text with `document.currentScript` set (null inside a shadow tree), errors reported to the window
 (`reportException`). A post-connection reaction runs a script that is not parser-inserted, so `innerHTML` scripts
-never run; parsed scripts run in the post-parse pass. `src` scripts wait for part 3. Known difference: rsdom parses a
-whole document before any script runs, so a parsed script sees the markup after it, and `document.write()` from a
-parsed script appends at the end of the document instead of after the script.
+never run; parsed scripts run in the post-parse pass. `src` scripts wait for part 3. `document.write()` is jsdom's: from a running
+script the markup goes right after the script and its scripts run; while the document loads it becomes the last
+element's content; afterwards it replaces the document (`open()` is jsdom's too). Known difference: rsdom parses a
+whole document before any script runs, so a parsed script sees the markup after it.
 
 **Inline event handlers.** An `on*` attribute (null namespace) on an HTML or SVG element in a bound document queues
 a `cb::HANDLER` reaction (attribute hooks, same-value sets included, fragment parsing through `hook_parsed`, cloning).
@@ -2361,7 +2362,17 @@ Vitest environment scripts run in the test's own realm (the window is Node's glo
 environment runs them in jsdom's window, a different object from the test's `window`: there a script's
 `window.x = 1` is invisible to the test. The parity harness has the same split, so subtests that check a script
 did *not* run pass under jsdom by accident (`nomodule-set-on-inline-classic-scripts.html`), and ones that check it
-did run fail there; rsdom gets the latter and loses one of the former.
+did run fail there; rsdom gets the latter and loses one of the former. The same realm choice means a script's
+`var` / `function` / `const` globals stay on the worker's global after teardown (they are non-configurable), so
+with `isolate: false` a second file that runs the same top-level `const` fails; the VM pools and the Jest
+environment give each file its own vm context and are not affected.
+
+Script reactions share the custom element queue, which runs each element's reactions in order of first
+appearance after the mutation: a script inserted together with custom elements runs after the `connectedCallback`s
+of the elements before it, where jsdom runs it first. "Already started" is set only when a script actually runs in
+a bound document (and by the parsers); jsdom also sets it for a script connected in a document without a window,
+so such a script moved into a scripting document later runs in rsdom and not in jsdom. The environments now run
+scripts by default, as their jsdom counterparts do; `runScripts: 'outside-only'` turns that off.
 
 **Verification.** `--item browsing-contexts` and the suite: see the PR. test/contract/scripts.test.mjs runs the
 behaviour side by side with jsdom.

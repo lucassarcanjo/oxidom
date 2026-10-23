@@ -2041,7 +2041,6 @@ html/semantics/scripting-1/the-script-element/execution-timing/110.html: [fail, 
 html/semantics/scripting-1/the-script-element/execution-timing/116.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/scripting-1/the-script-element/execution-timing/117.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/execution-timing/118.html: [fail, "assert_array_equals: wrong value"]
-html/semantics/scripting-1/the-script-element/execution-timing/120.html: [fail, "harness ERROR: missing method: .write()"]
 html/semantics/scripting-1/the-script-element/execution-timing/124.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/execution-timing/127.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/execution-timing/128.html: [fail, "assert_array_equals: wrong value"]

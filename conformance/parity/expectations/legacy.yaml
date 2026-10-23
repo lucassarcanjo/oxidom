@@ -31,21 +31,16 @@ to-port-to-wpts/level2/html.js:
   "level2/html > HTMLDocument21": [fail, "missing method: .open()"]
   "level2/html > HTMLFrameElement09": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/html > HTMLIFrameElement11": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "level2/html > HTMLScriptElement08": [fail, "read of null (.innerHTML)"]
   "level2/html > document_open_return_self": [fail, "missing method: .open()"]
 to-port-to-wpts/level2/style.js:
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/misc.js:
-  "browser/index > parse_doublespacetags": [fail, "Got unwanted exception: setValue_throws_INVALID_CHARACTER_ERR Actual message: …"]
 to-port-to-wpts/misc2.js:
   "jsdom/miscellaneous > iframe_contents": [fail, "read of undefined (.document)"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0 (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0, second case (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_attr_mixed_case": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_val_on_selects": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/on-error.js:
-  "on-error > onerror catches exceptions thrown in sync script execution": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/parsing.js:
   "jsdom/parsing > <%= stuff %> inside <script> tags (GH-58)": [fail, "missing method: .write()"]
 to-port-to-wpts/post-message.js: [fail, "read of undefined (.document)"]

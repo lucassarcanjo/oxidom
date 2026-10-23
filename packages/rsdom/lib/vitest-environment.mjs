@@ -85,6 +85,17 @@ function prepare(options) {
   return { rt, api, open, virtualConsole };
 }
 
+/**
+ * Runs the environment document's scripts (DESIGN §45), then installs Vitest's window error routing: Vitest's
+ * jsdom environment builds its JSDOM (which runs `html`'s scripts) before it routes errors, so an error in those
+ * scripts reaches only the virtual console. The document reports "complete" from the start: under jsdom its load
+ * sequence is over before a test file runs.
+ */
+function startScripts(ctx) {
+  require('./scripts.cjs').bind(ctx);
+  ctx.onClose(require('./window.cjs').catchWindowErrors(ctx.window));
+}
+
 export default {
   name: 'rsdom',
   viteEnvironment: 'client',
@@ -96,8 +107,8 @@ export default {
     // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
-    const ctx = context.open({ ...open, global, catchErrors: true });
-    require('./scripts.cjs').bind(ctx);
+    const ctx = context.open({ ...open, global });
+    startScripts(ctx);
     const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
     const jsdomBefore = global.jsdom;
     global.jsdom = api.adopt(ctx, virtualConsole);
@@ -120,8 +131,8 @@ export default {
   setupVM(options = {}) {
     const { rt, api, open, virtualConsole } = prepare(options);
     const { openVmWindow } = require('./vm-window.cjs');
-    const { vmContext, global, ctx } = openVmWindow({ ...open, catchErrors: true });
-    require('./scripts.cjs').bind(ctx);
+    const { vmContext, global, ctx } = openVmWindow(open);
+    startScripts(ctx);
     global.Buffer = Buffer;
     global.jsdom = api.adopt(ctx, virtualConsole);
     for (const k of ['structuredClone', 'BroadcastChannel', 'MessageChannel', 'MessagePort', 'TextEncoder', 'TextDecoder']) {

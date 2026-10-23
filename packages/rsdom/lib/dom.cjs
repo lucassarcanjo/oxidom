@@ -667,6 +667,19 @@ class Document extends Node {
     return this._currentScript ?? null;
   }
 
+  // jsdom's open() / write() / writeln() (lib/scripts.cjs, DESIGN §45)
+  open() {
+    return require('./scripts.cjs').open(this);
+  }
+
+  write(...text) {
+    require('./scripts.cjs').write(this, text.join(''));
+  }
+
+  writeln(...text) {
+    require('./scripts.cjs').write(this, text.join('') + '\n');
+  }
+
   get implementation() {
     return this._impl ?? (this._impl = makeImplementation(this));
   }

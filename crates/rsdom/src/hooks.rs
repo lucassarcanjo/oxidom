@@ -154,7 +154,7 @@ impl Env {
         if self.ce.any() {
             self.ce_cloned(src, dst);
         }
-        if self.script.on() {
+        if self.script.any() {
             self.script_cloned(src, dst);
         }
     }

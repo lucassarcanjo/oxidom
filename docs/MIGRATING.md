@@ -152,6 +152,14 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[design] The environments run scripts in the test's realm.** Under the Vitest environment a script's globals
   (`window.x = 1`) are the test's globals; under Vitest's jsdom environment they land on jsdom's own window, which
   the test does not see. DESIGN §45.
+- **[design] Script globals persist on the Vitest global.** A script's top-level `var` / `function` / `const`
+  stays on the worker's global after the file, so with `isolate: false` a second file running the same `const`
+  fails. The VM pools and the Jest environment are not affected. Set `runScripts: 'outside-only'` in
+  `environmentOptions.jsdom` to keep scripts from running. DESIGN §45.
+- **[design] Setting an event handler to null removes its listener**, as the HTML standard says, so a handler set
+  again runs after listeners added in between; jsdom keeps its place. DESIGN §45.
+- **[design] Scripts inserted with custom elements** run after the `connectedCallback`s of the custom elements
+  inserted before them in the same call; jsdom runs the script first. DESIGN §45.
 - **[gap] No `<script src>`.** External scripts are not fetched, as with jsdom without `resources: 'usable'`.
   `browsing-contexts` (part 3).
 - **[gap] No iframes.** An `<iframe>` has no nested browsing context: `contentWindow` and `contentDocument` are

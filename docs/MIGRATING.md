@@ -326,9 +326,9 @@ share one realm, so they do not apply there.
 
 ### Parsing and serialization
 
-- **[gap] Lone surrogates become U+FFFD**, and a CharacterData offset inside a surrogate pair rounds down to the
-  code point's start. Final values match when user-event types an emoji; an intermediate `value` can differ.
-  DESIGN §2.3; `surrogates`.
+- **[gap] Private-use characters U+10F800..U+10FFFF read back as lone surrogates**: rsdom stores lone surrogates
+  as those code points, so they round-trip and CharacterData offsets inside a surrogate pair split it, as in
+  jsdom (DESIGN §44).
 - **[spec] Customizable `<select>`:** html5ever keeps `<div>` inside `<option>` (2025 HTML change); parse5 drops
   it. DESIGN §15.
 - **[spec] Serialization:** processing instructions in HTML fragments serialize as `<?x y>`; SVG elements

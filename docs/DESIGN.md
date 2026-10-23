@@ -202,7 +202,7 @@ pub struct DocData {
 - html5ever, cssparser and selectors all need UTF-8.
 - ASCII is the overwhelmingly common case. There, egress uses `napi_create_string_latin1` (41-51 ns) and UTF-16 offsets equal byte offsets.
 - Non-ASCII strings convert offsets with a linear `char_indices` walk.
-- Known divergence: lone surrogates become U+FFFD.
+- Lone surrogates are stored as private-use escapes (§44).
 
 ### 2.4 The epoch page (EP)
 
@@ -2264,3 +2264,34 @@ with part 2, all in iframe-based files (`browsing-contexts`) but one: jsdom's se
 form-associated element in a disabled fieldset's first legend with `:enabled`, which rsdom does not. The iframe
 files build their documents with `test_with_window` or fetch them by XHR. test/contract/custom-elements.test.mjs
 covers the callback order library code depends on and the internals.
+
+## 44. Lone surrogates (ROADMAP Stage 4 `surrogates`, 2026-10)
+
+Stage 4 design note. JS strings are UTF-16 and may hold unpaired surrogates (`'a😀b'.slice(0, 2)`,
+`deleteData` inside a pair, `'\ud83d'` written by a test). rsdom stores strings as UTF-8 (§2.3: html5ever,
+cssparser and selectors need it), and V8's UTF-8 conversion replaces every lone surrogate with U+FFFD, so they
+did not round-trip (CONTRIBUTING §8), and a CharacterData offset inside a pair rounded down to the code point.
+
+**Representation: escapes, not WTF-8.** WTF-8 would put byte sequences in `Str` that are not UTF-8, which every
+`&str` consumer (the parser, the CSS and selector engines, `char_indices`) would have to tolerate. Instead a lone
+surrogate U+D800+k is stored as the code point U+10F800+k, the last 2,048 code points of Supplementary Private
+Use Area-B (UTF-8 `F4 8F A0..BF xx`). The string stays valid UTF-8; nothing but the boundary and the UTF-16
+arithmetic knows about the escape.
+- **Ingress** (`ffi::StrArg::read`): V8's UTF-8 is read as before; only if it contains U+FFFD (a `memmem` for
+  `EF BF BD`, so ordinary strings pay one SIMD scan) is the string read again as UTF-16 and transcoded with
+  the escape (a real U+FFFD transcodes to itself).
+- **Egress** (`ffi::to_utf16`, the non-Latin-1 path; an escape is never ASCII or Latin-1): an escape becomes
+  its single surrogate unit, so adjacent escapes for a high and a low surrogate read back as the pair JS
+  would have built by concatenation.
+- **UTF-16 arithmetic** (`string::scan`, `utf16_to_byte`): an escape is one unit, not two. `scan` counts `F4`
+  lead bytes in its vectorized loop and corrects the count only when there are any.
+- **Edits inside a pair** (`Str::replace_range16`, `substring16`): an offset inside an astral code point
+  splits it into its two escapes first, as JS would; after an edit, an escaped high surrogate followed by an
+  escaped low one is joined back into the code point, so `'\ud83d' + '\ude00'` built by `insertData` is the
+  real character in the stored text. Only `Str` edits (`replace_range16`, `push_str`) maintain that join:
+  a string Rust assembles another way (an option's text from several Text children, say) can hold an escaped
+  pair side by side, which still leaves JS as the two units it stands for.
+
+Known limit: a real code point in U+10F800..U+10FFFF (private use, last block of plane 16) reads back as a
+lone surrogate. Selectors see escapes as ordinary characters: an id holding a lone surrogate does not match the
+CSS escape `#\d83d ` (which CSS turns into U+FFFD), as the spec and jsdom require.

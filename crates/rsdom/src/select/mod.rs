@@ -290,7 +290,8 @@ pub fn adapter_flags(sel: &Selector<Impl>) -> SelDeps {
 /// Parses `s` into a selector list, interning names into `e`'s atom table. `None` = SyntaxError.
 pub fn parse_selector_list(e: &mut Env, s: &str) -> Option<SelectorList<Impl>> {
     let r = adapter::with_interner(&mut e.atoms, || {
-        let mut p = cssparser::Parser::new(s);
+        let s = crate::string::css_input(s);
+        let mut p = cssparser::Parser::new(&s);
         match SelectorList::parse(&SelParser, &mut p, ParseRelative::No) {
             Ok(l) if p.is_exhausted() => Some(l),
             _ => None,

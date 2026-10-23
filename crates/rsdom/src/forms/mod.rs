@@ -836,16 +836,10 @@ impl Env {
         end = end.min(len);
         let mut val = String::new();
         self.value_into(id, &mut val);
-        let ascii = val.is_ascii();
-        let (bs, be) = (
-            crate::string::utf16_to_byte(&val, ascii, start),
-            crate::string::utf16_to_byte(&val, ascii, end),
-        );
-        let mut next = String::with_capacity(val.len() + repl.len());
-        next.push_str(&val[..bs]);
-        next.push_str(repl);
-        next.push_str(&val[be..]);
-        self.value_set(id, &next)?;
+        // a Str edit: an offset inside a surrogate pair splits it, as JS string slicing does (DESIGN §44)
+        let mut next = crate::string::Str::from_string(val);
+        next.replace_range16(start, end - start, repl);
+        self.value_set(id, next.as_str())?;
         let rl = utf16(repl);
         let new_end = start + rl;
         let (s2, e2) = match mode {

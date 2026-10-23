@@ -284,7 +284,8 @@ pub fn valid_layer_name(name: &str) -> bool {
 
 /// Parses a selector list for matching (the whole of `text`); None when rsdom's selector engine rejects it.
 fn parse_selector(text: &str) -> Option<SelectorList<Impl>> {
-    let mut p = Parser::new(text);
+    let text = crate::string::css_input(text);
+    let mut p = Parser::new(&text);
     let list = SelectorList::parse(&SelParser, &mut p, ParseRelative::No).ok()?;
     p.is_exhausted().then_some(list)
 }
@@ -907,6 +908,7 @@ pub fn parse_sheet(text: &str) -> Sheet {
 }
 
 fn parse_list(text: &str, ctx: Ctx, out: Option<&mut (Sheet, u32)>) -> (Tree, usize) {
+    let text = &*crate::string::css_input(text);
     let mut tree = Tree::default();
     let mut bad = 0;
     let mut input = Parser::new(text);

@@ -34,11 +34,8 @@ describe.each(DOMS)('user-event [%s]', (kind) => {
     await user.type(i, 'a😀b', { skipClick: true });
     expect(i.value).toBe('a😀b');
     expect([i.selectionStart, i.selectionEnd]).toEqual([4, 4]);
-    // user-event types UTF-16 code units: the intermediate value holds a lone high surrogate. rsdom stores
-    // UTF-8, so that transient value reads as U+FFFD (documented divergence, CONTRIBUTING.md §8); the final
-    // value and every offset match jsdom.
-    const lone = kind === 'rsdom' ? 'a\ufffd' : 'a\ud83d';
-    expect(seen).toEqual([['a', 1, 1], [lone, 2, 2], ['a😀', 3, 3], ['a😀b', 4, 4]]);
+    // user-event types UTF-16 code units: the intermediate value holds a lone high surrogate (DESIGN §44)
+    expect(seen).toEqual([['a', 1, 1], ['a\ud83d', 2, 2], ['a😀', 3, 3], ['a😀b', 4, 4]]);
     i.setSelectionRange(1, 3);
     await user.keyboard('{Backspace}');
     expect([i.value, i.selectionStart]).toEqual(['ab', 1]);

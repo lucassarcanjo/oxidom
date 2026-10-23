@@ -171,7 +171,8 @@ impl InlineStyle {
 
     /// Parses a declaration list (`style` attribute / `cssText`), dropping invalid declarations.
     pub fn parse(e: &mut Env, text: &str) -> InlineStyle {
-        let mut parser = Parser::new(text);
+        let text = crate::string::css_input(text);
+        let mut parser = Parser::new(&text);
         let r = parse_block_with(&mut parser, &mut |n| e.intern(n));
         e.ep.set(crate::env::ep::ATOM_LEN, e.atoms.len());
         r

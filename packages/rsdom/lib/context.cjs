@@ -223,6 +223,9 @@ function openContext(options = {}) {
   const window = require('./window.cjs');
   ctx.window = window.makeWindow(ctx, options.global, options.ownTimers === true);
   byWindow.set(ctx.window, ctx);
+  // Window's named properties (DESIGN §46), except on Node's own global (the Vitest environment): a Proxy there
+  // would see every lookup of a missing global in Node's realm
+  if (options.global !== globalThis) require('./window-properties.cjs').install(ctx.window, ctx);
   if (options.catchErrors === true) ctx.onClose(window.catchWindowErrors(ctx.window));
   return ctx;
 }

@@ -53,7 +53,7 @@ lab-phase baseline (API surface, WPT, 2026-10-17) is in [`docs/PARITY.md`](docs/
 
 The remaining library failure comes from a missing API: custom elements (lit), which are
 [Stage 4 of the roadmap](docs/ROADMAP.md#stage-4-architectural-work).
-Not supported today: iframes, loading `<script src>`, layout, synchronous XMLHttpRequest. Every known difference from
+Not supported today: loading `<script src>` and `<iframe src>`, layout, synchronous XMLHttpRequest. Every known difference from
 jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 
 ## Usage (from source)

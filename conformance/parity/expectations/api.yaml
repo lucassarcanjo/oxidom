@@ -61,7 +61,6 @@ api/options-run-scripts.js:
   "API: runScripts constructor option > <noscript> children > when set to \"dangerously\" > should parse loaded iframe contents according to runScripts": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "API: runScripts constructor option > <noscript> children > when set to \"outside-only\" > should parse loaded iframe contents according to runScripts": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "API: runScripts constructor option > <noscript> children > when set to undefined > should parse loaded iframe contents according to runScripts": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "API: runScripts constructor option > <script>s and eval() > should ensure eval exists on iframes when set to \"outside-only\"": [fail, "read of undefined (.eval)"]
   "API: runScripts constructor option > <script>s and eval() > should execute <script>s in iframes when set to \"dangerously\"": [fail, "read of undefined (.document)"]
   "API: runScripts constructor option > <script>s and eval() > should execute <script>s with correct location when set to \"dangerously\" and includeNodeLocations": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "API: runScripts constructor option > <script>s and eval() > should not execute any scripts, even in iframes, by default (GH-1821)": [fail, "read of undefined (.document)"]
@@ -70,8 +69,6 @@ api/options.js:
   "API: constructor options > cookieJar > should have a loose-by-default cookie jar even if none is passed": [fail, "Expected values to be strictly equal: … !== …"]
   "API: constructor options > cookieJar > should have loose behavior by default when using the CookieJar constructor": [fail, "Expected values to be strictly equal: … !== …"]
   "API: constructor options > cookieJar > should reflect changes to the cookie jar in document.cookie": [fail, "Expected values to be strictly equal: … !== …"]
-  "API: constructor options > pretendToBeVisual > not set > child frame document should not have rAF": [fail, "Expected values to be strictly equal: + actual - expected + [Function: requestAnimationFra…"]
-  "API: constructor options > pretendToBeVisual > set to true > child frame document should have rAF": [fail, "read of undefined (.requestAnimationFrame)"]
   "API: constructor options > storageQuota > should enforce the custom quota for localStorage in frames at depth 1": [fail, "read of undefined (.localStorage)"]
   "API: constructor options > storageQuota > should enforce the custom quota for localStorage in frames at depth 2": [fail, "read of undefined (.document)"]
   "API: constructor options > storageQuota > should enforce the custom quota for sessionStorage in frames at depth 1": [fail, "read of undefined (.sessionStorage)"]
@@ -81,9 +78,6 @@ api/resources-http2.js:
   "API: HTTP/2 resource loading > should load relative scripts and stylesheets from an HTTP/2-only server": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/resources-interceptors.js: [fail, "not a function: requestInterceptor"]
 api/resources.js:
-  "API: resource loading configuration > defaults (no resources option) > should not download frames": [fail, "read of undefined (.document)"]
-  "API: resource loading configuration > defaults (no resources option) > should not download iframes": [fail, "read of undefined (.document)"]
-  "API: resource loading configuration > userAgent option > should be able to change the user agent": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
   "API: resource loading configuration > userAgent option > should have a default user agent following the correct pattern": [fail, "Expected values to be strictly equal: + actual - expected + … - …"]
   "API: resource loading configuration > userAgent option > should inherit the default user agent to iframes": [fail, "read of undefined (.navigator)"]
   "API: resource loading configuration > with resources: \"usable\" > canceling requests > should abort (with no events) an XHR request when stopping the window": [fail, "window.stop() does not abort XHRs yet (DESIGN §21)"]
@@ -105,5 +99,4 @@ api/resources.js:
   "API: resource loading configuration > with resources: \"usable\" > should download iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "API: resource loading configuration > with resources: \"usable\" > should download stylesheet links": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/virtual-console.js:
-  "API: virtual consoles > should bubble up messages from iframes": [fail, "read of undefined (.log)"]
   "API: virtual consoles > should not repeat insertion steps for light children inserted by an error listener": [fail, "Expected values to be strictly deep-equal: + actual - expected + [] - [ - …, - …, - …, - ……"]

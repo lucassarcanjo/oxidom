@@ -327,8 +327,8 @@ function install(rt, dom) {
     return { s, ids: m.ids };
   }
   // Document's named getter (no [LegacyOverrideBuiltIns]: Document's own members win), through the
-  // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe would
-  // answer its content window; rsdom's iframes have none), several a live HTMLCollection, the same per name.
+  // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe its
+  // content window), several a live HTMLCollection, the same per name.
   // Document has no indexed getter, so `document[0]` is a name too.
   installNamedProperties(
     Document.prototype,
@@ -343,7 +343,11 @@ function install(rt, dom) {
       }
       const { s, ids } = r;
       if (ids.length === 0) return undefined;
-      if (ids.length === 1) return wrap(ids[0]);
+      if (ids.length === 1) {
+        const el = wrap(ids[0]);
+        // a lone iframe answers its content window (DESIGN §46)
+        return el.localName === 'iframe' ? (require('./frames.cjs').frameWindow(el) ?? el) : el;
+      }
       let c = s.colls.get(name);
       if (c === undefined) {
         c = liveQueryCollection({ deps: NAMED_DEPS, items: () => namedIds(doc, name).ids.map(wrap) });

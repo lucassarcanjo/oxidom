@@ -2376,3 +2376,51 @@ scripts by default, as their jsdom counterparts do; `runScripts: 'outside-only'`
 
 **Verification.** `--item browsing-contexts` and the suite: see the PR. test/contract/scripts.test.mjs runs the
 behaviour side by side with jsdom.
+
+## 46. Iframes (ROADMAP Stage 4 `browsing-contexts`, part 2, 2026-10)
+
+Stage 4 design note. A port of jsdom 30's `HTMLFrameElement-impl.js` (`loadFrame`, `refreshAccessors`, the
+post-connection, `src` and removing steps) on rsdom's browsing contexts (§18). Each `<iframe>` / `<frame>` connected
+in a document that has a window gets a child browsing context: its own window and document, in the same env. Like
+§45, Rust queues what the mutations owe a frame element and the facade (lib/frames.cjs) acts on it.
+
+**Rust (`crate::script`).** Bound documents carry flags: `WINDOW` (the document has a window: every context binds its
+document) and `SCRIPTS` (§45). Three more reaction kinds, for HTML `iframe` / `frame` elements: `cb::FRAME` (post-
+connection steps, in a `WINDOW` document), `cb::FRAME_SRC` (`src` set or removed while connected in one) and
+`cb::FRAME_REMOVED` (removing steps, any document: the facade knows whether the element has a child context). The
+document parse queues nothing; the post-parse walk (`scriptParsed`) lists the parsed frames too, after the window
+exists, in tree order with the scripts.
+
+**Facade.** `loadFrame` closes the element's previous child context, resolves `src` against the document's base URL
+(`about:blank` when absent, empty or unparsable), and opens a child context with the parent's settings (a vm-context
+window when the parent has `runScripts`) that does not become current. The child window's `parent`, `top` and
+`frameElement` point up; `contentWindow` / `contentDocument` read the element's child context; the parent window's
+`length` and indexed properties list its connected frames' windows in tree order (jsdom's `refreshAccessors`).
+Closing a context closes its children. A removed frame keeps its (closed) window and document, as in jsdom.
+- `about:blank` (and `javascript:` URLs, whose result string becomes the body's text when scripts run): the child
+  document is `<html><head></head><body></body></html>`, complete at once. When the frame is being attached and has
+  no listeners, `load` fires on it synchronously, as in jsdom; otherwise the child document's load sequence runs in
+  microtasks and the frame's `load` follows it.
+- Another URL is fetched only with `resources: "usable"` (part 3); otherwise, as in jsdom, the child document stays
+  empty (no element) and no `load` fires.
+- `srcdoc` is ignored, as in jsdom (an iframe with only `srcdoc` loads `about:blank`).
+
+**Window named properties** (lib/window-properties.cjs, a port of jsdom's living/window-properties.js). `window.foo`
+is the window of the frame named "foo", else the HTML element of the document tree with id "foo" or the embed / form
+/ img / object / iframe / frame named "foo", else a live HTMLCollection of them; Document's named getter answers a
+lone iframe's window too. As in jsdom, the answer comes from a Proxy between the window and its prototype (`get` and
+`has` traps, so a bare `foo` in a script resolves), so the window's own members win. Rust's `winNamed` reads ids
+from the document's id map and walks the tree for name contributors only when a name has some, memoised per name
+on EP[NAMED] (which `frame` now bumps too); the ids are memoised per name on EP[TREE] and EP[ATTR], so a repeated
+probe of a missing global costs a stamp compare until the document changes.
+The Vitest environment's window is Node's own global, whose prototype chain sees every missing-global lookup in
+Node's realm: it gets no named properties (a documented difference).
+
+**`postMessage` across windows.** `child.parent.postMessage(m, '*')` and `frame.contentWindow.postMessage(...)`
+queue the message on the target window, as today; `source` stays null, as in jsdom.
+
+**Known differences from jsdom.** Interface objects are shared by every window (§18): `frame.contentWindow.Node ===
+window.Node`, where jsdom gives each window its own. Constructors resolve their document through the current context, which a
+child never becomes: `new frame.contentWindow.Text()` creates its node in the parent's document (current) rather
+than the frame's. An `about:blank` frame's window has origin `"null"` and storage of its own, where jsdom gives it the
+parent's origin and shares the parent's same-origin storage.

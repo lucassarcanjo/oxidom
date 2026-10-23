@@ -13,14 +13,12 @@ to-port-to-wpts/frame.js:
   "frame > remove frame": [fail, "frame should exist (.length) undefined !== …"]
   "frame > remove middle frame": [fail, "frames should exist (.length) undefined !== …"]
   "frame > test frame references": [fail, "frame should exist (.length) undefined !== …"]
-  "frame > test frames array identity": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test framesets": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test iframe load event": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test iframe without src": [fail, "read of undefined (.open)"]
   "frame > test iframe.contentDocument access": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test iframe.contentWindow acccess": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test multiple iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > test named lookup": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test nested iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test setting src multiple times": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > update named frames access on name change": [fail, "TIMEOUT: Timeout of …ms exceeded"]
@@ -36,24 +34,20 @@ to-port-to-wpts/level2/html.js:
   "level2/html > HTMLScriptElement08": [fail, "read of null (.innerHTML)"]
   "level2/html > document_open_return_self": [fail, "missing method: .open()"]
 to-port-to-wpts/level2/style.js:
-  "level2/style > HTMLStyleElement02": [fail, "Expected values to be strictly equal: … !== …"]
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/misc.js:
   "browser/index > parse_doublespacetags": [fail, "Got unwanted exception: setValue_throws_INVALID_CHARACTER_ERR Actual message: …"]
 to-port-to-wpts/misc2.js:
-  "jsdom/miscellaneous > DOMContentLoaded should not be fired after window.close() (GH-1479)": [fail, "Expected values to be strictly equal: undefined !== …"]
   "jsdom/miscellaneous > iframe_contents": [fail, "read of undefined (.document)"]
-  "jsdom/miscellaneous > issue_530_async_load_events": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0 (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0, second case (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_attr_mixed_case": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_val_on_selects": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/on-error.js:
-  "on-error > onerror catches exceptions thrown in inline event handlers": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "on-error > onerror catches exceptions thrown in sync script execution": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "on-error > onerror set during parsing catches exceptions thrown in sync script execution during parsing": [fail, "message equality + actual - expected + undefined - …"]
 to-port-to-wpts/parsing.js:
   "jsdom/parsing > <%= stuff %> inside <script> tags (GH-58)": [fail, "missing method: .write()"]
 to-port-to-wpts/post-message.js: [fail, "read of undefined (.document)"]
-to-port-to-wpts/script.js: [fail, "window should be the global context + actual - expected + undefined - …"]
+to-port-to-wpts/script.js:
+  "script > timer_executes_in_context": [fail, "TIMEOUT: Timeout of …ms exceeded"]

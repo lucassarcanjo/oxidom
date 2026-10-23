@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2228 | 162751 | 162326 | 99.7% |
-| jsdom's WPT-format tests (to-upstream) | 190 | 170 | 2578 | 2503 | 97.1% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
-| jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2409** | **167724** | **166836** | **99.5%** |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2232 | 162751 | 162348 | 99.8% |
+| jsdom's WPT-format tests (to-upstream) | 190 | 171 | 2578 | 2506 | 97.2% |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1734 | 97.4% |
+| jsdom's API tests (test/api) | 17 | 2 | 614 | 326 | 53.1% |
+| **all** | **2615** | **2414** | **167724** | **166914** | **99.5%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -26,11 +26,11 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no tests selected |  |
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
-| 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 330 | 46.3% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (45) |
+| 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 288 | 53.1% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (28) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 227 | 87 | 95.1% | assert_equals: wrong value (77); harness TIMEOUT: (no message) (3); assert_not_equals: wrong value (2) |
-| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 23 | 99.4% | assert_equals: wrong value (17); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
-| 3 | document.createEvent, init*Event and the missing event classes | 108 | 105 | 35 | 93.6% | browsing-contexts: content-attribute event handlers (onclick="...") need script compilation (34); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
+| 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 21 | 99.5% | assert_equals: wrong value (16); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
+| 3 | document.createEvent, init*Event and the missing event classes | 108 | 106 | 23 | 95.8% | core: clicking an <a> / <area> with a fragment href does not navigate (no hashchange) (22); deliberate: isTrusted is a prototype getter, not a [LegacyUnforgeable] own accessor (DESIGN §28: +10-20% per Event construction) (1) |
 | 3 | Forms remainder (stepUp/stepDown, valueAsDate, valueAsNumber, meter, progress) | 277 | 260 | 26 | 99.3% | assert_false: wrong value (11); assert_true: wrong value (7); assert_equals: wrong value (3) |
 | 3 | FileReader with DOM Blob and File | 37 | 36 | 1 | 99.8% | core: HTMLCollection's @@iterator is not %Array.prototype.values%, so it never reads the overwritten length (1) |
 | 3 | Web Storage named properties | 25 | 25 | 0 | 100.0% |  |
@@ -39,12 +39,12 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 37 | 5 | 99.5% | assert_equals: wrong value (4); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XPath | 28 | 28 | 0 | 100.0% |  |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 891 | 140 | 99.4% | assert_true: wrong value (44); assert_array_equals: wrong value (25); assert_equals: wrong value (25) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 895 | 128 | 99.5% | assert_true: wrong value (44); assert_array_equals: wrong value (23); assert_equals: wrong value (20) |
 | 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 109 | 29 | 96.6% | assert_true: wrong value (29) |
 | 4 | Custom elements and customElements | 147 | 120 | 145 | 95.2% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (1); assert_array_equals: wrong value (1) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
-| 4 | iframes, script execution (runScripts) and resource loading | 120 | 112 | 67 | 84.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |
+| 4 | iframes, script execution (runScripts) and resource loading | 120 | 112 | 39 | 90.8% | TIMEOUT: Timeout of …ms exceeded (19); read of undefined (.document) (9); frame should exist (.length) undefined !== … (2) |
 
 ## Gaps outside every roadmap item
 

@@ -97,6 +97,7 @@ export default {
     // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
     // close() puts them back, after cancelling its timers and removing Vitest's error routing.
     const ctx = context.open({ ...open, global, catchErrors: true });
+    require('./scripts.cjs').bind(ctx);
     const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
     const jsdomBefore = global.jsdom;
     global.jsdom = api.adopt(ctx, virtualConsole);
@@ -120,6 +121,7 @@ export default {
     const { rt, api, open, virtualConsole } = prepare(options);
     const { openVmWindow } = require('./vm-window.cjs');
     const { vmContext, global, ctx } = openVmWindow({ ...open, catchErrors: true });
+    require('./scripts.cjs').bind(ctx);
     global.Buffer = Buffer;
     global.jsdom = api.adopt(ctx, virtualConsole);
     for (const k of ['structuredClone', 'BroadcastChannel', 'MessageChannel', 'MessagePort', 'TextEncoder', 'TextDecoder']) {

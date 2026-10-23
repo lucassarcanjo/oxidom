@@ -2295,3 +2295,73 @@ arithmetic knows about the escape.
 Known limit: a real code point in U+10F800..U+10FFFF (private use, last block of plane 16) reads back as a
 lone surrogate. Selectors see escapes as ordinary characters: an id holding a lone surrogate does not match the
 CSS escape `#\d83d ` (which CSS turns into U+FFFD), as the spec and jsdom require.
+
+## 45. Script execution (ROADMAP Stage 4 `browsing-contexts`, part 1, 2026-10)
+
+Stage 4 design note. `browsing-contexts` is three parts: (1) script execution: `runScripts`, `<script>`, inline event
+handlers, `<noscript>` parsing and the load sequence of a `JSDOM` document; (2) iframes: child browsing contexts,
+`contentWindow` / `contentDocument`, `parent` / `top` / `frames` / `length`, cross-window `postMessage`; (3) resource
+loading: `<script src>` and `<iframe src>` under `resources: "usable"`. This section is part 1, a port of jsdom 30's
+`HTMLScriptElement-impl.js`, `helpers/create-event-accessor.js` (`_globalEventChanged`, `getCurrentEventHandlerValue`)
+and the `Document#close()` / `Window` load steps. §7 still holds: Rust never calls JS, so whatever a mutation owes a
+script element or an `on*` attribute is queued in Rust and run by the facade.
+
+**Who runs scripts.** A document runs scripts when its browsing context says so (`ctx.settings.runScripts ===
+'dangerously'`) and Rust knows it (`scriptBindDoc`, set when the window exists, cleared by `close()`). That is a
+`JSDOM` with `runScripts: "dangerously"`, and the Vitest and Jest environments unless their jsdom options say
+otherwise: both jsdom environments default to `"dangerously"`, so a script element a test appends runs there, as it
+does under jsdom. Documents without a window (`DOMParser`, `createHTMLDocument`, template contents) never do.
+
+**The realm.** With `runScripts` set (either value), a `JSDOM` window is a vm context's global (lib/vm-window.cjs,
+as the Jest environment's): fresh JS globals, `window.eval`, `getInternalVMContext()`. Scripts run with
+`vm.runInContext(code, context, { filename: document.URL })`, on the Vitest global with `vm.runInThisContext`.
+Without `runScripts` the window stays the plain object it is today. Interface objects stay shared by all windows (§18).
+
+**Script elements (Rust half, `crate::script`).**
+- Per script element two flags, in a side map: "parser-inserted" (set by the HTML parser for every script it creates,
+  and by lib/xml.cjs) and "already started" (set by the fragment parser and in documents with scripting disabled,
+  as HTML "create an element for the token" says; copied by cloning, as jsdom's `_cloningSteps`).
+- Reactions, on the custom element queue (§43, kind `cb::SCRIPT`), only in bound documents: a script element becomes
+  connected (per node of the connect pass), nodes are inserted into a connected one (insert only, as jsdom since
+  whatwg/html#12282), a connected one gets a `src`. The `mutated()` epilogue drains them like custom element reactions.
+- The document parse links nodes raw and its document is bound only after the window exists, so it queues nothing;
+  the facade asks `scriptParsed(doc)` once, after the window exists, for the parsed scripts and `on*` attributes in
+  tree order.
+
+**Script elements (facade half, lib/scripts.cjs).** jsdom's `_eval`: skip if already started; nothing without `src`
+and text; classic types only (jsdom's MIME list; modules are skipped, as in jsdom); `event`/`for`; then run inline
+text with `document.currentScript` set (null inside a shadow tree), errors reported to the window
+(`reportException`). A post-connection reaction runs a script that is not parser-inserted, so `innerHTML` scripts
+never run; parsed scripts run in the post-parse pass. `src` scripts wait for part 3. Known difference: rsdom parses a
+whole document before any script runs, so a parsed script sees the markup after it, and `document.write()` from a
+parsed script appends at the end of the document instead of after the script.
+
+**Inline event handlers.** An `on*` attribute (null namespace) on an HTML or SVG element in a bound document queues
+a `cb::HANDLER` reaction (attribute hooks, same-value sets included, fragment parsing through `hook_parsed`, cloning).
+The facade runs `_globalEventChanged`: if the element has the `on<type>` accessor, the handler becomes `{ body }`, or
+null when the attribute is gone. `getHandler` and dispatch compile a body on first use, as
+`getCurrentEventHandlerValue` does: a syntax error is reported and clears the handler; otherwise
+`window.Function` builds `with (document) with (form) with (element) function on<type>(event) { body }` (`onerror` on
+a window gets the five-argument form). body / frameset forward to the window target as their IDL attributes do.
+Setting an event handler to null deactivates it (its listener leaves the list, so a later value is registered
+last), as the HTML standard says; jsdom keeps the listener's place. A string `setTimeout` / `setInterval` handler
+runs as script in such a window, as in jsdom.
+
+**`<noscript>`.** `parseDocument(html, scripting)`: a `runScripts: "dangerously"` document parses `<noscript>` as raw
+text, others as markup (jsdom's scripting flag); fragments follow their document, as today.
+
+**Load sequence of a `JSDOM` document.** `document.readyState` is `"loading"` after construction; in microtasks, as
+jsdom's `close()` resource queue does: `"interactive"` + `readystatechange` + `DOMContentLoaded`, then `"complete"` +
+`readystatechange` + the document's `load`, then the window's `load` and `pageshow`. The environment globals and
+other documents report `"complete"` as today.
+
+**Known differences from jsdom.** jsdom does not mark fragment-parsed scripts "already started", so it runs a
+clone of an `innerHTML` script; rsdom follows the standard. `nomodule` classic scripts run, as in jsdom. Under the
+Vitest environment scripts run in the test's own realm (the window is Node's global), where Vitest's jsdom
+environment runs them in jsdom's window, a different object from the test's `window`: there a script's
+`window.x = 1` is invisible to the test. The parity harness has the same split, so subtests that check a script
+did *not* run pass under jsdom by accident (`nomodule-set-on-inline-classic-scripts.html`), and ones that check it
+did run fail there; rsdom gets the latter and loses one of the former.
+
+**Verification.** `--item browsing-contexts` and the suite: see the PR. test/contract/scripts.test.mjs runs the
+behaviour side by side with jsdom.

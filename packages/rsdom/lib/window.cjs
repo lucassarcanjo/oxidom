@@ -915,10 +915,10 @@ function installTimers(win, ctx, def) {
       const id = ++nextId;
       const run = () => {
         if (!repeat) timers.delete(id);
-        // a string handler is script source: rsdom does not run scripts
-        if (typeof handler !== 'function') return;
         try {
-          handler.apply(win, args);
+          // a string handler is script source, run only where scripts run (DESIGN §45)
+          if (typeof handler === 'function') handler.apply(win, args);
+          else if (ctx.settings.runScripts === 'dangerously') require('./scripts.cjs').run(ctx, String(handler), ctx.url.href);
         } catch (err) {
           events.reportException(win, err);
         }

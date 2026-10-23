@@ -39,6 +39,7 @@ function openVmWindow(options) {
     configurable: true,
   });
   const ctx = context.open({ ...options, global, ownTimers: true });
+  ctx.vmContext = vmContext;
   global.webkitURL = global.URL;
   Object.defineProperty(global, Symbol.toStringTag, { value: 'Window', configurable: true });
   return { vmContext, global, ctx };

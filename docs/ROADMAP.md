@@ -175,7 +175,9 @@ These change rsdom's data model or add a second browsing context. Each needs a d
       `reclamation`.
 - [x] Lone surrogates round-trip (§8 there) `surrogates`: stored as plane-16 escapes in UTF-8 (DESIGN §44).
 - [ ] iframes, script execution (`runScripts`) and resource loading (XL) `browsing-contexts`. No library in the sample
-      needs them.
+      needs them. Part 1 done 2026-10-23 (DESIGN §45): `runScripts`, script elements, inline event handlers,
+      `<noscript>` parsing, the load sequence of a `JSDOM` document. Left: iframes (part 2), `<script src>` and
+      `<iframe src>` loading (part 3).
 
 ## Not planned
 

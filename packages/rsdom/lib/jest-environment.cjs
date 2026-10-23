@@ -32,6 +32,7 @@ function environmentClass(jestRequire) {
       const open = api.environmentOptions({ url: 'http://localhost/', html: '<!DOCTYPE html>', ...options }, virtualConsole);
 
       const { vmContext, global, ctx } = openVmWindow(open);
+      require('./scripts.cjs').bind(ctx);
       this.context = vmContext;
       this.global = global;
       this.ctx = ctx;

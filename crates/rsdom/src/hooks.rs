@@ -56,6 +56,9 @@ impl Env {
     #[inline]
     pub(crate) fn hook_node_connected(&mut self, id: NodeId) {
         self.bump_named_if_contributes(id);
+        if self.script.on() {
+            self.script_connected(id);
+        }
         crate::style::on_node_connected(self, id);
         crate::forms::on_node_connected(self, id);
     }
@@ -89,6 +92,9 @@ impl Env {
             let old = self.get_attr_by_atoms(el, ns, local).cloned();
             self.ce_attr_changed(el, local, ns, old.as_ref());
         }
+        if self.script.on() {
+            self.script_attr_changed(el, local, ns);
+        }
         // forms only tests `old.is_some()` (the attribute was present: it still is)
         crate::forms::on_attr_changed(self, el, local, ns, Some(&Str::default()));
     }
@@ -119,6 +125,9 @@ impl Env {
         if self.rec(el).meta & crate::ce::CE_CUSTOM != 0 {
             self.ce_attr_changed(el, local, ns, old);
         }
+        if self.script.on() {
+            self.script_attr_changed(el, local, ns);
+        }
         if self.shadow.any() && ns == Atom::NONE && matches!(local, atom::SLOT | atom::NAME) {
             self.slot_attr_changed(el, local, old);
         }
@@ -144,6 +153,9 @@ impl Env {
         crate::forms::on_cloned(self, src, dst);
         if self.ce.any() {
             self.ce_cloned(src, dst);
+        }
+        if self.script.on() {
+            self.script_cloned(src, dst);
         }
     }
 

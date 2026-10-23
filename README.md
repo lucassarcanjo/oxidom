@@ -53,8 +53,7 @@ lab-phase baseline (API surface, WPT, 2026-10-17) is in [`docs/PARITY.md`](docs/
 
 The remaining library failure comes from a missing API: custom elements (lit), which are
 [Stage 4 of the roadmap](docs/ROADMAP.md#stage-4-architectural-work).
-Not supported today: Shadow DOM event retargeting, slots and scoped styles, custom elements, iframes, script
-execution, layout, XML documents, synchronous XMLHttpRequest. Every known difference from
+Not supported today: iframes, loading `<script src>`, layout, synchronous XMLHttpRequest. Every known difference from
 jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 
 ## Usage (from source)
@@ -70,8 +69,8 @@ npm run build          # builds the native addon into packages/rsdom/native/
 **Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
 `environment: 'jetdom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
 (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
-global (`jsdom.reconfigure({ url })`) is there. rsdom never runs scripts, so a `<script>` in `html` does not run
-(Vitest's jsdom default runs it). rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
+global (`jsdom.reconfigure({ url })`) is there. Scripts run as under Vitest's jsdom environment (`runScripts:
+'dangerously'` by default), external `<script src>` excepted. rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
 `html` as body markup) and win over the `jsdom` ones. The VM pools (`pool: 'vmThreads'` / `'vmForks'`) work too. As on jsdom, `alert()`, `scrollTo()` and the other
 not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel is logged there instead of failing the test.
@@ -107,9 +106,9 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 ```
 
 `JSDOM` takes jsdom's options (`url`, `referrer`, `contentType`, `pretendToBeVisual`, `storageQuota`,
-`virtualConsole`, `beforeParse`, `resources.userAgent`) and has `serialize()`, `reconfigure()`, `JSDOM.fragment()`,
-`JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet: `runScripts`, `includeNodeLocations`
-and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
+`virtualConsole`, `beforeParse`, `runScripts`, `resources.userAgent`) and has `serialize()`, `reconfigure()`,
+`getInternalVMContext()`, `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet:
+`includeNodeLocations` and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
 
 ## Repository
 

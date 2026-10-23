@@ -349,7 +349,7 @@ export interface BaseOptions {
   referrer?: string | undefined;
   /** validated; rsdom keeps no node locations, so `nodeLocation()` throws */
   includeNodeLocations?: boolean | undefined;
-  /** validated; rsdom never runs scripts */
+  /** either value: the window is a vm context's global; "dangerously": scripts and inline handlers run */
   runScripts?: 'dangerously' | 'outside-only' | undefined;
   resources?: 'usable' | ResourcesOptions | undefined;
   virtualConsole?: VirtualConsole | undefined;
@@ -389,8 +389,8 @@ export class JSDOM {
   serialize(): string;
   /** throws: rsdom keeps no node locations */
   nodeLocation(node: Node): never;
-  /** throws: rsdom never runs scripts */
-  getInternalVMContext(): never;
+  /** the window's vm context; throws without `runScripts` */
+  getInternalVMContext(): import('node:vm').Context;
   reconfigure(settings: ReconfigureSettings): void;
 }
 

@@ -2,7 +2,7 @@ use super::*;
 
 fn doc(html: &str) -> (Env, NodeId) {
     let mut e = Env::new();
-    let d = e.parse_document(html);
+    let d = e.parse_document(html, false);
     (e, d)
 }
 

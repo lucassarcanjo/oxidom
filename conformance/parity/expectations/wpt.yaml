@@ -869,13 +869,6 @@ dom/nodes/CharacterData-appendData.html:
 dom/nodes/CharacterData-substringData.html:
   "Comment.substringData() with too few arguments": [fail, "assert_true: wrong value"]
   "Text.substringData() with too few arguments": [fail, "assert_true: wrong value"]
-dom/nodes/CharacterData-surrogates.html:
-  "Comment.deleteData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
-  "Comment.insertData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
-  "Comment.replaceData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
-  "Text.deleteData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
-  "Text.insertData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
-  "Text.replaceData() splitting and creating surrogate pairs": [fail, "assert_equals: wrong value"]
 dom/nodes/Comment-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
 dom/nodes/DOMImplementation-createDocument.html:
   "createDocument with missing arguments": [fail, "assert_true: wrong value"]
@@ -906,9 +899,6 @@ dom/nodes/Node-childNodes.html:
 dom/nodes/Node-cloneNode-document-allow-declarative-shadow-roots.window.html: [fail, "missing method: .write()"]
 dom/nodes/NodeList-live-mutations.window.html:
   "NodeList live mutations: NodeList ownPropertyNames": [fail, "assert_object_equals: wrong value"]
-dom/nodes/ParentNode-querySelector-escapes.html:
-  "\"\\ud83dsurrogateFirst\" should never match with \"#\\\\d83d surrogateFirst\"": [fail, "assert_equals: wrong value"]
-  "\"surrogateSecond\\udd11\" should never match with \"#surrogateSecond\\\\dd11\"": [fail, "assert_equals: wrong value"]
 dom/nodes/ParentNode-querySelector-host-pseudo-class.html: [fail, "assert_equals: wrong value"]
 dom/nodes/Text-constructor.html: [timeout, "harness TIMEOUT: (no message)", {pass: 15}]
 dom/nodes/getElementsByClassName-14.htm:
@@ -1888,6 +1878,14 @@ html/semantics/embedded-content/the-img-element/usemap-casing.html: [fail, "miss
 html/semantics/embedded-content/the-img-element/width-height-attribute-parsing.html: [timeout, "harness TIMEOUT: (no message)"]
 html/semantics/forms/attributes-common-to-form-controls/formaction.html:
   "On getting, when formaction is missing, the document's address must be returned": [fail, "assert_equals: wrong value"]
+html/semantics/forms/constraints/form-validation-validity-patternMismatch.html:
+  "[INPUT in EMAIL status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
+  "[INPUT in EMAIL status] The pattern attribute uses Unicode features, if multiple is present": [fail, "assert_false: wrong value"]
+  "[INPUT in PASSWORD status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
+  "[INPUT in SEARCH status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
+  "[INPUT in TEL status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
+  "[INPUT in TEXT status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
+  "[INPUT in URL status] The pattern attribute uses Unicode features": [fail, "assert_false: wrong value"]
 html/semantics/forms/constraints/form-validation-validity-stepMismatch.html:
   "[INPUT in NUMBER status] Step mismatch when step is a very small floating number and value is not its integral multiple": [fail, "assert_true: wrong value"]
 html/semantics/forms/constraints/form-validation-validity-valueMissing.html:

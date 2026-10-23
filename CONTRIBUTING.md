@@ -269,11 +269,8 @@ mention it in the commit message so the other areas can rebase easily.
 Recorded after the foundation review (DESIGN §15.1); asserted where testable
 (`test/contract/foundation-fixes.test.mjs`, "spec-correct divergences").
 
-- **Lone surrogates / offsets inside surrogate pairs.** Strings are stored as UTF-8: lone surrogates become
-  U+FFFD on ingress, and a CharacterData offset that falls inside a surrogate pair rounds down to the start
-  of the code point, so `deleteData`/`insertData`/`replaceData`/`splitText` at such offsets edit whole code
-  points (`'a😀b'.deleteData(1, 1)` removes nothing in rsdom; jsdom removes the high surrogate). A full fix
-  needs WTF-8 or UTF-16 storage for character data.
+- **Lone-surrogate escapes.** A lone surrogate is stored as a code point of U+10F800..U+10FFFF (DESIGN §44), so a
+  real character of that private-use block reads back as a lone surrogate.
 - **Index getters bound.** Live-list index getters are installed up to the largest length any list access
   has seen (at least 256). A list held across a mutation that grows it past that bound and then indexed past
   it without any `length`/`item`/iteration/getter access returns `undefined`.

@@ -447,8 +447,8 @@ Measured values are listed as jsdom / happy-dom / rsdom. The attribution column 
   process** (the Vitest main process or one forks worker), not the sum over workers. With forks it is therefore about
   one worker's footprint; with threads the workers share one process, which is why threads figures are higher.
   Compare DOMs within one mode only.
-- **Other known limits** (ROADMAP M9 list): strings are stored as UTF-8, so lone surrogates become U+FFFD and
-  CharacterData offsets inside a surrogate pair round to whole code points; live-list index getters are installed up
+- **Other known limits** (ROADMAP M9 list): strings are stored as UTF-8, with lone surrogates as private-use escapes
+  (DESIGN §44); live-list index getters are installed up
   to a bound (at least 256), so a list held across a mutation that grows it past that bound and indexed without any
   `length`/`item`/iteration access returns `undefined`; non-core computed properties are read live (jsdom snapshots
   them); a panic inside a native leaves the env non-transactional.

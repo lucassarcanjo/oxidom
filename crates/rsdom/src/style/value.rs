@@ -1069,7 +1069,7 @@ pub fn longhands(p: u32) -> &'static [u32] {
 /// Parses `value` for property `p` (known id or custom). None = invalid (ignored by the caller).
 pub fn parse_declaration(p: u32, value: &str) -> Option<Parsed> {
     let pre;
-    let value = if value.contains(['\r', '\u{c}', '\0']) {
+    let value = if value.contains(['\r', '\u{c}', '\0']) || crate::string::has_escape(value) {
         pre = preprocess(value);
         pre.as_str()
     } else {
@@ -1118,6 +1118,8 @@ fn preprocess(s: &str) -> String {
             }
             '\u{c}' => out.push('\n'),
             '\0' => out.push('\u{fffd}'),
+            // a lone surrogate's escape (DESIGN §44)
+            c if (c as u32) >= crate::string::ESC_BASE => out.push('\u{fffd}'),
             c => out.push(c),
         }
     }

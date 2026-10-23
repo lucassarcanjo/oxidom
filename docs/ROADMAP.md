@@ -173,7 +173,7 @@ These change rsdom's data model or add a second browsing context. Each needs a d
       built-ins, `:defined`, `ElementInternals` as jsdom 30 has it (DESIGN §43). The rest of the gap is iframe tests.
 - [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8)
       `reclamation`.
-- [ ] WTF-8 or UTF-16 character data, so lone surrogates round-trip (§8 there) `surrogates`.
+- [x] Lone surrogates round-trip (§8 there) `surrogates`: stored as plane-16 escapes in UTF-8 (DESIGN §44).
 - [ ] iframes, script execution (`runScripts`) and resource loading (XL) `browsing-contexts`. No library in the sample
       needs them.
 

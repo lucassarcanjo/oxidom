@@ -706,6 +706,55 @@ impl Env {
     }
 }
 
+impl Env {
+    /// Window named property contributors (jsdom living/window-properties.js): HTML elements of `doc`'s document tree
+    /// with id `name` (`mode` 0 or 2) and HTML embed / form / img / object / iframe / frame elements named `name`
+    /// (`mode` 1 or 2), in tree order, into OUT.
+    pub fn win_named(&mut self, doc: NodeId, name: &str, mode: u32) -> u32 {
+        let mut ids = std::mem::take(&mut self.ids);
+        ids.clear();
+        if !name.is_empty() {
+            if mode != 1
+                && let Some(a) = self.atoms.get(name)
+                && let Some(cands) = self.doc_data(doc).and_then(|d| d.id_map.get(&a))
+            {
+                let cands: SmallVec<[NodeId; 4]> = cands.iter().copied().collect();
+                for c in cands {
+                    let r = self.rec(c);
+                    if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                        && r.owner == doc
+                        && self.in_document_tree(c)
+                    {
+                        ids.push(c);
+                    }
+                }
+            }
+            if mode != 0 {
+                let mut n = self.next_in_subtree(doc, doc);
+                while n != 0 {
+                    let r = self.rec(n);
+                    if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                        && matches!(
+                            Atom(r.local),
+                            atom::EMBED | atom::FORM | atom::IMG | atom::OBJECT | atom::IFRAME | atom::FRAME
+                        )
+                        && self.get_attr_ns(n, None, "name").is_some_and(|v| v.as_str() == name)
+                        && !ids.contains(&n)
+                    {
+                        ids.push(n);
+                    }
+                    n = self.next_in_subtree(n, doc);
+                }
+            }
+            if ids.len() > 1 {
+                ids.sort_by(|&a, &b| self.tree_order(a, b));
+            }
+        }
+        self.ids = ids;
+        self.write_ids()
+    }
+}
+
 /// One preorder walk over the descendants of `root`.
 fn query_walk(e: &Env, c: &Compiled, root: NodeId, first: bool, out: &mut Vec<NodeId>) {
     if c.pre.iter().all(|p| p.never) {
@@ -794,6 +843,11 @@ natives! {
     /// The elements behind `document[name]` (Document's named getter) into OUT; returns the count.
     fn docNamed(e, doc: u32, name: str) -> u32 {
         e.doc_named(doc, name)
+    }
+    /// The elements behind `window[name]` (Window's named properties, DESIGN §46) in document `doc` into OUT, in tree
+    /// order; returns the count. `mode` 0: by id only (the id map), 1: by name only, 2: both.
+    fn winNamed(e, doc: u32, name: str, mode: u32) -> u32 {
+        e.win_named(doc, name, mode)
     }
 }
 

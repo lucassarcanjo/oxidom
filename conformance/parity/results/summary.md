@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2233 | 162751 | 162349 | 99.8% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2252 | 162751 | 162378 | 99.8% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 171 | 2578 | 2506 | 97.2% |
-| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 11 | 1781 | 1737 | 97.5% |
-| jsdom's API tests (test/api) | 17 | 2 | 614 | 326 | 53.1% |
-| **all** | **2615** | **2417** | **167724** | **166918** | **99.5%** |
+| jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 12 | 1781 | 1755 | 98.5% |
+| jsdom's API tests (test/api) | 17 | 2 | 614 | 333 | 54.2% |
+| **all** | **2615** | **2437** | **167724** | **166972** | **99.6%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -22,11 +22,11 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | stage | item | files | files at parity | gap (subtests) | parity | main causes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | 1 | TreeWalker / NodeIterator / NodeFilter | 17 | 17 | 0 | 100.0% |  |
-| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 24 | 1 | 99.8% | assert_true: wrong value (1) |
+| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 25 | 0 | 100.0% |  |
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no tests selected |  |
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
-| 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 288 | 53.1% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (28) |
+| 2 | JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class) | 17 | 2 | 281 | 54.2% | rsdom: XML documents are not supported (contentType …) (149); not a function: requestInterceptor (61); TIMEOUT: Timeout of …ms exceeded (28) |
 | 3 | Selection backed by real Ranges | 64 | 62 | 2 | 100.0% | jsdom fires window.onload twice here (a second, duplicate-named subtest); not a Selection behaviour (2) |
 | 3 | CSSOM rule objects (insertRule, cssRules, styleSheets) | 260 | 227 | 87 | 95.1% | assert_equals: wrong value (77); harness TIMEOUT: (no message) (3); assert_not_equals: wrong value (2) |
 | 3 | Computed-value fidelity (rgb() colours, numeric font-weight, resolved em) | 297 | 284 | 21 | 99.5% | assert_equals: wrong value (16); … is not a valid selector (2); TIMEOUT: Timeout of …ms exceeded (2) |
@@ -39,12 +39,12 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XML documents, XMLSerializer and DOMParser for XML types | 39 | 37 | 5 | 99.5% | assert_equals: wrong value (4); rsdom: DOMParser type … is not supported (XML parsing is out of scope) (1) |
 | 3 | XPath | 28 | 28 | 0 | 100.0% |  |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
-| 3 | Core DOM and HTML behaviour no other item claims | 955 | 896 | 127 | 99.5% | assert_true: wrong value (44); assert_array_equals: wrong value (23); assert_equals: wrong value (20) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 109 | 29 | 96.6% | assert_true: wrong value (29) |
+| 3 | Core DOM and HTML behaviour no other item claims | 955 | 896 | 126 | 99.5% | assert_true: wrong value (44); assert_array_equals: wrong value (23); assert_equals: wrong value (20) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 128 | 0 | 100.0% |  |
 | 4 | Custom elements and customElements | 147 | 120 | 145 | 95.2% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (1); assert_array_equals: wrong value (1) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
-| 4 | iframes, script execution (runScripts) and resource loading | 120 | 114 | 37 | 91.3% | TIMEOUT: Timeout of …ms exceeded (18); read of undefined (.document) (9); frame should exist (.length) undefined !== … (2) |
+| 4 | iframes, script execution (runScripts) and resource loading | 120 | 115 | 19 | 95.5% | TIMEOUT: Timeout of …ms exceeded (13); read of undefined (.document) (2); deliberate: nomodule classic scripts run, as in jsdom (it passes here only because its scripts run in its own realm; DESIGN §45) (1) |
 
 ## Gaps outside every roadmap item
 

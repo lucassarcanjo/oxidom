@@ -3,25 +3,15 @@
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
 to-port-to-wpts/frame.js:
-  "frame > accessor should not exist before append": [fail, "no frames should exist yet undefined !== …"]
   "frame > frame_parent": [fail, "write to undefined (.onload)"]
   "frame > frame_src_relative_to_parent_doc": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > get iframe window via indexed frames access": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > get iframe window via indexed frames access with setAttributeNode": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > iframe loads blank document when src unspecified": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > move frame": [fail, "should load … iframes undefined !== …"]
-  "frame > remove frame": [fail, "frame should exist (.length) undefined !== …"]
-  "frame > remove middle frame": [fail, "frames should exist (.length) undefined !== …"]
-  "frame > test frame references": [fail, "frame should exist (.length) undefined !== …"]
-  "frame > test framesets": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test iframe load event": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test iframe without src": [fail, "read of undefined (.open)"]
   "frame > test iframe.contentDocument access": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > test iframe.contentWindow acccess": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > test multiple iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test nested iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "frame > test setting src multiple times": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "frame > update named frames access on name change": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/jsonp.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/level2/html.js:
   "level2/html > HTMLDocument17": [fail, "missing method: .open()"]
@@ -36,13 +26,11 @@ to-port-to-wpts/level2/style.js:
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/misc2.js:
-  "jsdom/miscellaneous > iframe_contents": [fail, "read of undefined (.document)"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0 (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0, second case (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_attr_mixed_case": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_val_on_selects": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/parsing.js:
   "jsdom/parsing > <%= stuff %> inside <script> tags (GH-58)": [fail, "missing method: .write()"]
-to-port-to-wpts/post-message.js: [fail, "read of undefined (.document)"]
 to-port-to-wpts/script.js:
   "script > timer_executes_in_context": [fail, "TIMEOUT: Timeout of …ms exceeded"]

@@ -162,8 +162,14 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   inserted before them in the same call; jsdom runs the script first. DESIGN §45.
 - **[gap] No `<script src>`.** External scripts are not fetched, as with jsdom without `resources: 'usable'`.
   `browsing-contexts` (part 3).
-- **[gap] No iframes.** An `<iframe>` has no nested browsing context: `contentWindow` and `contentDocument` are
-  undefined, and so are `window.frames` indexing and `window.length`. `browsing-contexts` (Stage 4).
+- **[design] Frame windows share the parent's interface objects:** `frame.contentWindow.Node === window.Node`, and
+  `new frame.contentWindow.Text()` creates its node in the parent's document. DESIGN §46.
+- **[gap] An `about:blank` frame is not same-origin with its parent:** its `origin` is `"null"` and its
+  `localStorage` is its own. DESIGN §46.
+- **[gap] Frames load only `about:blank` and `javascript:` URLs** for now: another `src` leaves an empty, loading
+  document, as with jsdom without `resources: 'usable'`. `browsing-contexts` (part 3).
+- **[design] No window named properties under the Vitest environment** (`window.myFrame`, `window.someId`): its
+  window is Node's own global. `JSDOM`, `createWindow()`, the VM pools and the Jest environment have them. DESIGN §46.
 - **[gap] User agent.** `navigator.userAgent` ends in `rsdom/0.1.0`, not `jsdom/30.1.3`. Code that looks for
   "jsdom" in it will not match. DESIGN §31.
 - **[design] One set of interface objects per thread**, not per `JSDOM` instance: `dom1.window.Node ===
@@ -188,17 +194,15 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   under jest-environment-jsdom. DESIGN §32.
 - **[gap] Missing Window members:** `ElementInternals` and `customElements` (`custom-elements`, Stage 4),
   `webkitURL`, the SVG value types (`SVGRect`, `SVGNumber`, `SVGStringList`, `SVGAnimated*`,
-  `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`. `length` is 0 even
-  with iframes (`browsing-contexts`); `status`, `length`, `external` and the bars are data properties (jsdom: replaceable
-  accessors), so `status = 5` reads back `5`.
+  `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`. `status`,
+  `length`, `external` and the bars are data properties (jsdom: replaceable accessors), so `status = 5` reads back `5`.
 - **[gap] Named properties of collections** (`form.elements.email`, `document.forms.login`, `el.attributes.id`)
   read like jsdom's, but are not own properties: `'email' in form.elements`, `hasOwnProperty`,
   `Object.getOwnPropertyDescriptor` and `Object.keys` don't see them (use `namedItem()` for an existence check).
   DESIGN §4.3.
 - **[gap] Document named properties** (`document.loginForm`) read like jsdom's with the same limits as
   collections' (not own, not seen by `in`), and a named element never shadows a `Document` member (jsdom's
-  `<img name="title">` makes `document.title` the element). A lone named iframe answers the element, not a
-  window. Names starting with `_` are not exposed on the document. DESIGN §4.3.
+  `<img name="title">` makes `document.title` the element). Names starting with `_` are not exposed on the document. DESIGN §4.3.
 - **[gap] Media events of elements in a windowless document** (`createHTMLDocument()`, `DOMParser`): the
   `volumechange` / `ratechange` task is queued on the current window, not the creating one, so it still fires
   after the creating window closed if another is current, and is dropped when no window is open. DESIGN §41.

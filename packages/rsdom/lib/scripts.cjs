@@ -116,22 +116,29 @@ function handlerChanged(id, name) {
 }
 
 /**
- * Binds `ctx`'s document as one that runs scripts, if its settings say so, and unbinds it on close. Then runs
- * what the document parse left: its `on*` attributes and its scripts, in tree order (the parser's order).
+ * Binds `ctx`'s document as one with a window (its frames get browsing contexts, DESIGN §46) and, if its settings
+ * say so, one that runs scripts; unbinds it on close. Then runs what the document parse left, in tree order (the
+ * parser's order): its frames, and when it runs scripts its `on*` attributes and scripts.
  */
 function bind(ctx) {
-  if (ctx.settings.runScripts !== 'dangerously') return;
   const doc = ctx.document;
-  N.scriptBindDoc(doc._i, 1);
+  const scripting = ctx.settings.runScripts === 'dangerously';
+  N.scriptBindDoc(doc._i, scripting ? 3 : 1);
   ctx.onClose(() => N.scriptBindDoc(doc._i, 0));
-  runParsed(doc);
+  runParsed(doc, scripting);
 }
 
-/** Runs a parsed document's `on*` attributes and scripts in tree order (the parser's order). */
-function runParsed(doc) {
-  const w = rt.outIds(N.scriptParsed(doc._i));
+/**
+ * Runs a parsed document's frames (unless `frames` is false), and with `scripting` its `on*` attributes and scripts,
+ * in tree order.
+ */
+function runParsed(doc, scripting, frames = true) {
+  const w = rt.outIds(N.scriptParsed(doc._i, scripting ? 1 : 0));
   for (let i = 0; i < w.length; i += 3) {
     if (w[i] === 128) handlerChanged(w[i + 1], rt.atomName(w[i + 2]));
+    else if (w[i] === 256) {
+      if (frames) require('./frames.cjs').loadFrame(w[i + 1], true);
+    }
     else evalScript(w[i + 1]);
   }
 }
@@ -139,7 +146,7 @@ function runParsed(doc) {
 /**
  * The load steps of a `JSDOM` document (jsdom `Document#close()`, Window.js): "loading" until, in microtasks,
  * "interactive" + DOMContentLoaded, then "complete" + the document's `load`, then the window's `load` and
- * `pageshow`. Each step is skipped once the context is closed.
+ * `pageshow`. Each step is skipped once the context is closed. Returns the promise of the last step.
  */
 function startLoad(ctx) {
   const doc = ctx.document;
@@ -149,7 +156,7 @@ function startLoad(ctx) {
     events.fire(doc, 'readystatechange');
   };
   doc._ready = 'loading';
-  Promise.resolve().then(() => {
+  return Promise.resolve().then(() => {
     if (ctx.closed) return;
     setReady('interactive');
     events.fire(doc, 'DOMContentLoaded', { bubbles: true });
@@ -204,8 +211,9 @@ function write(doc, text) {
     const scripting = doc._ctx !== undefined && doc._ctx.settings.runScripts === 'dangerously';
     const parsed = rt.wrap(rt.checkId(N.parseDocument(text, scripting ? 1 : 0)));
     for (const n of [...parsed.childNodes]) doc.appendChild(doc.adoptNode(n));
-    // the parser's handlers and scripts run as a parsed document's do (`bind`); adoption kept the scripts' flags
-    if (scripting) runParsed(doc);
+    // the parser's handlers and scripts run as a parsed document's do (`bind`); adoption kept the scripts' flags.
+    // Its frames loaded when appended (the connect reaction)
+    if (scripting) runParsed(doc, true, false);
   }
 }
 

@@ -60,6 +60,12 @@ pub mod cb {
     pub const SCRIPT: u32 = 64;
     /// an `on*` content attribute changed; `a` = its local name (wire kind only, crate::script)
     pub const HANDLER: u32 = 128;
+    /// an HTML iframe / frame's post-connection steps (wire kind only, crate::script)
+    pub const FRAME: u32 = 256;
+    /// an HTML iframe / frame's `src` changed while connected (wire kind only, crate::script)
+    pub const FRAME_SRC: u32 = 512;
+    /// an HTML iframe / frame's removing steps (wire kind only, crate::script)
+    pub const FRAME_REMOVED: u32 = 1024;
 }
 
 #[derive(Debug)]

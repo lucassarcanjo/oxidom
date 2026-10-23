@@ -2,7 +2,7 @@
 // The facade, loaded once per native env through lib/index.cjs (which documents it).
 //
 // Area install order: core (dom.cjs, collections.cjs) -> traversal -> select -> style -> cssom -> forms -> events -> mo -> window
-// -> xhr -> observers -> range -> shadow -> file-api -> selection -> xml -> xpath -> geometry -> media -> tables -> reflection (last: it only fills in
+// -> xhr -> observers -> range -> shadow -> file-api -> selection -> xml -> xpath -> geometry -> media -> tables -> frames -> reflection (last: it only fills in
 // reflected attributes no other area defined).
 
 const rt = require('./runtime.cjs');
@@ -28,6 +28,7 @@ const areas = [
   require('./geometry.cjs'),
   require('./media.cjs'),
   require('./tables.cjs'),
+  require('./frames.cjs'),
   require('./reflection.cjs'),
   require('./custom-elements.cjs'),
 ];
@@ -44,6 +45,7 @@ rt.exposeMembers();
  */
 function createWindow(options = {}) {
   const ctx = context.open(options);
+  require('./scripts.cjs').bind(ctx);
   return { window: ctx.window, document: ctx.document };
 }
 

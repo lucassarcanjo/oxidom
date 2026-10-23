@@ -21,6 +21,10 @@ const UPGRADE = 16;
 /** crate::script's reaction kinds on the same queue (DESIGN §45): handled by lib/scripts.cjs */
 const SCRIPT = 64;
 const HANDLER = 128;
+/** Frame reactions (crate::ce `cb::FRAME*`, DESIGN §46): connected, `src` changed, removed. */
+const FRAME = 256;
+const FRAME_SRC = 512;
+const FRAME_REMOVED = 1024;
 /** Definition flag next to the callback bits (src/ce.rs `cb::FORM_ASSOCIATED`): form-associated, so labelable. */
 const FORM_ASSOCIATED = 32;
 /** Custom element states (src/ce.rs `state`). */
@@ -523,6 +527,10 @@ function runElement(id) {
         require('./scripts.cjs').postConnection(id);
       } else if (r.kind === HANDLER) {
         require('./scripts.cjs').handlerChanged(id, r.args[0]);
+      } else if (r.kind === FRAME || r.kind === FRAME_SRC) {
+        require('./frames.cjs').loadFrame(id, r.kind === FRAME);
+      } else if (r.kind === FRAME_REMOVED) {
+        require('./frames.cjs').removed(id);
       } else {
         const def = byId[N.ceDef(id)];
         const fn = def?.callbacks[CALLBACK_OF[r.kind]];

@@ -26,13 +26,17 @@ use crate::string::Str;
 use crate::table::NodeId;
 
 impl Env {
-    /// Bumps `EP[NAMED]` (Document's named properties) when `n` is an HTML embed / form / iframe / img /
-    /// object element: the only elements that can contribute (jsdom drops its cache on the same events).
+    /// Bumps `EP[NAMED]` (Document's and Window's named properties by name) when `n` is an HTML embed / form /
+    /// iframe / img / object / frame element: the only elements that can contribute by name (jsdom drops its cache
+    /// on the same events).
     #[inline]
     fn bump_named_if_contributes(&mut self, n: NodeId) {
         let r = self.rec(n);
         if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
-            && matches!(Atom(r.local), atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+            && matches!(
+                Atom(r.local),
+                atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT | atom::FRAME
+            )
         {
             self.ep.bump(ep::NAMED);
         }
@@ -67,6 +71,9 @@ impl Env {
     #[inline]
     pub(crate) fn hook_node_disconnected(&mut self, id: NodeId) {
         self.bump_named_if_contributes(id);
+        if self.script.on() {
+            self.script_disconnected(id);
+        }
         crate::focus::on_node_disconnected(self, id);
         crate::style::on_node_disconnected(self, id);
         crate::forms::on_node_disconnected(self, id);

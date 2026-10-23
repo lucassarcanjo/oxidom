@@ -54,6 +54,8 @@ pub mod cb {
     pub const ATTRIBUTE: u32 = 8;
     /// an upgrade reaction (wire kind only)
     pub const UPGRADE: u32 = 16;
+    /// definition flag (not a callback): `static formAssociated` is true
+    pub const FORM_ASSOCIATED: u32 = 32;
 }
 
 #[derive(Debug)]
@@ -82,6 +84,8 @@ struct Reaction {
 /// Env-wide custom element state (`Env.ce`).
 #[derive(Default, Debug)]
 pub struct CeState {
+    /// bumped when an element gains or loses a form-associated definition: labelability of form-associated elements (forms label memo)
+    pub def_gen: u32,
     /// registry of each document that has one (a window's document)
     regs: FxHashMap<NodeId, u32>,
     /// document of each registry
@@ -141,6 +145,19 @@ impl Env {
         self.ce.elems.get(&el).copied().unwrap_or_default()
     }
 
+    /// True if `el` has a definition that is form-associated (labelable, DESIGN §43). jsdom reads the element's
+    /// definition, which an upgrade sets before running the constructor and clears if it fails.
+    pub(crate) fn ce_form_associated(&self, el: NodeId) -> bool {
+        if self.ce.defs.is_empty() || self.rec(el).meta & (CE_CUSTOM | CE_UNDEFINED) == 0 {
+            return false;
+        }
+        self.ce_def_form_associated(self.ce_elem(el).def)
+    }
+
+    fn ce_def_form_associated(&self, def: u32) -> bool {
+        def != 0 && self.ce.defs[def as usize - 1].callbacks & cb::FORM_ASSOCIATED != 0
+    }
+
     /// `is` value of `el` (none for most elements).
     pub(crate) fn ce_is(&self, el: NodeId) -> Atom {
         if self.ce.elems.is_empty() { Atom::NONE } else { self.ce_elem(el).is }
@@ -153,6 +170,10 @@ impl Env {
             state::UNCUSTOMIZED => 0,
             _ => CE_UNDEFINED,
         };
+        let old = self.ce_elem(el).def;
+        if old != def && (self.ce_def_form_associated(old) || self.ce_def_form_associated(def)) {
+            self.ce.def_gen = self.ce.def_gen.wrapping_add(1);
+        }
         let r = self.rec_mut(el);
         r.meta = (r.meta & !(CE_CUSTOM | CE_UNDEFINED)) | bits;
         if st == state::UNCUSTOMIZED && is.is_none() {

@@ -181,4 +181,36 @@ describe.each(DOMS.filter((k) => k !== 'happy-dom'))('custom elements [%s]', (ki
     });
     expect(errors).toEqual(['boom']);
   });
+
+  it('attachInternals: shadowRoot, labels of form-associated elements, ARIA and disabledFeatures', () => {
+    let internals = null;
+    w.customElements.define('x-ctl', class extends w.HTMLElement {
+      static formAssociated = true;
+      constructor() {
+        super();
+        internals = this.attachInternals();
+        this.attachShadow({ mode: 'closed' });
+      }
+    });
+    d.body.innerHTML = '<label id=l>name <x-ctl></x-ctl></label>';
+    const ctl = d.body.querySelector('x-ctl');
+    expect(internals).toBeInstanceOf(w.ElementInternals);
+    expect(internals.shadowRoot).not.toBe(null);
+    expect(ctl.shadowRoot).toBe(null);
+    expect(d.getElementById('l').control).toBe(ctl);
+    expect([...internals.labels]).toEqual([d.getElementById('l')]);
+    expect(errName(() => ctl.attachInternals())).toBe('NotSupportedError');
+    internals.ariaLabel = 'x';
+    internals.role = 'slider';
+    expect([internals.ariaLabel, internals.role, ctl.getAttribute('aria-label')]).toEqual(['x', 'slider', null]);
+    expect(errName(() => d.createElement('div').attachInternals())).toBe('NotSupportedError');
+    w.customElements.define('x-plain', class extends w.HTMLElement {
+      static disabledFeatures = ['internals', 'shadow'];
+    });
+    const plain = d.createElement('x-plain');
+    expect(errName(() => plain.attachInternals())).toBe('NotSupportedError');
+    expect(errName(() => plain.attachShadow({ mode: 'open' }))).toBe('NotSupportedError');
+    w.customElements.define('x-nofa', class extends w.HTMLElement {});
+    expect(errName(() => d.createElement('x-nofa').attachInternals().labels)).toBe('NotSupportedError');
+  });
 });

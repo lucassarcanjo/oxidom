@@ -12,12 +12,14 @@ const rt = require('./runtime.cjs');
 const interfaces = require('./generated/interfaces.cjs');
 const { envGen, alive } = require('./memo.cjs');
 
-const { N, V, F, M, EPI, TOKEN, afterAlloc, mutated, atomName } = rt;
+const { N, V, F, M, K, EPI, TOKEN, afterAlloc, mutated, atomName } = rt;
 
 /** Lifecycle callback bits and the upgrade reaction kind (src/ce.rs `cb`). */
 const CB = { connectedCallback: 1, disconnectedCallback: 2, adoptedCallback: 4, attributeChangedCallback: 8 };
 const CB_NAMES = Object.keys(CB);
 const UPGRADE = 16;
+/** Definition flag next to the callback bits (src/ce.rs `cb::FORM_ASSOCIATED`): form-associated, so labelable. */
+const FORM_ASSOCIATED = 32;
 /** Custom element states (src/ce.rs `state`). */
 const ST = { UNCUSTOMIZED: 0, UNDEFINED: 1, FAILED: 2, PRECUSTOMIZED: 3, CUSTOM: 4 };
 const ALREADY_CONSTRUCTED = Symbol('already-constructed-marker');
@@ -31,6 +33,10 @@ const byCtor = new Map();
 let nextReg = 1;
 /** Element id -> its reactions not yet invoked (jsdom's per-element `_ceReactionQueue`). */
 const pendingOf = new Map();
+/** Element id -> its ElementInternals (HTML "attached internals"). */
+const internalsOf = new Map();
+/** Shadow root ids attached while their host was precustomized or custom (jsdom `_availableToElementInternals`). */
+const internalsShadows = new Set();
 
 function illegal() {
   throw new TypeError('Illegal constructor');
@@ -180,6 +186,7 @@ class CustomElementRegistry {
     }
     let mask = 0;
     for (const k of CB_NAMES) if (callbacks[k] !== null) mask |= CB[k];
+    if (formAssociated) mask |= FORM_ASSOCIATED;
     const def = {
       name, localName, ctor: constructor, callbacks, observed, formAssociated, registry: this, ctx: this.#ctx,
       disableShadow: disabled.includes('shadow'), disableInternals: disabled.includes('internals'),
@@ -393,6 +400,109 @@ function upgradeElement(def, id, queue) {
   N.ceSetState(id, ST.CUSTOM, def.id);
 }
 
+// =================================================================================== ElementInternals
+
+/**
+ * ElementInternals (refs/jsdom/lib/jsdom/living/custom-elements/ElementInternals-impl.js): jsdom 30 implements
+ * `shadowRoot`, `labels` and ARIAMixin, whose reflection goes to a per-element map instead of attributes.
+ */
+class ElementInternals {
+  /** the target element's wrapper (its `_i` is 0 once its env is reset) */
+  #el;
+  /** ARIAMixin content attribute name -> value (jsdom `_internalContentAttributeMap`) */
+  #aria = new Map();
+
+  constructor(t = undefined, el = undefined) {
+    if (t !== TOKEN) illegal();
+    this.#el = el;
+  }
+
+  get shadowRoot() {
+    const id = this.#el._i;
+    if (id === 0 || (V.T[V.off(id) + F.META] & M.SHADOW) === 0) return null;
+    const root = N.shadowRootOf(id, false);
+    return internalsShadows.has(root) ? rt.wrap(root) : null;
+  }
+
+  get labels() {
+    const id = this.#el._i;
+    const def = id === 0 ? undefined : byId[N.ceDef(id)];
+    if (def === undefined || !def.formAssociated) {
+      throw new rt.classes.DOMException("Accesing an ElementInternal's labels property is only supported for form-associated custom elements", 'NotSupportedError');
+    }
+    const n = N.labels(id);
+    return dom.staticNodeListFromIds(rt.outIds(n === 0xffffffff ? 0 : n));
+  }
+
+  static _aria(prop, attr) {
+    Object.defineProperty(ElementInternals.prototype, prop, {
+      get() {
+        return this.#aria.get(attr) ?? null;
+      },
+      set(v) {
+        if (v === null || v === undefined) this.#aria.delete(attr);
+        else this.#aria.set(attr, String(v));
+      },
+      enumerable: true,
+      configurable: true,
+    });
+  }
+}
+Object.defineProperty(ElementInternals.prototype, Symbol.toStringTag, { value: 'ElementInternals', configurable: true });
+// ARIAMixin: the nullable-string ARIA reflections Element has (role and aria-*)
+for (const [prop, attr, kind] of interfaces.reflect.Element) {
+  if (kind === 'str?' && (attr === 'role' || attr.startsWith('aria-'))) ElementInternals._aria(prop, attr);
+}
+delete ElementInternals._aria;
+
+/** HTMLElement.attachInternals() (jsdom HTMLElement-impl.js). */
+function attachInternals() {
+  if (!(this instanceof rt.classes.HTMLElement)) {
+    throw new TypeError("'attachInternals' called on an object that is not a valid instance of HTMLElement.");
+  }
+  const id = this._i;
+  const fail = (m) => {
+    throw new rt.classes.DOMException(m, 'NotSupportedError');
+  };
+  if (N.ceIs(id) !== null) fail('Unable to attach ElementInternals to a customized built-in element.');
+  const def = (V.T[V.off(id) + F.META] & M.NS_MASK) === 0 ? lookup(rt.wrap(V.T[V.off(id) + F.OWNER]), this.localName, null) : null;
+  if (def === null) fail('Unable to attach ElementInternals to non-custom elements.');
+  if (def.disableInternals) fail('ElementInternals is disabled by disabledFeature static field.');
+  if (internalsOf.has(id)) fail('ElementInternals for the specified element was already attached.');
+  const st = N.ceState(id);
+  if (st !== ST.PRECUSTOMIZED && st !== ST.CUSTOM) {
+    fail('The attachInternals() function cannot be called prior to the execution of the custom element constructor.');
+  }
+  const internals = new ElementInternals(TOKEN, this);
+  internalsOf.set(id, internals);
+  return internals;
+}
+
+/** HTML elements that may host a shadow root (DOM "valid shadow host name"). */
+const SHADOW_HOSTS = new Set(['article', 'aside', 'blockquote', 'body', 'div', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'main', 'nav', 'p', 'section', 'span']);
+
+/** attachShadow step 3 (jsdom Element-impl.js): a definition with `disabledFeatures: ['shadow']` refuses. */
+function shadowBefore(host) {
+  const id = host._i;
+  if (byId.length === 0 || (V.T[V.off(id) + F.META] & (M.KIND | M.NS_MASK)) !== K.ELEMENT) return;
+  const name = host.localName;
+  const custom = isValidCustomElementName(name);
+  if (!custom && !SHADOW_HOSTS.has(name)) return; // the native refuses it with the host-name error
+  const isValue = N.ceIs(id);
+  if (!custom && isValue === null) return;
+  const def = lookup(rt.wrap(V.T[V.off(id) + F.OWNER]), name, isValue);
+  if (def !== null && def.disableShadow) {
+    throw new rt.classes.DOMException('Shadow root cannot be create on a custom element with disabled shadow', 'NotSupportedError');
+  }
+}
+
+/** A root attached while its host is precustomized or custom is available to the host's internals. */
+function shadowAfter(host, root) {
+  if (byId.length === 0) return;
+  const st = N.ceState(host);
+  if (st === ST.PRECUSTOMIZED || st === ST.CUSTOM) internalsShadows.add(root);
+}
+
 // ========================================================================================= reactions
 
 const CALLBACK_OF = { [CB.connectedCallback]: 'connectedCallback', [CB.disconnectedCallback]: 'disconnectedCallback', [CB.adoptedCallback]: 'adoptedCallback', [CB.attributeChangedCallback]: 'attributeChangedCallback' };
@@ -451,12 +561,19 @@ function drain() {
 function install(_rt, d) {
   dom = d;
   rt.classes.CustomElementRegistry = CustomElementRegistry;
+  rt.classes.ElementInternals = ElementInternals;
+  Object.defineProperty(rt.classes.HTMLElement.prototype, 'attachInternals', { value: attachInternals, writable: true, enumerable: true, configurable: true });
+  const shadow = require('./shadow.cjs');
+  shadow.ceHooks.before = shadowBefore;
+  shadow.ceHooks.after = shadowAfter;
   INTERFACE_CLASSES = new Set(Object.values(rt.classes).filter((C) => typeof C === 'function'));
   rt.setCeHandler(drain);
   rt.onReset(() => {
     byId.length = 0;
     byCtor.clear();
     pendingOf.clear();
+    internalsOf.clear();
+    internalsShadows.clear();
     nextReg = 1;
   });
 }

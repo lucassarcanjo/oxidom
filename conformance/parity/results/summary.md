@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2218 | 162751 | 162207 | 99.7% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2225 | 162751 | 162303 | 99.7% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 170 | 2578 | 2503 | 97.1% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2399** | **167724** | **166717** | **99.4%** |
+| **all** | **2615** | **2406** | **167724** | **166813** | **99.5%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -22,7 +22,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | stage | item | files | files at parity | gap (subtests) | parity | main causes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | 1 | TreeWalker / NodeIterator / NodeFilter | 17 | 17 | 0 | 100.0% |  |
-| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 23 | 3 | 99.4% | assert_throws_dom: did not throw (2); assert_true: wrong value (1) |
+| 1 | ShadowRoot + attachShadow, without retargeting | 25 | 24 | 1 | 99.8% | assert_true: wrong value (1) |
 | 1 | Session history traversal (back, forward, go, popstate) | – | – | – | no tests selected |  |
 | 1 | XMLHttpRequest | 31 | 31 | 0 | 100.0% |  |
 | 1 | No-op observers and scrolling APIs (beyond jsdom) | – | – | – | no tests selected |  |
@@ -40,8 +40,8 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XPath | 28 | 28 | 0 | 100.0% |  |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
 | 3 | Core DOM and HTML behaviour no other item claims | 955 | 889 | 148 | 99.4% | assert_true: wrong value (44); assert_equals: wrong value (33); assert_array_equals: wrong value (25) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 106 | 53 | 93.7% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16); assert_throws_dom: did not throw (2) |
-| 4 | Custom elements and customElements | 147 | 114 | 239 | 92.0% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (84); missing global: customElements (11) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 107 | 51 | 93.9% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16) |
+| 4 | Custom elements and customElements | 147 | 120 | 145 | 95.2% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (1); assert_array_equals: wrong value (1) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |
 | 4 | iframes, script execution (runScripts) and resource loading | 120 | 112 | 67 | 84.3% | TIMEOUT: Timeout of …ms exceeded (24); read of undefined (.document) (9); window should be the global context + actual - expected + undefined - … (5) |

@@ -168,8 +168,8 @@ These change rsdom's data model or add a second browsing context. Each needs a d
 [`DESIGN.md`](DESIGN.md) before code.
 
 - [ ] Full Shadow DOM: event retargeting, slots, scoped styles (L) `shadow-dom`.
-- [ ] Custom elements and `customElements` (L) `custom-elements`. lit after Stage 1. Part 1 (registry, callbacks,
-      upgrades, customized built-ins, `:defined`; DESIGN §43) done; part 2: `ElementInternals`, form-associated.
+- [x] Custom elements and `customElements` (L) `custom-elements`: registry, callbacks, upgrades, customized
+      built-ins, `:defined`, `ElementInternals` as jsdom 30 has it (DESIGN §43). The rest of the gap is iframe tests.
 - [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8)
       `reclamation`.
 - [ ] WTF-8 or UTF-16 character data, so lone surrogates round-trip (§8 there) `surrogates`.

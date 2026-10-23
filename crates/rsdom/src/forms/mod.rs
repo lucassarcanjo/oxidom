@@ -102,6 +102,8 @@ struct LabelMemo {
     root: NodeId,
     tree: u32,
     attr: u32,
+    /// `CeState::def_gen`: a form-associated custom element is labelable once it has its definition
+    ce: u32,
     map: FxHashMap<NodeId, SmallVec<[NodeId; 2]>>,
 }
 
@@ -417,7 +419,7 @@ impl Env {
                 true
             }
             atom::INPUT => input_type(self, id) != ty::HIDDEN,
-            _ => false,
+            _ => self.ce_form_associated(id),
         }
     }
 
@@ -444,13 +446,13 @@ impl Env {
         0
     }
 
-    /// Labels of `id` in tree order (memoized per root and (EP[TREE], EP[ATTR])).
+    /// Labels of `id` in tree order (memoized per root, (EP[TREE], EP[ATTR]) and custom element definitions).
     pub fn labels_of(&mut self, id: NodeId, out: &mut Vec<NodeId>) {
         out.clear();
         let root = self.root_of(id);
-        let (tree, at) = (self.ep.get(ep::TREE), self.ep.get(ep::ATTR));
+        let (tree, at, ce) = (self.ep.get(ep::TREE), self.ep.get(ep::ATTR), self.ce.def_gen);
         let m = &self.forms.labels;
-        if !(m.root == root && m.tree == tree && m.attr == at) {
+        if !(m.root == root && m.tree == tree && m.attr == at && m.ce == ce) {
             let mut map: FxHashMap<NodeId, SmallVec<[NodeId; 2]>> = FxHashMap::default();
             let mut n = root;
             while n != 0 {
@@ -462,7 +464,7 @@ impl Env {
                 }
                 n = self.next_in_subtree(n, root);
             }
-            self.forms.labels = LabelMemo { root, tree, attr: at, map };
+            self.forms.labels = LabelMemo { root, tree, attr: at, ce, map };
         }
         if let Some(v) = self.forms.labels.map.get(&id) {
             out.extend_from_slice(v);

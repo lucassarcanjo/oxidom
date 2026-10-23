@@ -1754,7 +1754,8 @@ function install(_rt, dom) {
     },
     get form() {
       const c = N.labelControl(this._i);
-      return c === 0 ? null : wrap(N.formOwner(c));
+      // jsdom: `control.form`, which a form-associated custom element does not have (undefined)
+      return c === 0 ? null : wrap(c).form;
     },
   });
   reflectStr(Label, 'htmlFor', 'for');

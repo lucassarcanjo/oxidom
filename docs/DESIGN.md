@@ -2232,7 +2232,22 @@ for the selector memos (`EP[REC]`). Interface classes are shared by every window
 windows' registries creates its `new` elements in the window that defined it last, where jsdom uses the realm of
 the `HTMLElement` it extends. A registry kept past `rt.reset()` ignores `define` and `upgrade`.
 
-**Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests. What remains is mostly
-tests that build their documents in iframes (`test_with_window`, Stage 4 `browsing-contexts`), documents fetched by
-XHR, and part 2 (`ElementInternals`, form-associated elements). test/contract/custom-elements.test.mjs covers the
-callback order library code depends on.
+**Part 2 (2026-10): ElementInternals.** jsdom 30's `ElementInternals` has `shadowRoot`, `labels` and ARIAMixin
+only (no `setFormValue`, validity, `form` or `states`), and form-associated custom elements are labelable and
+nothing more. The port:
+- `attachInternals()` with jsdom's checks (customized built-in, no definition, `disabledFeatures: ['internals']`,
+  already attached, state before the constructor) keeps one `ElementInternals` per element in a facade map.
+- `shadowRoot` returns the host's root (closed included) if it was attached while the host was precustomized or
+  custom (jsdom `_availableToElementInternals`, a facade set of root ids).
+- ARIAMixin on the internals reflects into a per-internals map, never into attributes.
+- `disabledFeatures: ['shadow']` makes `attachShadow` throw (a facade wrapper; the upgrade check was in part 1).
+- Rust: `cb::FORM_ASSOCIATED` beside the callback bits of a definition; `is_labelable` accepts an element whose
+  definition has it (set from the start of its upgrade, cleared if the constructor throws, as in jsdom), and the
+  label memo is keyed on `CeState::def_gen`, which every definition change bumps. `label.form` is the control's
+  `form` property, as in jsdom (undefined for a custom element). `internals.labels` is a static list like rsdom's other `labels` (jsdom's is live).
+
+**Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests with part 1 and to 144
+with part 2, all in iframe-based files (`browsing-contexts`) but one: jsdom's selector engine matches a
+form-associated element in a disabled fieldset's first legend with `:enabled`, which rsdom does not. The iframe
+files build their documents with `test_with_window` or fetch them by XHR. test/contract/custom-elements.test.mjs
+covers the callback order library code depends on and the internals.

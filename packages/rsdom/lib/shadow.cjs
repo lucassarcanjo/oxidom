@@ -152,9 +152,11 @@ function install(rt, dom) {
         throw new TypeError("Failed to execute 'attachShadow' on 'Element': 1 argument required, but only 0 present.");
       }
       const mode = shadowRootInit(init);
+      if (ceHooks.before !== null) ceHooks.before(this);
       const id = checkId(N.attachShadow(this._i, mode), "Failed to execute 'attachShadow' on 'Element': This element does not support attachShadow");
       afterAlloc();
       shadowGen = envGen();
+      if (ceHooks.after !== null) ceHooks.after(this._i, id);
       return wrap(id);
     },
 
@@ -178,9 +180,15 @@ function install(rt, dom) {
   });
 }
 
+/**
+ * Custom element steps of attachShadow (lib/custom-elements.cjs, DESIGN §43): `before(host)` after the init
+ * conversion (`disabledFeatures: ['shadow']`), `after(hostId, rootId)` once the root exists (internals access).
+ */
+const ceHooks = { before: null, after: null };
+
 /** True while the env may hold a shadow root (events.cjs takes the composed dispatch path then, DESIGN §42). */
 function shadowsExist() {
   return alive(shadowGen);
 }
 
-module.exports = { install, isShadowRoot, retarget, rootOf, isShadowIncludingInclusiveAncestor, shadowsExist };
+module.exports = { install, ceHooks, isShadowRoot, retarget, rootOf, isShadowIncludingInclusiveAncestor, shadowsExist };

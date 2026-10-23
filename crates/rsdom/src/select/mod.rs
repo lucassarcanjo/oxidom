@@ -61,7 +61,8 @@ pub struct Pre {
     pub never: bool,
     /// The compound contains `:link` / `:any-link`: only `<a>` / `<area>` can match.
     pub link: bool,
-    /// The compound contains `:focus` / `:focus-visible`: only the focused element can match.
+    /// The compound contains `:focus` / `:focus-visible`: only the focused element (or, for `:focus`, a shadow host)
+    /// can match.
     pub focus: bool,
     /// `rejects` alone decides the match (`decided`): 1 = always, 2 = outside quirks mode only (ids /
     /// classes are prechecked there), 0 = never.
@@ -83,7 +84,9 @@ impl Pre {
         if self.link && !(e.is_html_elem(el, atom::A) || e.is_html_elem(el, atom::AREA)) {
             return true;
         }
-        if self.focus && r.state & crate::node::state::FOCUSED == 0 {
+        // a shadow host matches :focus when its shadow tree holds the focus (adapter `host_of_focus`)
+        if self.focus && r.state & crate::node::state::FOCUSED == 0 && r.meta & crate::node::meta::SHADOW == 0
+        {
             return true;
         }
         let check_ids = !quirks && !(self.id.is_none() && self.classes.is_empty());

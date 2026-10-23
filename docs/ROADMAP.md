@@ -167,7 +167,8 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 These change rsdom's data model or add a second browsing context. Each needs a design note in
 [`DESIGN.md`](DESIGN.md) before code.
 
-- [ ] Full Shadow DOM: event retargeting, slots, scoped styles (L) `shadow-dom`.
+- [x] Full Shadow DOM: event retargeting, slots, `:focus` on hosts (L) `shadow-dom` (DESIGN §42). Scoped styles: jsdom
+      applies none either. The rest of the gap is iframe tests.
 - [x] Custom elements and `customElements` (L) `custom-elements`: registry, callbacks, upgrades, customized
       built-ins, `:defined`, `ElementInternals` as jsdom 30 has it (DESIGN §43). The rest of the gap is iframe tests.
 - [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8)

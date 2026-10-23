@@ -2168,6 +2168,19 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
   `uievents/focusevents/focusable-area-flat-tree` and `focusable-area` (12 subtests) progressed too. The rest of the gap: `delegatesFocus`, custom
   elements, focus retargeting, `slotchange.html`'s `onslotchange` case (a jsdom TIMEOUT).
 
+**Part 3 (2026-10): `:focus` on shadow hosts, closing the item.** HTML's `:focus` also matches a shadow host whose
+shadow tree contains the focused element (at any depth; a slotted element is light DOM, so not its host's), and
+`:focus-within` follows shadow-including ancestors. The adapter walks from the focused element through shadow roots
+to their hosts; the selector prefilter (`Pre::rejects`, which skipped every element without `state::FOCUSED`)
+lets shadow hosts through. Both walks stop at a closed shadow root, as jsdom's selector engine does (it follows
+`host.shadowRoot.activeElement`, null for a closed root). Two differences remain: jsdom also stops matching the
+focused element itself with `:focus` inside a closed root, and its `:focus-visible` matches the retargeted
+`document.activeElement` (the host) rather than the focused element; rsdom's `:focus-visible` already differs outside
+shadow trees (it follows the focus-visible heuristics, jsdom matches any focused element). `slotchange.html` runs to jsdom's 16 passes (its expectation now records them). The rest
+of the `shadow-dom` gap, 29 subtests, is `untriaged/*` files that build their documents in an iframe ("Failed to
+create new rendered document", Stage 4 `browsing-contexts`). Scoped styles: jsdom's getComputedStyle reads only
+`document.styleSheets` (refs/jsdom/lib/jsdom/living/css/helpers/computed-style.js), and so does rsdom.
+
 ## 43. Custom elements (ROADMAP Stage 4 `custom-elements`, 2026-10)
 
 Stage 4 design note. A port of jsdom 30's custom elements (`living/custom-elements/CustomElementRegistry-impl.js`,

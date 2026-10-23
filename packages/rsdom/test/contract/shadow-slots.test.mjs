@@ -174,4 +174,20 @@ describe.each(DOMS.filter((k) => k !== 'happy-dom'))('slots [%s]', (kind) => {
     // the closed shadow tree (slot, wrapper, root) is hidden from listeners outside it
     expect(composed).toEqual(['leaf', 'a', 'DIV', 'BODY', 'HTML', '#document', 'window']);
   });
+
+  it('a shadow host matches :focus and :focus-within while its shadow tree holds the focus', () => {
+    const t = tree('<b id=lb tabindex=0>light</b>', '<slot></slot><div id=inner tabindex=0>x</div>');
+    const inner = t.root.querySelector('#inner');
+    inner.focus();
+    expect([inner.matches(':focus'), t.host.matches(':focus'), d.body.matches(':focus-within')]).toEqual([true, true, true]);
+    expect(d.querySelectorAll(':focus').length).toBe(1);
+    // a slotted element is the host's light child: the host does not match :focus
+    d.getElementById('lb').focus();
+    expect(t.host.matches(':focus')).toBe(false);
+    expect(t.host.matches(':focus-within')).toBe(true);
+    // a closed shadow tree does not lend its focus to the host (jsdom's selector engine)
+    const c = tree('', '<input id=ci>', 'closed');
+    c.root.querySelector('#ci').focus();
+    expect([c.host.matches(':focus'), c.host.matches(':focus-within'), d.body.matches(':focus-within')]).toEqual([false, false, false]);
+  });
 });

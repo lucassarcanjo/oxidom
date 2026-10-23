@@ -74,6 +74,9 @@ function parseInto(root, markup, { fragment = false, resolvePrefix = undefined, 
   parser.on('opentag', (tag) => {
     const qname = tag.prefix === '' ? tag.local : `${tag.prefix}:${tag.local}`;
     const el = owner().createElementNS(tag.uri === '' ? null : tag.uri, qname);
+    // the XML parser's scripts are parser-inserted; already started in a fragment or a DOMParser document, which
+    // never run them (no `fileName`: not a browsing context's document; DESIGN §45)
+    if (tag.local === 'script' && tag.uri === NS.HTML) rt.N.scriptSetFlags(el._i, fileName === undefined ? 3 : 1);
     for (const a of Object.values(tag.attributes)) {
       el.setAttributeNS(a.uri === '' ? null : a.uri, a.prefix === '' ? a.local : `${a.prefix}:${a.local}`, a.value);
     }

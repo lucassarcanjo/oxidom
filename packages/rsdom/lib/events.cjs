@@ -468,7 +468,8 @@ class Event {
      * path instead of a closure per handler: React sets `onclick` on every element with an onClick).
      */
     function callHandler(l, item, ev) {
-      const f = l.fn;
+      let f = l.fn;
+      if (f instanceof InlineBody) f = compileInline(item, ev.#type, l);
       if (typeof f !== 'function') return;
       const self = ev.#currentTarget;
       const special = ev.#type === 'error' && ev instanceof ErrorEvent && item instanceof WindowTarget;
@@ -1988,7 +1989,51 @@ function getHandler(obj, type) {
   const t = handlerTarget(obj, type);
   if (t === null) return null;
   const l = findHandler(t, type);
-  return l === null ? null : l.fn;
+  if (l === null) return null;
+  return l.fn instanceof InlineBody ? compileInline(t, type, l) : l.fn;
+}
+
+/** An event handler content attribute's body, compiled on first use (DESIGN §45, lib/scripts.cjs). */
+class InlineBody {
+  constructor(body) {
+    this.body = body;
+  }
+}
+
+/**
+ * HTML "getting the current value of the event handler" for listener `l` of target `t` holding an InlineBody
+ * (jsdom's getCurrentEventHandlerValue): compiles it in the window's realm with the document, form owner and
+ * element on the scope chain, or reports a syntax error and clears the handler. Returns the function or null.
+ */
+function compileInline(t, type, l) {
+  const { body } = l.fn;
+  const isWin = t instanceof WindowTarget;
+  const element = isWin ? null : t;
+  const document = isWin ? t.document : element.ownerDocument;
+  const window = document?._ctx?.window ?? null;
+  l.fn = null;
+  if (window === null) return null;
+  const createFunction = window.Function;
+  try {
+    createFunction(body);
+  } catch (e) {
+    reportException(window, e);
+    return null;
+  }
+  const sourceURL = `\n//# sourceURL=${document.URL}`;
+  let fn;
+  if (type === 'error' && element === null) {
+    fn = createFunction(`with (arguments[0]) { return function onerror(event, source, lineno, colno, error) {\n${body}\n}; }${sourceURL}`)(window);
+  } else {
+    const formOwner = element !== null && element.form ? element.form : null;
+    const scopes = element === null ? [] : formOwner === null ? [document, element] : [document, formOwner, element];
+    let src = `with (arguments[0]) { return function on${type}(event) {\n${body}\n}; }`;
+    for (let i = 0; i < scopes.length; i++) src = `with (arguments[0]) { return function () {\n${src}\n}; }`;
+    fn = createFunction(src + sourceURL)(window);
+    for (const scope of scopes) fn = fn(scope);
+  }
+  l.fn = fn;
+  return fn;
 }
 
 function setHandler(obj, type, value) {
@@ -1997,8 +2042,12 @@ function setHandler(obj, type, value) {
   // [LegacyTreatNonObjectAsNull]: non-objects become null
   const fn = value !== null && (typeof value === 'object' || typeof value === 'function') ? value : null;
   let l = findHandler(t, type);
+  if (fn === null) {
+    // HTML "deactivate an event handler": the listener goes; a later value registers anew, at the end
+    if (l !== null) removeListener(evList(t._ev, type), l);
+    return;
+  }
   if (l === null) {
-    if (fn === null) return;
     const list = evList(t._ev, type) ?? evAdd(t, type);
     // `cb` stays null: dispatch runs the event handler processing algorithm (`callHandler`) on `fn`
     l = new Listener(null, false, false, false, null);
@@ -2088,5 +2137,5 @@ module.exports = {
   Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, DragEvent, KeyboardEvent, FocusEvent, InputEvent,
   CompositionEvent, TouchEvent, ErrorEvent, SubmitEvent, AnimationEvent, TransitionEvent, ProgressEvent,
   PopStateEvent, PageTransitionEvent, HashChangeEvent, ClipboardEvent, StorageEvent, GLOBAL_EVENTS, WINDOW_EVENTS,
-  defineHandlers, BeforeUnloadEvent, DeviceMotionEvent, DeviceOrientationEvent, MessageEvent,
+  defineHandlers, setHandler, InlineBody, BeforeUnloadEvent, DeviceMotionEvent, DeviceOrientationEvent, MessageEvent,
 };

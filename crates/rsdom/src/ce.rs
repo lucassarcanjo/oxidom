@@ -56,6 +56,10 @@ pub mod cb {
     pub const UPGRADE: u32 = 16;
     /// definition flag (not a callback): `static formAssociated` is true
     pub const FORM_ASSOCIATED: u32 = 32;
+    /// a script element's post-connection steps (wire kind only, crate::script)
+    pub const SCRIPT: u32 = 64;
+    /// an `on*` content attribute changed; `a` = its local name (wire kind only, crate::script)
+    pub const HANDLER: u32 = 128;
 }
 
 #[derive(Debug)]
@@ -187,6 +191,11 @@ impl Env {
         self.ce.queue.push(r);
         let v = self.ep.get(ep::MO_PENDING) | CE_BIT;
         self.ep.set(ep::MO_PENDING, v);
+    }
+
+    /// Enqueues a reaction with no attribute values (crate::script's kinds).
+    pub(crate) fn ce_push_raw(&mut self, el: NodeId, kind: u32, a: u32) {
+        self.ce_push(Reaction { el, kind, a, b: 0, old: None, new: None });
     }
 
     /// Enqueues callback `kind` for custom element `el` if its definition has that callback.

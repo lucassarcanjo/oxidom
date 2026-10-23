@@ -162,6 +162,7 @@ fn lang_matching_never_panics() {
     let mut e = Env::new();
     let d = e.parse_document(
         "<!DOCTYPE html><style>:lang(x){color:red} :lang(fr){display:none}</style><div id=a><p id=p>t</p></div>",
+        false,
     );
     let a = e.get_element_by_id(d, e.atoms.get("a").unwrap());
     let p = e.get_element_by_id(d, e.atoms.get("p").unwrap());

@@ -13,9 +13,10 @@
 // console, as in jsdom), which receives the window's `console` calls, jsdomErrors for not-implemented window
 // methods and uncaught exceptions no `error` listener cancelled.
 //
-// XML content types parse with lib/xml.cjs (DESIGN §38). Not implemented: `runScripts` (validated, then
-// ignored: rsdom never runs scripts, so `getInternalVMContext()` throws as jsdom does without it),
-// `includeNodeLocations` (`nodeLocation()` throws as jsdom does without it), subresource loading (`resources`
+// XML content types parse with lib/xml.cjs (DESIGN §38). `runScripts` (DESIGN §45): with either value the window
+// is a vm context's global (lib/vm-window.cjs: fresh JS globals, `eval`, `getInternalVMContext()`); with
+// "dangerously" scripts and inline event handlers run (lib/scripts.cjs). Every instance's document goes through
+// jsdom's load sequence (readyState, DOMContentLoaded, load). Not implemented: `includeNodeLocations` (`nodeLocation()` throws as jsdom does without it), subresource loading (`resources`
 // beyond `userAgent`), and a cookie jar `document.cookie` reads (`cookieJar` is held for the getter only;
 // `CookieJar` is tough-cookie's, a dependency as it is jsdom's).
 const fs = require('node:fs');
@@ -172,6 +173,7 @@ let adopting = null;
 
 class JSDOM {
   #ctx;
+  #vmContext;
   #virtualConsole;
   #cookieJar;
 
@@ -200,7 +202,7 @@ class JSDOM {
       throw new TypeError('virtualConsole must be an instance of VirtualConsole');
     }
 
-    const ctx = context.open({
+    const open = {
       url,
       source: decode(input, contentType, xml !== undefined),
       xml,
@@ -211,11 +213,20 @@ class JSDOM {
         referrer,
         virtualConsole: this.#virtualConsole,
         closable: true,
+        runScripts,
       },
       // A `JSDOM` made inside a Vitest test (a sanitizer's helper document) must not take over what `new Text()`
       // & co create nodes in on the global window; between plain instances, the newest is current
       main: context.current()?.global !== true,
-    });
+    };
+    let ctx;
+    if (runScripts === undefined) {
+      ctx = context.open(open);
+    } else {
+      ({ ctx, vmContext: this.#vmContext } = require('./vm-window.cjs').openVmWindow(open));
+      // a window of its own, not an environment's global (`main`, `instanceof Window` once closed, `windowTop`)
+      ctx.global = false;
+    }
     if (options.beforeParse !== undefined) {
       // jsdom calls it with an empty document, before parsing; rsdom parses into a new document, so the
       // parsed nodes are taken out for the call and put back after it
@@ -226,6 +237,10 @@ class JSDOM {
       for (const n of nodes) document.appendChild(n);
     }
     this.#ctx = ctx;
+    const scripts = require('./scripts.cjs');
+    // "loading" before the parsed scripts run, as during jsdom's parse
+    scripts.startLoad(ctx);
+    scripts.bind(ctx);
   }
 
   get window() {
@@ -259,6 +274,7 @@ class JSDOM {
   }
 
   getInternalVMContext() {
+    if (this.#vmContext !== undefined) return this.#vmContext;
     throw new TypeError('This jsdom was not configured to allow script running. Use the runScripts option during creation.');
   }
 
@@ -331,7 +347,7 @@ class JSDOM {
  * `context.open()` options for a test environment's window from jsdom options as Vitest's and Jest's jsdom
  * environments pass them (`environmentOptions.jsdom`, `testEnvironmentOptions`): `url`, `html` (a whole
  * document), `userAgent` / `resources.userAgent`, `pretendToBeVisual` (default true), `contentType`, `referrer`,
- * `storageQuota`. The rest (`runScripts`, `cookieJar`, ...) is ignored.
+ * `storageQuota`, `runScripts` (default "dangerously", as in both environments). The rest (`cookieJar`, ...) is ignored.
  */
 function environmentOptions(j, virtualConsole) {
   const { xml } = checkContentType(j.contentType);
@@ -339,6 +355,11 @@ function environmentOptions(j, virtualConsole) {
     throw new TypeError('virtualConsole must be an instance of VirtualConsole');
   }
   const userAgent = j.userAgent ?? j.resources?.userAgent;
+  // both jsdom environments default to "dangerously" (DESIGN §45)
+  const runScripts = j.runScripts === undefined ? 'dangerously' : String(j.runScripts);
+  if (runScripts !== 'dangerously' && runScripts !== 'outside-only') {
+    throw new RangeError('runScripts must be undefined, "dangerously", or "outside-only"');
+  }
   const open = {
     url: j.url === undefined ? undefined : new URL(j.url).href,
     settings: {
@@ -347,6 +368,7 @@ function environmentOptions(j, virtualConsole) {
       userAgent: userAgent === undefined ? null : String(userAgent),
       referrer: j.referrer === undefined ? '' : new URL(j.referrer).href,
       virtualConsole,
+      runScripts,
     },
   };
   if (j.html !== undefined) open.source = String(j.html);

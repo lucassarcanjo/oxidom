@@ -18,6 +18,9 @@ const { N, V, F, M, K, EPI, TOKEN, afterAlloc, mutated, atomName } = rt;
 const CB = { connectedCallback: 1, disconnectedCallback: 2, adoptedCallback: 4, attributeChangedCallback: 8 };
 const CB_NAMES = Object.keys(CB);
 const UPGRADE = 16;
+/** crate::script's reaction kinds on the same queue (DESIGN §45): handled by lib/scripts.cjs */
+const SCRIPT = 64;
+const HANDLER = 128;
 /** Definition flag next to the callback bits (src/ce.rs `cb::FORM_ASSOCIATED`): form-associated, so labelable. */
 const FORM_ASSOCIATED = 32;
 /** Custom element states (src/ce.rs `state`). */
@@ -516,6 +519,10 @@ function runElement(id) {
       const r = queue.shift();
       if (r.kind === UPGRADE) {
         upgradeElement(r.def, id, queue);
+      } else if (r.kind === SCRIPT) {
+        require('./scripts.cjs').postConnection(id);
+      } else if (r.kind === HANDLER) {
+        require('./scripts.cjs').handlerChanged(id, r.args[0]);
       } else {
         const def = byId[N.ceDef(id)];
         const fn = def?.callbacks[CALLBACK_OF[r.kind]];
@@ -546,6 +553,7 @@ function drain() {
       const ns = w[o + 3];
       r = { kind, args: [atomName(w[o + 2]), str(w[o + 4], w[o + 5]), str(w[o + 6], w[o + 7]), ns === 0 ? null : atomName(ns)] };
     } else if (kind === CB.adoptedCallback) r = { kind, args: [rt.wrap(w[o + 2]), rt.wrap(w[o + 3])] };
+    else if (kind === HANDLER) r = { kind, args: [atomName(w[o + 2])] };
     else r = { kind, args: [] };
     let q = pendingOf.get(id);
     if (q === undefined) {

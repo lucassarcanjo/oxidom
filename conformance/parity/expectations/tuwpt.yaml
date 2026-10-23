@@ -87,13 +87,10 @@ html/semantics/forms/the-input-element/radio-form-owner-tree-changes.html:
   "Moving a checked radio inside a subtree between disconnected forms": [fail, "assert_false: wrong value"]
 html/semantics/forms/the-option-element/option-ask-for-a-reset.html:
   "Setting an already-present selected attribute does not change selectedness": [fail, "assert_array_equals: wrong value"]
-html/semantics/scripting-1/the-script-element/current-script-after-nested-exception.html: [fail, "assert_array_equals: wrong value"]
-html/semantics/scripting-1/the-script-element/execution-timing/insert-script.html: [fail, "assert_array_equals: wrong value"]
 html/semantics/scripting-1/the-script-element/src-attribute-preparation.html: [timeout, "harness TIMEOUT: (no message)"]
 jsdom-only/failure-example-1.html: [fail, "assert_true: wrong value"]
 jsdom-only/failure-example-2.html:
   "failing test": [fail, "assert_true: wrong value"]
-jsdom/misc/test_body_event_handler_inline.html: [fail, "assert_true: got undefined (missing attribute/API)"]
 svg/struct/scripted/element-svg.html:
   "Basic properties": [fail, "assert_equals: got undefined (missing attribute/API)"]
   "createSVGNumber": [fail, "missing method: .createSVGNumber()"]

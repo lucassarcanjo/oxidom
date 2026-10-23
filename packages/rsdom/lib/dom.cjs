@@ -659,7 +659,25 @@ class Document extends Node {
   }
 
   get readyState() {
-    return 'complete';
+    // `_ready`: a `JSDOM` document's load sequence (lib/scripts.cjs, DESIGN §45)
+    return this._ready ?? 'complete';
+  }
+
+  get currentScript() {
+    return this._currentScript ?? null;
+  }
+
+  // jsdom's open() / write() / writeln() (lib/scripts.cjs, DESIGN §45)
+  open() {
+    return require('./scripts.cjs').open(this);
+  }
+
+  write(...text) {
+    require('./scripts.cjs').write(this, text.join(''));
+  }
+
+  writeln(...text) {
+    require('./scripts.cjs').write(this, text.join('') + '\n');
   }
 
   get implementation() {
@@ -2029,7 +2047,7 @@ class DOMParser {
       }
       throw new TypeError(`Failed to execute 'parseFromString' on 'DOMParser': The provided value '${t}' is not a valid enum value of type DOMParserSupportedType.`);
     }
-    const id = checkId(N.parseDocument(String(string)));
+    const id = checkId(N.parseDocument(String(string), 0));
     afterAlloc();
     const d = wrap(id);
     d._url = context.currentDocument()?.URL ?? 'about:blank';

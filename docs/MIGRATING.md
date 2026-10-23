@@ -5,7 +5,7 @@ change for each runner, what carries over unchanged, and every known way rsdom b
 30.1.3, which is the oracle rsdom is measured against.
 
 Most suites need only the configuration change. Read [the divergences](#known-divergences) if a test fails after
-the switch, or before you switch if your suite relies on scripts, custom elements or iframes, which rsdom
+the switch, or before you switch if your suite relies on iframes or on loading `<script src>`, which rsdom
 does not support yet.
 
 Where things stand (2026-10-22): rsdom passes 97.4% of the subtests jsdom passes in jsdom's own test suite
@@ -46,9 +46,10 @@ defaults (`url` `http://localhost:3000`, `pretendToBeVisual: true`):
 | `environmentOptions.jsdom` key | on rsdom |
 |---|---|
 | `url`, `referrer`, `contentType` (`text/html`), `userAgent`, `pretendToBeVisual`, `storageQuota` | as on jsdom |
-| `html` | as on jsdom, except that its `<script>`s do not run |
+| `html` | as on jsdom: its `<script>`s run (with `runScripts: 'dangerously'`, the default) |
+| `runScripts` | as on jsdom (default `'dangerously'`): scripts and inline handlers run in the global's realm |
 | `console` | as on Vitest's jsdom environment: the window always has a virtual console forwarding to the test's `console` |
-| `resources: 'usable'`, `runScripts`, `includeNodeLocations`, `cookieJar`, `beforeParse` | ignored |
+| `resources: 'usable'`, `includeNodeLocations`, `cookieJar`, `beforeParse` | ignored |
 
 rsdom's own options go in `test.environmentOptions.jetdom` (`url`, and `html` as body markup) and win over the
 `jsdom` ones.
@@ -93,12 +94,12 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 ```
 
 Supported: the options `url`, `referrer`, `contentType` (HTML and XML types), `pretendToBeVisual`, `storageQuota`,
-`virtualConsole`, `beforeParse` and `resources.userAgent`; the members `window`, `virtualConsole`, `cookieJar`,
-`serialize()` and `reconfigure()`; and `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. `VirtualConsole`
+`virtualConsole`, `beforeParse`, `runScripts` and `resources.userAgent`; the members `window`, `virtualConsole`, `cookieJar`,
+`serialize()`, `reconfigure()` and `getInternalVMContext()`; and `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. `VirtualConsole`
 (`forwardTo`, `"jsdomError"` events) and `CookieJar` (tough-cookie's, as jsdom exports it) are exported too.
 
-Not supported: `runScripts` (validated, then ignored), `includeNodeLocations`,
-`nodeLocation()`, `getInternalVMContext()`, subresource loading, `requestInterceptor`, and a cookie jar behind
+Not supported: `includeNodeLocations`,
+`nodeLocation()`, subresource loading (so `<script src>` does not load), `requestInterceptor`, and a cookie jar behind
 `document.cookie`. rsdom also has a lighter entry point, `createWindow({ url })`, which returns `{ window, document }` without
 the `JSDOM` wrapper.
 
@@ -143,10 +144,24 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 
 ### Setup and API
 
-- **[gap] No script execution.** `<script>` elements never run, whether parsed, inserted or in `html` options,
-  and `runScripts` is ignored. Vitest's jsdom environment and jest-environment-jsdom run them by default
-  (`runScripts: 'dangerously'`). Inline handler attributes (`onclick="..."`) do not run either; `el.onclick = fn`
-  does. DESIGN §10, §28; `browsing-contexts`.
+- **[design] Scripts see the whole document.** With `runScripts: 'dangerously'`, scripts and inline handlers run
+  as in jsdom, but a parsed `<script>` runs after the whole document is parsed, so it sees the markup after it,
+  and `document.write()` from it appends at the end of the document. DESIGN §45.
+- **[design] Fragment-parsed scripts are "already started".** A clone of a `<script>` that came from `innerHTML`
+  does not run when inserted, as the HTML standard says; jsdom runs it. DESIGN §45.
+- **[design] The environments run scripts in the test's realm.** Under the Vitest environment a script's globals
+  (`window.x = 1`) are the test's globals; under Vitest's jsdom environment they land on jsdom's own window, which
+  the test does not see. DESIGN §45.
+- **[design] Script globals persist on the Vitest global.** A script's top-level `var` / `function` / `const`
+  stays on the worker's global after the file, so with `isolate: false` a second file running the same `const`
+  fails. The VM pools and the Jest environment are not affected. Set `runScripts: 'outside-only'` in
+  `environmentOptions.jsdom` to keep scripts from running. DESIGN §45.
+- **[design] Setting an event handler to null removes its listener**, as the HTML standard says, so a handler set
+  again runs after listeners added in between; jsdom keeps its place. DESIGN §45.
+- **[design] Scripts inserted with custom elements** run after the `connectedCallback`s of the custom elements
+  inserted before them in the same call; jsdom runs the script first. DESIGN §45.
+- **[gap] No `<script src>`.** External scripts are not fetched, as with jsdom without `resources: 'usable'`.
+  `browsing-contexts` (part 3).
 - **[gap] No iframes.** An `<iframe>` has no nested browsing context: `contentWindow` and `contentDocument` are
   undefined, and so are `window.frames` indexing and `window.length`. `browsing-contexts` (Stage 4).
 - **[gap] User agent.** `navigator.userAgent` ends in `rsdom/0.1.0`, not `jsdom/30.1.3`. Code that looks for

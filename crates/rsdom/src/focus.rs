@@ -222,6 +222,7 @@ mod tests {
         let mut e = Env::new();
         let doc = e.parse_document(
             "<style>.gone{display:none}</style><div id=a><input id=i></div><div class=gone><button id=b></button></div>",
+            false,
         );
         e.main_doc = doc;
         let by_id = |e: &Env, s: &str| e.get_element_by_id(doc, e.atoms.get(s).unwrap());

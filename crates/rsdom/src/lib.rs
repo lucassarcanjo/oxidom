@@ -32,6 +32,7 @@ pub mod hooks;
 pub mod node;
 pub mod parse;
 pub mod range;
+pub mod script;
 pub mod serialize;
 pub mod shadow;
 pub mod slots;

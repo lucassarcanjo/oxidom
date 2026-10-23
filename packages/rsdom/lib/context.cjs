@@ -62,7 +62,8 @@ class BrowsingContext {
      * jsdom's window settings (`new JSDOM()` options, lib/jsdom.cjs): `pretendToBeVisual` (animation frames,
      * `document.hidden`), `storageQuota`, `userAgent`, `referrer`, and `virtualConsole` (when set: the
      * window's `console`, not-implemented reports and uncaught exceptions go to it, not to the process), and
-     * `closable` (`window.close()` closes the context; a no-op for `createWindow()` and the Vitest global).
+     * `closable` (`window.close()` closes the context; a no-op for `createWindow()` and the Vitest global), and
+     * `runScripts` (undefined, "outside-only" or "dangerously": lib/scripts.cjs, DESIGN §45).
      */
     this.settings = {
       pretendToBeVisual: true,
@@ -71,9 +72,12 @@ class BrowsingContext {
       referrer: '',
       virtualConsole: null,
       closable: false,
+      runScripts: undefined,
     };
     /** the window is installed on a pre-existing global (the Vitest environment) */
     this.global = false;
+    /** the vm context whose global is the window (lib/vm-window.cjs), where scripts run */
+    this.vmContext = undefined;
   }
 
   /** A same-document URL change (fragment navigation, pushState / replaceState). */
@@ -199,7 +203,9 @@ function openContext(options = {}) {
     document = xml.newXmlDocument(options.xml, url.href);
     if (options.source !== undefined) xml.parseInto(document, String(options.source), { fileName: url.href });
   } else {
-    const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source)));
+    // the HTML parser's scripting flag: `<noscript>` holds raw text in a document that runs scripts (DESIGN §45)
+    const scripting = options.settings?.runScripts === 'dangerously' ? 1 : 0;
+    const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source), scripting));
     rt.afterAlloc();
     document = rt.wrap(id);
   }

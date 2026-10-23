@@ -477,6 +477,9 @@ impl Env {
             crate::mo::queue_child_list(self, parent, &nodes, &[], prev, child);
         }
         self.hook_children_changed(parent);
+        if self.script.on() {
+            self.script_children_inserted(parent);
+        }
     }
 
     /// DOM "pre-remove": `child` must be a child of `parent`.

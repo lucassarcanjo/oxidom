@@ -9,11 +9,11 @@ expectations are left out. Method: `../README.md`.
 
 | source | files | files at parity | jsdom-passing subtests | rsdom passes | parity |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2225 | 162751 | 162303 | 99.7% |
+| web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127) | 2389 | 2227 | 162751 | 162325 | 99.7% |
 | jsdom's WPT-format tests (to-upstream) | 190 | 170 | 2578 | 2503 | 97.1% |
 | jsdom's legacy mocha tests (to-port-to-wpts) | 19 | 9 | 1781 | 1723 | 96.7% |
 | jsdom's API tests (test/api) | 17 | 2 | 614 | 284 | 46.3% |
-| **all** | **2615** | **2406** | **167724** | **166813** | **99.5%** |
+| **all** | **2615** | **2408** | **167724** | **166835** | **99.5%** |
 
 ## By roadmap item (docs/ROADMAP.md)
 
@@ -40,7 +40,7 @@ Scopes are in `roadmap.yaml`; an item is done when its gap is 0 (or every remain
 | 3 | XPath | 28 | 28 | 0 | 100.0% |  |
 | 3 | DOMRect classes and the remaining Window members | – | – | – | no tests selected |  |
 | 3 | Core DOM and HTML behaviour no other item claims | 955 | 889 | 148 | 99.4% | assert_true: wrong value (44); assert_equals: wrong value (33); assert_array_equals: wrong value (25) |
-| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 107 | 51 | 93.9% | assert_true: wrong value (35); harness TIMEOUT: (no message) (16) |
+| 4 | Full Shadow DOM: retargeting, slots, scoped styles | 128 | 109 | 29 | 96.6% | assert_true: wrong value (29) |
 | 4 | Custom elements and customElements | 147 | 120 | 145 | 95.2% | harness TIMEOUT: (no message) (143); harness ERROR: missing global: customElements (1); assert_array_equals: wrong value (1) |
 | 4 | Node memory reclamation inside an Env | – | – | – | no tests selected |  |
 | 4 | WTF-8 or UTF-16 character data (lone surrogates round-trip) | – | – | – | no tests selected |  |

@@ -842,6 +842,45 @@ fn is_read_only(e: &Env, el: NodeId, l: Atom) -> bool {
     !is_content_editable(e, el)
 }
 
+/// True if `f` is in the shadow tree of host `el` (a shadow-including descendant reached through its root). Like
+/// jsdom (dom-selector follows `shadowRoot.activeElement`), the walk stops at a closed root.
+fn host_of_focus(e: &Env, el: NodeId, f: NodeId) -> bool {
+    let mut n = f;
+    while n != 0 {
+        let p = e.rec(n).parent;
+        if p != 0 {
+            n = p;
+        } else if e.is_shadow_root(n) && e.shadow_mode(n) == crate::shadow::mode::OPEN {
+            n = e.shadow_host(n);
+            if n == el {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+    false
+}
+
+/// True if `el` is a shadow-including inclusive ancestor of `f`, not crossing closed roots (as `host_of_focus`).
+fn shadow_including_ancestor(e: &Env, el: NodeId, f: NodeId) -> bool {
+    let mut n = f;
+    while n != 0 {
+        if n == el {
+            return true;
+        }
+        let p = e.rec(n).parent;
+        n = if p != 0 {
+            p
+        } else if e.is_shadow_root(n) && e.shadow_mode(n) == crate::shadow::mode::OPEN {
+            e.shadow_host(n)
+        } else {
+            0
+        };
+    }
+    false
+}
+
 fn focused_of(e: &Env, el: NodeId) -> NodeId {
     e.doc_data(e.rec(el).owner).map_or(0, |d| d.focused)
 }
@@ -1101,11 +1140,16 @@ pub fn match_pseudo_class(e: &Env, el: NodeId, pc: &PseudoClass) -> bool {
         PseudoClass::Enabled => {
             element_state::is_disableable(e, el) && !element_state::matches_disabled(e, el)
         }
-        PseudoClass::Focus => r.state & state::FOCUSED != 0,
+        // HTML: the focused element, and a shadow host whose shadow tree contains it (DESIGN §42)
+        PseudoClass::Focus => {
+            r.state & state::FOCUSED != 0
+                || (r.meta & meta::SHADOW != 0 && host_of_focus(e, el, focused_of(e, el)))
+        }
         PseudoClass::FocusVisible => r.state & state::FOCUSED != 0 && html && focus_visible_type(e, el, l),
         PseudoClass::FocusWithin => {
             let f = focused_of(e, el);
-            f != 0 && e.is_inclusive_ancestor(el, f)
+            f != 0
+                && (e.is_inclusive_ancestor(el, f) || (e.shadow.any() && shadow_including_ancestor(e, el, f)))
         }
         PseudoClass::Required | PseudoClass::Optional => {
             let required = match l {

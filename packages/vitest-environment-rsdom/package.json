@@ -1,13 +1,12 @@
 {
   "name": "vitest-environment-jetdom",
   "version": "0.1.0",
-  "private": true,
   "description": "Vitest environment for jetdom: `test.environment: 'jetdom'`",
   "keywords": ["vitest", "vitest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/rsdom.git",
+    "url": "git+https://github.com/lucassarcanjo/jetdom.git",
     "directory": "packages/vitest-environment-rsdom"
   },
   "type": "module",

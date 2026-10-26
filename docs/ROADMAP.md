@@ -39,10 +39,11 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
 - [x] Parity suite: jsdom's own test suite, gated by checked-in expectations (regressions and unlocked progress both
       fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
-- [ ] Prebuilt binaries: napi-rs per-platform packages (`@jetdom/<triple>` as `optionalDependencies`) for linux x64/arm64
-      (gnu and musl), darwin x64/arm64 and win32 x64; release workflow.
+- [ ] Prebuilt binaries for linux x64/arm64 (gnu and musl), darwin x64/arm64 and win32 x64: `.github/workflows/release.yml`
+      builds them all into the `jetdom` package (not yet run). Split them into `@jetdom/<triple>` `optionalDependencies`
+      if the download size becomes a problem.
 - [ ] Publish a first preview under the npm names `jetdom`, `vitest-environment-jetdom`, `jest-environment-jetdom` and
-      `@jetdom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`); drop `"private": true`.
+      `@jetdom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`).
 - [ ] Versioning and changelog (one version for all packages; changesets or a release script).
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.

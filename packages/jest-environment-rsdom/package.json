@@ -1,13 +1,12 @@
 {
   "name": "jest-environment-jetdom",
   "version": "0.1.0",
-  "private": true,
   "description": "Jest environment for jetdom: `testEnvironment: 'jetdom'`",
   "keywords": ["jest", "jest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/rsdom.git",
+    "url": "git+https://github.com/lucassarcanjo/jetdom.git",
     "directory": "packages/jest-environment-rsdom"
   },
   "main": "index.js",

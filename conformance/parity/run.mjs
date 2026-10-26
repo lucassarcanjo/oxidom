@@ -192,7 +192,10 @@ if (update) {
         if (e) exps.set(id, e);
         else exps.delete(id);
       }
-      if (whole) for (const id of [...exps.keys()]) if (!ids.has(id)) exps.delete(id);
+      if (whole) {
+        for (const id of [...exps.keys()]) if (!ids.has(id)) exps.delete(id);
+        for (const id of [...exps.byNode.keys()]) if (!ids.has(id)) exps.byNode.delete(id);
+      }
       saveExpectations(source, exps);
     }
     console.log(`updated ${dom === 'jsdom' ? 'oracle' : 'expectations'}/${source}.${dom === 'jsdom' ? 'json' : 'yaml'}`);

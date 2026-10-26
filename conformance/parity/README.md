@@ -109,6 +109,7 @@ html/semantics/embedded-content/the-img-element/reuse-img.html: [timeout, "harne
 | `timeout` | testharness timed out (10 s) | no |
 | `flaky` | set by hand: the result varies between runs; never gates | no |
 | `skip` | set by hand: the file does not measure rsdom (say why in the reason); never gates, left out of the score | no |
+| `fail-node:<N` | set by hand, file or subtest: a failure of the Node runtime, not of rsdom, that Node N fixed (jsdom's `to-run.yaml` syntax). Below major N it is `fail`; from N on it is no entry, so the test must pass. `--update` writes it back as it is on any Node, and the scoreboard reads it as on Node 22 so it is the same on every Node | yes |
 
 A run compares each file with its entry: no entry means every subtest must pass, and at least as many as jsdom
 passes; a subtest list means exactly those may fail, and the others (jsdom's passes, less the listed failures

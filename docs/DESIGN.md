@@ -946,8 +946,8 @@ Four reviews (Rust soundness, Rust performance, DOM correctness, JS facade) of M
 Each item was measured before/after (release build, idle machine; micro harness single cases or scratch
 probes) and kept only when it won without changing behaviour. Ablation flags stay transparent.
 
-- **Environment startup (biggest wall-clock item).** Node 22's `FormData`/`Headers`/`Request`/`Response`/
-  `MessageEvent`/`WebSocket`/`EventSource` are lazy V8 data properties: reading their descriptor (the window's
+- **Environment startup (biggest wall-clock item).** Node's `FormData`/`Headers`/`Request`/`Response`/
+  `MessageEvent`/`CloseEvent` (Node 23+)/`WebSocket`/`EventSource` are lazy V8 data properties: reading their descriptor (the window's
   `save()`) or redefining them loads Node's whole undici bundle (~55-65 ms per worker). `FormData` is now a
   pure-JS class (like jsdom's / happy-dom's) registered in `rt.classes`; `save()` deletes those keys on
   `globalThis` without reading them (`LAZY_NATIVE` marker) and `restoreWindow()` deletes ours (Node's original

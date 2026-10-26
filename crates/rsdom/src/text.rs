@@ -50,7 +50,7 @@ impl Env {
             return Err(DomError::IndexSize);
         }
         // Spec: the new node is always a Text node (also when splitting a CDATASection).
-        let tail = Str::from(s.substring16(off16, len - off16));
+        let tail = Str::from(&*s.substring16(off16, len - off16));
         let doc = self.node_doc(id);
         let new = self.create_chars_owned(doc, kind::TEXT, 0, tail);
         let parent = self.rec(id).parent;

@@ -102,6 +102,8 @@ struct LabelMemo {
     root: NodeId,
     tree: u32,
     attr: u32,
+    /// `CeState::def_gen`: a form-associated custom element is labelable once it has its definition
+    ce: u32,
     map: FxHashMap<NodeId, SmallVec<[NodeId; 2]>>,
 }
 
@@ -297,7 +299,14 @@ impl Env {
             }
             Some(v) => {
                 let Some(a) = self.atoms.get(v) else { return 0 };
-                let f = self.get_element_by_id(self.root_of(id), a);
+                let root = self.root_of(id);
+                // the root itself counts (a disconnected `<form id=f>` holding `<input form=f>`), as in
+                // jsdom's firstElementWithId
+                let f = if attr(self, root, atom::ID) == Some(v) {
+                    root
+                } else {
+                    self.get_element_by_id(root, a)
+                };
                 if self.is_html_elem(f, atom::FORM) { f } else { 0 }
             }
         }
@@ -410,7 +419,7 @@ impl Env {
                 true
             }
             atom::INPUT => input_type(self, id) != ty::HIDDEN,
-            _ => false,
+            _ => self.ce_form_associated(id),
         }
     }
 
@@ -437,13 +446,13 @@ impl Env {
         0
     }
 
-    /// Labels of `id` in tree order (memoized per root and (EP[TREE], EP[ATTR])).
+    /// Labels of `id` in tree order (memoized per root, (EP[TREE], EP[ATTR]) and custom element definitions).
     pub fn labels_of(&mut self, id: NodeId, out: &mut Vec<NodeId>) {
         out.clear();
         let root = self.root_of(id);
-        let (tree, at) = (self.ep.get(ep::TREE), self.ep.get(ep::ATTR));
+        let (tree, at, ce) = (self.ep.get(ep::TREE), self.ep.get(ep::ATTR), self.ce.def_gen);
         let m = &self.forms.labels;
-        if !(m.root == root && m.tree == tree && m.attr == at) {
+        if !(m.root == root && m.tree == tree && m.attr == at && m.ce == ce) {
             let mut map: FxHashMap<NodeId, SmallVec<[NodeId; 2]>> = FxHashMap::default();
             let mut n = root;
             while n != 0 {
@@ -455,7 +464,7 @@ impl Env {
                 }
                 n = self.next_in_subtree(n, root);
             }
-            self.forms.labels = LabelMemo { root, tree, attr: at, map };
+            self.forms.labels = LabelMemo { root, tree, attr: at, ce, map };
         }
         if let Some(v) = self.forms.labels.map.get(&id) {
             out.extend_from_slice(v);
@@ -827,16 +836,10 @@ impl Env {
         end = end.min(len);
         let mut val = String::new();
         self.value_into(id, &mut val);
-        let ascii = val.is_ascii();
-        let (bs, be) = (
-            crate::string::utf16_to_byte(&val, ascii, start),
-            crate::string::utf16_to_byte(&val, ascii, end),
-        );
-        let mut next = String::with_capacity(val.len() + repl.len());
-        next.push_str(&val[..bs]);
-        next.push_str(repl);
-        next.push_str(&val[be..]);
-        self.value_set(id, &next)?;
+        // a Str edit: an offset inside a surrogate pair splits it, as JS string slicing does (DESIGN §44)
+        let mut next = crate::string::Str::from_string(val);
+        next.replace_range16(start, end - start, repl);
+        self.value_set(id, next.as_str())?;
         let rl = utf16(repl);
         let new_end = start + rl;
         let (s2, e2) = match mode {
@@ -1384,6 +1387,13 @@ natives! {
     fn setSelected(e, id: u32, on: bool) -> () {
         e.set_selected(id, on)
     }
+    /// An option's selectedness alone, as `new Option(..., selected)` sets it (jsdom Window.js: no dirtiness,
+    /// no reset: the option has no select yet).
+    fn setSelectedness(e, id: u32, on: bool) -> () {
+        if e.is_html_elem(id, atom::OPTION) {
+            e.set_selectedness(id, on)
+        }
+    }
     /// select.selectedIndex (-1 when nothing is selected).
     fn selectedIndexGet(e, id: u32) -> i32 {
         e.selected_index(id)
@@ -1519,6 +1529,18 @@ natives! {
     fn inputNumber(e, id: u32) -> f64 {
         let t = input_type(e, id);
         if is_input(e, id) && types::is_numeric(t) { types::to_number(t, raw(e, id)).unwrap_or(f64::NAN) } else { f64::NAN }
+    }
+    /// jsdom `#setValue` for a value-mode input: stores `v` as is (no sanitization, dirty flag unchanged), as
+    /// `stepUp()` / `valueAsNumber` / `valueAsDate` do.
+    fn valueSetRaw(e, id: u32, v: str) -> () {
+        if is_input(e, id) && types::mode(input_type(e, id)) == Mode::Value {
+            e.set_raw(id, v);
+        }
+    }
+    /// `s` as a number for input type `ty` (the value-string conversion of numeric types; NaN when invalid).
+    fn formNumber(e, ty: str, s: str) -> f64 {
+        let _ = e;
+        types::to_number(types::parse_type(Some(ty)), s).unwrap_or(f64::NAN)
     }
     /// output default-value override (null = none).
     fn outputOverride(e, id: u32) -> Option<&str> {

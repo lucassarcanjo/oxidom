@@ -1,0 +1,25 @@
+// Type declarations for `jetdom/vitest-environment` (DESIGN §34): the Vitest environment and its options.
+import type { Environment } from 'vitest/runtime';
+
+/** `test.environmentOptions.jetdom` (DESIGN §12, §31); these keys win over `environmentOptions.jsdom`'s. */
+export interface JetdomEnvironmentOptions {
+  /** the document URL (default `http://localhost:3000/`) */
+  url?: string | undefined;
+  /** body markup, set as `documentElement.innerHTML` */
+  html?: string | undefined;
+  /** false: the crossing-getter fallback (`RSDOM_SHARED=0`) */
+  shared?: boolean | undefined;
+  /** false: no JS-side memoisation (`RSDOM_NO_MEMO=1`) */
+  memo?: boolean | undefined;
+  /** false: no selector prefilter (`RSDOM_NO_PREFILTER=1`) */
+  prefilter?: boolean | undefined;
+  /** true: the counters build (`RSDOM_COUNTERS=1`) */
+  counters?: boolean | undefined;
+}
+
+/**
+ * The environment: `setup()` installs the window on the worker's global, `setupVM()` (VM pools) on a vm
+ * context. It reads `environmentOptions.jsdom` as Vitest's jsdom environment does, then `environmentOptions.jetdom`.
+ */
+declare const environment: Environment;
+export default environment;

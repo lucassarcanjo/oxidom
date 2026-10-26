@@ -38,6 +38,8 @@ const stack = [];
 let cur = null;
 /** window object -> its open context */
 const byWindow = new WeakMap();
+/** windows of closed, non-global contexts */
+const closedWindows = new WeakSet();
 
 class BrowsingContext {
   #timers = new Set();
@@ -56,6 +58,26 @@ class BrowsingContext {
     /** the session history (lib/history.cjs, DESIGN §23), created with the window */
     this.history = null;
     this.closed = false;
+    /**
+     * jsdom's window settings (`new JSDOM()` options, lib/jsdom.cjs): `pretendToBeVisual` (animation frames,
+     * `document.hidden`), `storageQuota`, `userAgent`, `referrer`, and `virtualConsole` (when set: the
+     * window's `console`, not-implemented reports and uncaught exceptions go to it, not to the process), and
+     * `closable` (`window.close()` closes the context; a no-op for `createWindow()` and the Vitest global), and
+     * `runScripts` (undefined, "outside-only" or "dangerously": lib/scripts.cjs, DESIGN §45).
+     */
+    this.settings = {
+      pretendToBeVisual: true,
+      storageQuota: 5000000,
+      userAgent: null,
+      referrer: '',
+      virtualConsole: null,
+      closable: false,
+      runScripts: undefined,
+    };
+    /** the window is installed on a pre-existing global (the Vitest environment) */
+    this.global = false;
+    /** the vm context whose global is the window (lib/vm-window.cjs), where scripts run */
+    this.vmContext = undefined;
   }
 
   /** A same-document URL change (fragment navigation, pushState / replaceState). */
@@ -130,7 +152,12 @@ class BrowsingContext {
     for (let i = cleanups.length - 1; i >= 0; i--) cleanups[i]();
     cleanups.length = 0;
     open.delete(this);
-    if (this.window !== null && byWindow.get(this.window) === this) byWindow.delete(this.window);
+    if (this.window !== null && byWindow.get(this.window) === this) {
+      byWindow.delete(this.window);
+      // A closed window stays a window (`instanceof Window`, an event's `view`), as in jsdom; except a global
+      // one, whose object goes back to being the plain global
+      if (!this.global) closedWindows.add(this.window);
+    }
     return true;
   }
 
@@ -150,33 +177,55 @@ class BrowsingContext {
  * - `html`: body markup, set as `documentElement.innerHTML`;
  * - `source`: a whole HTML document (doctype, `<html>` attributes and all) parsed as the context's document,
  *   as `new JSDOM(source)` does; excludes `html`;
+ * - `xml`: an XML content type: the document is an XML document of that type and `source` is parsed as XML;
  * - `main: false`: the context does not become current;
  * - `global`: install the window's members on this object (the Vitest environment passes globalThis) instead
  *   of a fresh null-prototype object; `close()` restores the object's original properties;
- * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions).
- * @param {{ url?: string, html?: string, source?: string, main?: boolean, global?: object, catchErrors?: boolean }} [options]
+ * - `ownTimers`: the window gets its own `setTimeout` & co (integer handles, cancelled by `close()`) even on a
+ *   `global` (the Jest environment's vm context, which has no timers of its own);
+ * - `catchErrors`: Vitest's window error routing (unhandled ErrorEvents become uncaught exceptions);
+ * - `settings`: overrides of `BrowsingContext#settings` (the `JSDOM` class's options).
+ * @param {{ url?: string, html?: string, source?: string, xml?: string, main?: boolean, global?: object, ownTimers?: boolean, catchErrors?: boolean, settings?: object }} [options]
  * @returns {BrowsingContext}
  */
 function openContext(options = {}) {
   const url = new URL(options.url ?? DEFAULT_URL);
+  if (options.xml !== undefined && options.html !== undefined) {
+    throw new TypeError('rsdom: context.open() takes `source` (the whole document) for an XML document, not `html`');
+  }
   if (options.source !== undefined && options.html !== undefined) {
     throw new TypeError('rsdom: context.open() takes `html` (body markup) or `source` (a whole document), not both');
   }
-  const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source)));
-  rt.afterAlloc();
-  const document = rt.wrap(id);
+  let document;
+  if (options.xml !== undefined) {
+    // An XML document (`new JSDOM(x, { contentType })` with an XML type, DESIGN §38); a well-formedness error throws
+    const xml = require('./xml.cjs');
+    document = xml.newXmlDocument(options.xml, url.href);
+    if (options.source !== undefined) xml.parseInto(document, String(options.source), { fileName: url.href });
+  } else {
+    // the HTML parser's scripting flag: `<noscript>` holds raw text in a document that runs scripts (DESIGN §45)
+    const scripting = options.settings?.runScripts === 'dangerously' ? 1 : 0;
+    const id = rt.checkId(options.source === undefined ? rt.N.createDocument(0, null) : rt.N.parseDocument(String(options.source), scripting));
+    rt.afterAlloc();
+    document = rt.wrap(id);
+  }
   const ctx = new BrowsingContext(document, url);
+  if (options.settings !== undefined) Object.assign(ctx.settings, options.settings);
+  ctx.global = options.global !== undefined;
   document._ctx = ctx;
   open.add(ctx);
   if (options.main !== false) {
     stack.push(ctx);
     cur = ctx;
-    rt.N.setMainDocument(id);
+    rt.N.setMainDocument(document._i);
   }
   if (options.html !== undefined) document.documentElement.innerHTML = options.html;
   const window = require('./window.cjs');
-  ctx.window = window.makeWindow(ctx, options.global);
+  ctx.window = window.makeWindow(ctx, options.global, options.ownTimers === true);
   byWindow.set(ctx.window, ctx);
+  // Window's named properties (DESIGN §46), except on Node's own global (the Vitest environment): a Proxy there
+  // would see every lookup of a missing global in Node's realm
+  if (options.global !== globalThis) require('./window-properties.cjs').install(ctx.window, ctx);
   if (options.catchErrors === true) ctx.onClose(window.catchWindowErrors(ctx.window));
   return ctx;
 }
@@ -208,4 +257,9 @@ function reportError(err) {
 // The runtime's `defaultDocument` (CONTRIBUTING §5) is the current context's document, read-only.
 Object.defineProperty(rt, 'defaultDocument', { get: currentDocument, enumerable: true, configurable: true });
 
-module.exports = { DEFAULT_URL, BrowsingContext, open: openContext, current, currentDocument, ofWindow, reportError };
+/** True for a window object: an open context's, or a closed non-global one's (`instanceof Window`, event views). */
+function isWindow(v) {
+  return byWindow.has(v) || closedWindows.has(v);
+}
+
+module.exports = { DEFAULT_URL, BrowsingContext, open: openContext, current, currentDocument, ofWindow, isWindow, reportError };

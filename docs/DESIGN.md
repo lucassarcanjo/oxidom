@@ -79,11 +79,13 @@ crates/rsdom/                 the native addon crate (napi-rs v3, cdylib + rlib)
 packages/rsdom/               the `rsdom` npm package
   lib/*.cjs                   the JS facade (plain CJS, loaded through createRequire, never through Vite)
   lib/vitest-environment.mjs  the Vitest Environment (`rsdom/vitest-environment`)
+  lib/jest-environment.cjs    the Jest environment class (`jetdom/jest-environment`, §32)
   lib/generated/              emitted by build.rs (gitignored)
   native/rsdom.<triple>.node  the addon (gitignored)
   test/contract/              one parity suite run against jsdom, happy-dom and rsdom
   test/native/                rsdom-only tests (protocols, wrappers, epochs, Vitest pools)
 packages/vitest-environment-rsdom/   `test.environment: 'jetdom'` (npm: vitest-environment-jetdom)
+packages/jest-environment-rsdom/     `testEnvironment: 'jetdom'` (npm: jest-environment-jetdom, DESIGN §32)
 e2e/react-app/                React 19 + Testing Library suite (90 tests), the end-to-end subject
 e2e/libraries/                real-library smoke tests (Radix, MUI, react-aria, lit, ...)
 bench/micro/  bench/e2e/      benchmark harnesses (phase reporter, runner); bench/results/
@@ -200,7 +202,7 @@ pub struct DocData {
 - html5ever, cssparser and selectors all need UTF-8.
 - ASCII is the overwhelmingly common case. There, egress uses `napi_create_string_latin1` (41-51 ns) and UTF-16 offsets equal byte offsets.
 - Non-ASCII strings convert offsets with a linear `char_indices` walk.
-- Known divergence: lone surrogates become U+FFFD.
+- Lone surrogates are stored as private-use escapes (§44).
 
 ### 2.4 The epoch page (EP)
 
@@ -219,7 +221,11 @@ EP is a JS-allocated `Uint32Array(16)`, pinned with a `napi_ref`. Rust writes it
 | 8 | NODE_LEN | high-water node id |
 | 9 | OUT_NEED | words required when an OUT write overflowed |
 | 10 | ERR | error code for id-returning calls that return 0 on failure |
-| 11-15 | reserved / bench counters | |
+| 11 | REC | bumped on every node-record write (fallback-mode record cache) |
+| 12 | TEXT | any character-data change |
+| 13 | STYLE_DEP | author sheets select on element state (§8.2) |
+| 14 | FOCUS_VER | focus changes (src/focus.rs) |
+| 15 | NAMED | an HTML embed / form / iframe / img / object (dis)connected, or its `name` / `id` changed (§4.3) |
 
 ---
 
@@ -438,7 +444,7 @@ All classes are defined once at module level in `packages/rsdom/lib/*.cjs`. `con
 EventTarget
  ├─ Window (globalThis gets EventTarget methods bound to a hidden WindowTarget)
  └─ Node  (constants on Node and Node.prototype: ELEMENT_NODE…, DOCUMENT_POSITION_*)
-     ├─ Document ─ HTMLDocument (XMLDocument stub)      ├─ DocumentFragment (ShadowRoot: out of scope)
+     ├─ Document ─ HTMLDocument (XMLDocument stub)      ├─ DocumentFragment ─ ShadowRoot (§22)
      ├─ DocumentType                                     ├─ Attr
      ├─ CharacterData ─ Text ─ CDATASection, Comment, ProcessingInstruction
      └─ Element ─ HTMLElement ─ HTML*Element (~70, generated from refs/jsdom/lib/jsdom/living/helpers/create-element.js),
@@ -446,7 +452,7 @@ EventTarget
                 ├─ SVGElement ─ SVGGraphicsElement ─ SVGSVGElement …
                 └─ MathMLElement
 NodeList, HTMLCollection, HTMLOptionsCollection, HTMLFormControlsCollection, NamedNodeMap, DOMTokenList,
-DOMStringMap, CSSStyleDeclaration, Range (basic), Selection (stub), MutationObserver, MutationRecord,
+DOMStringMap, CSSStyleDeclaration, StaticRange, Range (§25), Selection (§29), MutationObserver, MutationRecord,
 DOMParser, FormData (override), Event + subclasses, DOMException (Node's own)
 ```
 
@@ -466,7 +472,9 @@ Everything else is in Rust: tree, attributes, reflection storage, text, form sta
 ### 4.3 Collections (no Proxies)
 
 - **Static NodeList** (from qSA): an array-like with own numeric properties, `length`, `item`, `forEach`, `entries/keys/values` and `Symbol.iterator`. This satisfies dom-accessibility-api's `ArrayFrom(length, [k])` and pretty-format's `Array.prototype.slice.call`.
-- **Live `childNodes`/`children`:** SameObject. As implemented (§15): no own numeric properties; `list[i]` is a getter on the prototype that re-validates against `child_ver` (T[o+7]) on every read, so a list held across a mutation is always current. A cursor cache makes sequential access and iteration O(1) per step; `childNodes.length` is CHILD_LEN. Iteration re-checks on each step, so removing items during iteration skips them the way jsdom does. Internal state is in `#private` fields.
+- **Live `childNodes`/`children`:** SameObject. As implemented (§15): `list[i]` is a getter on the prototype that re-validates against `child_ver` (T[o+7]) on every read, so a list held across a mutation is always current. A cursor cache makes sequential access and iteration O(1) per step; `childNodes.length` is CHILD_LEN. Iteration re-checks on each step, so removing items during iteration skips them the way jsdom does. Internal state is in `#private` fields.
+  - **Own indices (2026-10, `core`).** jsdom's lists are Proxies, so their indices are own enumerable properties, and testharness's `assert_array_equals` checks `hasOwnProperty(i)` (about 45 WPT files). Every `length` read whose answer changed since the last one, and every `childNodes` / `children` access, makes the list's own index accessors cover exactly [0, length) (`syncOwn`: shared getters, plus `_setIndex` setters for HTMLOptionsCollection), so two lists fetched and compared with `toEqual` agree. The prototype getters stay, so a read past them is still live. Own-ness is exact as of the last sync, not after a later mutation of a list held without re-fetching it, and `i in list` still holds below the prototype bound. The own properties are accessors (jsdom's Proxy reports data descriptors). `syncOwn` uses `Reflect.defineProperty` / `deleteProperty` and skips non-extensible lists, so a user's freeze or redefine never makes `length` throw; the shared getters return undefined on a non-list receiver (a copied descriptor in Jest's diff). Cost, measured: an indexed read is ~15% slower once own accessors exist (dictionary elements: 65 -> 75 ns), a grow/shrink loop that reads `length` after each mutation ~25-100% slower, and a synced list holds ~250 B per entry (a 10k-element `getElementsByTagName('*')` whose `length` was read: +2.5 MB). Still several times faster than jsdom's Proxies.
+  - **Named properties (2026-10, `core`).** jsdom's supported property names (HTMLCollection: each element's `id`, then an HTML element's `name`; NamedNodeMap: the attributes' qualified names, minus names with ASCII uppercase on an HTML element in an HTML document) are not own properties: `installNamedProperties` (collections.cjs) puts a Proxy between the interface prototype and Object.prototype, so a string key the instance and its interface prototypes lack reaches `namedItem` / `getNamedItem` through the receiver. Reads are always current, also on a held collection, and mutations pay nothing. A first version defined own name accessors re-derived after every change: O(n) per mutation, which made `while (s.options.length) s.remove(0)`, `options.add` and `insertRow` loops 10-35x slower than jsdom. What the Proxy cannot give: `in` (the `has` trap has no receiver), `hasOwnProperty`, descriptors, `Object.keys` (HTMLFormControlsCollection and HTMLOptionsCollection names are enumerable in jsdom). Names Object.prototype has and array indices never reach the lookup; facade members (`_sync`, `_get`) shadow names, and internal code must probe optional members with `in`, not a read (a read of a missing key costs a `namedItem` walk). On Document, keys starting with `_` never reach the lookup: they are the wrapper's fields, some set lazily (`_ct`, `_cookies`) or during wrapper construction, where a page's `<form name="_ct">` must not answer (a divergence for such names; collections keep #private state, so `form.elements._token` works). NamedNodeMap's indices are own enumerable accessors, kept exact on every `_sync` that sees a change, as the lists' are. Document's named getter (`document.loginForm`: HTML embed / form / iframe / img / object elements by name, and object / named img by id) uses the same lookup below Document.prototype (select.cjs, `indices`: Document has no indexed getter), answered by one native walk (`N.docNamed`, null-namespace `name` / `id`) memoised per document and name on EP[NAMED], which Rust bumps only when an HTML embed / form / iframe / img / object is connected or disconnected or its `name` / `id` changes, as jsdom drops its cache (so a probe of a missing member like `document.documentMode` after unrelated mutations costs a stamp compare); several elements answer a live HTMLCollection, the same object per name. Document is [LegacyOverrideBuiltIns] in jsdom, so there a named element also shadows `document.title` and the other members; here the members win.
 - **getElementsByTagName/ClassName:** live, validated by `EP[TREE]` (+`EP[ATTR]` for class). On a miss they re-run `byTag`/`byClass`.
 - **NamedNodeMap / Attr:** validated by `attr_ver` and filled with one `attrsAll` crossing. Attr objects are cached per (element, namespace, local name) so their identity is stable (dom-accessibility-api uses `getAttributeNode`).
 - **DOMTokenList / dataset:** read via `classTokens` or `attrsAll`, write via `setAttr`. dataset uses generated accessors plus a small `Proxy`. This is the one Proxy allowed, because `dataset` is cold.
@@ -575,7 +583,17 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 ### 8.1 Inline style
 - `InlineStyle` holds a `SmallVec<[(PropId u16, Value, important); 4]>`. Values are parsed with cssparser.
 - Normalisation: lengths, numbers (a unitless non-zero length is rejected), hex/rgb/hsl/named colours serialised as `rgb(r, g, b)`, keywords, and common shorthands (margin, padding, border, border-width/style/color, overflow, flex, background-color, font-weight). Invalid values are ignored.
-- **The same value serializer is used for `element.style` and for computed values**, so jest-dom `toHaveStyle` round-trips. This fixes the jsdom 30 `color: red` / `fontWeight: 'bold'` mismatch (docs/lab/research/testing-library.md).
+- Ported from jsdom 30 (crates/rsdom/src/style/value.rs):
+  - `border` also resets `border-image` to `none`, as a thirteenth longhand. So `border-width` + `border-style` + `border-color` alone serialize as those three, not as `border`.
+  - `background` takes comma-separated layers; each longhand holds one value per layer, and only the last layer may set the colour. The serializer follows jsdom's getter, including its origin/clip-before-attachment order.
+  - `background-position` fills in the missing axis (`10px` becomes `10px center`).
+  - Gradients are normalised like `@asamuzakjp/css-color`'s `resolveGradient`: lowercase, `, `-separated, colours as `rgb()`, and default lines dropped. A `calc()` in a colour stop is not simplified, which differs from jsdom.
+  - Multi-word `font-family` names are quoted.
+  - At-keywords and `{}` blocks inside a function make the declaration invalid; custom properties keep them.
+  - CR, CR LF and FF become LF, and NUL becomes U+FFFD (CSS Syntax input preprocessing).
+  - `calc()` of numbers, or of percentages, is evaluated in `rgb()` channels and `hsl()` saturation / lightness (not in hues, alphas or `min()`, which jsdom also resolves).
+  - Longhands with different layer counts have no `background` shorthand. A removed `border-image` leaves `border` unserializable, where jsdom still serializes it from its stored shorthand.
+- **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on rsdom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
 - The `style` attribute string is serialised lazily, only when something reads it: getAttribute, outerHTML, attributes, or an MO old value.
 - `CSSStyleDeclaration` is created lazily per element.
   - It has generated prototype accessors for camelCase, kebab-case, `Webkit*` and `cssFloat`.
@@ -821,8 +839,6 @@ Remaining divergences (rsdom follows the spec or browsers where jsdom does not):
 - Changing a `<style>` element's `type` re-evaluates its sheet; jsdom only re-evaluates on connect / text change.
 - `display: revert` resolves to the UA origin's value (browsers: `block` on `<p>`); jsdom returns the string
   `revert`.
-- `font-weight: bold` computes to `bold` (rsdom keeps the specified serialization for non-core properties so
-  jest-dom `toHaveStyle` round-trips); jsdom returns `700`.
 - MutationObserver `attributeFilter` ignores namespaced attributes (DOM spec); jsdom reports them.
 - The `toggle` event is a plain `Event` (no `oldState`/`newState`), as in jsdom.
 - A panic inside a native (a bug) is turned into a JS Error but the env is not transactional: a mutation can be
@@ -1060,7 +1076,7 @@ Every change to a child list goes through `src/tree.rs`:
 
 A **browsing context** is one window: its window object, its document, the document's URL, the timers the
 window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and
-`createWindow()`, the Vitest environment (§12) and a future `JSDOM` class are adapters over `open()`.
+`createWindow()`, the Vitest environment (§12) and the `JSDOM` class (§31) are adapters over `open()`.
 
 - **Current context.** An Env (§2.1) holds any number of open contexts, but rsdom has one set of interface
   objects per Env (`rt.classes`), not one per window. Whatever needs "the window" without a node to ask
@@ -1103,6 +1119,8 @@ non-negative-integer parsers that disagreed with jsdom on `-0` and on overflow).
   `matches_valid` / `subtree_matches_valid` (dom-selector's `:valid` / `:invalid`, which replace the answer
   with a `maxlength` / `minlength` length check: jsdom's `validity` never reports tooLong / tooShort, so the
   two disagree there in jsdom too);
+- `matches_in_range` (dom-selector's `:in-range` / `:out-of-range`, 2026-10: the `readonly` / `disabled`
+  attributes alone, the raw `type` attribute, then the range bits of `validity_bits`);
 - `has_datalist_ancestor`.
 
 Where jsdom answers one question two ways (its selector engine and its element implementations), both answers
@@ -1228,8 +1246,7 @@ xhr-utils.js) and of the parts of `refs/jsdom/lib/jsdom/browser/resources/jsdom-
     response ends (abort, timeout, teardown) makes Node 22's undici open one extra connection that idles for its
     keep-alive timeout (~4 s), so a test server's `close()` waits that long unless `closeAllConnections()` runs
     first (jsdom: no wait).
-  - Missing: `responseXML` is null for XML types and `send(XMLDocument)` uses the HTML serializer (no XML parser,
-    Stage 3 `xml`); synchronous `send()` throws.
+  - Missing: synchronous `send()` throws. (XML `responseXML` and XML Document bodies arrived with §38.)
   - Decoding: Node 22's TextDecoder decodes windows-1252 (and its latin1 / us-ascii labels) 0x80-0x9F as latin1,
     so those bytes are mapped through a 32-entry table; it refuses the replacement and x-user-defined encodings,
     which are decoded by hand (one UTF-16 decode per body; 8 MB of x-user-defined in ~0.2 s) (WPT `encoding/replacement-encodings.any.html`).
@@ -1648,3 +1665,762 @@ so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a
   nodes outside the flat tree, `content-visibility: hidden` text). `test/contract/selection.test.mjs` runs the API
   on all three DOMs. In `e2e/libraries`, Lexical typing passes on rsdom (it fails on jsdom and happy-dom: no
   `getTargetRanges`); tiptap's assertions pass, with one unhandled error from the missing `elementFromPoint`.
+
+## 30. Computed-value fidelity (ROADMAP Stage 3, 2026-10)
+
+`getComputedStyle` returned the specified serialization for non-core properties, which kept jest-dom
+`toHaveStyle('color: red')` passing where jsdom 30 fails, but made rsdom diverge from jsdom on every test that reads a
+computed colour: the css/selectors invalidation tests check matching through `color`, so they were 2,800 of the
+3,147-subtest gap. It also broke the drop-in contract the other way: `expect(redEl).not.toHaveStyle('color: red')`
+passes on jsdom and failed on rsdom. Computed values now follow jsdom 30's `CSSStyleDeclaration#getComputedValue`
+(refs/jsdom/lib/jsdom/living/css/CSSStyleDeclaration-impl.js), all in `style/cascade.rs` `Strs::resolve`:
+
+- **Colours.** Longhands flagged `<color>` or `<paint>` in the property table: named colours become `rgb()`,
+  `transparent` `rgba(0, 0, 0, 0)`, system colours their light-scheme value (jsdom's `system-colors.js`), and
+  `currentcolor` the element's colour. A colour inherits as specified and resolves on the inheriting element, so an
+  unspecified `currentcolor` initial value (`column-rule-color`, `text-emphasis-color`) is the element's own
+  colour, not the root's. Like jsdom, any other bare keyword on such a property (`outline-color: auto`,
+  `stroke: none`) computes to `rgba(0, 0, 0, 0)`. Hex, `rgb()` and `hsl()` were already normalised when parsed;
+  `lab()`, `color-mix()` and `color-scheme: dark` are not resolved.
+- **`font-weight`.** `normal` and `bold` compute to `400` and `700` (`bolder`/`lighter` already did). The computed
+  `font` shorthand leaves a 400 weight out, as jsdom does.
+- **Lengths.** A single `<number><unit>` on a `<length>` longhand becomes px, serialised as jsdom's
+  `Number(px.toPrecision(6))`: absolute units, `em`/`ex`/`ch`/`lh`/`cap`/`ic` against the element's own computed
+  font size, `rem` & co against the root element's (16px on the root itself), and `vw`/`vh`/`vmin`/`vmax` against
+  the window's current `innerWidth`/`innerHeight`, which the facade passes to `csStr` (Rust cannot read the window,
+  §7); on the root element they stay as specified, as in jsdom. `font-size` uses the parent's size for `em`
+  and `%`. Percentages, unitless numbers, keywords and `calc()` stay as specified (jsdom reduces `calc()`).
+  `computed_str` prepares the root element's inline style too, since a detached or shadow-tree element's `rem`
+  reads a root that is not its ancestor.
+- Shorthands that rsdom stores as one value (`border-block`, `box-shadow`, ...) keep the specified value, as
+  jsdom's do.
+
+Measured on the parity suite: the `computed-values` gap went from 3,147 to 366 subtests (206 -> 265 of 297 files at
+parity) and overall parity from 88.8% to 90.5%, with no regression. What remains is `:heading()` (a selector, 163),
+the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom accepts `none` on
+`column-rule-color` and rounds `1e-8in` to `0in` when parsing; jsdom does neither). `auto` is now accepted only on
+the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
+`test/contract/computed-style.test.mjs` checks the resolved values against jsdom.
+
+`:heading` / `:heading(levels)` (Selectors 5, 2026-10-22) are implemented in the selector adapter rather than left
+invalid: HTML `h1`-`h6`, whose level is the name's plus the `headingoffset`s of inclusive ancestors up to the
+nearest `headingreset` (whatwg/html#11086), at most 9; `headingoffset` / `headingreset` invalidate like other
+attributes selectors read, and HTMLElement reflects them (`headingOffset`, `headingReset`). jsdom 30 accepts
+neither, matching nothing, so on its passing subtests the two agree; it took the item's gap from 249 to 88.
+
+## 31. The `JSDOM` class (ROADMAP Stage 2, 2026-10)
+
+`lib/jsdom.cjs` is jsdom 30's programmatic API (refs/jsdom/lib/api.js), exported from the package entry with
+`VirtualConsole` (and tough-cookie's `CookieJar` when that package is installed). It grew out of the parity suite's
+test adapter, which is now a one-line re-export.
+
+- **Instances and Envs.** Each `new JSDOM()` opens a browsing context (§18) on a full-document parse of its input
+  and makes it current, like `createWindow()`, unless the current context is a global one (the Vitest
+  environment): a helper `new JSDOM()` inside a test (a sanitizer's scratch document) must not change what the
+  global `new Text()` & co create nodes in. Several instances live side by side in the thread's one Env; the
+  newest is the one `new Text()` & co create nodes in, and closing it (`window.close()`) makes the previous one
+  current again. MutationObserver callback errors go to the window of the first observed node's document, not
+  the current one. They share one set of interface objects (`dom1.window.Node === dom2.window.Node`); jsdom gives each
+  window its own, so `instanceof` across instances and the "DOMException should differ between jsdom instances"
+  API test differ.
+- **Settings.** The options jsdom keeps in `window._settings` live on `ctx.settings` (`pretendToBeVisual`,
+  `storageQuota`, `userAgent`, `referrer`, `virtualConsole`). `createWindow()` and the Vitest environment keep
+  their defaults (visual, no virtual console); `JSDOM` uses jsdom's (not visual, a virtual console forwarding to
+  Node's console). Without `pretendToBeVisual` there is no `requestAnimationFrame` and the document is hidden
+  (`visibilityState` `prerender`), as in jsdom.
+- **Virtual console.** With one, the window gets jsdom's `console` (each method emits on it), the not-implemented
+  window methods (`alert`, `scrollTo`, `focus`, ...) emit a `not-implemented` jsdomError, and an exception no
+  `error` listener cancelled emits an `unhandled-exception` jsdomError instead of reaching the process
+  (`events.cjs` `reportException`).
+- **Window.** A non-global window has its own `setTimeout` / `setInterval` / `clear*` (integer handles, errors
+  reported to the window). A `JSDOM` window's `close()` closes its context: timers and animation frames stop, and
+  new ones return 0; unlike jsdom it keeps the listeners. `createWindow()` windows and the Vitest global keep a
+  no-op `close()`. `window instanceof Window` holds for every context's window, closed ones too
+  (`Window[Symbol.hasInstance]` and event `view`s use `context.isWindow`, which remembers closed non-global windows). An error
+  reported with no virtual console and no `uncaughtException` listener (plain Node) is rethrown from a microtask,
+  so it crashes the way an error in Node's own timer does instead of vanishing.
+- **Encoding.** Binary input (`Buffer`, `fromFile()`, `fromURL()`) is decoded by BOM, then the content type's
+  `charset`, then a `<meta>` prescan of the first 1024 bytes, else UTF-8. `document.characterSet` still says
+  `UTF-8`.
+- **Not implemented.** `runScripts` (validated, then ignored; XML content types arrived with §38),
+  `includeNodeLocations`, subresource loading beyond `fromURL()`'s page (`resources` other than `userAgent`), a
+  cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's
+  (`... rsdom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
+
+**The Vitest environment** (`lib/vitest-environment.mjs`) reads `environmentOptions.jsdom` the way Vitest's own
+jsdom environment does (its `setup()` in node_modules/vitest/dist/chunks/index.*.js), so a jsdom config moves
+over unchanged: `url`, `html` (a whole document, parsed as the context's `source`), `userAgent` /
+`resources.userAgent`, `pretendToBeVisual` (default true), `contentType` (checked like `new JSDOM()`), `referrer`,
+`storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are ignored, so a `<script>`
+in `html` does not run where Vitest's jsdom default (`runScripts: 'dangerously'`) runs it. (`virtualConsole` is
+read too, but Vitest cannot pass one: options are cloned to the worker.)
+`environmentOptions.jetdom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
+window gets a virtual console forwarding to the console (jsdom's default, so `console: false` changes nothing), so
+`alert()`, `scrollTo()` & co log "Not implemented: ..." through `console.error`, and an uncaught error that an
+`error` listener saw but did not cancel goes there instead of failing the test; the global keeps its own
+`console`. The `jsdom` global is a `JSDOM` adopting the global context (`adopt()` in lib/jsdom.cjs), for
+`jsdom.reconfigure({ url })` and `jsdom.serialize()`; teardown removes it. `reconfigure({ windowTop })` leaves the
+global's `top` alone, as under Vitest's jsdom environment (which copies the window's members once).
+
+Measured on the parity suite: the `jsdom-api` gap went from 426 to 365 subtests, with no regression (virtual
+console 43, `window.close()` and `Window` 5, options 7, `Accept-Language` / user agent headers, not-implemented
+reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom side by side.
+
+## 32. The Jest environment (ROADMAP Stage 2, 2026-10)
+
+`testEnvironment: 'jetdom'` resolves to `jest-environment-jetdom` (packages/jest-environment-rsdom), which builds
+its class from `lib/jest-environment.cjs` with its own `require`. That way jest-util, jest-mock and
+@jest/fake-timers, which are the package's dependencies as they are jest-environment-jsdom's, resolve from the Jest
+side. The class is a port of jest-environment-jsdom 30 (`@jest/environment-jsdom-abstract`): the same
+`testEnvironmentOptions` handling (`environmentOptions()` in lib/jsdom.cjs, shared with the Vitest environment,
+with Jest's defaults `http://localhost/` and `<!DOCTYPE html>`), the same virtual console (forwarding to the test
+console, with each jsdomError also logged as the Error), the same error routing (an uncaught error that no user
+`error` listener saw fails the test), `customExportConditions`, legacy and modern fake timers, and `this.dom`.
+
+**The vm context.** Jest runs each test file in the vm context `getVmContext()` returns. jsdom's window is such a
+context's global. rsdom's window lives in Node's realm, so the environment creates a bare context and opens a
+browsing context on its global (§18). That global gets three things:
+- Its own window timers (`context.open({ ownTimers })`). They use integer handles, report errors to the window,
+  and are cancelled at close. A vm context has no timers, and jsdom's are the window's.
+- The members a jsdom window has that rsdom otherwise takes from Node's global (`URL`, `TextEncoder`,
+  `AbortController`, `atob`, `queueMicrotask`, `performance`, `crypto`, ...). These are copied from Node.
+- Nothing jsdom lacks, so `fetch` and `structuredClone` stay undefined, as under jest-environment-jsdom.
+
+Teardown closes the context and resets the env (`rt.reset()`), so each file starts from a fresh document, in
+workers and in band. As in the Vitest environment, a wrapper from an earlier file is neutered by the reset: async
+work a file leaked that touches its old nodes later throws (`Illegal invocation`) in whichever file is running,
+where jsdom quietly mutates the closed window.
+
+**One facade per env.** Jest loads `require('jetdom')` in a test file through its own module registry: a second
+copy of the facade over the same addon exports (Node caches `.node` files per process), whose `init()` would reset
+the env under the environment's document. `lib/facade.cjs` records its exports on the addon exports object
+(`Symbol.for('jetdom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
+parses the file when a workspace inlines it), so a helper `new JSDOM()` in a test, or jsdom
+aliased to jetdom, works.
+
+**Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
+Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
+on them does not hold, nor `instanceof Error` on a `DOMException` (its base is Node's `Error`), nor
+`instanceof EventTarget` on the window (its `Symbol.toStringTag` is `Window`). `TextEncoder` is wrapped so its
+output is the window's `Uint8Array`, as jsdom's own encoder's is. `AbortController` / `AbortSignal` are Node's: an abort reason is such a
+`DOMException`, a signal is not `instanceof EventTarget`, and fake timers do not drive `AbortSignal.timeout()`.
+jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm. Two facade checks
+moved to realm-independent tests for this (Blob parts and `new JSDOM()` input use `util.types.isArrayBuffer` /
+`isAnyArrayBuffer`), and a FileReader's ArrayBuffer result is copied into its window's realm (`inRealm()` in
+lib/file-api.cjs). Scripts and inline event handler attributes do not run (rsdom runs no scripts, ROADMAP
+`browsing-contexts`); the vm context would be where they could run later.
+
+**Tests.** `test/native/jest-env.test.mjs` runs the specs in test/fixtures/jest-env in child `jest` processes, in
+workers and in band, under jetdom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
+itself pins jsdom 26; a `ResourceLoader` shim maps its `userAgent` option onto jsdom 30's `resources`. Both must
+give the same results: the globals a test file sees, options from the docblock, testing-library with user-event and
+jest-dom, fake timers over timers and animation frames, a fresh document per file, a failing listener error, and
+the not-implemented log.
+
+## 33. Vitest VM pools (ROADMAP Stage 2, 2026-10)
+
+With `pool: 'vmThreads'` or `'vmForks'`, Vitest runs each test file in a vm context the environment's `setupVM()`
+returns, and calls its `teardown()` after the file. `lib/vitest-environment.mjs` now has one. It reads the same
+options as `setup()` (`environmentOptions.jsdom`, then `jetdom`, §31). It opens the window on a bare vm context's
+global the way the Jest environment does (`openVmWindow()` in lib/vm-window.cjs, §32): own window timers, plus
+the members a jsdom window takes from Node. On top of that it adds what Vitest's jsdom `setupVM` adds to its
+window:
+- `Buffer` and the `jsdom` global.
+- `structuredClone`, `BroadcastChannel`, `MessageChannel`, `MessagePort`, `TextEncoder` and `TextDecoder` when
+  absent.
+- Node's `fetch`, `Request`, `Response`, `Headers`, `AbortController`, `AbortSignal`, `URL` and `URLSearchParams`.
+  Vitest wraps `Request` and `URL` so they accept jsdom's Blob; rsdom's Blob is a Node Blob, so Node's are used
+  as they are.
+
+Vitest's window error routing is installed as in `setup()`. Teardown closes the context and resets the env, so
+each file starts from a fresh document.
+
+Vitest executes externals in the vm context, so a test file's `require('jetdom')` / `import('jetdom')` is a
+second copy of the facade. It gets the first copy's exports (§32), and the facade entry has no top-level
+`return`, because Vite parses it when a workspace inlines the package. Only a copy loaded in Node's own realm
+records its exports (the addon exports object's prototype is that realm's `Object.prototype`): under another
+environment in a VM pool, a copy loaded inside one file's context is not handed to the next file.
+
+**Divergences.** The VM pools reuse a worker across files. Teardown resets the env, so a host-realm callback a
+file leaked (`setImmediate`, Node's `MessageChannel`, a fetch or fs callback) that touches that file's nodes after
+the reset throws `Illegal invocation`, which Vitest reports as an unhandled error while the next file runs; jsdom
+quietly mutates its closed window. Keeping the old documents instead would grow the env across files (rsdom frees
+nodes only at a reset), so the reset stays. The §32 realm notes hold here as well: `toThrow(TypeError)` on a
+facade error, `DOMException instanceof Error`, `window instanceof EventTarget` and Blob promises differ from
+jsdom's window, whose WebIDL layer works in the window's realm. With `RSDOM_COUNTERS`, the counters lines carry no
+file list in VM pools (Vitest's worker state lives on the vm context).
+
+**Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
+in both pools, under jetdom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
+- which globals a file sees, the window's `toString` and `TextEncoder` output's realm
+- testing-library with user-event and jest-dom
+- fake timers
+- FileReader's realm
+- a helper `JSDOM`
+- a fresh document per file
+- a listener error reported as unhandled
+
+Beyond the fixture, the React app suite passes 90/90 in `vmThreads` on both, and the libraries suite gives the same
+counts as jsdom (35/37). On both, the network test fails in VM pools for lack of `WritableStream`; jsdom fails
+lexical and tiptap, and rsdom fails lit.
+
+## 34. TypeScript declarations (ROADMAP Stage 2, 2026-10)
+
+The packages ship hand-written declarations, listed under the `types` condition of each `exports` entry:
+- `lib/index.d.ts` for `jetdom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
+  against jsdom type-checks unchanged and a jetdom value fits where a jsdom-typed one is expected. `DOMWindow` is
+  copied from @types/jsdom (MIT), interface objects rsdom does not have yet included. `CookieJar` is a class
+  (tough-cookie is now a dependency, as it is jsdom's, so it always exists), `nodeLocation()` and
+  `getInternalVMContext()` return `never` (they always throw, §31), and `rt` / `dom` are internal. Like
+  @types/jsdom, the package depends on `@types/node`.
+- `lib/index.cjs` names its exports for Node's CommonJS lexer (a never-run `module.exports = { ... }`), so
+  `import { JSDOM } from 'jetdom'` works in Node's ESM as the types allow.
+- `lib/vitest-environment.d.mts` for the environment, with `JetdomEnvironmentOptions` for
+  `environmentOptions.jetdom` (Vitest's `EnvironmentOptions` takes any key). `jetdom/vitest-globals` types the
+  `jsdom` global, as `vitest/jsdom` does for Vitest's jsdom environment.
+- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-jetdom
+  declares jest-environment-jsdom's class shape and `global` type (it depends on `@jest/environment` and
+  `@jest/types` for them), as `export =` of the class with `default` and `TestEnvironment` on it, which is what
+  index.js exports.
+
+`test/native/types.test.mjs` runs tsc (strict, lib check on) over test/types: the API with typed window members,
+jetdom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
+`jsdom` global, and custom Jest environments, with `@ts-expect-error` lines that must stay errors. It also
+checks the declared exports against the entry's runtime exports and Node's ESM named exports.
+
+## 35. CSSOM rule objects (ROADMAP Stage 3, 2026-10)
+
+`document.styleSheets`, `styleEl.sheet`, `CSSStyleSheet` (constructable, `insertRule` / `deleteRule` / `replace` /
+`replaceSync` / legacy `addRule` / `removeRule`), `CSSRuleList`, `MediaList` and the `CSSRule` family (style,
+import, media, supports, container, layer block and statement, scope, nested declarations, font-face, page,
+keyframes and keyframe, namespace, counter-style), ported from jsdom 30 (refs/jsdom/lib/jsdom/living/css).
+
+- **One parse, two views.** `src/style/cssom.rs` parses a sheet into a rule tree (`Tree`), replacing the flat
+  parser `sheet.rs` had. The cascade still consumes the flat `Sheet`, now derived from the tree (`to_sheet`: style
+  rules, recursively inside matching `@media`, as jsdom's `collectCandidateStyles`; other at-rules and nested rules
+  do not apply, like jsdom). Rule declaration blocks are the same `InlineStyle` as `element.style`, so
+  `rule.style` is a `CSSStyleDeclaration` over Rust with the inline style's parsing and serialization (§30).
+- **Lazily materialised.** A `<style>`'s tree is a temporary until script reads `sheet` or `document.styleSheets`;
+  the sheet then gets an id and stays the element's source of rules until its text changes or it disconnects,
+  when it is detached (jsdom creates a new sheet object then). CSSOM edits change the tree, drop the element's
+  flat sheet and bump `EP[STYLE]`, so computed style sees `insertRule` without re-reading the text, and the text
+  is never written back (as in jsdom).
+- **Facade.** `lib/cssom.cjs` holds jsdom's string logic (cssText assembly, `MediaList` parsing and comparison,
+  keyframe and page selectors, `selectorText` / `keyText` validation) and writes results back through natives
+  (`om*`). Wrappers are cached per sheet id and per rule handle for identity; removed rules stay in the tree,
+  detached, since script may hold them (`parentStyleSheet` and `parentRule` become null, as do nested rules on
+  `replace`).
+- **`CSS.supports`** is jsdom's: a declaration is supported when setting it on an empty block leaves a value
+  (`cssSupports`, so it agrees with `style.setProperty`), conditions are `not` / `and` / `or` over parenthesized
+  declarations, and `CSSSupportsRule#matches` uses the same evaluator.
+
+Divergences from jsdom: link sheets (`<link rel=stylesheet>`) have no `sheet` (rsdom loads no subresources, so
+this differs only under `resources: 'usable'`); a
+`<style>`'s `media` is read when its sheet is first observed (jsdom reads it when the element is inserted, so
+setting `media` on a connected element before touching `sheet` differs); `@import` sheets are empty; a
+`selectorText` write is checked by rsdom's selector engine, so a selector csstree accepts but rsdom cannot match
+(an unknown pseudo-class) is ignored where jsdom stores it; changing a `<style>`'s `type` drops its sheet (jsdom
+ignores the attribute after insertion; this predates the CSSOM). `disabled` sheets still apply, as in jsdom.
+
+Costs. Script that never touches the CSSOM pays nothing for the tree: `parse_sheet` runs the same parser in a lean
+mode that hands top-level style rules (and those of matching `@media`) straight to the cascade's flat sheet and
+skips other at-rule bodies, so text and observed sheets cascade identically. Nesting deeper than 128 blocks is
+dropped (the parser recurses). An observed sheet keeps removed rules (script may hold them) and a detached sheet
+keeps its tree until the env goes away: memory is bounded by what the env's script did, as with jsdom's objects.
+Parity: 138 -> 223 of 260 suite files, gap 681 -> 219 subtests. The rest is value serialization owned by
+`computed-values` (serialize-values, shorthands, about 190) and `customElements` (20).
+
+## 36. Numeric and date inputs, meter and progress (ROADMAP Stage 3, 2026-10)
+
+`lib/input-number.cjs` ports jsdom 30's stepping and conversions (HTMLInputElement-impl.js,
+helpers/number-and-date-inputs.js):
+- Value strings become numbers in Rust (`formNumber`, the `types::to_number` that `valueAsNumber` and validity
+  already used), so min, max, step base and value agree with `validity` by construction.
+- `stepUp(n)` / `stepDown(n)` follow jsdom's `_stepUpdate` in decimal.js (now a dependency, as it is jsdom's), so
+  `0.1` steps give `0.3`, not `0.30000000000000004`. The result is stored raw (`valueSetRaw`, jsdom's
+  `#setValue`): no sanitization, no dirty flag, and not through the `value` setter, so React's value tracker does
+  not record it and the next `input` event reaches `onChange`, as with jsdom.
+- `valueAsNumber` applies to every numeric type, `valueAsDate` to date, month, week and time; numbers serialize per
+  type as jsdom's `convertNumberToStringByType` (UTC fields, ISO weeks, shortest times).
+- `<meter>` (min, max, value, low, high, optimum) and `<progress>` (value, max, position) compute from their
+  attributes on every read with jsdom's clamping; setters take a finite double (`max` on progress ignores
+  non-positive values, `[ReflectPositive]`); both are labelable.
+
+Parity: the `forms` gap went from 314 to 62 subtests (218 -> 247 of 277 files). Most of the rest reads
+`document.forms.<name>`, which needs named properties on HTMLCollection (`core`).
+
+## 37. Reflected attributes, ARIA, tables and document collections (ROADMAP Stage 3, 2026-10)
+
+Reflected IDL attributes are data, not code. `scripts/gen-interfaces.mjs` reads every `[Reflect*]` attribute of
+jsdom's webidl (refs/jsdom/lib/jsdom/living/nodes/*.webidl and aria/ARIAMixin.webidl, mixins folded into the
+interfaces that include them) into the `reflect` table of `data/interfaces.json`: property, content attribute,
+how it reflects (`str`, `str?` nullable, `str0` [LegacyNullToEmptyString], `url`, `bool`, `long`, `ulong`) and
+ReflectDefault / ReflectRange / ReflectNonNegative / ReflectPositive(WithFallback). `lib/reflection.cjs` installs
+the table last, after every other area, and skips a property an area already defines, so hand-written accessors
+with behaviour beyond the attribute (input `value`, `src` loading, form owners) win. The accessors follow jsdom's
+generated code (webidl2js): unsigned values parse as non-negative integers and clamp to ReflectRange, `0` throws
+IndexSizeError for ReflectPositive, ARIA attributes and `crossOrigin` are `null` when absent and removed by
+`null`.
+
+Reflection reads and writes through `Element.prototype.getAttribute` / `setAttribute` captured at install, not
+`this.getAttribute`: an instance that overrides those methods does not see reflection, as in jsdom (whose impl
+objects have no overrides). The forms.cjs helpers changed the same way.
+
+Two enumerated attributes jsdom implements by hand: `th.scope` / `td.scope` (row, col, rowgroup, colgroup, ASCII
+case-insensitive) and `document.dir` (the document element's `dir`).
+
+`lib/tables.cjs` ports jsdom's table API (HTMLTable*Element-impl.js): `caption`, `tHead`, `tFoot` with their
+create / delete methods, `createTBody`, `rows` (thead rows, then body rows, then tfoot rows), `tBodies`,
+`insertRow` / `deleteRow` on tables and sections, `cells`, `rowIndex`, `sectionRowIndex`, `insertCell` /
+`deleteCell` and `cellIndex`. Every query walks the children through the public DOM and every change is an
+`insertBefore` / `removeChild`; `rows`, `tBodies` and `cells` are live HTMLCollections over the tree epoch
+(`deps('TREE')`), one per element.
+
+`document.images`, `embeds` (= `plugins`), `forms` and `scripts` are jsdom's `getElementsByTagName` with
+upper-case names (so an XML document's lower-case `img` does not match, as in jsdom); `links` (`a[href]`,
+`area[href]`) and `anchors` (`a[name]`) are Rust selector queries kept to HTML elements; `applets` is empty. All
+are cached per document ([SameObject]), as is `map.areas` per map. `object.contentDocument` is `null`.
+
+Parity: the `reflection` gap went from 8,749 to 10 subtests (6 -> 16 of 17 files), and overall parity from 91.2%
+to 96.7%. The rest is `document.open()` / `close()` (`core`) and frame loading (`browsing-contexts`).
+
+## 38. XML documents (ROADMAP Stage 3, 2026-10)
+
+`lib/xml.cjs` ports jsdom's XML glue (refs/jsdom/lib/jsdom/browser/parser/xml.js, living/domparsing/*.js) over the
+two libraries jsdom itself uses, now dependencies and loaded on first use: **saxes** tokenizes, so what is well
+formed and every error message are jsdom's (`1:3: unclosed tag: a`), and **w3c-xmlserializer** serializes. Neither
+touches rsdom internals: the parser's events build the tree through the public DOM (`createElementNS`,
+`setAttributeNS`, `appendChild`, template contents for an HTML `template`), and the serializer reads the public DOM.
+XML documents are rare in tests and small, so a native tree builder is not worth its code; the parse is all in one
+call, and a well-formedness error throws before the result is used.
+
+- **Which documents are XML.** A document's parsing mode is its HTML_DOC bit, which every node of the document
+  carries: clear for `createDocument()`, `new Document()` and the documents made here.
+- **DOMParser** with `text/xml`, `application/xml`, `application/xhtml+xml` or `image/svg+xml` parses into a new
+  XML-mode document whose wrapper is a `Document` (as in jsdom); a well-formedness error gives jsdom's `<parsererror
+  xmlns="http://www.mozilla.org/newlayout/xml/parsererror.xml">` document with saxes's message.
+- **`new JSDOM(x, { contentType })`** with an XML type, and the test environments' `contentType`, open the context
+  with an XML document (`context.open({ xml })`); an error throws a SyntaxError prefixed with the URL, as in jsdom.
+  `serialize()` serializes the children without requiring well-formedness.
+- **innerHTML / outerHTML / insertAdjacentHTML / Range#createContextualFragment** on nodes of XML documents serialize
+  with `requireWellFormed` (InvalidStateError otherwise) and parse as XML fragments whose prefixes resolve through
+  the context element. xml.cjs wraps the existing members and defers to them for HTML documents, so the HTML path is
+  unchanged.
+- **XMLSerializer#serializeToString**, without requiring well-formedness.
+- **XMLHttpRequest:** `responseXML` for XML MIME types (null when not well formed), and an XML Document body
+  serialized as XML.
+- **createElement in an XML document** keeps the whole name as the local name (`a:B`: no prefix, no namespace
+  check) through a new namespace code of the `createElement` native; `createAttributeNS` now applies the namespace
+  rules of "validate and extract" (`xml:` / `xmlns`).
+
+Parity: the `xml` gap went from 789 to 5 subtests (20 -> 37 of 39 files), `ranges` reached 0, and overall parity
+went from 96.7% to 97.3%. The rest is `document.domain` of parsed documents (`core`) and one invalid style
+attribute (`cssom`).
+
+## 39. XPath (ROADMAP Stage 3, 2026-10)
+
+`lib/xpath.cjs` is jsdom's own XPath 1.0 engine (refs/jsdom/lib/jsdom/level3/xpath.js, MIT), vendored with jsdom's
+formatting and in sloppy mode, so a diff against upstream stays readable. It reads only the public DOM (`parentNode`,
+`childNodes`, `attributes`, `getElementById`, ...), so it runs over rsdom's wrappers unchanged and matches jsdom result
+for result, quirks included: `XPathException` is a plain `Error` with a `code`, and its `DOMException`s pass the
+legacy code as the message, as jsdom's do. It installs `XPathEvaluator`, `XPathExpression`, `XPathResult` and
+`XPathException` globals and `Document#evaluate` / `createExpression` / `createNSResolver`.
+
+The one change is `invalidIteratorState`. jsdom compares the document's internal `_version`, which child-list and
+attribute changes of nodes rooted in the document bump (same-value sets included). Rust keeps the same counter: the
+document record's ATTRS word, which documents do not otherwise use, is incremented by the children-changed and both
+attribute hooks when the mutated node is connected (crates/rsdom/src/hooks.rs `bump_doc_version`: one branch and one
+write per mutation). xpath.cjs stamps it with the env generation and reads it directly, not through a memo, so
+RSDOM_NO_MEMO=1 does not change it. Mutations of detached nodes, template contents and other documents leave the
+iterator valid, as in jsdom. One difference: `CONNECTED` is shadow-including, so a connected shadow tree's changes
+invalidate too, where jsdom's parent chain stops at the shadow root.
+
+jsdom's legacy `level3/xpath.js` test calls the engine's factory itself (`require('lib/jsdom/level3/xpath')(window)`);
+the parity worker redirects that require to rsdom's copy under rsdom (conformance/parity/mocha/xpath-shim.cjs), so its
+162 subtests measure rsdom. Parity: the `xpath` gap went from 66 to 5 subtests (8 -> 26 of 28 files). Four remaining
+subtests compare results with `hasOwnProperty` on an HTMLCollection, whose live indices are prototype getters
+(§4.3); one needs a declarative shadow root.
+
+## 40. DOMRect and the remaining Window members (ROADMAP Stage 3, 2026-10)
+
+`lib/geometry.cjs` ports jsdom's DOMRect / DOMRectReadOnly (living/geometry), BarProp and External (living/window) and
+the always-empty PluginArray / MimeTypeArray with their Plugin / MimeType interfaces (living/navigator). The values
+live in a private field; DOMRect's own x / y / width / height accessors write it through a static-block accessor, and
+the getters keep jsdom's brand-check messages. `getBoundingClientRect()` / `getClientRects()` still return a plain
+object and an array, as jsdom's do, so code that stubs them with `new DOMRect(...)` and code that reads the plain
+object both work.
+
+lib/window.cjs creates the per-window members as it does the others (writable data properties): the six BarProps,
+`external`, `name` / `status` (empty strings), `length` (0: iframes have no windows yet, `browsing-contexts`),
+`captureEvents` / `releaseEvents` (also on Document), `Audio` (jsdom's factory: no `new` needed, `preload="auto"`)
+and `postMessage`. `postMessage` follows jsdom: two arguments required, `"/"` does nothing, an unparsable target
+origin throws SyntaxError, another origin drops the message, and otherwise a trusted `message` event with only
+`data` (not structured-cloned) is fired at the window on `ctx.queueTask`, unless the context has closed. These cold
+interfaces keep jsdom's brand checks (a WeakSet of the instances the TOKEN constructors made). `navigator.plugins` / `mimeTypes` are [SameObject]
+getters on Navigator. CloseEvent, PromiseRejectionEvent and BlobEvent are `simpleEvent`s (events.cjs), which now take
+required dictionary members and a constructor arity of 2 for them, read after Event's own init members, as jsdom's
+generated conversions do.
+
+Not here: `ElementInternals` and `customElements` (`custom-elements`), the SVG value types, `webkitURL` (an alias of
+the realm's `URL`, which a non-global window does not carry; §32). Parity: 3 files progressed (the Audio constructor,
+a window `message` handler test, jsdom's legacy frame.js), with 0 regressions.
+
+## 41. HTMLMediaElement (ROADMAP Stage 3 `core`, 2026-10)
+
+`lib/media.cjs` ports jsdom's HTMLMediaElement-impl.js: jsdom loads and plays nothing, so the non-reflected members
+are fixed values or a few stored ones per element (a WeakMap): `paused` true, `readyState` / `networkState` 0,
+`duration` NaN, `currentSrc` "", `canPlayType()` "", [SameObject] dummy TimeRanges for `buffered` / `played` /
+`seekable` and empty arrays for the track lists; `currentTime`, `volume` (IndexSizeError outside [0, 1]), `muted`,
+`playbackRate` and `defaultPlaybackRate` (NotSupportedError for 0) are stored, and a change queues a trusted
+`volumechange` / `ratechange` on `ctx.queueTask`, as jsdom's `_queueATask` does. `play()` (which returns undefined,
+as jsdom's does: no promise), `pause()`, `load()` and `addTextTrack()` report "Not implemented" on the virtual
+console. The NETWORK_* / HAVE_* constants are on the interface and its prototype. Reflected attributes (`src`,
+`preload`, `autoplay`, `loop`, `controls`, `defaultMuted`, `crossOrigin`) come from reflection.cjs (§37).
+
+---
+
+## 42. Event retargeting and slots (ROADMAP Stage 4 `shadow-dom`, 2026-10)
+
+Stage 4 design note. §22 left shadow trees without retargeting: listeners outside a shadow tree saw the inner
+target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_dispatch`, `Event-impl.js`
+`composedPath`) and, as part 2, slots (`helpers/shadow-dom.js`, `HTMLSlotElement-impl.js`).
+
+**Part 1: retargeting** (`lib/events.cjs`).
+- **Two dispatch paths.** The plain walk (§5) stays for every dispatch that cannot meet a shadow root: no shadow
+  root in the env yet (`shadow.cjs` `shadowsExist`, the env-generation guard of §22), or a target outside shadow
+  trees whose `relatedTarget` is outside them too (its parent walk never reaches a shadow root). Otherwise
+  `composedDispatch` runs. It builds jsdom's path structs
+  `{id, item, sat (shadow-adjusted target), eff (closest non-null sat, cached as jsdom does), rel, inShadow,
+  rootOfClosedTree, slotInClosedTree}`, and:
+  - retargets the related target per entry, and ends the path when a parent equals it;
+  - sets `target` / `relatedTarget` before each entry's listeners. Entries without listeners skip that update, and
+    the last selected entry's targets are applied after the loops, as in jsdom;
+  - does not update `window.event` for listeners inside a shadow tree;
+  - clears `target` and `relatedTarget` after dispatch when the last shadow-adjusted target or its related target is
+    in a shadow tree;
+  - gives `composedPath()` jsdom's hidden-level walk, so closed trees are hidden from listeners outside them.
+- **The walk works on node ids.** "Get the parent" is `parentId`. A document's parent is the WIN sentinel, which
+  becomes the WindowTarget, and is dropped for `load` or a window-less document. Wrapping happens once per entry.
+  An entry's root is found in one backward pass (`markShadowItems`), not a root walk per entry. "Is the target's
+  root a shadow-including ancestor of this parent" is one table read (CONNECTED bit plus owner) when that root is a
+  document, which is the common case.
+- **relatedTarget.** `MouseEvent` and `FocusEvent` keep it private. Their static blocks export get/set pairs
+  (`mouseRel`, `focusRel`) for the dispatch, the same pattern as `forceCancel`.
+- **Cost** (2026-10-22, Node 22.22, median of 7 samples):
+
+  | case | before | after | jsdom |
+  | --- | ---: | ---: | ---: |
+  | bubbling event at depth 21, no shadow root in the env | 537 ns | 555 ns | |
+  | the same, with a shadow root elsewhere in the env | 524 ns | 626 ns | |
+  | composed bubbling event from inside a shadow tree (27-entry path) | 712 ns | 1783 ns | 6689 ns |
+
+  The last row is the price of retargeting: one struct per entry, plus a `shadowMode` call per shadow root.
+- **Verification.** Parity `--item shadow-dom`: gap 259 -> 197 subtests, 84 -> 89 of 128 files at parity; 10 files progressed (`event-composed-path*`,
+  `event-with-related-target`, `event-post-dispatch*`, `Extensions-to-Event-Interface`, ...), and `events`
+  progressed too. The rest of those files' gaps are slot cases (part 2). `test/contract/shadow-root.test.mjs` now
+  asserts jsdom's retargeted `target`, the AT_TARGET phase at the host, `relatedTarget` retargeting and clearing,
+  and a closed tree's `composedPath()`. happy-dom 21 does not retarget, and the test pins that.
+
+**Part 2: slots** (`src/slots.rs`, `lib/shadow.cjs`, `lib/mo.cjs`, `lib/events.cjs`).
+- **State in Rust.** `ShadowState` holds each assigned slottable's slot, each slot's assigned nodes and the signal
+  slot list. Names are read from the attributes when needed (`slot` on elements, `name` on slots), so the parser and
+  cloning need no hook. The steps run behind `shadow.any()`, so an env without a shadow root pays nothing:
+  - `Env::insert`, per inserted node: assign a slot when the parent is a host; signal an empty slot in a shadow tree
+    whose fallback content changed; reassign the whole shadow tree when the inserted subtree holds a slot;
+  - `Env::remove`: reassign the node's slot, signal the same fallback case, reassign both trees when the removed
+    subtree holds a slot;
+  - `hook_attr_changed`: `slot` reassigns the element, a slot's `name` reassigns its tree; absent <-> "" does nothing.
+- **"Assign slottables for a tree" in one walk.** One walk lists the tree's slots and the first slot of each name,
+  one pass over the host's children fills their lists, and the slots are then updated in tree order (the order
+  their changes are signalled in). jsdom walks the tree once per slot and the host's children once per slot. The
+  insertion step skips the walk when the inserted subtree has no slot (it cannot change an assignment). Two fast
+  paths keep long slotted lists linear: a slottable appended as the host's last child joins the end of its slot's
+  list, and a removed slotted node leaves its slot's list, without recomputing either. Appending then removing
+  8,000 children of a host takes 8 + 10 ms (jsdom: 2,906 + 2,650 ms).
+- **Two deliberate differences from jsdom**, both what the spec and browsers do (`assignedElements` keeps jsdom's
+  HTML-elements-only filter, though): a node that leaves a slot loses its
+  assigned slot (jsdom keeps a stale `_assignedSlot` that its event path follows), and a slottable is an element or
+  any Text (jsdom's insertion step skips CDATASection, its recomputation does not).
+- **slotchange.** "Signal a slot change" sets bit 0 of `EP[MO_PENDING]`, so the next `mutated()` queues the
+  MutationObserver microtask. `tick` takes the signal list (`slotTakeSignals`) before the callbacks and fires a
+  trusted, bubbling `slotchange` at each slot after them. The microtask now also snapshots which observers have
+  records when it starts (`mo_take` with `after == 0`), as DOM "notify mutation observers" does. Before, an observer
+  that got its first record from an earlier observer's callback was called in the same microtask.
+- **Events.** `parentId` returns a host child's assigned slot (`slotAssigned`, one call when the parent has
+  `M.SHADOW`). The struct walk sets `slotInClosedTree` and marks slotted entries, whose root `markShadowItems`
+  looks up instead of inheriting. The light-DOM shortcut becomes `pathMeetsShadow`: the target's ancestor walk also
+  stops at a node with an assigned slot.
+- **Focusability.** With a shadow root in the env, `is_focusable` walks jsdom's `flatTreeInclusiveAncestors`
+  (`flat_tree_parent_element`): an unassigned host child, or fallback content of a slot with assigned nodes, is
+  not focusable, and `display: none` on a slot or its ancestors hides what is slotted into it.
+- **Facade.** `HTMLSlotElement.assignedNodes({ flatten })` and `assignedElements` read `slotAssignedNodes`, which
+  flattens with an explicit stack. `assignedSlot` on Element and Text is "find a slot" with the open flag
+  (`slotFind`).
+- **Cost** (2026-10-22): an append + remove + attribute set in a 20-deep tree is 250 ns without a shadow root in the
+  env and 355 ns with one, the same before and after this part. The table above moves to 652 ns for the shadow root
+  elsewhere and 1880 ns for the composed case.
+- **Verification.** Parity `--item shadow-dom`: gap 197 -> 58 subtests; 16 files progressed (`slots*`, `slotchange-event`,
+  `event-inside-slotted-node`, `HTMLSlotElement-interface`, the slot cases of `event-composed-path*` and
+  `event-with-related-target`, ...). `imperative-slot-api-slotchange` loses 2 subtests that jsdom also fails: they
+  passed only because nothing fired `slotchange` (manual assignment is unimplemented in jsdom and rsdom alike).
+  `test/contract/shadow-slots.test.mjs` covers assignment, flattening, `slotchange` and the slotted event path;
+  happy-dom 21 has no slot assignment, so it is pinned out. Overall parity 163,756 -> 163,912 subtests (97.7%);
+  `uievents/focusevents/focusable-area-flat-tree` and `focusable-area` (12 subtests) progressed too. The rest of the gap: `delegatesFocus`, custom
+  elements, focus retargeting, `slotchange.html`'s `onslotchange` case (a jsdom TIMEOUT).
+
+**Part 3 (2026-10): `:focus` on shadow hosts, closing the item.** HTML's `:focus` also matches a shadow host whose
+shadow tree contains the focused element (at any depth; a slotted element is light DOM, so not its host's), and
+`:focus-within` follows shadow-including ancestors. The adapter walks from the focused element through shadow roots
+to their hosts; the selector prefilter (`Pre::rejects`, which skipped every element without `state::FOCUSED`)
+lets shadow hosts through. Both walks stop at a closed shadow root, as jsdom's selector engine does (it follows
+`host.shadowRoot.activeElement`, null for a closed root). Two differences remain: jsdom also stops matching the
+focused element itself with `:focus` inside a closed root, and its `:focus-visible` matches the retargeted
+`document.activeElement` (the host) rather than the focused element; rsdom's `:focus-visible` already differs outside
+shadow trees (it follows the focus-visible heuristics, jsdom matches any focused element). `slotchange.html` runs to jsdom's 16 passes (its expectation now records them). The rest
+of the `shadow-dom` gap, 29 subtests, is `untriaged/*` files that build their documents in an iframe ("Failed to
+create new rendered document", Stage 4 `browsing-contexts`). Scoped styles: jsdom's getComputedStyle reads only
+`document.styleSheets` (refs/jsdom/lib/jsdom/living/css/helpers/computed-style.js), and so does rsdom.
+
+## 43. Custom elements (ROADMAP Stage 4 `custom-elements`, 2026-10)
+
+Stage 4 design note. A port of jsdom 30's custom elements (`living/custom-elements/CustomElementRegistry-impl.js`,
+`living/helpers/custom-elements.js`, `helpers/html-constructor.js`, the `createElement` and parser hooks). The
+constraint is §7's: Rust never calls JS, yet every mutation in Rust can owe a custom element a callback.
+
+**Split.**
+- **JS owns the definitions' functions**: constructors, lifecycle callbacks, `whenDefined` promises, the
+  construction stack. One `CustomElementRegistry` per window (`window.customElements`); interface classes are shared
+  by all windows of the env (one realm), so `HTMLElement`'s constructor finds the definition by `new.target` in a
+  ctor -> definition map.
+- **Rust owns what mutations need to decide**: per document, its window's registry id (`ceBindDoc`; documents
+  without a window have none, as in jsdom). Per definition: registry, name, local name, which callbacks exist, the
+  observed attribute local names (`ceDefine`). Per element: its custom element state (undefined, failed,
+  uncustomized, precustomized, custom), definition and `is` value, in `CeState`, mirrored into two meta bits for the
+  hot paths (`CE_CUSTOM`: state custom; `CE_UNDEFINED`: undefined, failed or precustomized, which `:defined` also
+  reads). An env with neither bit anywhere and no definition pays one `ce.any()` test per hook.
+
+**Reactions are queued in Rust and invoked by the facade.** The mutation algorithms enqueue, at jsdom's points:
+- connect pass: `connectedCallback` for a custom element, "try to upgrade" for an undefined one;
+- disconnect pass: `disconnectedCallback`;
+- adopt: `adoptedCallback(oldDocument, newDocument)` for each shadow-including inclusive descendant;
+- attribute change (both attribute hooks, same-value sets included): `attributeChangedCallback(local, old, new,
+  namespace)` when the local name is observed;
+- element creation with a definition and no synchronous construction (fragment parsing, cloning, `importNode`):
+  an upgrade reaction; `customElements.define` enqueues upgrades for the document's shadow-including candidates.
+
+Each is a record in `CeState.queue` (element, kind, arguments; attribute values as strings). Enqueuing sets bit 2 of
+`EP[MO_PENDING]`, so the `mutated()` epilogue every mutating facade method already runs drains the queue
+(`ceTake`) and invokes the reactions before the method returns: the [CEReactions] post-steps. Records are grouped
+per element in first-enqueue order, each element's reactions run in order, and a reaction's own DOM calls drain
+their reactions at their own epilogue, which is the custom element reactions stack. Errors are reported to the
+window (`reportException`), as in jsdom. Enqueuing filters on what Rust knows (state custom, the callback exists,
+the attribute is observed), so ordinary pages queue nothing.
+
+**Construction.**
+- `HTMLElement` (and every HTML element interface, for customized built-ins) gets jsdom's [HTMLConstructor]: a
+  constructor call without the internal token looks up `new.target`; with an empty construction stack it creates
+  the element (`ceCreate`: state custom, no upgrade reaction) and returns its wrapper with `new.target.prototype`;
+  during an upgrade it returns the element on top of the construction stack, reprototyped. Wrappers are held
+  strongly in `W`, so the prototype sticks.
+- `document.createElement(name, { is })` with a definition constructs synchronously in JS (jsdom's checks and the
+  HTMLUnknownElement fallback on error); without one it calls the native as today, which marks valid custom element
+  names (and `is` values) undefined.
+- Upgrades run in the facade (`upgradeElement`): it enqueues the attribute and connected callbacks on the element's
+  JS-side queue, runs the constructor with the element on the construction stack, and moves the state through
+  failed / precustomized / custom (`ceSetState`).
+- Document parsing in rsdom never runs JS during the parse, so elements jsdom would construct synchronously (a
+  definition that exists while a window's document is parsed) are created undefined and upgraded in tree order
+  right after it. Fragment parsing (`innerHTML`) already matches jsdom: undefined plus an upgrade reaction.
+
+**Scope of the first part:** the registry (`define`, `get`, `getName`, `whenDefined`, `upgrade`), autonomous and
+customized built-in elements, the four lifecycle callbacks, upgrades, `:defined`. Part 2: `ElementInternals`,
+form-associated custom elements, custom states (`:state()`), `disabledFeatures` on `attachShadow`.
+
+**Known differences from jsdom.** `:defined` reads the element state, so it follows upgrades and does not match a
+failed element; jsdom's selector engine matches by registry lookup and caches results, so it can report a stale
+answer after `define` (it keeps `:not(:defined) { display: none }` in effect for an upgraded element). It also
+matches an element whose `is` value has no definition (`createElement('div', { is: 'x-unknown' })`) and a failed
+synchronous construction; rsdom follows the spec (state undefined or failed). `:defined` is a state pseudo-class
+for the selector memos (`EP[REC]`). Interface classes are shared by every window, so a constructor defined in two
+windows' registries creates its `new` elements in the window that defined it last, where jsdom uses the realm of
+the `HTMLElement` it extends. A registry kept past `rt.reset()` ignores `define` and `upgrade`.
+
+**Part 2 (2026-10): ElementInternals.** jsdom 30's `ElementInternals` has `shadowRoot`, `labels` and ARIAMixin
+only (no `setFormValue`, validity, `form` or `states`), and form-associated custom elements are labelable and
+nothing more. The port:
+- `attachInternals()` with jsdom's checks (customized built-in, no definition, `disabledFeatures: ['internals']`,
+  already attached, state before the constructor) keeps one `ElementInternals` per element in a facade map.
+- `shadowRoot` returns the host's root (closed included) if it was attached while the host was precustomized or
+  custom (jsdom `_availableToElementInternals`, a facade set of root ids).
+- ARIAMixin on the internals reflects into a per-internals map, never into attributes.
+- `disabledFeatures: ['shadow']` makes `attachShadow` throw (a facade wrapper; the upgrade check was in part 1).
+- Rust: `cb::FORM_ASSOCIATED` beside the callback bits of a definition; `is_labelable` accepts an element whose
+  definition has it (set from the start of its upgrade, cleared if the constructor throws, as in jsdom), and the
+  label memo is keyed on `CeState::def_gen`, which every definition change bumps. `label.form` is the control's
+  `form` property, as in jsdom (undefined for a custom element). `internals.labels` is a static list like rsdom's other `labels` (jsdom's is live).
+
+**Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests with part 1 and to 144
+with part 2, all in iframe-based files (`browsing-contexts`) but one: jsdom's selector engine matches a
+form-associated element in a disabled fieldset's first legend with `:enabled`, which rsdom does not. The iframe
+files build their documents with `test_with_window` or fetch them by XHR. test/contract/custom-elements.test.mjs
+covers the callback order library code depends on and the internals.
+
+## 44. Lone surrogates (ROADMAP Stage 4 `surrogates`, 2026-10)
+
+Stage 4 design note. JS strings are UTF-16 and may hold unpaired surrogates (`'a😀b'.slice(0, 2)`,
+`deleteData` inside a pair, `'\ud83d'` written by a test). rsdom stores strings as UTF-8 (§2.3: html5ever,
+cssparser and selectors need it), and V8's UTF-8 conversion replaces every lone surrogate with U+FFFD, so they
+did not round-trip (CONTRIBUTING §8), and a CharacterData offset inside a pair rounded down to the code point.
+
+**Representation: escapes, not WTF-8.** WTF-8 would put byte sequences in `Str` that are not UTF-8, which every
+`&str` consumer (the parser, the CSS and selector engines, `char_indices`) would have to tolerate. Instead a lone
+surrogate U+D800+k is stored as the code point U+10F800+k, the last 2,048 code points of Supplementary Private
+Use Area-B (UTF-8 `F4 8F A0..BF xx`). The string stays valid UTF-8; nothing but the boundary and the UTF-16
+arithmetic knows about the escape.
+- **Ingress** (`ffi::StrArg::read`): V8's UTF-8 is read as before; only if it contains U+FFFD (a `memmem` for
+  `EF BF BD`, so ordinary strings pay one SIMD scan) is the string read again as UTF-16 and transcoded with
+  the escape (a real U+FFFD transcodes to itself).
+- **Egress** (`ffi::to_utf16`, the non-Latin-1 path; an escape is never ASCII or Latin-1): an escape becomes
+  its single surrogate unit, so adjacent escapes for a high and a low surrogate read back as the pair JS
+  would have built by concatenation.
+- **UTF-16 arithmetic** (`string::scan`, `utf16_to_byte`): an escape is one unit, not two. `scan` counts `F4`
+  lead bytes in its vectorized loop and corrects the count only when there are any.
+- **Edits inside a pair** (`Str::replace_range16`, `substring16`): an offset inside an astral code point
+  splits it into its two escapes first, as JS would; after an edit, an escaped high surrogate followed by an
+  escaped low one is joined back into the code point, so `'\ud83d' + '\ude00'` built by `insertData` is the
+  real character in the stored text. Only `Str` edits (`replace_range16`, `push_str`) maintain that join:
+  a string Rust assembles another way (an option's text from several Text children, say) can hold an escaped
+  pair side by side, which still leaves JS as the two units it stands for.
+
+Known limit: a real code point in U+10F800..U+10FFFF (private use, last block of plane 16) reads back as a
+lone surrogate. Selectors see escapes as ordinary characters: an id holding a lone surrogate does not match the
+CSS escape `#\d83d ` (which CSS turns into U+FFFD), as the spec and jsdom require.
+
+## 45. Script execution (ROADMAP Stage 4 `browsing-contexts`, part 1, 2026-10)
+
+Stage 4 design note. `browsing-contexts` is three parts: (1) script execution: `runScripts`, `<script>`, inline event
+handlers, `<noscript>` parsing and the load sequence of a `JSDOM` document; (2) iframes: child browsing contexts,
+`contentWindow` / `contentDocument`, `parent` / `top` / `frames` / `length`, cross-window `postMessage`; (3) resource
+loading: `<script src>` and `<iframe src>` under `resources: "usable"`. This section is part 1, a port of jsdom 30's
+`HTMLScriptElement-impl.js`, `helpers/create-event-accessor.js` (`_globalEventChanged`, `getCurrentEventHandlerValue`)
+and the `Document#close()` / `Window` load steps. §7 still holds: Rust never calls JS, so whatever a mutation owes a
+script element or an `on*` attribute is queued in Rust and run by the facade.
+
+**Who runs scripts.** A document runs scripts when its browsing context says so (`ctx.settings.runScripts ===
+'dangerously'`) and Rust knows it (`scriptBindDoc`, set when the window exists, cleared by `close()`). That is a
+`JSDOM` with `runScripts: "dangerously"`, and the Vitest and Jest environments unless their jsdom options say
+otherwise: both jsdom environments default to `"dangerously"`, so a script element a test appends runs there, as it
+does under jsdom. Documents without a window (`DOMParser`, `createHTMLDocument`, template contents) never do.
+
+**The realm.** With `runScripts` set (either value), a `JSDOM` window is a vm context's global (lib/vm-window.cjs,
+as the Jest environment's): fresh JS globals, `window.eval`, `getInternalVMContext()`. Scripts run with
+`vm.runInContext(code, context, { filename: document.URL })`, on the Vitest global with `vm.runInThisContext`.
+Without `runScripts` the window stays the plain object it is today. Interface objects stay shared by all windows (§18).
+
+**Script elements (Rust half, `crate::script`).**
+- Per script element two flags, in a side map: "parser-inserted" (set by the HTML parser for every script it creates,
+  and by lib/xml.cjs) and "already started" (set by the fragment parser and in documents with scripting disabled,
+  as HTML "create an element for the token" says; copied by cloning, as jsdom's `_cloningSteps`).
+- Reactions, on the custom element queue (§43, kind `cb::SCRIPT`), only in bound documents: a script element becomes
+  connected (per node of the connect pass), nodes are inserted into a connected one (insert only, as jsdom since
+  whatwg/html#12282), a connected one gets a `src`. The `mutated()` epilogue drains them like custom element reactions.
+- The document parse links nodes raw and its document is bound only after the window exists, so it queues nothing;
+  the facade asks `scriptParsed(doc)` once, after the window exists, for the parsed scripts and `on*` attributes in
+  tree order.
+
+**Script elements (facade half, lib/scripts.cjs).** jsdom's `_eval`: skip if already started; nothing without `src`
+and text; classic types only (jsdom's MIME list; modules are skipped, as in jsdom); `event`/`for`; then run inline
+text with `document.currentScript` set (null inside a shadow tree), errors reported to the window
+(`reportException`). A post-connection reaction runs a script that is not parser-inserted, so `innerHTML` scripts
+never run; parsed scripts run in the post-parse pass. `src` scripts wait for part 3. `document.write()` is jsdom's: from a running
+script the markup goes right after the script and its scripts run; while the document loads it becomes the last
+element's content; afterwards it replaces the document (`open()` is jsdom's too). Known difference: rsdom parses a
+whole document before any script runs, so a parsed script sees the markup after it.
+
+**Inline event handlers.** An `on*` attribute (null namespace) on an HTML or SVG element in a bound document queues
+a `cb::HANDLER` reaction (attribute hooks, same-value sets included, fragment parsing through `hook_parsed`, cloning).
+The facade runs `_globalEventChanged`: if the element has the `on<type>` accessor, the handler becomes `{ body }`, or
+null when the attribute is gone. `getHandler` and dispatch compile a body on first use, as
+`getCurrentEventHandlerValue` does: a syntax error is reported and clears the handler; otherwise
+`window.Function` builds `with (document) with (form) with (element) function on<type>(event) { body }` (`onerror` on
+a window gets the five-argument form). body / frameset forward to the window target as their IDL attributes do.
+Setting an event handler to null deactivates it (its listener leaves the list, so a later value is registered
+last), as the HTML standard says; jsdom keeps the listener's place. A string `setTimeout` / `setInterval` handler
+runs as script in such a window, as in jsdom.
+
+**`<noscript>`.** `parseDocument(html, scripting)`: a `runScripts: "dangerously"` document parses `<noscript>` as raw
+text, others as markup (jsdom's scripting flag); fragments follow their document, as today.
+
+**Load sequence of a `JSDOM` document.** `document.readyState` is `"loading"` after construction; in microtasks, as
+jsdom's `close()` resource queue does: `"interactive"` + `readystatechange` + `DOMContentLoaded`, then `"complete"` +
+`readystatechange` + the document's `load`, then the window's `load` and `pageshow`. The environment globals and
+other documents report `"complete"` as today.
+
+**Known differences from jsdom.** jsdom does not mark fragment-parsed scripts "already started", so it runs a
+clone of an `innerHTML` script; rsdom follows the standard. `nomodule` classic scripts run, as in jsdom. Under the
+Vitest environment scripts run in the test's own realm (the window is Node's global), where Vitest's jsdom
+environment runs them in jsdom's window, a different object from the test's `window`: there a script's
+`window.x = 1` is invisible to the test. The parity harness has the same split, so subtests that check a script
+did *not* run pass under jsdom by accident (`nomodule-set-on-inline-classic-scripts.html`), and ones that check it
+did run fail there; rsdom gets the latter and loses one of the former. The same realm choice means a script's
+`var` / `function` / `const` globals stay on the worker's global after teardown (they are non-configurable), so
+with `isolate: false` a second file that runs the same top-level `const` fails; the VM pools and the Jest
+environment give each file its own vm context and are not affected.
+
+Script reactions share the custom element queue, which runs each element's reactions in order of first
+appearance after the mutation: a script inserted together with custom elements runs after the `connectedCallback`s
+of the elements before it, where jsdom runs it first. "Already started" is set only when a script actually runs in
+a bound document (and by the parsers); jsdom also sets it for a script connected in a document without a window,
+so such a script moved into a scripting document later runs in rsdom and not in jsdom. The environments now run
+scripts by default, as their jsdom counterparts do; `runScripts: 'outside-only'` turns that off.
+
+**Verification.** `--item browsing-contexts` and the suite: see the PR. test/contract/scripts.test.mjs runs the
+behaviour side by side with jsdom.
+
+## 46. Iframes (ROADMAP Stage 4 `browsing-contexts`, part 2, 2026-10)
+
+Stage 4 design note. A port of jsdom 30's `HTMLFrameElement-impl.js` (`loadFrame`, `refreshAccessors`, the
+post-connection, `src` and removing steps) on rsdom's browsing contexts (§18). Each `<iframe>` / `<frame>` connected
+in a document that has a window gets a child browsing context: its own window and document, in the same env. Like
+§45, Rust queues what the mutations owe a frame element and the facade (lib/frames.cjs) acts on it.
+
+**Rust (`crate::script`).** Bound documents carry flags: `WINDOW` (the document has a window: every context binds its
+document) and `SCRIPTS` (§45). Three more reaction kinds, for HTML `iframe` / `frame` elements: `cb::FRAME` (post-
+connection steps, in a `WINDOW` document), `cb::FRAME_SRC` (`src` set or removed while connected in one) and
+`cb::FRAME_REMOVED` (removing steps, any document: the facade knows whether the element has a child context). The
+document parse queues nothing; the post-parse walk (`scriptParsed`) lists the parsed frames too, after the window
+exists, in tree order with the scripts.
+
+**Facade.** `loadFrame` closes the element's previous child context, resolves `src` against the document's base URL
+(`about:blank` when absent, empty or unparsable), and opens a child context with the parent's settings (a vm-context
+window when the parent has `runScripts`) that does not become current. The child window's `parent`, `top` and
+`frameElement` point up; `contentWindow` / `contentDocument` read the element's child context; the parent window's
+`length` and indexed properties list its connected frames' windows in tree order (jsdom's `refreshAccessors`).
+Closing a context closes its children. A removed frame keeps its (closed) window and document, as in jsdom.
+- `about:blank` (and `javascript:` URLs, whose result string becomes the body's text when scripts run): the child
+  document is `<html><head></head><body></body></html>`, complete at once. When the frame is being attached and has
+  no listeners, `load` fires on it synchronously, as in jsdom; otherwise the child document's load sequence runs in
+  microtasks and the frame's `load` follows it.
+- Another URL is fetched only with `resources: "usable"` (part 3); otherwise, as in jsdom, the child document stays
+  empty (no element) and no `load` fires.
+- `srcdoc` is ignored, as in jsdom (an iframe with only `srcdoc` loads `about:blank`).
+
+**Window named properties** (lib/window-properties.cjs, a port of jsdom's living/window-properties.js). `window.foo`
+is the window of the frame named "foo", else the HTML element of the document tree with id "foo" or the embed / form
+/ img / object / iframe / frame named "foo", else a live HTMLCollection of them; Document's named getter answers a
+lone iframe's window too. As in jsdom, the answer comes from a Proxy between the window and its prototype (`get` and
+`has` traps, so a bare `foo` in a script resolves), so the window's own members win. Rust's `winNamed` reads ids
+from the document's id map and walks the tree for name contributors only when a name has some, memoised per name
+on EP[NAMED] (which `frame` now bumps too); the ids are memoised per name on EP[TREE] and EP[ATTR], so a repeated
+probe of a missing global costs a stamp compare until the document changes.
+The Vitest environment's window is Node's own global, whose prototype chain sees every missing-global lookup in
+Node's realm: it gets no named properties (a documented difference).
+
+**`postMessage` across windows.** `child.parent.postMessage(m, '*')` and `frame.contentWindow.postMessage(...)`
+queue the message on the target window, as today; `source` stays null, as in jsdom.
+
+**Known differences from jsdom.** Interface objects are shared by every window (§18): `frame.contentWindow.Node ===
+window.Node`, where jsdom gives each window its own. Constructors resolve their document through the current context, which a
+child never becomes: `new frame.contentWindow.Text()` creates its node in the parent's document (current) rather
+than the frame's. An `about:blank` frame's window has origin `"null"` and storage of its own, where jsdom gives it the
+parent's origin and shares the parent's same-origin storage.

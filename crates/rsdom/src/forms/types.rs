@@ -424,8 +424,14 @@ pub fn serialize_time(ms: u32) -> String {
     s
 }
 
-/// Value as a number for numeric types (`convertStringToNumberByType`).
+/// Value as a number for numeric types (`convertStringToNumberByType`). Dates outside the ECMAScript time range
+/// (±8.64e15 ms) have no number, as jsdom's `Date.UTC` gives NaN there.
 pub fn to_number(t: u32, v: &str) -> Option<f64> {
+    let n = to_number_unchecked(t, v)?;
+    (!matches!(t, ty::DATE | ty::WEEK | ty::DATETIME_LOCAL) || n.abs() <= 8.64e15).then_some(n)
+}
+
+fn to_number_unchecked(t: u32, v: &str) -> Option<f64> {
     match t {
         // jsdom converts with parseFloatingPointNumber (prefix semantics), also for min/max attributes.
         ty::NUMBER | ty::RANGE => parse_float(v),

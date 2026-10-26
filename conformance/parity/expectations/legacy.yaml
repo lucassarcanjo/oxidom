@@ -2,46 +2,35 @@
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
-to-port-to-wpts/frame.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
+to-port-to-wpts/frame.js:
+  "frame > frame_parent": [fail, "write to undefined (.onload)"]
+  "frame > frame_src_relative_to_parent_doc": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > get iframe window via indexed frames access": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > get iframe window via indexed frames access with setAttributeNode": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > test iframe load event": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > test iframe without src": [fail, "read of undefined (.open)"]
+  "frame > test iframe.contentDocument access": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > test nested iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "frame > test setting src multiple times": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 to-port-to-wpts/jsonp.js: [fail, "TIMEOUT: Timeout of …ms exceeded"]
-to-port-to-wpts/level1/core.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-to-port-to-wpts/level2/core.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-to-port-to-wpts/level2/html.js: [fail, "read of undefined (.length)", {pass: 357}]
+to-port-to-wpts/level2/html.js:
+  "level2/html > HTMLDocument17": [fail, "missing method: .open()"]
+  "level2/html > HTMLDocument18": [fail, "missing method: .close()"]
+  "level2/html > HTMLDocument19": [fail, "missing method: .open()"]
+  "level2/html > HTMLDocument20": [fail, "missing method: .open()"]
+  "level2/html > HTMLDocument21": [fail, "missing method: .open()"]
+  "level2/html > HTMLFrameElement09": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "level2/html > HTMLIFrameElement11": [fail, "TIMEOUT: Timeout of …ms exceeded"]
+  "level2/html > document_open_return_self": [fail, "missing method: .open()"]
 to-port-to-wpts/level2/style.js:
-  "level2/style > HTMLStyleElement01": [fail, "read of undefined (.cssRules)"]
-  "level2/style > HTMLStyleElement02": [fail, "Expected values to be strictly equal: … !== …"]
-  "level2/style > StyleSheetList.prototype.item returns null on index out of bounds": [fail, "read of undefined (.0)"]
   "level2/style > ensureRelativeStylesheetFilesAreLoaded": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "level2/style > getComputedStyleExternal": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "level2/style > getComputedStyleWithMediaRules": [fail, "computed color of p is blue + actual - expected + … - …"]
-  "level2/style > getStyleSheetByItem": [fail, "read of undefined (.length)"]
-to-port-to-wpts/level3/xpath.js: [fail, "rsdom adapter: XML documents are not supported (contentType …)", {pass: 65}]
-to-port-to-wpts/misc.js:
-  "browser/index > parse_doublespacetags": [fail, "Got unwanted exception: setValue_throws_INVALID_CHARACTER_ERR Actual message: …"]
 to-port-to-wpts/misc2.js:
-  "jsdom/miscellaneous > DOMContentLoaded should not be fired after window.close() (GH-1479)": [fail, "Expected values to be strictly equal: undefined !== …"]
-  "jsdom/miscellaneous > css_classes_should_be_attached_to_dom": [fail, "Expected … to be strictly unequal to: undefined"]
-  "jsdom/miscellaneous > iframe_contents": [fail, "read of undefined (.document)"]
-  "jsdom/miscellaneous > issue_530_async_load_events": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0 (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > Calling show() method in jQuery 1.11.0, second case (GH-709)": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_attr_mixed_case": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "jsdom/miscellaneous > node specific tests > jquery_val_on_selects": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "jsdom/miscellaneous > setting_and_getting_script_element_text": [fail, "Expected values to be strictly equal: undefined !== …"]
-to-port-to-wpts/namespaces.js: [fail, "NamedNodeMap named properties: attributes[name] is undefined (getNamedItem works)"]
-to-port-to-wpts/on-error.js:
-  "on-error > onerror catches exceptions thrown in inline event handlers": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "on-error > onerror catches exceptions thrown in sync script execution": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "on-error > onerror set during parsing catches exceptions thrown in sync script execution during parsing": [fail, "message equality + actual - expected + undefined - …"]
 to-port-to-wpts/parsing.js:
   "jsdom/parsing > <%= stuff %> inside <script> tags (GH-58)": [fail, "missing method: .write()"]
-  "jsdom/parsing > prefix on attribute named 'hasOwnProperty' (GH-1444)": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-to-port-to-wpts/post-message.js: [fail, "read of undefined (.document)"]
-to-port-to-wpts/script.js: [fail, "window should be the global context + actual - expected + undefined - …"]
-to-port-to-wpts/xml.js:
-  "jsdom/xml > XML mode makes directives accessible (GH-415)": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-  "jsdom/xml > attributes are case-sensitive in XML mode (GH-651)": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-  "jsdom/xml > parse5 can somewhat serialize XML docs": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-  "jsdom/xml > parsing XML keeps tag casing (GH-393)": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-  "jsdom/xml > should handle self-closing tags properly in xml docs": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
-  "jsdom/xml > xml parser recognizes built-in schemas (GH-1276)": [fail, "rsdom adapter: XML documents are not supported (contentType …)"]
+to-port-to-wpts/script.js:
+  "script > timer_executes_in_context": [fail, "TIMEOUT: Timeout of …ms exceeded"]

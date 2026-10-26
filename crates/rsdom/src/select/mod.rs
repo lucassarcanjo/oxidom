@@ -61,7 +61,8 @@ pub struct Pre {
     pub never: bool,
     /// The compound contains `:link` / `:any-link`: only `<a>` / `<area>` can match.
     pub link: bool,
-    /// The compound contains `:focus` / `:focus-visible`: only the focused element can match.
+    /// The compound contains `:focus` / `:focus-visible`: only the focused element (or, for `:focus`, a shadow host)
+    /// can match.
     pub focus: bool,
     /// `rejects` alone decides the match (`decided`): 1 = always, 2 = outside quirks mode only (ids /
     /// classes are prechecked there), 0 = never.
@@ -83,7 +84,9 @@ impl Pre {
         if self.link && !(e.is_html_elem(el, atom::A) || e.is_html_elem(el, atom::AREA)) {
             return true;
         }
-        if self.focus && r.state & crate::node::state::FOCUSED == 0 {
+        // a shadow host matches :focus when its shadow tree holds the focus (adapter `host_of_focus`)
+        if self.focus && r.state & crate::node::state::FOCUSED == 0 && r.meta & crate::node::meta::SHADOW == 0
+        {
             return true;
         }
         let check_ids = !quirks && !(self.id.is_none() && self.classes.is_empty());
@@ -287,7 +290,8 @@ pub fn adapter_flags(sel: &Selector<Impl>) -> SelDeps {
 /// Parses `s` into a selector list, interning names into `e`'s atom table. `None` = SyntaxError.
 pub fn parse_selector_list(e: &mut Env, s: &str) -> Option<SelectorList<Impl>> {
     let r = adapter::with_interner(&mut e.atoms, || {
-        let mut p = cssparser::Parser::new(s);
+        let s = crate::string::css_input(s);
+        let mut p = cssparser::Parser::new(&s);
         match SelectorList::parse(&SelParser, &mut p, ParseRelative::No) {
             Ok(l) if p.is_exhausted() => Some(l),
             _ => None,
@@ -672,6 +676,83 @@ impl Env {
         self.ids = ids;
         self.write_ids()
     }
+
+    /// The elements behind `document[name]` (HTML "dom-document-nameditem-filter", jsdom Document-impl.js
+    /// `#namedPropertyElements`), in tree order, into OUT: HTML embed / form / iframe / img / object elements
+    /// named `name`, and object elements, or img elements with a non-empty name, whose id is `name`. Null-namespace
+    /// attributes only.
+    pub fn doc_named(&mut self, doc: NodeId, name: &str) -> u32 {
+        let mut ids = std::mem::take(&mut self.ids);
+        ids.clear();
+        let mut n = if name.is_empty() { 0 } else { self.next_in_subtree(doc, doc) };
+        while n != 0 {
+            let r = self.rec(n);
+            let local = Atom(r.local);
+            if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                && matches!(local, atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT)
+            {
+                let own_name = self.get_attr_ns(n, None, "name").map(|v| v.as_str());
+                let by_id = (local == atom::OBJECT
+                    || (local == atom::IMG && own_name.is_some_and(|v| !v.is_empty())))
+                    && self.get_attr_ns(n, None, "id").is_some_and(|v| v.as_str() == name);
+                if by_id || own_name == Some(name) {
+                    ids.push(n);
+                }
+            }
+            n = self.next_in_subtree(n, doc);
+        }
+        self.ids = ids;
+        self.write_ids()
+    }
+}
+
+impl Env {
+    /// Window named property contributors (jsdom living/window-properties.js): HTML elements of `doc`'s document tree
+    /// with id `name` (`mode` 0 or 2) and HTML embed / form / img / object / iframe / frame elements named `name`
+    /// (`mode` 1 or 2), in tree order, into OUT.
+    pub fn win_named(&mut self, doc: NodeId, name: &str, mode: u32) -> u32 {
+        let mut ids = std::mem::take(&mut self.ids);
+        ids.clear();
+        if !name.is_empty() {
+            if mode != 1
+                && let Some(a) = self.atoms.get(name)
+                && let Some(cands) = self.doc_data(doc).and_then(|d| d.id_map.get(&a))
+            {
+                let cands: SmallVec<[NodeId; 4]> = cands.iter().copied().collect();
+                for c in cands {
+                    let r = self.rec(c);
+                    if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                        && r.owner == doc
+                        && self.in_document_tree(c)
+                    {
+                        ids.push(c);
+                    }
+                }
+            }
+            if mode != 0 {
+                let mut n = self.next_in_subtree(doc, doc);
+                while n != 0 {
+                    let r = self.rec(n);
+                    if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+                        && matches!(
+                            Atom(r.local),
+                            atom::EMBED | atom::FORM | atom::IMG | atom::OBJECT | atom::IFRAME | atom::FRAME
+                        )
+                        && self.get_attr_ns(n, None, "name").is_some_and(|v| v.as_str() == name)
+                        && !ids.contains(&n)
+                    {
+                        ids.push(n);
+                    }
+                    n = self.next_in_subtree(n, doc);
+                }
+            }
+            if ids.len() > 1 {
+                ids.sort_by(|&a, &b| self.tree_order(a, b));
+            }
+        }
+        self.ids = ids;
+        self.write_ids()
+    }
 }
 
 /// One preorder walk over the descendants of `root`.
@@ -758,6 +839,15 @@ natives! {
     /// document.getElementsByName(name) into OUT; returns the count.
     fn byName(e, doc: u32, name: str) -> u32 {
         e.by_name(doc, name)
+    }
+    /// The elements behind `document[name]` (Document's named getter) into OUT; returns the count.
+    fn docNamed(e, doc: u32, name: str) -> u32 {
+        e.doc_named(doc, name)
+    }
+    /// The elements behind `window[name]` (Window's named properties, DESIGN §46) in document `doc` into OUT, in tree
+    /// order; returns the count. `mode` 0: by id only (the id map), 1: by name only, 2: both.
+    fn winNamed(e, doc: u32, name: str, mode: u32) -> u32 {
+        e.win_named(doc, name, mode)
     }
 }
 

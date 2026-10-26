@@ -16,7 +16,7 @@
 // Kept as Node's (never overridden): timers, setImmediate, queueMicrotask, performance, console,
 // AbortController/AbortSignal, MessageChannel, typed arrays, URL, fetch, crypto, DOMException,
 // structuredClone, TextEncoder/Decoder. Names rsdom does not implement are not defined (feature detection
-// with `in` must not be fooled): no customElements, DataTransfer, requestIdleCallback, TextEvent,
+// with `in` must not be fooled): no DataTransfer, requestIdleCallback, TextEvent,
 // reportError, documentMode. ResizeObserver and IntersectionObserver come from lib/observers.cjs (DESIGN §24).
 // Blob and File are rsdom's subclasses of Node's (lib/file-api.cjs, DESIGN §27).
 
@@ -229,10 +229,10 @@ const storageTraps = {
 };
 
 /** A new, empty Storage (one per window and kind: rsdom has no same-origin frames to share an area with). */
-function createStorage() {
+function createStorage(quota = STORAGE_QUOTA) {
   const target = new Storage(rt.TOKEN);
   const proxy = new Proxy(target, storageTraps);
-  const a = { items: new Map(), quota: STORAGE_QUOTA, proxy };
+  const a = { items: new Map(), quota, proxy };
   areas.set(target, a);
   areas.set(proxy, a);
   return proxy;
@@ -401,6 +401,23 @@ class History {
 }
 tag(History);
 
+// ============================================================================================ Window
+
+/**
+ * The `Window` interface object. Window objects are plain objects (or the Vitest global), so `instanceof Window`
+ * asks whether the value is an open context's window.
+ */
+class Window {
+  constructor(t = undefined) {
+    if (t !== rt.TOKEN) illegal();
+  }
+
+  static [Symbol.hasInstance](v) {
+    return require('./context.cjs').isWindow(v);
+  }
+}
+tag(Window);
+
 // ========================================================================================= Navigator
 
 class Navigator {
@@ -409,7 +426,7 @@ class Navigator {
   }
 
   get userAgent() {
-    return USER_AGENT;
+    return state.get(this)?.ctx.settings.userAgent ?? USER_AGENT;
   }
 
   get appCodeName() {
@@ -482,6 +499,19 @@ class Navigator {
 
   javaEnabled() {
     return false;
+  }
+
+  /** Always empty (lib/geometry.cjs, DESIGN §40); one object per navigator, as jsdom's [SameObject] */
+  get plugins() {
+    const s = state.get(this);
+    if (s === undefined) throw new TypeError('Illegal invocation');
+    return (s.plugins ??= new (require('./geometry.cjs').PluginArray)(rt.TOKEN));
+  }
+
+  get mimeTypes() {
+    const s = state.get(this);
+    if (s === undefined) throw new TypeError('Illegal invocation');
+    return (s.mimeTypes ??= new (require('./geometry.cjs').MimeTypeArray)(rt.TOKEN));
   }
 }
 tag(Navigator);
@@ -591,23 +621,101 @@ function cssEscape(value) {
 }
 
 /**
- * `CSS.supports(property, value)` / `CSS.supports('(property: value)')`: true for properties rsdom's style
- * engine knows (area A's `cssProp`) with a non-empty value; false otherwise (no value validation).
+ * `CSS.supports(property, value)` / `CSS.supports(conditionText)` (jsdom CSS-impl.js): a declaration is supported
+ * when setting it on an empty declaration block leaves a non-empty value (custom properties: always); a condition
+ * is `not` / `and` / `or` over parenthesized declarations or conditions.
  */
-function cssSupports(a, b = undefined) {
-  let prop;
-  let value;
-  if (b === undefined) {
-    const m = /^\s*\(\s*([-\w]+)\s*:\s*([^)]*?)\s*\)\s*$/.exec(String(a));
-    if (m === null) return false;
-    [, prop, value] = m;
-  } else {
-    prop = String(a).trim();
-    value = String(b).trim();
+function cssSupports(...args) {
+  if (args.length === 0) throw new TypeError("Failed to execute 'supports' on 'CSS': 1 argument required, but only 0 present.");
+  if (args.length === 1) return supportsCondition(String(args[0]).trim());
+  return supportsDeclaration(String(args[0]), String(args[1]));
+}
+
+const PROP_VAL = /^([^():]+)\s*:\s*(.+)\s*$/;
+
+function supportsDeclaration(prop, value) {
+  return rt.N.cssSupports(prop, value);
+}
+
+/** A `@supports` condition (`CSS.supports(conditionText)`, `CSSSupportsRule#matches`). */
+function supportsCondition(text) {
+  if (PROP_VAL.test(text)) {
+    const [, p, v] = PROP_VAL.exec(text);
+    return supportsDeclaration(p.trim(), v);
   }
-  if (value === '' || typeof rt.N.cssProp !== 'function') return false;
-  if (prop.startsWith('--')) return true;
-  return rt.N.cssProp(rt.asciiLower(prop)) !== 0;
+  const toks = supportsTokens(text);
+  return toks === null ? false : supportsList(toks);
+}
+
+/** Tokens of a condition: identifiers and parenthesized groups (null: anything else, e.g. a function). */
+function supportsTokens(t) {
+  const out = [];
+  let i = 0;
+  while (i < t.length) {
+    const c = t[i];
+    if (/\s/.test(c)) {
+      i++;
+    } else if (c === '(') {
+      let d = 0;
+      let j = i;
+      for (; j < t.length; j++) {
+        if (t[j] === '(') d++;
+        else if (t[j] === ')' && --d === 0) break;
+      }
+      if (d !== 0) return null;
+      out.push({ g: t.slice(i + 1, j) });
+      i = j + 1;
+    } else {
+      const m = /^-?[A-Za-z_][\w-]*/.exec(t.slice(i));
+      if (m === null || t[i + m[0].length] === '(') return null;
+      out.push({ id: m[0].toLowerCase() });
+      i += m[0].length;
+    }
+  }
+  return out;
+}
+
+/** jsdom `#evaluateList`. */
+function supportsList(toks) {
+  let result = null;
+  let op = null;
+  let not = false;
+  let expecting = true;
+  for (const t of toks) {
+    if (t.id !== undefined) {
+      if (t.id === 'not') {
+        if (result !== null || not) return false;
+        not = true;
+      } else if (t.id === 'and' || t.id === 'or') {
+        if (not || expecting || (op !== null && op !== t.id)) return false;
+        op = t.id;
+        expecting = true;
+      } else {
+        return false;
+      }
+      continue;
+    }
+    if (!expecting) return false;
+    const inner = t.g.trim();
+    let r;
+    if (PROP_VAL.test(inner) && !inner.startsWith('(')) {
+      const [, p, v] = PROP_VAL.exec(inner);
+      r = supportsDeclaration(p.trim(), v);
+    } else {
+      const sub = supportsTokens(inner);
+      r = sub === null ? false : supportsList(sub);
+    }
+    if (not) {
+      r = !r;
+      not = false;
+    }
+    if (result === null) result = r;
+    else if (op === 'and') result &&= r;
+    else result ||= r;
+    expecting = false;
+  }
+  if (not || (expecting && result !== null)) return false;
+  return result === null ? false : result;
 }
 
 // ========================================================================================== FormData
@@ -789,14 +897,65 @@ function restoreGlobals(win, saved) {
   saved.clear();
 }
 
+/** jsdom's `window.console` members. */
+const CONSOLE_METHODS = ['assert', 'clear', 'count', 'countReset', 'debug', 'dir', 'dirxml', 'error', 'group',
+  'groupCollapsed', 'groupEnd', 'info', 'log', 'table', 'time', 'timeLog', 'timeEnd', 'trace', 'warn'];
+
+/**
+ * A `JSDOM` window's own timers (the Vitest global keeps Node's): integer handles, `this` = the window, errors
+ * reported to the window, all cancelled when the context closes, after which new ones return 0 (jsdom).
+ */
+function installTimers(win, ctx, def) {
+  const events = require('./events.cjs');
+  const timers = new Map();
+  let nextId = 0;
+  const start = (repeat, name) => ({
+    [name](handler, timeout = 0, ...args) {
+      if (ctx.closed) return 0;
+      const id = ++nextId;
+      const run = () => {
+        if (!repeat) timers.delete(id);
+        try {
+          // a string handler is script source, run only where scripts run (DESIGN §45)
+          if (typeof handler === 'function') handler.apply(win, args);
+          else if (ctx.settings.runScripts === 'dangerously') require('./scripts.cjs').run(ctx, String(handler), ctx.url.href);
+        } catch (err) {
+          events.reportException(win, err);
+        }
+      };
+      const ms = Math.max(0, Number(timeout) || 0);
+      timers.set(id, repeat ? setInterval(run, ms) : setTimeout(run, ms));
+      return id;
+    },
+  })[name];
+  const clear = (name) => ({
+    [name](id = 0) {
+      const t = timers.get(id);
+      if (t !== undefined) {
+        clearTimeout(t); // clears intervals too
+        timers.delete(id);
+      }
+    },
+  })[name];
+  def('setTimeout', start(false, 'setTimeout'));
+  def('setInterval', start(true, 'setInterval'));
+  def('clearTimeout', clear('clearTimeout'));
+  def('clearInterval', clear('clearInterval'));
+  ctx.onClose(() => {
+    for (const t of timers.values()) clearTimeout(t);
+    timers.clear();
+  });
+}
+
 /**
  * Builds the window of browsing context `ctx` (lib/context.cjs) onto `global` (the Vitest environment) or a
  * fresh null-prototype object, and returns it. On a pre-existing global, the context's `close()` restores
  * the original properties.
  * @param {import('./context.cjs').BrowsingContext} ctx
  * @param {object} [global]
+ * @param {boolean} [ownTimers] window timers on a `global` too (context.cjs `open`)
  */
-function makeWindow(ctx, global = undefined) {
+function makeWindow(ctx, global = undefined, ownTimers = false) {
   const { document, url } = ctx;
   const win = global ?? Object.create(null);
   const isGlobal = global !== undefined;
@@ -847,10 +1006,54 @@ function makeWindow(ctx, global = undefined) {
   state.set(history, { ctx, scroll: 'auto' });
   ctx.history = new (require('./history.cjs').SessionHistory)(ctx);
   def('history', history);
-  def('navigator', new Navigator(rt.TOKEN));
+  const { settings } = ctx;
+  const navigator = new Navigator(rt.TOKEN);
+  state.set(navigator, { ctx });
+  def('navigator', navigator);
   def('screen', new Screen(rt.TOKEN));
-  def('localStorage', createStorage());
-  def('sessionStorage', createStorage());
+  def('customElements', require('./custom-elements.cjs').registryFor(ctx));
+  // jsdom's remaining Window members (refs/jsdom/lib/jsdom/browser/Window.js; DESIGN §40)
+  const { BarProp, External } = require('./geometry.cjs');
+  for (const k of ['locationbar', 'menubar', 'personalbar', 'scrollbars', 'statusbar', 'toolbar']) def(k, new BarProp(rt.TOKEN));
+  def('external', new External(rt.TOKEN));
+  def('name', '');
+  def('status', '');
+  // no child browsing contexts (iframes have no window yet: `browsing-contexts`)
+  def('length', 0);
+  def('captureEvents', function captureEvents() {});
+  def('releaseEvents', function releaseEvents() {});
+  /** `new Audio(src)` (legacy factory function): jsdom's needs no `new`. */
+  function Audio(src) {
+    const audio = document.createElement('audio');
+    audio.setAttributeNS(null, 'preload', 'auto');
+    if (src !== undefined) audio.setAttributeNS(null, 'src', String(src));
+    return audio;
+  }
+  Object.defineProperty(Audio, 'prototype', { value: rt.classes.HTMLAudioElement.prototype, writable: false, enumerable: false, configurable: false });
+  def('Audio', Audio, false);
+  def('postMessage', function postMessage(message, targetOrigin) {
+    if (arguments.length < 2) throw new TypeError("'postMessage' requires 2 arguments: 'message' and 'targetOrigin'");
+    const target = `${targetOrigin}`; // DOMString: a Symbol throws TypeError
+    // "/" needs the incumbent settings object, which jsdom does not track either
+    if (target === '/') return;
+    if (target !== '*') {
+      let origin;
+      try {
+        origin = new URL(target).origin;
+      } catch {
+        throw new rt.classes.DOMException(`Failed to execute 'postMessage' on 'Window': Invalid target origin '${target}' in a call to 'postMessage'.`, 'SyntaxError');
+      }
+      if (origin !== url.origin) return;
+    }
+    // jsdom: a trusted event with no source / origin / ports, and `data` is not structured-cloned. A closed
+    // context runs no task (jsdom's _queueATask checks _isDestroyed)
+    if (ctx.closed) return;
+    ctx.queueTask(() => {
+      if (!ctx.closed) events.fire(ctx.wt, 'message', { data: message }, events.MessageEvent);
+    });
+  });
+  def('localStorage', createStorage(settings.storageQuota));
+  def('sessionStorage', createStorage(settings.storageQuota));
 
   def('innerWidth', 1024);
   def('innerHeight', 768);
@@ -860,28 +1063,46 @@ function makeWindow(ctx, global = undefined) {
   for (const k of ['scrollX', 'scrollY', 'pageXOffset', 'pageYOffset', 'screenX', 'screenY', 'screenLeft', 'screenTop']) def(k, 0);
 
   const noop = function () {};
-  def('scrollTo', function scrollTo() {});
-  def('scroll', function scroll() {});
-  def('scrollBy', function scrollBy() {});
-  def('alert', function alert() {});
-  def('confirm', function confirm() {
-    return false;
-  });
-  def('prompt', function prompt() {
-    return null;
-  });
-  def('print', function print() {});
-  def('open', function open() {
-    return null;
-  });
-  def('close', noop);
+  const vc = settings.virtualConsole;
+  /** jsdom's not-implemented report (refs/jsdom/lib/jsdom/browser/not-implemented.js), on a virtual console only */
+  const notImplemented = (name, ret) => ({
+    [name]() {
+      if (vc) {
+        const error = new Error(`Not implemented: Window's ${name}() method`);
+        error.type = 'not-implemented';
+        vc.emit('jsdomError', error);
+      }
+      return ret;
+    },
+  })[name];
+  def('scrollTo', notImplemented('scrollTo'));
+  def('scroll', notImplemented('scroll'));
+  def('scrollBy', notImplemented('scrollBy'));
+  def('alert', notImplemented('alert'));
+  def('confirm', notImplemented('confirm', false));
+  def('prompt', notImplemented('prompt', null));
+  def('print', notImplemented('print'));
+  def('open', notImplemented('open', null));
+  // Closing a `JSDOM` window closes its context (timers, animation frames); other windows stay open
+  def('close', settings.closable && !isGlobal ? function close() {
+    ctx.close();
+    win.closed = true;
+  } : function close() {});
   def('stop', noop);
-  def('focus', noop);
-  def('blur', noop);
-  def('moveTo', noop);
-  def('moveBy', noop);
-  def('resizeTo', noop);
-  def('resizeBy', noop);
+  def('focus', notImplemented('focus'));
+  def('blur', notImplemented('blur'));
+  def('moveTo', notImplemented('moveTo'));
+  def('moveBy', notImplemented('moveBy'));
+  def('resizeTo', notImplemented('resizeTo'));
+  def('resizeBy', notImplemented('resizeBy'));
+  if (vc && !isGlobal) {
+    // jsdom's window.console: every method emits on the virtual console (a global keeps its console, as
+    // Vitest's jsdom environment does)
+    const c = {};
+    for (const m of CONSOLE_METHODS) c[m] = (...args) => vc.emit(m, ...args);
+    def('console', c);
+  }
+  if (!isGlobal || ownTimers) installTimers(win, ctx, def);
 
   def('matchMedia', function matchMedia(query) {
     if (arguments.length === 0) throw new TypeError("Failed to execute 'matchMedia' on 'Window': 1 argument required, but only 0 present.");
@@ -890,10 +1111,12 @@ function makeWindow(ctx, global = undefined) {
   /** animation-frame id -> its context timer (closing the context cancels them) */
   const rafs = new Map();
   let rafId = 0;
-  def('requestAnimationFrame', function requestAnimationFrame(callback) {
+  // jsdom defines animation frames only with `pretendToBeVisual` (createWindow and the Vitest environment set it)
+  if (settings.pretendToBeVisual) def('requestAnimationFrame', function requestAnimationFrame(callback) {
     if (typeof callback !== 'function') {
       throw new TypeError("Failed to execute 'requestAnimationFrame' on 'Window': The callback provided as parameter 1 is not a function.");
     }
+    if (ctx.closed) return 0;
     const id = ++rafId;
     rafs.set(id, ctx.setTimer(() => {
       rafs.delete(id);
@@ -906,7 +1129,7 @@ function makeWindow(ctx, global = undefined) {
     }, 16));
     return id;
   });
-  def('cancelAnimationFrame', function cancelAnimationFrame(id) {
+  if (settings.pretendToBeVisual) def('cancelAnimationFrame', function cancelAnimationFrame(id) {
     const t = rafs.get(id);
     if (t !== undefined) {
       ctx.clearTimer(t);
@@ -917,7 +1140,10 @@ function makeWindow(ctx, global = undefined) {
   def('getSelection', function getSelection() {
     return selectionOf(document);
   });
-  def('CSS', Object.freeze({ escape: cssEscape, supports: cssSupports }), false);
+  // a WebIDL namespace object: plain writable methods and a configurable @@toStringTag
+  const css = { escape: cssEscape, supports: cssSupports };
+  Object.defineProperty(css, Symbol.toStringTag, { value: 'CSS', configurable: true });
+  def('CSS', css, false);
 
   // Area B's window EventTarget: listener methods, `event` and on* handlers.
   if (isGlobal) {
@@ -974,16 +1200,17 @@ function install(_rt, d) {
       }
     },
     get referrer() {
-      return '';
+      return this._ctx?.settings.referrer ?? '';
     },
     get domain() {
       return this._ctx?.url.hostname ?? '';
     },
+    // jsdom: visible only with `pretendToBeVisual` (a document without a window is hidden)
     get hidden() {
-      return false;
+      return this._ctx?.settings.pretendToBeVisual !== true;
     },
     get visibilityState() {
-      return 'visible';
+      return this._ctx?.settings.pretendToBeVisual === true ? 'visible' : 'prerender';
     },
     get scrollingElement() {
       return this.documentElement;
@@ -991,4 +1218,4 @@ function install(_rt, d) {
   });
 }
 
-module.exports = { install, makeWindow, catchWindowErrors, cssEscape, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };
+module.exports = { install, makeWindow, catchWindowErrors, cssEscape, cssSupports, supportsCondition, Storage, isStorage, Location, History, Navigator, Selection, USER_AGENT };

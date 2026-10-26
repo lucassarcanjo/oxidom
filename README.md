@@ -12,8 +12,9 @@ export default defineConfig({
 })
 ```
 
-> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite, but it covers about 62% of
-> jsdom's API surface and is not on npm yet. See [what works](#compatibility) and the [roadmap](docs/ROADMAP.md).
+> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 97.4% of what jsdom
+> passes in jsdom's own test suite, but it is not on npm yet. See [what works](#compatibility), the
+> [migration guide](docs/MIGRATING.md) and the [roadmap](docs/ROADMAP.md).
 > Its npm name is `jetdom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm.
 
 ## Why
@@ -37,25 +38,23 @@ code. Parsing uses html5ever, selector matching uses Servo's `selectors` crate, 
 
 ## Compatibility
 
-Measured against jsdom 30.1.3 on 2026-10-17 ([`docs/PARITY.md`](docs/PARITY.md)):
+Measured against jsdom 30.1.3:
 
 | measure | rsdom |
 |---|---|
-| jsdom's WebIDL members present | 62% (1,167 of 1,877) |
-| WPT subtests that pass on jsdom and also pass on rsdom | 51% (82,867 of 162,751) |
-| real libraries passing, of the 18 that pass on jsdom | 17 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
+| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.5% (163,519 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
+| real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
 The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
 rsdom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
-to-upstream tests, its legacy mocha tests and its API tests. On 2026-10-20 rsdom passed 88.8% of the subtests
-jsdom passes there; the [scoreboard](conformance/parity/results/summary.md) has the current numbers, broken down
-by roadmap item.
+to-upstream tests, its legacy mocha tests and its API tests; the scoreboard breaks it down by roadmap item. The
+lab-phase baseline (API surface, WPT, 2026-10-17) is in [`docs/PARITY.md`](docs/PARITY.md).
 
 The remaining library failure comes from a missing API: custom elements (lit), which are
 [Stage 4 of the roadmap](docs/ROADMAP.md#stage-4-architectural-work).
-Not supported today: Shadow DOM event retargeting, slots and scoped styles, custom elements, iframes, script
-execution, layout, CSSOM rule objects, synchronous XMLHttpRequest.
+Not supported today: loading `<script src>` and `<iframe src>`, layout, synchronous XMLHttpRequest. Every known difference from
+jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 
 ## Usage (from source)
 
@@ -68,7 +67,24 @@ npm run build          # builds the native addon into packages/rsdom/native/
 ```
 
 **Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
-`environment: 'jetdom'`. Options go in `test.environmentOptions.jetdom`: `{ url, html }`.
+`environment: 'jetdom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
+(`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
+global (`jsdom.reconfigure({ url })`) is there. Scripts run as under Vitest's jsdom environment (`runScripts:
+'dangerously'` by default), external `<script src>` excepted. rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
+`html` as body markup) and win over the `jsdom` ones. The VM pools (`pool: 'vmThreads'` / `'vmForks'`) work too. As on jsdom, `alert()`, `scrollTo()` and the other
+not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
+`error` listener saw but did not cancel is logged there instead of failing the test.
+
+**Jest.** Install `jetdom` and `jest-environment-jetdom` (from this repository for now) and set
+`testEnvironment: 'jetdom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
+`userAgent`, `pretendToBeVisual`, `customExportConditions`, ...) and the `@jest-environment-options` docblock work
+the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
+runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
+file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
+not `instanceof Error`. `customElements` is not there yet.
+
+**TypeScript.** The packages ship their declarations; `jetdom`'s `JSDOM` API is typed as @types/jsdom types
+jsdom's. For the Vitest `jsdom` global, use `types: ["jetdom/vitest-globals"]` where you had `vitest/jsdom`.
 
 **Plain Node.**
 
@@ -80,7 +96,19 @@ document.body.innerHTML = '<button class="primary">Save</button>';
 document.querySelector('button.primary').textContent; // 'Save'
 ```
 
-A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
+Or the jsdom API, unchanged:
+
+```js
+const { JSDOM } = require('jetdom');
+
+const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
+dom.window.document.querySelector('p').textContent; // 'Hello'
+```
+
+`JSDOM` takes jsdom's options (`url`, `referrer`, `contentType`, `pretendToBeVisual`, `storageQuota`,
+`virtualConsole`, `beforeParse`, `runScripts`, `resources.userAgent`) and has `serialize()`, `reconfigure()`,
+`getInternalVMContext()`, `JSDOM.fragment()`, `JSDOM.fromFile()` and `JSDOM.fromURL()`. Not supported yet:
+`includeNodeLocations` and subresource loading ([roadmap, Stage 2](docs/ROADMAP.md#stage-2-jsdom-compatible-entry-points)).
 
 ## Repository
 
@@ -89,6 +117,7 @@ A `JSDOM`-compatible class (`new JSDOM(html, options)`) is planned ([roadmap, St
 | [`crates/rsdom`](crates/rsdom) | the Rust core and Node-API bindings (napi-rs v3) |
 | [`packages/rsdom`](packages/rsdom) | the `jetdom` npm package: JS facade, native loader, Vitest environment, contract tests |
 | [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-jetdom`: makes `environment: 'jetdom'` resolve |
+| [`packages/jest-environment-rsdom`](packages/jest-environment-rsdom) | `jest-environment-jetdom`: makes `testEnvironment: 'jetdom'` resolve |
 | [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |

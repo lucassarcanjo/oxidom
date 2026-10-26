@@ -1,0 +1,32 @@
+{
+  "name": "jest-environment-jetdom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Jest environment for jetdom: `testEnvironment: 'jetdom'`",
+  "keywords": ["jest", "jest-environment", "rsdom", "dom", "jsdom"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/rsdom.git",
+    "directory": "packages/jest-environment-rsdom"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts"],
+  "dependencies": {
+    "@jest/environment": "^30.0.0",
+    "@jest/fake-timers": "^30.0.0",
+    "@jest/types": "^30.0.0",
+    "jest-mock": "^30.0.0",
+    "jest-util": "^30.0.0"
+  },
+  "peerDependencies": {
+    "jetdom": "0.1.0"
+  }
+}

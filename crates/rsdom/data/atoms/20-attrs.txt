@@ -166,3 +166,5 @@ xlink:title
 xml:lang
 xml:space
 xmlns:xlink
+headingoffset
+headingreset

@@ -315,7 +315,8 @@ pub mod args {
             // V8 never splits a code point, so a result within 4 bytes of capacity may be truncated.
             if len + 4 < STACK {
                 s.len = len;
-                return s;
+                // SAFETY: as in `reread_if_lone`.
+                return unsafe { s.reread_if_lone(env, v) };
             }
             // Long string: the UTF-16 length is O(1) to query (a null buffer returns `String::Length`)
             // and bounds the UTF-8 size (<= 3 bytes per unit), so ONE copy into an uninitialised buffer
@@ -334,10 +335,46 @@ pub mod args {
             }
             s.len = s.heap.len();
             s.on_heap = true;
-            s
+            // SAFETY: caller contract.
+            unsafe { s.reread_if_lone(env, v) }
         }
 
-        /// The string (UTF-8; V8 replaces lone surrogates with U+FFFD).
+        /// V8 wrote U+FFFD for every lone surrogate: if the UTF-8 holds U+FFFD at all, reads `v` again as
+        /// UTF-16 and stores it with the lone surrogates escaped (DESIGN §44). Other strings pay one scan.
+        ///
+        /// # Safety
+        /// `env`/`v` must belong to the current callback scope.
+        #[cold]
+        #[inline(never)]
+        unsafe fn reread_slow(mut self, env: sys::napi_env, v: sys::napi_value) -> Self {
+            let mut len16 = 0usize;
+            // SAFETY: a null buffer asks napi for the UTF-16 length only.
+            unsafe { sys::napi_get_value_string_utf16(env, v, ptr::null_mut(), 0, &mut len16) };
+            let mut units = vec![0u16; len16 + 1];
+            let mut written = 0usize;
+            // SAFETY: `units` has len16 + 1 writable units (napi adds a NUL).
+            unsafe { sys::napi_get_value_string_utf16(env, v, units.as_mut_ptr(), len16 + 1, &mut written) };
+            self.heap = crate::string::from_utf16_escaped(&units[..written.min(len16)]).into_bytes();
+            self.len = self.heap.len();
+            self.on_heap = true;
+            self
+        }
+
+        /// See [`reread_slow`](Self::reread_slow).
+        ///
+        /// # Safety
+        /// `env`/`v` must belong to the current callback scope.
+        #[inline(always)]
+        unsafe fn reread_if_lone(self, env: sys::napi_env, v: sys::napi_value) -> Self {
+            let b = self.as_str().as_bytes();
+            if b.len() >= 3 && memchr::memmem::find(b, b"\xEF\xBF\xBD").is_some() {
+                // SAFETY: caller contract.
+                return unsafe { self.reread_slow(env, v) };
+            }
+            self
+        }
+
+        /// The string (UTF-8; lone surrogates escaped, DESIGN §44).
         #[inline(always)]
         pub fn as_str(&self) -> &str {
             let bytes: &[u8] = if self.on_heap {
@@ -347,9 +384,11 @@ pub mod args {
                 unsafe { std::slice::from_raw_parts(self.stack.as_ptr().cast::<u8>(), self.len) }
             };
             debug_assert!(std::str::from_utf8(bytes).is_ok(), "napi produced invalid UTF-8");
-            // SAFETY: `napi_get_value_string_utf8` writes V8's UTF-8 encoding (lone surrogates replaced by
-            // U+FFFD) and never splits a code point when it truncates, so `bytes` is valid UTF-8. Skipping
-            // the re-validation saves ~0.6 ns/byte on non-ASCII input.
+            // SAFETY: the bytes are either V8's UTF-8 encoding from `napi_get_value_string_utf8` (lone
+            // surrogates replaced by U+FFFD; never splits a code point when it truncates) or, after
+            // `reread_slow`, a `String` built by `from_utf16_escaped` from the zero-initialised UTF-16 buffer
+            // (`written` clamped to it). Both are valid UTF-8. Skipping the re-validation saves ~0.6 ns/byte
+            // on non-ASCII input.
             unsafe { std::str::from_utf8_unchecked(bytes) }
         }
     }
@@ -552,10 +591,15 @@ fn to_utf16(s: &str) -> smallvec::SmallVec<[u16; 512]> {
                 | ((b[i + 1] as u32 & 0x3F) << 12)
                 | ((b[i + 2] as u32 & 0x3F) << 6)
                 | (b[i + 3] as u32 & 0x3F);
-            let c = c - 0x10000;
-            out[j] = (0xD800 | (c >> 10)) as u16;
-            j += 1;
-            out[j] = (0xDC00 | (c & 0x3FF)) as u16;
+            if c >= crate::string::ESC_BASE {
+                // a lone surrogate's escape (DESIGN §44)
+                out[j] = (c - crate::string::ESC_BASE + 0xD800) as u16;
+            } else {
+                let c = c - 0x10000;
+                out[j] = (0xD800 | (c >> 10)) as u16;
+                j += 1;
+                out[j] = (0xDC00 | (c & 0x3FF)) as u16;
+            }
             i += 4;
         } else {
             out[j] = 0xFFFD; // unreachable for valid UTF-8
@@ -603,7 +647,8 @@ mod tests {
 
     #[test]
     fn transcoders() {
-        for s in ["", "abc", "Grüße aus München", "ÿ\u{a0}é", "a😀b€", "\u{10FFFF}x\u{800}\u{7FF}"] {
+        // U+10F7FF is the last code point below the lone-surrogate escapes (DESIGN §44)
+        for s in ["", "abc", "Grüße aus München", "ÿ\u{a0}é", "a😀b€", "\u{10F7FF}x\u{800}\u{7FF}"] {
             let want: Vec<u16> = s.encode_utf16().collect();
             assert_eq!(to_utf16(s).as_slice(), want.as_slice(), "{s:?}");
             if crate::string::scan(s).2 {
@@ -611,5 +656,8 @@ mod tests {
                 assert_eq!(to_latin1(s).as_slice(), want.as_slice(), "{s:?}");
             }
         }
+        // escapes egress as their lone surrogates
+        let esc = format!("a{}{}", crate::string::escape_unit(0xDC00), crate::string::escape_unit(0xDBFF));
+        assert_eq!(to_utf16(&esc).as_slice(), &[0x61, 0xDC00, 0xDBFF]);
     }
 }

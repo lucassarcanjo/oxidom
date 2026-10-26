@@ -89,6 +89,8 @@ pub struct Ids {
     pub border_width: u32,
     pub border_style: u32,
     pub border_color: u32,
+    /// `border-image`: the `border` shorthand resets it (jsdom stores it as one property)
+    pub border_image: u32,
     /// border-top / right / bottom / left
     pub border_side: [u32; 4],
     /// border-<side>-width, indexed by side
@@ -197,6 +199,7 @@ fn build() -> Props {
         border_width: id("border-width"),
         border_style: id("border-style"),
         border_color: id("border-color"),
+        border_image: id("border-image"),
         border_side: sides.map(|s| id(&format!("border-{s}"))),
         border_side_width: sides.map(|s| id(&format!("border-{s}-width"))),
         border_side_style: sides.map(|s| id(&format!("border-{s}-style"))),
@@ -218,6 +221,7 @@ fn build() -> Props {
     let mut border = ids.border_side_width.to_vec();
     border.extend_from_slice(&ids.border_side_style);
     border.extend_from_slice(&ids.border_side_color);
+    border.push(ids.border_image);
     expanded.push((ids.border, border));
     expanded.push((ids.border_width, ids.border_side_width.to_vec()));
     expanded.push((ids.border_style, ids.border_side_style.to_vec()));
@@ -304,7 +308,7 @@ mod tests {
             &*p.info(top).unwrap().shorthands,
             &[p.ids.border, p.ids.border_width, p.ids.border_side[0]]
         );
-        assert_eq!(p.info(p.ids.border).unwrap().expanded.len(), 12);
+        assert_eq!(p.info(p.ids.border).unwrap().expanded.len(), 13);
         assert!(p.info(p.ids.overflow).unwrap().expanded.is_empty());
     }
 }

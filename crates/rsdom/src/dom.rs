@@ -448,7 +448,12 @@ impl Env {
         }
         let rec = self.new_rec(doc, bits, local.0, payload);
         self.elems.push(ElementData { ns: ns_uri, prefix, ..ElementData::default() });
-        self.alloc_node(rec)
+        let el = self.alloc_node(rec);
+        // a valid custom element name starts undefined (crate::ce, DESIGN §43)
+        if ns == Ns::Html && self.atoms.name(local).contains('-') {
+            self.ce_created(el, local, Atom::NONE);
+        }
+        el
     }
 
     /// `createElementNS` (validate and extract).
@@ -755,11 +760,19 @@ natives! {
             false
         }
     }
-    /// createElement with a known atom; ns 0 = HTML, 1 = SVG, 2 = MathML. 0 + EP[ERR] on bad ids.
+    /// createElement with a known atom; ns 0 = HTML, 1 = SVG, 2 = MathML, 3 = no namespace (an XML document's
+    /// `createElement`: the whole name is the local name, DESIGN §38). 0 + EP[ERR] on bad ids.
     fn createElement(e, doc: u32, a: u32, ns: u32) -> u32 {
-        let ns = match ns { 1 => Ns::Svg, 2 => Ns::MathMl, _ => Ns::Html };
         let r = e.require_doc(doc).and_then(|d| {
-            if e.atoms.is_valid(Atom(a)) { Ok(e.create_element(d, Atom(a), ns)) } else { Err(DomError::InvalidCharacter) }
+            if !e.atoms.is_valid(Atom(a)) {
+                return Err(DomError::InvalidCharacter);
+            }
+            Ok(match ns {
+                1 => e.create_element(d, Atom(a), Ns::Svg),
+                2 => e.create_element(d, Atom(a), Ns::MathMl),
+                3 => e.create_element_full(d, Atom(a), Atom::NONE, Atom::NONE),
+                _ => e.create_element(d, Atom(a), Ns::Html),
+            })
         });
         e.id_or_fail(r)
     }

@@ -349,7 +349,7 @@ describe('spec-correct divergences from jsdom (asserted)', () => {
     if (rs) expect(r).toEqual([10, 20]);
   });
 
-  it('KNOWN GAP (not spec): elements of XML documents use the HTML serializer', () => {
+  it('elements of XML documents use the XML serializer (DESIGN §38)', () => {
     const [j, r] = both((d) => {
       const x = d.implementation.createDocument(null, 'Foo');
       x.documentElement.setAttribute('a', '<&"');
@@ -357,16 +357,22 @@ describe('spec-correct divergences from jsdom (asserted)', () => {
       return x.documentElement.outerHTML;
     });
     expect(j).toBe('<Foo a="&lt;&amp;&quot;"><br/></Foo>');
-    if (rs) expect(r).toBe('<Foo a="<&amp;&quot;"><br></br></Foo>');
+    if (rs) expect(r).toBe(j);
   });
 
-  it('KNOWN GAP: a UTF-16 offset inside a surrogate pair rounds to the code point start', () => {
+  it('lone surrogates round-trip, and an offset inside a surrogate pair splits it (DESIGN §44)', () => {
     const [j, r] = both((d) => {
       const t = d.createTextNode('a😀b');
       t.deleteData(1, 1);
-      return t.data.length;
+      const split = [t.data.length, t.data.charCodeAt(1)];
+      t.insertData(1, '\ud83d');
+      const el = d.createElement('p');
+      el.setAttribute('title', 'x\udc00');
+      el.id = '\ud800';
+      el.append('\udbff!');
+      return [...split, t.data, el.getAttribute('title'), el.outerHTML, d.createTextNode('a😀b').splitText(2).data];
     });
-    expect(j).toBe(3);
-    if (rs) expect(r).toBe(4); // documented: storage is UTF-8 (src/string.rs)
+    expect(j).toEqual([3, 0xde00, 'a😀b', 'x\udc00', '<p title="x\udc00" id="\ud800">\udbff!</p>', '\ude00b']);
+    if (rs) expect(r).toEqual(j);
   });
 });

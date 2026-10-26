@@ -7,7 +7,7 @@
 // mode are cold reads (`shadowHost`, `shadowMode`). getRootNode({ composed }), the event path through hosts and
 // the core `materialize` (ShadowRoot wrappers) read the same bit in dom.cjs / events.cjs.
 
-const { N, V, F, M, K, TOKEN, checkId, afterAlloc, mutated, check, define } = require('./runtime.cjs');
+const { N, V, F, M, K, TOKEN, checkId, afterAlloc, mutated, check, define, outIds } = require('./runtime.cjs');
 const { envGen, alive } = require('./memo.cjs');
 const { hitTesting } = require('./observers.cjs');
 
@@ -71,8 +71,17 @@ function shadowRootInit(init) {
   return m;
 }
 
+/** WebIDL `AssignedNodesOptions` -> its `flatten` member. */
+function flattenOption(options, method) {
+  if (options === undefined || options === null) return false;
+  if (typeof options !== 'object' && typeof options !== 'function') {
+    throw new TypeError(`Failed to execute '${method}' on 'HTMLSlotElement': parameter 1 is not of type 'AssignedNodesOptions'.`);
+  }
+  return Boolean(options.flatten);
+}
+
 function install(rt, dom) {
-  const { DocumentFragment, Element, Document, wrap } = dom;
+  const { DocumentFragment, Element, Text, Document, wrap } = dom;
 
   class ShadowRoot extends DocumentFragment {
     constructor(t = undefined) {
@@ -113,15 +122,41 @@ function install(rt, dom) {
   // DocumentOrShadowRoot hit testing (lib/observers.cjs, DESIGN §24): no boxes, so no hits.
   define(ShadowRoot, hitTesting('ShadowRoot'));
 
+  // Slots (src/slots.rs, DESIGN §42 part 2): assignment is computed in Rust on every mutation that can change
+  // it; these read it. `assignedSlot` is DOM "find a slot" with the open flag (jsdom `Slotable-impl.js`).
+  const slotNodes = (slot, flatten) => {
+    const n = N.slotAssignedNodes(slot._i, flatten);
+    return n === 0 ? [] : Array.from(outIds(n), wrap);
+  };
+  define(rt.classes.HTMLSlotElement, {
+    assignedNodes(options = undefined) {
+      return slotNodes(this, flattenOption(options, 'assignedNodes'));
+    },
+    assignedElements(options = undefined) {
+      return slotNodes(this, flattenOption(options, 'assignedElements')).filter((n) => n instanceof rt.classes.HTMLElement); // jsdom: `HTMLElement.is`
+    },
+  });
+  const assignedSlot = {
+    get assignedSlot() {
+      if (!alive(shadowGen)) return null;
+      const s = N.slotFind(this._i, true);
+      return s === 0 ? null : wrap(s);
+    },
+  };
+  define(Element, assignedSlot);
+  define(Text, assignedSlot);
+
   define(Element, {
     attachShadow(init) {
       if (arguments.length < 1) {
         throw new TypeError("Failed to execute 'attachShadow' on 'Element': 1 argument required, but only 0 present.");
       }
       const mode = shadowRootInit(init);
+      if (ceHooks.before !== null) ceHooks.before(this);
       const id = checkId(N.attachShadow(this._i, mode), "Failed to execute 'attachShadow' on 'Element': This element does not support attachShadow");
       afterAlloc();
       shadowGen = envGen();
+      if (ceHooks.after !== null) ceHooks.after(this._i, id);
       return wrap(id);
     },
 
@@ -145,4 +180,15 @@ function install(rt, dom) {
   });
 }
 
-module.exports = { install, isShadowRoot, retarget };
+/**
+ * Custom element steps of attachShadow (lib/custom-elements.cjs, DESIGN §43): `before(host)` after the init
+ * conversion (`disabledFeatures: ['shadow']`), `after(hostId, rootId)` once the root exists (internals access).
+ */
+const ceHooks = { before: null, after: null };
+
+/** True while the env may hold a shadow root (events.cjs takes the composed dispatch path then, DESIGN §42). */
+function shadowsExist() {
+  return alive(shadowGen);
+}
+
+module.exports = { install, ceHooks, isShadowRoot, retarget, rootOf, isShadowIncludingInclusiveAncestor, shadowsExist };

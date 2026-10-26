@@ -14,6 +14,15 @@ branch, all tagged `rsdom-parity`. This file is the contract between them. Every
 | ranges | Range comparison and stringification, then live mutation (`ranges`) | `parity/ranges` | §25 | done |
 | quick-wins | Web Storage named properties (`storage`), FileReader (`file-api`), `createEvent` (`events`), in that order | `parity/quick-wins` | §26, §27, §28 | done |
 | selection | Selection backed by real Ranges (`selection`) | `parity/selection` | §29 | done |
+| computed-values | Computed-value fidelity (`computed-values`) | `claude/project-thread-8t2nkv` | §30 | values and `:heading()` merged; cssstyle serialization quirks, `calc()` left |
+| jsdom-api | Stage 2: `JSDOM` class (`jsdom-api`), Vitest `environmentOptions.jsdom`, Jest environment, VM pools, types | `claude/project-thread-8t2nkv` | §31-§34 | Stage 2 merged except the `JSDOM` class's "Left" list |
+| cssom | CSSOM rule objects (`cssom`) | `claude/project-thread-8t2nkv` | §35 | done |
+| forms | Forms remainder (`forms`) | `claude/project-thread-8t2nkv` | §36 | done |
+| reflection | Reflected IDL attributes and ARIAMixin (`reflection`) | `claude/project-thread-8t2nkv` | §37 | done |
+| xml | XML documents, XMLSerializer, DOMParser for XML types (`xml`) | `claude/project-thread-8t2nkv` | §38 | done |
+| xpath | XPath (`xpath`) | `claude/project-thread-8t2nkv` | §39 | done |
+| geometry | DOMRect and the remaining Window members (`geometry`) | `claude/project-thread-8t2nkv` | §40 | done |
+| core | Core DOM and HTML gaps (`core`) | `claude/project-thread-8t2nkv` | §4.3 | in progress: part 2 (media, named properties) in review |
 
 A thread works inside its item. Something it needs that belongs to another item goes to the coordinator (the session
 that created the threads) instead of into the PR. Small enablers (an exported helper, an atom) are fine when called

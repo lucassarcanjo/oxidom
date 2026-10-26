@@ -16,9 +16,11 @@ const context = require('./context.cjs');
 const interfaces = require('./generated/interfaces.cjs');
 const {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeListFromIds, ListIterator, installIndices,
-  coverIndices,
+  coverIndices, installNamedProperties,
 } = require('./collections.cjs');
 const { MEMO, NODE, nodeVersion } = require('./memo.cjs');
+/** lib/custom-elements.cjs, loaded on the first HTML element creation (it requires this module). */
+let CE = null;
 
 const { N, V, EPI, F, M, K, NSC, NS, W, TOKEN } = rt;
 const {
@@ -147,7 +149,10 @@ class Node extends EventTarget {
     // indexed without touching `length` can be stale (documented caveat, DESIGN §4.3).
     const n = V.T[V.off(this._i) + F.CHILD_LEN];
     if (n > 256) coverIndices(n);
-    return this._cn ?? (this._cn = liveChildNodes(this._i));
+    const l = this._cn ?? (this._cn = liveChildNodes(this._i));
+    // own index properties as of now (DESIGN §4.3), so two lists compared with toEqual agree
+    l._own(n);
+    return l;
   }
 
   get isConnected() {
@@ -238,6 +243,7 @@ class Node extends EventTarget {
   cloneNode(deep = false) {
     const id = checkId(N.cloneNode(this._i, !!deep));
     afterAlloc();
+    mutated(); // upgrade reactions of cloned custom elements (DESIGN §43)
     const w = wrap(id);
     if (this instanceof Document) {
       // Document cloning steps: URL and content type travel with the clone (kept on the wrapper; a clone
@@ -306,10 +312,13 @@ class Node extends EventTarget {
 
   lookupNamespaceURI(prefix) {
     if (prefix === '') prefix = null;
+    // DOM "locate a namespace": doctypes and fragments have none; the xml / xmlns prefixes are an element's
+    const t = this.nodeType;
+    let el = t === 1 ? this : t === 9 ? this.documentElement : t === 2 ? this.ownerElement
+      : t === 10 || t === 11 ? null : this.parentElement;
+    if (el === null) return null;
     if (prefix === 'xml') return NS.XML;
     if (prefix === 'xmlns') return NS.XMLNS;
-    let el = this instanceof Element ? this : this instanceof Document ? this.documentElement
-      : this instanceof Attr ? this.ownerElement : this.parentElement;
     for (; el !== null; el = el.parentElement) {
       if (el.namespaceURI !== null && el.prefix === prefix) return el.namespaceURI;
       const v = prefix === null ? el.getAttributeNS(NS.XMLNS, 'xmlns') : el.getAttributeNS(NS.XMLNS, prefix);
@@ -377,7 +386,9 @@ const ParentNode = {
   get children() {
     const n = V.T[V.off(this._i) + F.CHILD_LEN];
     if (n > 256) coverIndices(n);
-    return this._ch ?? (this._ch = liveChildren(this._i));
+    const l = this._ch ?? (this._ch = liveChildren(this._i));
+    l.length; // syncs its own index properties (DESIGN §4.3); the element count is memoised per child_ver
+    return l;
   },
   get firstElementChild() {
     for (let c = V.T[V.off(this._i) + F.FIRST]; c > 0; ) {
@@ -572,18 +583,34 @@ class Document extends Node {
     root.appendChild(v);
   }
 
+  // jsdom Document-impl.js: an `svg` document element's first SVG `title` child, else the document's first HTML
+  // `title`; the element's own Text children only (childTextContent), whitespace stripped and collapsed
   get title() {
     const root = this.documentElement;
-    if (root === null) return '';
-    const t = firstDescendant(root._i, (id) => isHtml(id, A.title));
-    if (t === 0) return '';
-    return (N.textContentGet(t) ?? '').replace(/[\t\n\f\r ]+/g, ' ').replace(/^ | $/g, '');
+    let t;
+    if (root !== null && root.localName === 'svg') t = svgTitleOf(root);
+    else {
+      const id = firstDescendant(this._i, (n) => isHtml(n, A.title));
+      t = id === 0 ? null : wrap(id);
+    }
+    if (t === null) return '';
+    let text = '';
+    for (const c of t.childNodes) if (c.nodeType === K.TEXT || c.nodeType === K.CDATA) text += c.data;
+    return text.replace(/[\t\n\f\r ]+/g, ' ').replace(/^ | $/g, '');
   }
 
   set title(v) {
     const root = this.documentElement;
     if (root === null) return;
-    let t = firstDescendant(root._i, (id) => isHtml(id, A.title));
+    if (root.localName === 'svg') {
+      let t = svgTitleOf(root);
+      // inside the svg root, as the spec says (jsdom inserts into the document when the root is empty)
+      if (t === null) t = root.insertBefore(this.createElementNS(NS.SVG, 'title'), root.firstChild);
+      t.textContent = String(v);
+      return;
+    }
+    if (root.namespaceURI !== NS.HTML) return;
+    let t = firstDescendant(this._i, (id) => isHtml(id, A.title));
     if (t === 0) {
       const head = this.head;
       if (head === null) return;
@@ -632,27 +659,74 @@ class Document extends Node {
   }
 
   get readyState() {
-    return 'complete';
+    // `_ready`: a `JSDOM` document's load sequence (lib/scripts.cjs, DESIGN §45)
+    return this._ready ?? 'complete';
+  }
+
+  get currentScript() {
+    return this._currentScript ?? null;
+  }
+
+  // jsdom's open() / write() / writeln() (lib/scripts.cjs, DESIGN §45)
+  open() {
+    return require('./scripts.cjs').open(this);
+  }
+
+  write(...text) {
+    require('./scripts.cjs').write(this, text.join(''));
+  }
+
+  writeln(...text) {
+    require('./scripts.cjs').write(this, text.join('') + '\n');
   }
 
   get implementation() {
     return this._impl ?? (this._impl = makeImplementation(this));
   }
 
-  createElement(localName, _options = undefined) {
+  createElement(localName, options = undefined) {
     let name = String(localName);
     const html = (V.T[V.off(this._i) + F.META] & M.HTML_DOC) !== 0;
-    // Non-HTML documents: the HTML namespace when the content type is application/xhtml+xml, else null.
-    if (!html) return this.createElementNS(this._ct === 'application/xhtml+xml' ? NS.HTML : null, name);
+    const isValue = options !== null && typeof options === 'object' && options.is !== undefined ? String(options.is) : null;
+    // Non-HTML documents: the HTML namespace when the content type is application/xhtml+xml, else null; the
+    // whole name is the local name (`a:b` is not split into a prefix, so needs no namespace)
+    if (!html) {
+      const id = checkId(N.createElement(this._i, elementAtom(name), this._ct === 'application/xhtml+xml' ? 0 : 3));
+      afterAlloc();
+      return wrap(id);
+    }
     if (/[A-Z]/.test(name)) name = asciiLower(name);
-    const id = checkId(N.createElement(this._i, elementAtom(name), 0));
+    return this._createHtml(name, isValue, () => N.createElement(this._i, elementAtom(name), 0));
+  }
+
+  /** DOM "create an element" in the HTML namespace with the synchronous custom elements flag (DESIGN §43). */
+  _createHtml(name, isValue, plain, prefix = null) {
+    CE ??= require('./custom-elements.cjs');
+    const def = CE.lookup(this, name, isValue);
+    if (def !== null) {
+      const el = CE.createSync(this, def, name, isValue, prefix);
+      mutated();
+      return el;
+    }
+    const id = checkId(plain());
     afterAlloc();
+    if (isValue !== null) N.ceSetIs(id, isValue);
     return wrap(id);
   }
 
-  createElementNS(namespace, qualifiedName, _options = undefined) {
+  createElementNS(namespace, qualifiedName, options = undefined) {
     const ns = namespace === null || namespace === undefined ? null : String(namespace);
-    const id = checkId(N.createElementNS(this._i, ns, String(qualifiedName)));
+    const qn = String(qualifiedName);
+    const plain = () => N.createElementNS(this._i, ns, qn);
+    if (ns === NS.HTML) {
+      const isValue = options !== null && typeof options === 'object' && options.is !== undefined ? String(options.is) : null;
+      // a prefixed name never matches a definition here (the prefix is not carried into a constructed element)
+      const c = qn.indexOf(':');
+      if (c === -1) return this._createHtml(qn, isValue, plain);
+      checkId(N.validateQName(qn)); // the name must be valid before a constructor runs
+      return this._createHtml(qn.slice(c + 1), isValue, plain, qn.slice(0, c));
+    }
+    const id = checkId(plain());
     afterAlloc();
     return wrap(id);
   }
@@ -703,8 +777,11 @@ class Document extends Node {
     const i = qn.indexOf(':');
     const prefix = i < 0 ? null : qn.slice(0, i);
     const local = i < 0 ? qn : qn.slice(i + 1);
-    if (prefix !== null && ns === null) throw domError(9);
     attrNameAtom(local);
+    // DOM "validate and extract" (the namespace half)
+    if (prefix !== null && ns === null) throw domError(9);
+    if (prefix === 'xml' && ns !== NS.XML) throw domError(9);
+    if ((qn === 'xmlns' || prefix === 'xmlns') !== (ns === NS.XMLNS)) throw domError(9);
     return makeAttr(null, internAtom(qn), ns === null ? 0 : internAtom(ns), prefix === null ? 0 : internAtom(prefix), internAtom(local), '', this);
   }
 
@@ -712,6 +789,7 @@ class Document extends Node {
     if (node instanceof Attr) return makeAttr(null, node._q, node._n, node._p, node._l, node.value, this);
     const id = checkId(N.importNode(this._i, nodeArg(node, 'importNode', 'Document'), !!deep));
     afterAlloc();
+    mutated();
     return wrap(id);
   }
 
@@ -1211,10 +1289,15 @@ function cachedAttrByQname(el, q) {
  * Live NamedNodeMap, re-synced against the element's `attr_ver` with one `attrsAll` crossing. Like the live
  * collections, indices are prototype getters (always current) and internal state is #private.
  */
+/** Shared own-index getters of NamedNodeMaps (`NNM_GET[i]` returns `this._get(i)`). */
+const NNM_GET = [];
+
 class NamedNodeMap {
   #e = null;
   #v = -1;
   #a = [];
+  /** own index properties [0, #own) (`#ownIndices`) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
@@ -1249,6 +1332,37 @@ class NamedNodeMap {
     this.#a = a;
     if (n > NNM_IDX) NNM_IDX = installIndices(NamedNodeMap.prototype, NNM_IDX, n);
     if (st.map !== null) for (const at of st.map.values()) if (!live.has(at)) detachAttr(at, at._v);
+    if (n !== this.#own) this.#ownIndices(n);
+  }
+
+  /**
+   * jsdom's NamedNodeMap is a Proxy whose indices are own enumerable properties: kept exact (from `#own`, the
+   * count defined) on every `_sync` that sees a change (the `attributes` getter and every read sync), as shared
+   * accessors that read the live map. Names read through `installNamedProperties` (DESIGN §4.3).
+   */
+  #ownIndices(n) {
+    if (!Object.isExtensible(this)) return;
+    for (let i = this.#own; i < n; i++) {
+      let get = NNM_GET[i];
+      if (get === undefined) {
+        get = NNM_GET[i] = function () {
+          return #e in this ? this._get(i) : undefined;
+        };
+      }
+      Reflect.defineProperty(this, i, { get, enumerable: true, configurable: true });
+    }
+    for (let i = n; i < this.#own; i++) Reflect.deleteProperty(this, i);
+    this.#own = n;
+  }
+
+  static {
+    // the attributes' qualified names, except names with ASCII uppercase on an HTML element in an HTML document
+    installNamedProperties(NamedNodeMap.prototype, (m, key) => {
+      if (!(#e in m)) return undefined;
+      const el = m.#e;
+      if (/[A-Z]/.test(key) && el.namespaceURI === NS.HTML && (V.T[V.off(el._i) + F.META] & M.HTML_DOC) !== 0) return undefined;
+      return m.getNamedItem(key) ?? undefined;
+    });
   }
 
   _get(i) {
@@ -1321,6 +1435,14 @@ const NS_URIS = [NS.HTML, NS.SVG, NS.MATHML];
 function isHtml(id, a) {
   const o = V.off(id);
   return (V.T[o + F.META] & (M.KIND | M.NS_MASK)) === K.ELEMENT && V.T[o + F.LOCAL] === a;
+}
+
+/** The first SVG `title` element child of `root` (a wrapper), or null. */
+function svgTitleOf(root) {
+  for (let c = root.firstElementChild; c !== null; c = c.nextElementSibling) {
+    if (c.localName === 'title' && c.namespaceURI === NS.SVG) return c;
+  }
+  return null;
 }
 
 /** First element (preorder, excluding `root`) satisfying `pred`. */
@@ -1565,7 +1687,9 @@ class Element extends Node {
 
   get attributes() {
     const st = attrState(this);
-    return st.nnm ?? (st.nnm = NamedNodeMap._for(this));
+    const m = st.nnm ?? (st.nnm = NamedNodeMap._for(this));
+    m._sync(); // own index and name properties (DESIGN §4.3); one compare when the attributes did not change
+    return m;
   }
 
   getAttributeNode(qualifiedName) {
@@ -1598,11 +1722,13 @@ class Element extends Node {
     if (!(attr instanceof Attr)) throw new TypeError("Failed to execute 'setAttributeNode' on 'Element': parameter 1 is not of type 'Attr'.");
     if (attr._el !== null && attr._el !== this) throw new rt.classes.DOMException('The attribute is in use.', 'InUseAttributeError');
     if (attr._el === this) return attr;
-    const old = attr._n === 0 ? this.getAttributeNode(attr.name) : this.getAttributeNodeNS(attr.namespaceURI, attr.localName);
+    // DOM "set an attribute": the old attribute is the one with the Attr's namespace and local name, also for a
+    // null-namespace Attr whose name has a colon (createAttribute('p:id') must not replace a namespaced p:id)
+    const old = this.getAttributeNodeNS(attr.namespaceURI, attr.localName);
     const value = attr._v;
     if (old !== null) detachAttr(old, old.value);
-    if (attr._n === 0 && attr._p === 0) check(N.setAttr(this._i, attr._q, value));
-    else check(N.setAttrNS(this._i, attr.namespaceURI, attr.name, value));
+    if (attr._n === 0) check(N.setAttrNSA(this._i, 0, attr._l, 0, value));
+    else check(N.setAttrNodeNS(this._i, attr.namespaceURI, attr.name, value));
     attr._el = this;
     attr._doc = null;
     attrMap(attrState(this)).set(attrKey(attr._n, attr._l), attr);
@@ -1701,6 +1827,13 @@ function makeRect() {
 // ---------------------------------------------------------------------------------- HTML elements
 
 class HTMLElement extends Element {
+  // [HTMLConstructor] (DESIGN §43): `new` on a custom element class (or a customized built-in's, through the
+  // default constructors of the interface subclasses) creates or upgrades the element in lib/custom-elements.cjs
+  constructor(t = undefined) {
+    if (t !== TOKEN) return require('./custom-elements.cjs').htmlConstructor(new.target);
+    super(t);
+  }
+
   get innerText() {
     return this.textContent;
   }
@@ -1876,12 +2009,14 @@ class DOMImplementation {
   }
 
   createDocument(namespace, qualifiedName, doctype = null) {
+    // [LegacyNullToEmptyString] DOMString: null is "", undefined is "undefined"
+    qualifiedName = qualifiedName === null ? '' : `${qualifiedName}`;
     const id = N.createDocument(1, null);
     afterAlloc();
     const d = wrap(id);
     d._ct = namespace === NS.HTML ? 'application/xhtml+xml' : namespace === NS.SVG ? 'image/svg+xml' : 'application/xml';
     if (doctype !== null) d.appendChild(doctype);
-    if (qualifiedName) d.appendChild(d.createElementNS(namespace, qualifiedName));
+    if (qualifiedName !== '') d.appendChild(d.createElementNS(namespace, qualifiedName));
     return d;
   }
 
@@ -1908,11 +2043,11 @@ class DOMParser {
     const t = String(type);
     if (t !== 'text/html') {
       if (['text/xml', 'application/xml', 'application/xhtml+xml', 'image/svg+xml'].includes(t)) {
-        throw domError(7, `rsdom: DOMParser type '${t}' is not supported (XML parsing is out of scope)`);
+        return require('./xml.cjs').parseXmlDocument(String(string), t, context.currentDocument()?.URL ?? 'about:blank'); // DESIGN §38
       }
       throw new TypeError(`Failed to execute 'parseFromString' on 'DOMParser': The provided value '${t}' is not a valid enum value of type DOMParserSupportedType.`);
     }
-    const id = checkId(N.parseDocument(String(string)));
+    const id = checkId(N.parseDocument(String(string), 0));
     afterAlloc();
     const d = wrap(id);
     d._url = context.currentDocument()?.URL ?? 'about:blank';
@@ -1962,8 +2097,13 @@ function reflectLong(C, prop, attr = prop.toLowerCase(), dflt = 0) {
   });
 }
 
+/** Forgets the cached namespace / prefix of element `id` (custom elements set the prefix after construction). */
+function dropNsx(id) {
+  NSX.delete(id);
+}
+
 module.exports = {
-  EventTarget, Node, Document, HTMLDocument, XMLDocument, DocumentFragment, DocumentType, CharacterData, Text,
+  dropNsx, EventTarget, Node, Document, HTMLDocument, XMLDocument, DocumentFragment, DocumentType, CharacterData, Text,
   CDATASection, Comment, ProcessingInstruction, Attr, NamedNodeMap, Element, HTMLElement, HTMLUnknownElement,
   SVGElement, MathMLElement, DOMImplementation, DOMParser, NodeList, HTMLCollection,
   nodeArg, convertNodes, staticNodeListFromIds, isHtml, firstDescendant, attrQName, attrLookup, attrSetAtom, makeRect,

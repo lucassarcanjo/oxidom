@@ -84,15 +84,25 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 
 - [ ] `JSDOM` class: `new JSDOM(html, { url, contentType, pretendToBeVisual, ... })`, `.window`, `.serialize()`,
       `.fragment()`; `JSDOM.fragment()` `jsdom-api`. Decide how several live `JSDOM` instances map onto one Env per
-      thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). The
-      parity suite runs jsdom's own API tests through a minimal test-only adapter
-      (`conformance/parity/mocha/rsdom-jsdom.cjs`); the real class replaces it.
-- [ ] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
-      as well as `environmentOptions.jetdom`.
-- [ ] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`).
-- [ ] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports.
-- [ ] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
-- [ ] Migration guide: jsdom to rsdom, with the known divergences listed in one place.
+      thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). Class
+      done 2026-10-21 (DESIGN §31): `require('jetdom').JSDOM` and `VirtualConsole`, each instance a browsing context
+      that becomes current; jsdom's API tests run on it, gap 426 -> 365 subtests. Left: XML content types (`xml`),
+      `runScripts`, iframes and subresources (`browsing-contexts`), a cookie jar behind `document.cookie`,
+      `requestInterceptor`, and per-instance interface objects.
+- [x] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
+      as well as `environmentOptions.jetdom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
+      environment, plus its virtual console (not-implemented methods log through `console.error`) and `jsdom`
+      global.
+- [x] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`). Done 2026-10-21 (DESIGN §32): a port of
+      jest-environment-jsdom 30 on a vm context, checked side by side with it on jsdom 30.
+- [x] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports. Done
+      2026-10-21 (DESIGN §33): the window on a vm context, as for Jest; the React app suite passes 90/90 in both pools
+      and the libraries suite matches jsdom's result.
+- [x] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
+      Done 2026-10-21 (DESIGN §34): `lib/index.d.ts` (the `JSDOM` API as @types/jsdom types it), the Vitest and
+      Jest environments, type-checked in the package suite.
+- [x] Migration guide: jsdom to rsdom, with the known divergences listed in one place. Done 2026-10-21:
+      [`MIGRATING.md`](MIGRATING.md).
 
 ## Stage 3: Breadth parity with jsdom
 
@@ -102,40 +112,74 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
       (DESIGN §29): jsdom's Selection over the live Range (identity through addRange, direction, selectionchange);
       42 -> 62 of 64 suite files at parity, gap 19,944 -> 2 subtests (a jsdom onload quirk). Lexical typing now passes
       on rsdom; tiptap's assertions pass, its remaining unhandled error is `elementFromPoint`.
-- [ ] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share.
-- [ ] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`.
+- [x] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share. Done
+      2026-10-21 (DESIGN §35): a Rust rule tree behind jsdom's CSSOM classes, `CSS.supports` like jsdom; 138 -> 223
+      of 260 suite files at parity, gap 681 -> 219 subtests, overall parity 90.5% -> 90.9%. Left: value serialization
+      (about 190, `computed-values`) and `customElements` (20).
+- [x] Computed-value fidelity: colours as `rgb()`, `font-weight: 700`, resolved `em` (M) `computed-values`. Values
+      done 2026-10-20 (DESIGN §30): 206 -> 265 of 297 suite files at parity, gap 3,147 -> 366 subtests, overall parity
+      88.8% -> 90.5%. `:heading()` 2026-10-22: gap 249 -> 88, overall 91.0%. Shorthands 2026-10-22 (DESIGN §8.1):
+      `border` resets `border-image`, multi-layer `background`, completed `background-position`, jsdom's gradient
+      normalisation, CSS input preprocessing, at-keywords inside functions; 279 -> 284 of 297 at parity, gap 79 -> 23
+      (and `cssom` 219 -> 107), overall 97.5% -> 97.6%. Left: `background-position-x` / `-y` as longhands of
+      `background-position` (4), jsdom's border-longhand bookkeeping (1), selectors that need shadow DOM or focus moves.
 - [x] `document.createEvent`, `init*Event` and the missing event classes (S) `events`. Done 2026-10-20 (DESIGN §28):
       createEvent with jsdom's table, the initialized flag, BeforeUnload/DeviceOrientation/DeviceMotion/MessageEvent,
       init argument and view checks; 74 -> 97 of 108 suite files at parity, gap 160 -> 63 (all of it other items':
       inline handlers, shadow retargeting, CSSOM).
-- [ ] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
+- [x] Forms remainder: `stepUp`/`stepDown`, `valueAsDate`, `valueAsNumber` and the rest of the 259 members (M) `forms`.
+      Done 2026-10-22 (DESIGN §36): jsdom's Decimal stepping, number and date conversions for every numeric type,
+      `<meter>` / `<progress>`; 218 -> 247 of 277 suite files at parity, gap 314 -> 62, overall 91.2%. Left:
+      `document.forms.name` (HTMLCollection named properties, `core`), form owner and select edge cases.
 - [x] FileReader with DOM Blob and File (S) `file-api`. Done 2026-10-20 (DESIGN §27): FileReader, and Blob and File
       as WebIDL-converting subclasses of Node's; 16 -> 36 of 37 suite files at parity, gap 137 -> 1 (an HTMLCollection
       iterator detail that belongs to `core`).
 - [x] Web Storage named properties (S) `storage`. Done 2026-10-20 (DESIGN §26): a Proxy per Storage with the WebIDL
       named-property traps, the 5,000,000-unit quota and QuotaExceededError; 6 -> 25 of 25 suite files at parity,
       gap 1,205 -> 0.
-- [ ] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`.
+- [x] Reflected IDL attributes and ARIAMixin (`role`, `aria*`) (M) `reflection`. Done 2026-10-22 (DESIGN §37): every
+      `[Reflect*]` attribute of jsdom's webidl from a generated table, ARIA, the table API (`rows`, `insertRow`,
+      `cells`, ...) and `document.images` / `links` / `forms` / `anchors`; 6 -> 16 of 17 suite files at parity, gap
+      8,749 -> 10, overall 91.2% -> 96.7%. Left: `document.open()` / `close()` (`core`) and frame loading
+      (`browsing-contexts`).
 - [x] Range comparison and stringification (S), then Range mutation with live boundary updates (L) `ranges`. Done
       2026-10-20 (DESIGN §25): 43 of 44 suite files at parity, the last one needs an XML document (`xml`).
-- [ ] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`; XPath (M) `xpath`.
-- [ ] DOMRect classes and the remaining Window members (S) `geometry`.
-- [ ] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
-      including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests): the scoreboard's
-      `core` row and its last table list them.
+- [x] XML documents, `XMLSerializer` and `DOMParser` for XML types (M) `xml`. Done 2026-10-22 (DESIGN §38): saxes and
+      w3c-xmlserializer as jsdom uses them, XML `innerHTML` / `outerHTML`, `new JSDOM(x, { contentType })` with XML
+      types, XML `responseXML`; 20 -> 37 of 39 suite files at parity, gap 789 -> 5, overall 96.7% -> 97.3%. Left:
+      `document.domain` of parsed documents (`core`), an invalid style attribute (`cssom`).
+- [x] XPath (M) `xpath`. Done 2026-10-22 (DESIGN §39): jsdom's XPath 1.0 engine vendored as `lib/xpath.cjs`; 8 -> 26
+      of 28 suite files at parity, gap 66 -> 5. Left: `hasOwnProperty` on live collection indices (DESIGN §4.3, `core`),
+      declarative shadow roots (`shadow-dom`).
+- [x] DOMRect classes and the remaining Window members (S) `geometry`. Done 2026-10-22 (DESIGN §40): `DOMRect` /
+      `DOMRectReadOnly`, `BarProp`s, `external`, `navigator.plugins` / `mimeTypes`, `Audio`, `postMessage`, `name` /
+      `length` / `status`, `CloseEvent` / `PromiseRejectionEvent` / `BlobEvent`; 3 files progressed. Left for later items:
+      `ElementInternals` (`custom-elements`), SVG value types.
+- [x] Core DOM and HTML gaps no item above claims (dom/nodes, html/semantics, html/dom, html/syntax) `core`,
+      including NamedNodeMap named properties (`attributes['id']`, jsdom's legacy namespaces tests). Done 2026-10-22
+      (#32-#35, DESIGN §4.3): own collection indices, named properties through a Proxy in the prototype chain
+      (collections, NamedNodeMap, `document`), HTMLMediaElement, the `form` attribute, `:in-range`, SVG
+      `document.title`; 823 -> 888 of 955 suite files at parity, gap 453 -> 172. Left: what needs Stage 4
+      (`customElements`, inline event handlers, shadow DOM, lone surrogates), `document.open()` / `write()`, and
+      `in` / `hasOwnProperty` on named properties (a Proxy limit, DESIGN §4.3).
 
 ## Stage 4: Architectural work
 
 These change rsdom's data model or add a second browsing context. Each needs a design note in
 [`DESIGN.md`](DESIGN.md) before code.
 
-- [ ] Full Shadow DOM: event retargeting, slots, scoped styles (L) `shadow-dom`.
-- [ ] Custom elements and `customElements` (L) `custom-elements`. lit after Stage 1.
+- [x] Full Shadow DOM: event retargeting, slots, `:focus` on hosts (L) `shadow-dom` (DESIGN §42). Scoped styles: jsdom
+      applies none either. The rest of the gap is iframe tests.
+- [x] Custom elements and `customElements` (L) `custom-elements`: registry, callbacks, upgrades, customized
+      built-ins, `:defined`, `ElementInternals` as jsdom 30 has it (DESIGN §43). The rest of the gap is iframe tests.
 - [ ] Node memory reclamation inside an Env (a wrapper-liveness protocol; [`../CONTRIBUTING.md`](../CONTRIBUTING.md) §8)
       `reclamation`.
-- [ ] WTF-8 or UTF-16 character data, so lone surrogates round-trip (§8 there) `surrogates`.
+- [x] Lone surrogates round-trip (§8 there) `surrogates`: stored as plane-16 escapes in UTF-8 (DESIGN §44).
 - [ ] iframes, script execution (`runScripts`) and resource loading (XL) `browsing-contexts`. No library in the sample
-      needs them.
+      needs them. Part 1 done 2026-10-23 (DESIGN §45): `runScripts`, script elements, inline event handlers,
+      `<noscript>` parsing, the load sequence of a `JSDOM` document. Part 2 done 2026-10-23 (DESIGN §46): iframes
+      (child windows, frame accessors, Window named properties, load events). Left: `<script src>` and `<iframe src>`
+      loading (part 3).
 
 ## Not planned
 

@@ -2,10 +2,12 @@
 // NodeList (live childNodes + static), HTMLCollection (live children + live queries). No Proxies
 // (DESIGN §4.3).
 //
-// LIVE lists keep NO own numeric properties: indices are getters installed on the prototype on demand
-// (`installIndices`), each calling `_get(i)`, which re-validates against the Rust-written version
-// (`child_ver` / the query's epoch slots; lib/memo.cjs) on every read. So a list held across a mutation is
-// always current, also when indexed without touching `length` first (live-list semantics, like jsdom).
+// LIVE lists: indices are getters installed on the prototype on demand (`installIndices`), each calling
+// `_get(i)`, which re-validates against the Rust-written version (`child_ver` / the query's epoch slots;
+// lib/memo.cjs) on every read. So a list held across a mutation is always current, also when indexed without
+// touching `length` first (live-list semantics, like jsdom). On top of that, every `length` read whose answer
+// changed makes the list's OWN enumerable index accessors cover exactly [0, length) (`syncOwn`), so
+// `hasOwnProperty(i)` and `Object.keys` match jsdom's Proxies as of the last `length` read (DESIGN §4.3).
 // Element lookup uses a cursor cache (Blink's CollectionIndexCache): sequential `list[i]` / iteration and
 // `[0]` are O(1), random access walks from the nearest of first / last / cursor. `childNodes.length` is CHILD_LEN (O(1)).
 // Measured: ~100 ns per indexed read through the prototype getter (jsdom ~195, happy-dom ~145), ~1 ns
@@ -14,7 +16,7 @@
 // STATIC lists (querySelectorAll results) are snapshots: own numeric data properties (fast).
 //
 // Internal state is in #private fields, so Object.keys/entries, JSON.stringify and Vitest's
-// `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes.
+// `toEqual` (which compares Object.entries of iterables) see only what jsdom exposes: the indices.
 
 const rt = require('./runtime.cjs');
 const { MEMO, NODE, nodeVersion, envGen, alive } = require('./memo.cjs');
@@ -52,6 +54,86 @@ function installIndices(proto, have, n) {
     });
   }
   return target;
+}
+
+/** Shared own-index getters (`OWN_GET[i]` returns `this._get(i)`), grown on demand. */
+const OWN_GET = [];
+/** Shared own-index setters (`OWN_SET[i]` calls `this._setIndex(i, v)`). */
+const OWN_SET = [];
+
+/**
+ * Makes a live list's own index properties cover exactly [0, n) (from `have`): jsdom's lists are Proxies whose
+ * supported property indices are own, enumerable properties (`hasOwnProperty(i)`, `Object.keys`). Run on every
+ * `length` read whose answer differs from the last one, so they are exact as of the last `length` read; reads
+ * past them still reach the prototype getters.
+ */
+function syncOwn(list, have, n) {
+  // a list the user froze or sealed keeps what it has (jsdom refuses the freeze; `length` must keep working)
+  if (!Object.isExtensible(list)) return have;
+  // a collection with an indexed setter (HTMLOptionsCollection) routes assignments through `_setIndex`
+  const settable = '_setIndex' in list; // `in`: a missing property would reach the named-property lookup
+  for (let i = have; i < n; i++) {
+    let get = OWN_GET[i];
+    if (get === undefined) {
+      get = OWN_GET[i] = function () {
+        // a copy of the descriptors onto another object (Jest's failure diff) reads undefined, not a throw
+        return isLiveList(this) ? this._get(i) : undefined;
+      };
+      OWN_SET[i] = function (v) {
+        if (isLiveList(this)) this._setIndex(i, v);
+      };
+    }
+    // Reflect: an index the user redefined as non-configurable is left alone instead of throwing
+    Reflect.defineProperty(list, i, { get, set: settable ? OWN_SET[i] : undefined, enumerable: true, configurable: true });
+  }
+  for (let i = n; i < have; i++) Reflect.deleteProperty(list, i);
+  return n;
+}
+
+/** True for NodeList / HTMLCollection instances (their static blocks set the brand checks). */
+let isNodeList;
+let isHTMLCollection;
+function isLiveList(o) {
+  return isNodeList(o) || isHTMLCollection(o);
+}
+
+/** WebIDL array index: a canonical numeric string below 2^32 - 1 (never a named property). */
+function isArrayIndex(key) {
+  const n = Number(key);
+  return n >>> 0 === n && n !== 4294967295 && String(n) === key;
+}
+
+/**
+ * Named properties without own properties (DESIGN §4.3): jsdom's collections are Proxies whose supported names
+ * (`form.elements.email`, `el.attributes.id`) read through to `namedItem`. Here a Proxy sits between `proto`
+ * and Object.prototype, so a string key found nowhere on the instance or its interface prototypes reaches
+ * `lookup(receiver, key)`, which returns the item or undefined. Nothing is synced on mutation (own name
+ * properties re-derived after every change made mutation loops 10-35x slower than jsdom); the price is that
+ * names are not own: `in`, `hasOwnProperty`, `Object.keys` and descriptors don't see them (the `has` trap
+ * has no receiver). Names the rest of the chain has and array indices (unless `indices`: an interface without an
+ * indexed getter) never reach `lookup`, nor, with `internal`, names starting with `_`: node wrappers keep their
+ * fields (`_i`, `_ev`, lazily set `_ct`, ...) as `_` properties, and a page's `<form name="_ct">` must not answer
+ * for one, nor a wrapper's first `this._ev = null` run a lookup on a half-made object. Collections keep their
+ * state in #private fields, so `form.elements._token` works.
+ */
+function installNamedProperties(proto, lookup, { indices = false, internal = false } = {}) {
+  const base = Object.getPrototypeOf(proto);
+  const named = (receiver, key) =>
+    typeof key === 'string' && !(internal && key[0] === '_') && !(key in base) && (indices || !isArrayIndex(key))
+      ? lookup(receiver, key)
+      : undefined;
+  const object = new Proxy(Object.create(base), {
+    get(target, key, receiver) {
+      const v = named(receiver, key);
+      return v !== undefined ? v : Reflect.get(target, key, receiver);
+    },
+    set(target, key, value, receiver) {
+      // no named setter: assigning a supported name fails (a TypeError in strict code), as in jsdom
+      if (named(receiver, key) !== undefined) return false;
+      return Reflect.set(target, key, value, receiver);
+    },
+  });
+  Object.setPrototypeOf(proto, object);
 }
 
 function ensureNL(n) {
@@ -148,9 +230,20 @@ class NodeList {
   #cid = 0;
   /** static: the entries */
   #a = null;
+  /** live: own index properties [0, #own) (syncOwn) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+  }
+
+  static {
+    isNodeList = (o) => o !== null && typeof o === 'object' && #own in o;
+  }
+
+  /** The `childNodes` getter's sync (it knows the length: CHILD_LEN), so lists handed out are current. */
+  _own(n) {
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
   }
 
   static _live(id) {
@@ -219,9 +312,13 @@ class NodeList {
       const a = this.#a;
       return a === null ? 0 : a.length;
     }
-    if (!alive(this.#g)) return 0;
+    if (!alive(this.#g)) {
+      if (this.#own !== 0) this.#own = syncOwn(this, this.#own, 0);
+      return 0;
+    }
     const n = V.T[V.off(p) + F.CHILD_LEN];
     if (n > IDX.nl) ensureNL(n);
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
     return n;
   }
 
@@ -317,9 +414,15 @@ class HTMLCollection {
   #src = null;
   #a = null;
   #k = null;
+  /** own index properties [0, #own) (syncOwn) */
+  #own = 0;
 
   constructor(t = undefined) {
     if (t !== TOKEN) illegal();
+  }
+
+  static {
+    isHTMLCollection = (o) => o !== null && typeof o === 'object' && #own in o;
   }
 
   static _children(id) {
@@ -399,8 +502,18 @@ class HTMLCollection {
 
   get length() {
     this._sync();
-    if (this.#src !== null) return this.#a.length;
-    return this.#p === 0 ? 0 : this.#count();
+    const n = this.#src !== null ? this.#a.length : this.#p === 0 ? 0 : this.#count();
+    if (n !== this.#own) this.#own = syncOwn(this, this.#own, n);
+    return n;
+  }
+
+  /**
+   * Syncs the own indices (a `length` read: one compare when nothing changed) and returns this: the getters of
+   * `form.elements`, `select.options`, `document.forms` / `images` / ... and the table collections (DESIGN §4.3).
+   */
+  _synced() {
+    void this.length;
+    return this;
   }
 
   item(index) {
@@ -423,6 +536,8 @@ class HTMLCollection {
   }
 }
 Object.defineProperty(HTMLCollection.prototype, Symbol.toStringTag, { value: 'HTMLCollection', configurable: true });
+// each element's `id`, then an HTML element's `name` (HTMLCollection's supported property names)
+installNamedProperties(HTMLCollection.prototype, (c, key) => (isHTMLCollection(c) ? c.namedItem(key) ?? undefined : undefined));
 
 ensureHC(INITIAL_INDICES);
 
@@ -446,5 +561,5 @@ rt.classes.HTMLCollection = HTMLCollection;
 module.exports = {
   NodeList, HTMLCollection, liveChildNodes, liveChildren, staticNodeList, staticNodeListFromIds, staticNodeListShared, wrapAll,
   liveQueryCollection,
-  ListIterator, installIndices, coverIndices,
+  ListIterator, installIndices, coverIndices, installNamedProperties,
 };

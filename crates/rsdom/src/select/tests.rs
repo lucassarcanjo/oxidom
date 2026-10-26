@@ -2,7 +2,7 @@ use super::*;
 
 fn doc(html: &str) -> (Env, NodeId) {
     let mut e = Env::new();
-    let d = e.parse_document(html);
+    let d = e.parse_document(html, false);
     (e, d)
 }
 
@@ -111,6 +111,19 @@ fn by_tag_class_name() {
     assert_eq!(e.by_class(d, "zz"), 0);
     assert_eq!(e.by_class(d, "  "), 0);
     assert_eq!(e.by_name(d, "n"), 1);
+}
+
+#[test]
+fn doc_named_filter() {
+    let (mut e, d) =
+        doc("<form name=f id=fi></form><img id=i><img id=j name=n><object id=o></object><div name=f></div>\
+         <embed name=f><svg><form name=f/></svg><template><img name=f></template>");
+    assert_eq!(e.doc_named(d, "f"), 2); // the form and the embed: not the div, the SVG form or template content
+    assert_eq!(e.doc_named(d, "fi"), 0); // a form's id does not count
+    assert_eq!(e.doc_named(d, "i"), 0); // an img's id counts only alongside a name
+    assert_eq!(e.doc_named(d, "j"), 1);
+    assert_eq!(e.doc_named(d, "o"), 1);
+    assert_eq!(e.doc_named(d, ""), 0);
 }
 
 #[test]

@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import env from '../../lib/vitest-environment.mjs';
 
 const require = createRequire(import.meta.url);
@@ -22,7 +22,7 @@ describe('vitest-environment module', () => {
     expect(env.name).toBe('rsdom');
     expect(env.viteEnvironment).toBe('client');
     expect(typeof env.setup).toBe('function');
-    expect(env.setupVM).toBe(undefined);
+    expect(typeof env.setupVM).toBe('function');
   });
 
   it('setup installs own data globals; teardown restores every descriptor and drops the DOM', async () => {
@@ -52,6 +52,54 @@ describe('vitest-environment module', () => {
     expect(div.parentNode).toBe(null);
     const { rt } = require('../../lib/index.cjs');
     expect(rt.N.moRegistrations()).toBe(0);
+  });
+});
+
+describe('environmentOptions.jsdom (Vitest jsdom environment keys)', () => {
+  it('reads url, html, userAgent, pretendToBeVisual and referrer; a jetdom key wins', async () => {
+    const fake = {};
+    const { teardown } = await env.setup(fake, {
+      jsdom: {
+        url: 'https://example.com/x',
+        html: '<!DOCTYPE html><html lang=fr><body><p>hi</p></body></html>',
+        userAgent: 'agent/1',
+        pretendToBeVisual: false,
+        referrer: 'https://ref.example/',
+      },
+      jetdom: { url: 'https://example.org/y' },
+    });
+    expect([fake.location.href, fake.document.documentElement.lang, fake.document.body.innerHTML]).toEqual(['https://example.org/y', 'fr', '<p>hi</p>']);
+    expect([fake.navigator.userAgent, fake.document.referrer]).toEqual(['agent/1', 'https://ref.example/']);
+    expect([typeof fake.requestAnimationFrame, fake.document.hidden, fake.document.visibilityState]).toEqual(['undefined', true, 'prerender']);
+    await teardown(fake);
+    expect(Reflect.ownKeys(fake)).toEqual([]);
+  });
+
+  it('rejects XML and non-HTML content types like jsdom', async () => {
+    await expect(async () => env.setup({}, { jsdom: { contentType: 'text/plain' } })).rejects.toThrow(RangeError);
+  });
+
+  it('defaults: visual, not-implemented methods log through console.error, and a `jsdom` global', async () => {
+    const fake = {};
+    const { teardown } = await env.setup(fake, {});
+    const errors = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a) => errors.push(a.join(' ')));
+    try {
+      fake.alert('x');
+      expect(fake.document.hidden).toBe(false);
+      expect(typeof fake.requestAnimationFrame).toBe('function');
+      fake.jsdom.reconfigure({ url: 'http://localhost:3000/next' });
+      expect(fake.location.pathname).toBe('/next');
+      expect(fake.jsdom.window).toBe(fake);
+      fake.jsdom.reconfigure({ windowTop: 5 });
+      expect(fake.top).toBe(fake);
+      expect(fake.jsdom.serialize()).toBe('<!DOCTYPE html><html><head></head><body></body></html>');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(errors).toEqual(["Not implemented: Window's alert() method"]);
+    await teardown(fake);
+    expect('jsdom' in fake).toBe(false);
   });
 });
 
@@ -102,5 +150,32 @@ describe.each([
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout).toMatch(/Tests\s+\d+ passed/);
     expect(r.stdout + r.stderr).not.toMatch(/Unhandled/);
+  }, 120_000);
+});
+
+// VM pools (DESIGN §33): test/fixtures/vitest-vm under jetdom and under Vitest's jsdom environment (the oracle).
+const vmFixture = path.join(root, 'test/fixtures/vitest-vm');
+
+function runVm(dom, pool, extraEnv = {}) {
+  const r = spawnSync(process.execPath, [cli, 'run', '--config', 'vitest.config.mjs', `--pool=${pool}`], {
+    cwd: vmFixture,
+    encoding: 'utf8',
+    timeout: 120_000,
+    env: { ...process.env, CI: '1', NO_COLOR: '1', VITEST_DOM: dom, ...extraEnv },
+  });
+  return { status: r.status, out: r.stdout + r.stderr };
+}
+
+describe.each(['jsdom', 'jetdom'])('VM pools fixture suite [%s]', (dom) => {
+  it.each(['vmThreads', 'vmForks'])('passes in %s', (pool) => {
+    const { status, out } = runVm(dom, pool);
+    expect(status, out).toBe(0);
+    expect(out).toMatch(/Tests\s+8 passed \(8\)/);
+  }, 120_000);
+
+  it('a listener error is reported as an unhandled error', () => {
+    const { status, out } = runVm(dom, 'vmThreads', { VITEST_INCLUDE: 'errors.failing.mjs' });
+    expect(status).toBe(1);
+    expect(out).toMatch(/Unhandled Errors[\s\S]*Error: listener boom/);
   }, 120_000);
 });

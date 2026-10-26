@@ -3,7 +3,9 @@
 > Baseline study from the lab phase (2026-10-17). The harnesses that produced it now live in `conformance/wpt`,
 > `conformance/api-surface` and `e2e/libraries`; the one-off architecture, synthesis and verification studies
 > (`compare/arch`, `compare/synthesis`, `compare/verify`) and the raw data stay in rsdom-lab. The prioritised list in
-> §3.2 is the basis of [`ROADMAP.md`](ROADMAP.md).
+> §3.2 is the basis of [`ROADMAP.md`](ROADMAP.md). Many of the gaps it lists have closed since: the current numbers
+> are on the [scoreboard](../conformance/parity/results/summary.md), and the divergences that remain are listed in
+> [`MIGRATING.md`](MIGRATING.md).
 
 **Versions:** jsdom 30.1.3, happy-dom 21.0.3, rsdom 0.1.0 (working tree, prebuilt release addon), Vitest 5.0.5, Node 22.22.0, React 19.3.1. Measured 2026-10-17.
 

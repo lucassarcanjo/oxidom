@@ -7,6 +7,8 @@
 // - `mocha-sugar-free` -> ./sugar-free.cjs (jsdom's suites only use its BDD interface);
 // - jsdom's package entry (`require("../..")` from a test file resolves to refs/jsdom/lib/api.js)
 //   -> jsdom: node_modules/jsdom (the same 30.1.3 the checkout is tagged at); rsdom: ./rsdom-jsdom.cjs;
+// - jsdom's XPath engine (lib/jsdom/level3/xpath.js, which the legacy level3/xpath.js test calls as a factory)
+//   -> rsdom: ./xpath-shim.cjs, rsdom's vendored copy of it (packages/rsdom/lib/xpath.cjs, DESIGN §39);
 // - any other refs/jsdom/lib/** file (a few tests import jsdom internals such as lib/jsdom/utils.js or
 //   lib/generated/js-globals.json, which only exists in a built checkout) -> node_modules/jsdom/lib/**, for both DOMs.
 //   Those internals run as jsdom code under rsdom too, so a file that only exercises them (no `new JSDOM`) says
@@ -39,6 +41,7 @@ const NM_JSDOM = path.dirname(require.resolve('jsdom/package.json', { paths: [RE
 const SUGAR_FREE = path.join(__dirname, 'sugar-free.cjs');
 const ADAPTER = path.join(__dirname, 'rsdom-jsdom.cjs');
 const SERVER_DESTROY = path.join(__dirname, 'server-destroy.cjs');
+const XPATH_SHIM = path.join(__dirname, 'xpath-shim.cjs');
 const FILE_TIMEOUT_MS = Number(process.env.PARITY_FILE_TIMEOUT_MS ?? 120_000);
 
 const trunc = (s, n = 600) => {
@@ -50,6 +53,7 @@ function installRedirects(dom) {
   const orig = Module._resolveFilename;
   const mapLib = (abs) => {
     if (dom === 'rsdom' && (abs === REFS_LIB + 'api.js' || abs === REFS_LIB + 'api')) return ADAPTER;
+    if (dom === 'rsdom' && (abs === REFS_LIB + 'jsdom/level3/xpath.js' || abs === REFS_LIB + 'jsdom/level3/xpath')) return XPATH_SHIM;
     return path.join(NM_JSDOM, 'lib', abs.slice(REFS_LIB.length));
   };
   Module._resolveFilename = function (request, parent, isMain, options) {

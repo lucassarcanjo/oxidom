@@ -6,9 +6,9 @@
 //!
 //! `<template>` contents get their own inert fragment owned by the document's template-contents owner; the
 //! nodes the parser puts into it are re-owned by one pass after the parse (`reown_template_contents`).
-//! Scripts never run. Scripting is reported as enabled (like jsdom with `runScripts: "dangerously"`, the
-//! Vitest default), so `<noscript>` content parses as raw text, except in documents with
-//! `DocData.no_scripting` (DOMParser documents, as in jsdom).
+//! Nothing runs during a parse; scripts the parser creates are flagged for crate::script (DESIGN §45). The
+//! scripting flag is on (`<noscript>` content parses as raw text) except in documents with
+//! `DocData.no_scripting`: DOMParser documents and documents of windows that do not run scripts, as in jsdom.
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
@@ -169,6 +169,10 @@ impl TreeSink for Sink<'_> {
         let ns = ns_atom(&mut env, &name.ns);
         let prefix = prefix_atom(&mut env, &name.prefix);
         let el = env.create_element_full(self.doc, local, ns, prefix);
+        if local == atom::SCRIPT && ns == crate::node::Ns::Html.uri() {
+            let started = self.context.is_some() || env.doc_data(self.doc).is_some_and(|d| d.no_scripting);
+            env.script.parser_created(el, started);
+        }
         if !attrs.is_empty() {
             let mut list: SmallVec<[Attr; 1]> = SmallVec::with_capacity(attrs.len());
             for a in &attrs {
@@ -184,6 +188,13 @@ impl TreeSink for Sink<'_> {
                 list.push(Attr { local: alocal, qname, ns: ans, prefix: apfx, value: Str::from(&*a.value) });
             }
             env.init_attrs(el, list);
+            // HTML "create an element for a token": the `is` attribute is the `is` value (crate::ce)
+            if let Some(is) = attrs.iter().find(|a| a.name.ns.is_empty() && &*a.name.local == "is")
+                && ns == crate::node::Ns::Html.uri()
+            {
+                let is = env.intern(&is.value);
+                env.ce_set_is(el, is);
+            }
         }
         drop(env);
         let i = (el - self.base) as usize;
@@ -319,12 +330,12 @@ impl Env {
         }
     }
 
-    /// DOMParser / parseDocument: parses `html` into a new HTML document (scripting disabled, as for
-    /// jsdom's DOMParser documents).
-    pub fn parse_document(&mut self, html: &str) -> NodeId {
+    /// DOMParser / parseDocument: parses `html` into a new HTML document, with the HTML parser's scripting flag
+    /// `scripting` (off for DOMParser documents and windows that do not run scripts, as in jsdom; DESIGN §45).
+    pub fn parse_document(&mut self, html: &str, scripting: bool) -> NodeId {
         let doc = self.create_document(crate::dom::DocKind::HtmlEmpty, None);
         if let Some(d) = self.doc_data_mut(doc) {
-            d.no_scripting = true;
+            d.no_scripting = !scripting;
         }
         let base = self.table.len();
         let sink = Sink {
@@ -339,7 +350,7 @@ impl Env {
             saw_template: Cell::new(false),
         };
         let (quirks, saw_template) =
-            html5ever::parse_document(sink, opts(false)).one(StrTendril::from_slice(html));
+            html5ever::parse_document(sink, opts(scripting)).one(StrTendril::from_slice(html));
         if saw_template {
             self.reown_template_contents(base);
         }
@@ -402,6 +413,9 @@ impl Env {
             self.reown_template_contents(base);
         }
         self.hook_parsed(base);
+        if self.script.on() {
+            self.script_parsed(base, doc);
+        }
         // The parser created <html> under `scratch`; its children are the result.
         let html_root = self.rec(scratch).first;
         let frag = self.create_fragment(doc);
@@ -497,9 +511,9 @@ natives! {
         let r = e.parse_fragment(ctx, doc, html);
         e.id_or_fail(r)
     }
-    /// DOMParser text/html: new document id.
-    fn parseDocument(e, html: str) -> u32 {
-        e.parse_document(html)
+    /// DOMParser text/html (`scripting` = 0), a window's document: new document id.
+    fn parseDocument(e, html: str, scripting: u32) -> u32 {
+        e.parse_document(html, scripting != 0)
     }
 }
 
@@ -545,7 +559,7 @@ mod tests {
         let inner_content = e.elem(inner).unwrap().template;
         assert_eq!(e.node_doc(e.rec(inner_content).first), tdoc);
         // DOMParser documents: scripting disabled, so <noscript> holds markup
-        let d2 = e.parse_document("<noscript><b>x</b></noscript>");
+        let d2 = e.parse_document("<noscript><b>x</b></noscript>", false);
         assert!(e.doc_data(d2).unwrap().no_scripting);
         let b2 = e.rec(e.rec(d2).last).last;
         assert_eq!(e.inner_html(b2), "<b>x</b>");
@@ -554,14 +568,14 @@ mod tests {
     #[test]
     fn parsed_ids_are_connected_and_mapped() {
         let mut e = Env::new();
-        let doc = e.parse_document("<!DOCTYPE html><p id=a>x</p><template><b id=t></b></template>");
+        let doc = e.parse_document("<!DOCTYPE html><p id=a>x</p><template><b id=t></b></template>", false);
         let a = e.intern("a");
         let t = e.intern("t");
         let p = e.get_element_by_id(doc, a);
         assert!(p != 0 && e.rec(p).meta & crate::node::meta::CONNECTED != 0);
         assert_eq!(e.get_element_by_id(doc, t), 0, "template contents are not in the document");
         assert_eq!(e.doc_data(doc).unwrap().quirks, Quirks::NoQuirks);
-        let q = e.parse_document("<p>quirky");
+        let q = e.parse_document("<p>quirky", false);
         assert_eq!(e.doc_data(q).unwrap().quirks, Quirks::Quirks);
     }
 }

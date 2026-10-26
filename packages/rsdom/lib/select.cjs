@@ -23,7 +23,7 @@ const MEMO_MAX = 64;
 
 function install(rt, dom) {
   const { N, V, F, M } = rt;
-  const { liveQueryCollection, staticNodeListShared, wrapAll } = require('./collections.cjs');
+  const { liveQueryCollection, staticNodeListShared, wrapAll, installNamedProperties } = require('./collections.cjs');
   const { MEMO, PREFILTER, deps } = require('./memo.cjs');
   const { Element, Document, DocumentFragment, staticNodeListFromIds, wrap } = dom;
 
@@ -256,6 +256,107 @@ function install(rt, dom) {
       return staticNodeListFromIds(rt.outIds(N.byName(this._i, String(elementName))));
     },
   });
+
+  // ------------------------------------------------- HTMLDocument collections, HTMLMapElement.areas
+
+  // jsdom Document-impl.js: getElementsByTagName with jsdom's upper-case names (so an XML document's
+  // lower-case `img` does not match), or a selector query kept to HTML elements; [SameObject], so cached.
+  const DOC_LISTS = new WeakMap();
+  function docList(node, key, make) {
+    let m = DOC_LISTS.get(node);
+    if (m === undefined) DOC_LISTS.set(node, (m = {}));
+    return (m[key] ??= make())._synced();
+  }
+  function htmlQuery(doc, selectors) {
+    const root = doc._i;
+    const c = sel(selectors);
+    return liveQueryCollection({
+      deps: TREE_ATTR_DEPS,
+      items: () => wrapAll(rt.outIds(N.qsa(root, c.id))).filter((e) => e.namespaceURI === rt.NS.HTML),
+    });
+  }
+  const byTag = (key, tag) =>
+    function get() {
+      return docList(this, key, () => this.getElementsByTagName(tag));
+    };
+  const embeds = byTag('embeds', 'EMBED');
+  for (const [prop, get] of Object.entries({
+    images: byTag('images', 'IMG'),
+    embeds,
+    plugins: embeds,
+    forms: byTag('forms', 'FORM'),
+    scripts: byTag('scripts', 'SCRIPT'),
+    links() {
+      return docList(this, 'links', () => htmlQuery(this, 'a[href], area[href]'));
+    },
+    anchors() {
+      return docList(this, 'anchors', () => htmlQuery(this, 'a[name]'));
+    },
+    applets() {
+      return docList(this, 'applets', () => liveQueryCollection({ deps: TREE_DEPS, items: () => [] }));
+    },
+  })) {
+    Object.defineProperty(Document.prototype, prop, { get, enumerable: false, configurable: true });
+  }
+  Object.defineProperty(rt.classes.HTMLMapElement.prototype, 'areas', {
+    get: byTag('areas', 'AREA'),
+    enumerable: false,
+    configurable: true,
+  });
+
+  // ------------------------------------------------- Document named properties (`document.loginForm`)
+
+  // jsdom Document-impl.js `#namedPropertyElements` / namedGet, one name at a time: `N.docNamed` walks the
+  // document natively for the elements contributing `name` (HTML embed / form / iframe / img / object by name,
+  // object and named img by id). The answer is memoised per document and name on EP[NAMED], which Rust bumps only
+  // when one of those five elements is connected or disconnected or its name / id changes (jsdom drops its cache
+  // on the same events), so probes of a missing member (`document.documentMode`) cost one stamp compare across
+  // unrelated mutations, and one native walk without wrappers after a relevant one.
+  const NAMED_DEPS = deps('NAMED');
+  const NAMED = new WeakMap();
+  function namedIds(doc, name) {
+    let s = NAMED.get(doc);
+    if (s === undefined) NAMED.set(doc, (s = { names: new Map(), colls: new Map() }));
+    let m = s.names.get(name);
+    if (m === undefined || !NAMED_DEPS.fresh(m.stamp)) {
+      if (m === undefined && s.names.size >= 256) s.names.clear(); // probes of many distinct names
+      const stamp = NAMED_DEPS.stamp(m === undefined ? null : m.stamp);
+      m = { stamp, ids: Array.from(rt.outIds(N.docNamed(doc._i, name))) };
+      s.names.set(name, m);
+    }
+    return { s, ids: m.ids };
+  }
+  // Document's named getter (no [LegacyOverrideBuiltIns]: Document's own members win), through the
+  // prototype-chain lookup of collections.cjs (DESIGN §4.3). One element answers itself (a lone iframe its
+  // content window), several a live HTMLCollection, the same per name.
+  // Document has no indexed getter, so `document[0]` is a name too.
+  installNamedProperties(
+    Document.prototype,
+    (doc, name) => {
+      // a wrapper still being made (`_i` unset) or of a torn-down env answers nothing and memoises nothing
+      if (!(doc instanceof Document) || typeof doc._i !== 'number' || doc._i === 0) return undefined;
+      let r;
+      try {
+        r = namedIds(doc, name);
+      } catch {
+        return undefined; // a probe for a missing member must not throw
+      }
+      const { s, ids } = r;
+      if (ids.length === 0) return undefined;
+      if (ids.length === 1) {
+        const el = wrap(ids[0]);
+        // a lone iframe answers its content window (DESIGN §46)
+        return el.localName === 'iframe' ? (require('./frames.cjs').frameWindow(el) ?? el) : el;
+      }
+      let c = s.colls.get(name);
+      if (c === undefined) {
+        c = liveQueryCollection({ deps: NAMED_DEPS, items: () => namedIds(doc, name).ids.map(wrap) });
+        s.colls.set(name, c);
+      }
+      return c;
+    },
+    { indices: true, internal: true },
+  );
 
   // Exposed for tests / benches (not part of the DOM surface).
   rt.select = { sel, SF, memoSize: () => MEMO_MAP.size, selSize: () => SEL.size };

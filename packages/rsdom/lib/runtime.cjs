@@ -29,6 +29,8 @@ const EPI = Object.freeze({
   OUT_NEED: 9, ERR: 10, REC: 11, TEXT: 12,
   /** area A's slot (src/style/mod.rs EP_STYLE_DEP): non-zero while author sheets select on element state */
   STYLE_DEP: 13,
+  /** an HTML embed / form / iframe / img / object (dis)connected, or its `name` / `id` changed (src/env.rs ep::NAMED) */
+  NAMED: 15,
 });
 /** Node-record field offsets (src/table.rs `NodeRec`). */
 const F = Object.freeze({
@@ -375,6 +377,7 @@ function wrapSlow(id) {
 
 let moPending = () => {};
 let uaTasks = () => {};
+let ceReactions = () => {};
 /**
  * Every mutating facade method ends with this: remaps the table if the mutation allocated (two
  * typed-array reads when nothing changed) and runs the post-mutation handlers when EP[MO_PENDING] (a bit
@@ -386,6 +389,7 @@ function mutated() {
   if (p !== 0) {
     if ((p & 1) !== 0) moPending();
     if ((p & 2) !== 0) uaTasks();
+    if ((p & 4) !== 0) ceReactions();
   }
 }
 
@@ -475,6 +479,8 @@ const rt = {
   setMoPendingHandler(fn) { moPending = fn; },
   /** area B: called (from `mutated()`) when bit 1 of EP[MO_PENDING] is set (UA element tasks queued) */
   setUaTaskHandler(fn) { uaTasks = fn; },
+  /** custom elements: called (from `mutated()`) when bit 2 of EP[MO_PENDING] is set (reactions queued, src/ce.rs) */
+  setCeHandler(fn) { ceReactions = fn; },
   /** area C: realm-specific DOMException */
   setDOMException(ctor) { DOMExceptionCtor = ctor; },
   /** called after `reset()` drops the env: clear JS-side caches keyed by node ids */

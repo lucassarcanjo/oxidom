@@ -21,8 +21,8 @@
 // load/loadend after readystatechange(4), still fire, as in jsdom); abort and network errors clear responseURL; responseURL and Referer have no
 // fragment; typed-array, URLSearchParams and SharedArrayBuffer bodies follow the spec; a timeout set after send()
 // takes effect and a stale one never aborts the next request; open() drops stored credentials; blob: URLs load.
-// Not supported: synchronous requests (send() throws NetworkError, jsdom's failure shape) and responseXML for XML
-// types (no XML parser, CONTRIBUTING §8).
+// Not supported: synchronous requests (send() throws NetworkError, jsdom's failure shape). XML response
+// documents and XML Document bodies go through lib/xml.cjs (DESIGN §38).
 
 const rt = require('./runtime.cjs');
 const { EventTarget } = require('./dom.cjs');
@@ -330,8 +330,10 @@ function onTimeout(s, r) {
 
 // ===================================================================================== send
 
-/** Fragment serialization of a Document body (HTML serializer, CONTRIBUTING §8). */
+/** Fragment serialization of a Document body (jsdom `fragmentSerialization`, not required to be well formed). */
 function serializeDocument(doc) {
+  const xml = require('./xml.cjs');
+  if (xml.inXmlDocument(doc)) return xml.serializeDocument(doc);
   let out = '';
   for (let c = doc.firstChild; c !== null; c = c.nextSibling) {
     const t = c.nodeType;
@@ -539,17 +541,33 @@ function text(s) {
   return s.textCache;
 }
 
-/** responseXML: HTML documents only (XML types are null: no XML parser); null for responseType ''. */
+const isXmlMime = (m) => (m.subtype === 'xml' && (m.type === 'text' || m.type === 'application')) || m.subtype.endsWith('+xml');
+
+/** responseXML: an HTML document (not for responseType '') or an XML one; null when an XML body is not well formed. */
 function documentResponse(s) {
   if (s.state !== DONE || s.chunks === null || s.received === 0) return null;
   if (s.xmlCache !== null) return s.xmlCache;
   const m = parseMime(finalMime(s));
-  if (m === null || m.essence !== 'text/html' || s.responseType === '') return null;
+  const html = m !== null && m.essence === 'text/html';
+  if (m !== null && !html && !isXmlMime(m)) return null;
+  if (html && s.responseType === '') return null;
   const t = loadNet().decode(bytes(s), finalCharset(s));
   if (t === '') return null;
-  const d = new rt.classes.DOMParser().parseFromString(t, 'text/html');
-  d._url = s.responseURL;
-  d._ct = 'text/html';
+  let d;
+  if (html) {
+    d = new rt.classes.DOMParser().parseFromString(t, 'text/html');
+    d._url = s.responseURL;
+    d._ct = 'text/html';
+  } else {
+    const xml = require('./xml.cjs');
+    // jsdom gives the response document no content type, so it is application/xml whatever the response's
+    d = xml.newXmlDocument('application/xml', s.responseURL);
+    try {
+      xml.parseInto(d, t);
+    } catch {
+      return null;
+    }
+  }
   s.xmlCache = d;
   return d;
 }
@@ -665,7 +683,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget {
       value = null;
     }
     // DOM-typed bodies become plain data here: the transport stays DOM-free
-    if (kind === 'document') value = { text: serializeDocument(value), html: value.contentType === 'text/html' };
+    if (kind === 'document') value = { text: serializeDocument(value), html: !require('./xml.cjs').inXmlDocument(value) };
     else if (kind === 'formdata') value = [...rt.classes.FormData.prototype.entries.call(value)];
     const headers = s.headers.map((h) => [h[0], h[1]]);
     const n = loadNet();

@@ -126,6 +126,17 @@ impl Env {
         out.push('<');
         self.qualified_tag(el, out);
         if let Some(d) = self.elem(el) {
+            // HTML fragment serialization: an element created with an `is` value but no `is` attribute writes
+            // the value first (jsdom serializes it before the attributes, DESIGN §43).
+            let is = self.ce_is(el);
+            if is != Atom::NONE
+                && !d.attrs.iter().any(|a| a.ns == Atom::NONE && self.atoms.name(a.qname) == "is")
+            {
+                out.push_str(" is=\"");
+                let v = self.atoms.name(is);
+                escape(out, v, true, v.is_ascii());
+                out.push('"');
+            }
             for a in &d.attrs {
                 out.push(' ');
                 match a.ns {

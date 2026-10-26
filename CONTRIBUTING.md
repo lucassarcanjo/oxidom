@@ -60,6 +60,7 @@ allocations below still hold.
 | `src/forms/**`, `src/focus.rs`, `lib/events.cjs`, `lib/forms.cjs` | **B** events, forms, focus, labels, validity, classList, dataset | `src/forms/element_state.rs` is the one home of the HTML control predicates (disabled, input type, submit button, summary, validity) that selector matching, focus and the facade ask (DESIGN §19) |
 | `src/mo.rs`, `lib/mo.cjs`, `lib/context.cjs`, `lib/window.cjs`, `lib/vitest-environment.mjs`, `bench/**` | **C** browsing contexts, window, globals, Vitest environment, MutationObserver, bench harness | |
 | `src/shadow.rs`, `lib/shadow.cjs` | ShadowRoot and `attachShadow`, without retargeting (DESIGN §22) | a shadow root is a fragment record with `meta::SHADOW` (bit 20, also set on its host) and its host in `payload`; connect / disconnect / adopt walks are shadow-including, the id map holds document-tree elements only |
+| `src/ce.rs`, `lib/custom-elements.cjs` | custom elements (DESIGN §43) | Rust keeps element states, definitions, observed attributes and the reaction queue (`meta::CE_CUSTOM` bit 21, `meta::CE_UNDEFINED` bit 22); JS owns constructors, callbacks and promises and drains the queue from `mutated()` (bit 2 of `EP[MO_PENDING]`) |
 | `lib/xhr.cjs`, `lib/xhr-fetch.cjs` | XMLHttpRequest (DESIGN §21) | facade only; `xhr-fetch.cjs` (bodies, network, decoding) loads on the first `send()` and stays DOM-free: `node:*` built-ins only, never `runtime.cjs` |
 | `lib/history.cjs` | session history (DESIGN §23) | facade only; one `SessionHistory` per browsing context (`ctx.history`), driven by `History` and `Location` in `window.cjs` |
 | `lib/file-api.cjs` | Blob, File, FileReader (DESIGN §27) | facade only; Blob and File subclass Node's (the bytes stay in Node's blob store) |
@@ -71,7 +72,7 @@ Reserved bit/slot ranges (declare constants in your own module; add a one-line c
 
 | resource | A | B | C |
 |---|---|---|---|
-| `NodeRec.meta` free bits (16..31) | 16-19 (20: `meta::SHADOW`, DESIGN §22) | 21-25 | 26-31 |
+| `NodeRec.meta` free bits (16..31) | 16-19 (20: `meta::SHADOW`, DESIGN §22) | 21-25 (21-22: `meta::CE_CUSTOM` / `meta::CE_UNDEFINED`, custom elements, DESIGN §43) | 26-31 |
 | `NodeRec.state` (forms/focus layout is fixed by DESIGN §2.2) | - | all of `state` | - |
 | `NodeRec.res[0..2]` (words 14-15) | `res[0]` (e.g. attribute bloom) | - | `res[1]` |
 | epoch page slots 13-15 | 13 | 14 | 15 (bench counters) |
@@ -171,7 +172,7 @@ Useful foundation APIs: `e.next_in_subtree(n, root)` (preorder walk), `e.childre
 
 ## 5. JS facade conventions
 
-Each area file exports `install(rt, dom)`; `lib/index.cjs` calls them once in the order
+Each area file exports `install(rt, dom)`; `lib/facade.cjs` calls them once in the order
 select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow, after the core classes exist.
 
 - `rt` (`lib/runtime.cjs`): `N` (natives), `V` (hot holder: `V.T` table view, `V.EP`, `V.OUT`, `V.off(id)`),
@@ -204,14 +205,14 @@ select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow
   (`_i = 0`) and bumps the env generation; JS caches keyed by ids or dynamic atoms must be cleared in
   `rt.onReset`, and objects that cache ids record `memo.envGen()` and check `memo.alive(gen)` (the core
   collections do).
-- Collections: live lists have NO own numeric properties (index getters live on the prototype, always
-  current); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
+- Collections: live lists' index getters live on the prototype (always current); a `length` read also syncs
+  own enumerable index accessors for [0, length) (`syncOwn`, DESIGN §4.3); static lists (`staticNodeListFromIds`) have own ones. Their internal state is `#private`
   (Vitest `toEqual` compares own entries). `liveQueryCollection({ deps, items })`: `deps` is a
   `memo.deps(...)` set, `items()` may return any iterable. `_sync()` still exists on every collection.
 - Attr wrappers are cached per element by (namespace atom, local atom) in `el._at.map` (key `local` for no
   namespace, `"ns:local"` otherwise).
 - `rt.define` gives WebIDL descriptors: public (non-`_`) names are enumerable, `_x` and symbols are not;
-  `index.cjs` calls `rt.exposeMembers()` after all areas installed.
+  `facade.cjs` calls `rt.exposeMembers()` after all areas installed.
 - Mutating facade methods end with `rt.mutated()`; node-allocating calls are followed by `rt.afterAlloc()`.
 - Copy OUT results with `rt.outIds(n)` before ANY further native call (materializing a wrapper in fallback
   mode is itself a native call).
@@ -268,19 +269,14 @@ mention it in the commit message so the other areas can rebase easily.
 Recorded after the foundation review (DESIGN §15.1); asserted where testable
 (`test/contract/foundation-fixes.test.mjs`, "spec-correct divergences").
 
-- **Lone surrogates / offsets inside surrogate pairs.** Strings are stored as UTF-8: lone surrogates become
-  U+FFFD on ingress, and a CharacterData offset that falls inside a surrogate pair rounds down to the start
-  of the code point, so `deleteData`/`insertData`/`replaceData`/`splitText` at such offsets edit whole code
-  points (`'a😀b'.deleteData(1, 1)` removes nothing in rsdom; jsdom removes the high surrogate). A full fix
-  needs WTF-8 or UTF-16 storage for character data.
-- **XML serialization.** Elements of XML documents use the HTML serializer (`<br></br>`, unescaped `<` in
-  attribute values) and `innerHTML =` on them uses the HTML fragment parser.
+- **Lone-surrogate escapes.** A lone surrogate is stored as a code point of U+10F800..U+10FFFF (DESIGN §44), so a
+  real character of that private-use block reads back as a lone surrogate.
 - **Index getters bound.** Live-list index getters are installed up to the largest length any list access
   has seen (at least 256). A list held across a mutation that grows it past that bound and then indexed past
   it without any `length`/`item`/iteration/getter access returns `undefined`.
   The same accessors serve `select[i]`, `select.options[i]` (with the indexed setter) and `form[i]` (bound grown
-  by their `length` getters). They live on prototypes, so `i in list` is true below the bound and indices are not
-  own properties (jsdom's legacy platform objects are Proxies with own index properties).
+  by their `length` getters). They live on prototypes, so `i in list` is true below the bound; live lists add own index
+  properties on `length` reads (DESIGN §4.3), `select` and `form` do not.
 - **Node reclamation (deferred).** Records and payloads of removed nodes are never reused: ids are never
   reused (invariant 6) and a removed subtree can be re-inserted while any wrapper of it is alive, which Rust
   cannot see. A free list needs a wrapper-liveness protocol (e.g. FinalizationRegistry -> Rust) and is
@@ -310,7 +306,7 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
    the oracle. A case where jsdom itself is wrong against the spec gets a comment and an explicit divergence.
 3. Decide where the state lives. State that must survive or react to tree mutations goes to Rust (a new
    module with its own `natives!` block, hooks from §4); pure API surface over existing state stays in the facade
-   (a new `lib/<feature>.cjs` installed from `lib/index.cjs`). Unused features must cost nothing on the hot paths.
+   (a new `lib/<feature>.cjs` installed from `lib/facade.cjs`). Unused features must cost nothing on the hot paths.
 4. Run `npm test` and `npm run test:fallback`; for anything on a hot path also `npm run bench:micro` and compare with
    `bench/results/micro.md`.
 5. `npm run test:parity -- --update --item <id>` locks in what now passes and regenerates the scoreboard

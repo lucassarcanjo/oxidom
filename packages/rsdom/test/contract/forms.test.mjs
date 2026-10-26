@@ -527,4 +527,96 @@ describe.each(DOMS)('forms [%s]', (kind) => {
     o.value = 'now';
     expect([o.value, o.defaultValue, o.type]).toEqual(['now', 'def', 'output']);
   });
+
+  it('stepUp / stepDown with decimal steps, min / max and dates (jsdom _stepUpdate)', () => {
+    if (!jsdomLike) return; // PINNED to jsdom: happy-dom steps differently
+    const i = d.createElement('input');
+    i.type = 'number';
+    i.step = '0.1';
+    i.value = '0.1';
+    i.stepUp(2);
+    expect(i.value).toBe('0.3'); // Decimal arithmetic, not 0.30000000000000004
+    i.min = '0';
+    i.max = '0.35';
+    i.stepUp(5);
+    expect(i.value).toBe('0.3');
+    i.stepDown(10);
+    expect(i.value).toBe('0');
+    i.value = '0.15';
+    i.stepUp();
+    expect(i.value).toBe('0.2'); // a misaligned value snaps to the step first
+    const date = d.createElement('input');
+    date.type = 'date';
+    date.value = '2024-02-28';
+    date.stepUp(2);
+    expect(date.value).toBe('2024-03-01');
+    // jsdom's #setValue: the dirty flag stays clear, so the value still follows the attribute
+    const r = d.createElement('input');
+    r.type = 'range';
+    r.max = '10';
+    r.valueAsNumber = 100; // stored raw, not sanitized
+    expect(r.value).toBe('100');
+    r.stepDown();
+    r.setAttribute('value', '7');
+    expect(r.value).toBe('7');
+    const t = d.createElement('input');
+    t.type = 'text';
+    expect(() => t.stepUp()).toThrow();
+    i.step = 'any';
+    expect(() => i.stepUp()).toThrow();
+  });
+
+  it('valueAsNumber / valueAsDate across the date types', () => {
+    if (!jsdomLike) return; // PINNED to jsdom
+    const i = d.createElement('input');
+    i.type = 'month';
+    i.valueAsNumber = 12 * 54 + 2;
+    expect(i.value).toBe('2024-03');
+    expect(i.valueAsDate.toISOString()).toBe('2024-03-01T00:00:00.000Z');
+    i.type = 'week';
+    i.valueAsDate = new Date(Date.UTC(2024, 0, 4));
+    expect(i.value).toBe('2024-W01');
+    i.type = 'time';
+    i.valueAsNumber = 3_723_500;
+    expect(i.value).toBe('01:02:03.5');
+    i.type = 'datetime-local';
+    i.valueAsNumber = Date.UTC(2020, 5, 1, 12, 30);
+    expect(i.value).toBe('2020-06-01T12:30');
+    expect(i.valueAsDate).toBe(null);
+    expect(() => {
+      i.valueAsDate = new Date();
+    }).toThrow();
+    i.type = 'date';
+    expect(() => {
+      i.valueAsDate = 5;
+    }).toThrow(/Date|object/);
+    i.valueAsDate = null;
+    expect(i.value).toBe('');
+    i.value = '2020-01-01';
+    i.valueAsDate = undefined; // WebIDL object?: undefined is null
+    expect(i.value).toBe('');
+  });
+
+  it('meter and progress values are clamped from their attributes', () => {
+    if (!jsdomLike) return; // PINNED to jsdom: happy-dom does not clamp
+    const m = d.createElement('meter');
+    m.setAttribute('min', '5');
+    m.setAttribute('max', '2');
+    m.setAttribute('value', '-3');
+    expect([m.min, m.max, m.value, m.low, m.high, m.optimum]).toEqual([5, 5, 5, 5, 5, 5]);
+    m.max = 15;
+    m.low = 7.5;
+    expect([m.max, m.low, m.high, m.optimum]).toEqual([15, 7.5, 15, 10]);
+    expect(m.getAttribute('low')).toBe('7.5');
+    expect(() => (m.value = NaN)).toThrow(/finite/);
+    const p = d.createElement('progress');
+    expect([p.value, p.max, p.position]).toEqual([0, 1, -1]);
+    p.value = 3;
+    p.max = 4;
+    expect([p.value, p.max, p.position]).toEqual([3, 4, 0.75]);
+    p.max = -1; // [ReflectPositive]: ignored
+    expect(p.max).toBe(4);
+    d.body.innerHTML = '<label>L <progress id="pr"></progress></label>';
+    expect($('pr').labels.length).toBe(1);
+  });
 });

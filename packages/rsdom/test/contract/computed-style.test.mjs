@@ -1,7 +1,7 @@
 // getComputedStyle (ROADMAP M6 computed-style items): UA defaults (jsdom's default stylesheet), [hidden],
 // inheritance, inline !important, author <style> sheets, snapshot semantics, pseudo-elements, and the
-// jest-dom / dom-accessibility-api consumers. jsdom is the oracle except where documented (computed
-// values keep the specified serialization so jest-dom toHaveStyle round-trips).
+// jest-dom / dom-accessibility-api consumers. jsdom is the oracle (computed values resolve like
+// jsdom 30, DESIGN §30, so keyword colours do not round-trip through jest-dom toHaveStyle there either).
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -164,15 +164,59 @@ describe.each(DOMS)('getComputedStyle [%s]', (kind) => {
       for (const p of props) {
         const want = o.getComputedStyle(o.document.getElementById(id)).getPropertyValue(p);
         const got = gcs(d.getElementById(id)).getPropertyValue(p);
-        // Documented divergence: specified keywords are kept (h1 font-weight 'bold', jsdom '700').
-        if (id === 'h' && p === 'font-weight') continue;
         if (got !== want) diffs.push(`#${id} ${p}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}`);
       }
     }
     expect(diffs).toEqual([]);
   });
 
-  it('jest-dom toHaveStyle round-trips (fails on jsdom 30: documented)', async () => {
+  it('computed colours, font weights and lengths resolve like jsdom (ROADMAP computed-values)', () => {
+    if (kind === 'happy-dom') return;
+    const html = '<style>.g { color: grey } .t { background-color: transparent; border-top-color: Canvas }</style>' +
+      '<div id=p class=g style="font-size: 20px"><p id=c class=t style="width: 2em; height: 3rem; margin-left: 1in; ' +
+      'padding-top: 10vh; text-indent: 10pt; line-height: 1.5; font-weight: bold; outline-color: currentcolor"></p></div>';
+    const read = (doc, win) => {
+      doc.body.innerHTML = html;
+      const out = {};
+      for (const id of ['p', 'c']) {
+        const cs = win.getComputedStyle(doc.getElementById(id));
+        for (const p of ['color', 'background-color', 'border-top-color', 'outline-color', 'column-rule-color', 'width',
+          'height', 'margin-left', 'padding-top', 'text-indent', 'line-height', 'font-weight', 'font']) {
+          out[`#${id} ${p}`] = cs.getPropertyValue(p);
+        }
+      }
+      return out;
+    };
+    const o = windowWithGcs('jsdom');
+    const got = read(d, { getComputedStyle: gcs });
+    expect(got).toEqual(read(o.document, o));
+    expect(got['#c color']).toBe('rgb(128, 128, 128)');
+    expect(got['#c width']).toBe('40px');
+  });
+
+  it('rem reads the root from detached elements; vw/vh follow innerWidth/innerHeight', () => {
+    if (kind === 'happy-dom') return;
+    const run = (doc, win) => {
+      doc.documentElement.style.fontSize = '10px';
+      const det = doc.createElement('div');
+      det.style.width = '2rem';
+      const before = win.getComputedStyle(det).width;
+      doc.documentElement.style.fontSize = '30px';
+      const v = doc.createElement('div');
+      v.style.cssText = 'width: 10vw; height: 10vh';
+      doc.body.appendChild(v);
+      win.innerWidth = 500;
+      win.innerHeight = 400;
+      const cs = win.getComputedStyle(v);
+      return [before, win.getComputedStyle(det).width, cs.width, cs.height];
+    };
+    const o = windowWithGcs('jsdom');
+    const got = run(d, w);
+    expect(got).toEqual(run(o.document, o));
+    expect(got).toEqual(['20px', '60px', '50px', '40px']);
+  });
+
+  it('jest-dom toHaveStyle: keyword colours and weights do not round-trip, as on jsdom 30', async () => {
     const matchersPath = path.join(pkgDir('@testing-library/jest-dom'), 'dist/matchers.js');
     const matchers = require(matchersPath);
     d.body.innerHTML = '<div id=x style="color: red; font-weight: bold; background-color: #1e1e1e; padding: 8px 12px; border-width: 1px"></div>';
@@ -180,11 +224,12 @@ describe.each(DOMS)('getComputedStyle [%s]', (kind) => {
     const run = (css) => matchers.toHaveStyle.call({ isNot: false, utils: { matcherHint: () => '', printExpected: String, printReceived: String, RECEIVED_COLOR: String, EXPECTED_COLOR: String }, equals: Object.is }, x, css).pass;
     const colorRed = run('color: red');
     const bold = run({ fontWeight: 'bold' });
-    if (kind === 'jsdom') {
-      // jsdom 30 resolves computed values (rgb(255, 0, 0) / 700) but keeps them specified inline
+    if (kind !== 'happy-dom') {
+      // computed values resolve (rgb(255, 0, 0) / 700) while copy.style keeps the keywords, so
+      // `.not.toHaveStyle('color: red')` passes on a red element: rsdom keeps that jsdom behaviour
       expect([colorRed, bold]).toEqual([false, false]);
     } else {
-      expect([colorRed, bold]).toEqual([true, true]);
+      expect([colorRed, bold]).toEqual([true, true]); // PINNED: happy-dom computes specified values
     }
     expect(run('background-color: #1e1e1e')).toBe(true);
     if (kind !== 'happy-dom') expect(run({ backgroundColor: 'rgb(30, 30, 30)' })).toBe(true); // PINNED: happy-dom keeps hex

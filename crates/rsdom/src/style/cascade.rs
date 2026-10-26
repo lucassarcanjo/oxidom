@@ -5,11 +5,14 @@
 //! (so `[hidden]` keeps winning over a less specific author rule, as in jsdom), then the inline block
 //! (normal inline beats every normal rule, inline `!important` beats everything).
 //!
-//! Computed values keep the *specified* serialization (the same serializer as `element.style`), so
-//! jest-dom `toHaveStyle('color: red')` / `{fontWeight: 'bold'}` round-trip (they fail on jsdom 30, which
-//! resolves to `rgb(255, 0, 0)` / `700`). Unspecified properties use jsdom's resolved initial values
-//! (`rgb(0, 0, 0)`, `400`, `16px`, `rgba(0, 0, 0, 0)`, ...); `currentcolor`, `font-size` and border widths
-//! of `none` borders are resolved like jsdom.
+//! Computed values start from the specified serialization (the same serializer as `element.style`) and
+//! resolve what jsdom 30 resolves (ROADMAP Stage 3 `computed-values`): colour keywords, system colours,
+//! `transparent` and `currentcolor` to `rgb()`/`rgba()`, `font-weight` keywords to numbers, and single
+//! `<length>`s in absolute, font-relative and viewport units to px. So, as on jsdom, jest-dom
+//! `toHaveStyle('color: red')` / `{fontWeight: 'bold'}` no longer match (the expected side keeps the
+//! keyword). Unspecified properties use jsdom's resolved initial values (`rgb(0, 0, 0)`, `400`, `16px`,
+//! `rgba(0, 0, 0, 0)`, ...); border widths of `none` borders are 0px. Not resolved: `calc()`, `color-mix()`,
+//! `lab()` & co, `color-scheme: dark` system colours.
 //!
 //! The core snapshot (`csCore`): display, visibility, pointer-events, opacity == 1 and position packed in
 //! a u32, memoised per element (`ElementExt.cs`) against `EP[STYLE]`; inherited fields come from the
@@ -324,6 +327,15 @@ fn apply_inline<'a>(st: &'a InlineStyle, want: &[u32], out: &mut [Option<Win<'a>
     }
 }
 
+/// The document element of `el`'s node document (0 if it has none).
+fn document_element(e: &Env, el: NodeId) -> NodeId {
+    let mut c = e.rec(e.rec(el).owner).first;
+    while c != 0 && e.rec(c).meta & meta::KIND_MASK != kind::ELEMENT {
+        c = e.rec(c).next;
+    }
+    c
+}
+
 fn parent_element(e: &Env, el: NodeId) -> NodeId {
     let p = e.rec(el).parent;
     if p != 0 && e.rec(p).meta & meta::KIND_MASK == kind::ELEMENT { p } else { 0 }
@@ -494,7 +506,7 @@ fn resolved_initial(name: &str) -> Option<&'static str> {
     })
 }
 
-const ABS_FONT_SIZES: &[(&str, f32)] = &[
+const ABS_FONT_SIZES: &[(&str, f64)] = &[
     ("xx-small", 9.0),
     ("x-small", 10.0),
     ("small", 13.0),
@@ -505,39 +517,67 @@ const ABS_FONT_SIZES: &[(&str, f32)] = &[
     ("xxx-large", 48.0),
 ];
 
-fn px(v: f32) -> String {
-    let r = (v as f64 * 1e6).round() / 1e6;
-    let s = format!("{}", r as f32);
-    format!("{}px", if s.contains('e') { fmt_num(v) } else { s })
+/// The viewport `vw`/`vh` resolve against when the caller has no window: the default `innerWidth` /
+/// `innerHeight` (packages/rsdom/lib/window.cjs). The facade passes the window's current values to `csStr`.
+pub const DEFAULT_VIEWPORT: (f64, f64) = (1024.0, 768.0);
+
+/// A resolved length: jsdom 30 serialises it as `${Number(px.toPrecision(6))}px`, so JS number formatting
+/// (exponent form below 1e-6 and from 1e21).
+fn px(v: f64) -> String {
+    let r: f64 = format!("{v:.5e}").parse().unwrap_or(v);
+    if r == 0.0 {
+        return "0px".into(); // also -0
+    }
+    if r.abs() < 1e-6 || r.abs() >= 1e21 {
+        let s = format!("{r:e}");
+        return match s.split_once('e') {
+            Some((m, x)) if !x.starts_with('-') => format!("{m}e+{x}px"),
+            _ => format!("{s}px"),
+        };
+    }
+    format!("{r}px")
 }
 
-/// A length in px given the parent font size (`em`, `%` of font-size) for font-size resolution.
-fn font_size_px(v: &str, parent_px: f32) -> Option<f32> {
-    if let Some(&(_, x)) = ABS_FONT_SIZES.iter().find(|(k, _)| *k == v) {
-        return Some(x);
+/// jsdom 30's `resolveLengthInPixels` for a single `<number><unit>` value (refs/jsdom/lib/jsdom/living/css/
+/// helpers/font-sizes.js): absolute, font-relative and viewport units in px. `em` and `rem` give the font
+/// sizes the relative units use (only called for those units); `vp` is the viewport in px, None on the root
+/// element, where jsdom leaves viewport units unresolved. None for anything else: percentages, unitless
+/// numbers, keywords, `calc()`.
+fn length_px(v: &str, em: impl Fn() -> f64, rem: impl Fn() -> f64, vp: Option<(f64, f64)>) -> Option<f64> {
+    let b = v.as_bytes();
+    if !b.first().is_some_and(|c| c.is_ascii_digit() || matches!(c, b'.' | b'+' | b'-')) {
+        return None;
     }
-    match v {
-        "larger" => return Some(parent_px * 1.2),
-        "smaller" => return Some(parent_px / 1.2),
-        _ => {}
-    }
-    let num_unit = |suffix: &str| v.strip_suffix(suffix).and_then(|n| n.parse::<f32>().ok());
-    if let Some(n) = num_unit("px") {
-        return Some(n);
-    }
-    if let Some(n) = num_unit("rem") {
-        return Some(n * 16.0);
-    }
-    if let Some(n) = num_unit("em") {
-        return Some(n * parent_px);
-    }
-    if let Some(n) = num_unit("%") {
-        return Some(n * parent_px / 100.0);
-    }
-    if let Some(n) = num_unit("pt") {
-        return Some(n * 4.0 / 3.0);
-    }
-    None
+    // the longest numeric prefix followed by a letters-only unit (`1e1px` is 1e1 px, `1em` is 1 em)
+    let (n, unit) = (1..b.len()).rev().find_map(|i| {
+        let unit = &v[i..];
+        if !unit.bytes().all(|c| c.is_ascii_alphabetic()) {
+            return None;
+        }
+        v[..i].parse::<f64>().ok().map(|n| (n, unit))
+    })?;
+    let (vw, vh) = vp.map_or((f64::NAN, f64::NAN), |(w, h)| (w / 100.0, h / 100.0));
+    let r = n * match unit {
+        "px" => 1.0,
+        "cm" => 96.0 / 2.54,
+        "mm" => 96.0 / 25.4,
+        "q" => 96.0 / 101.6,
+        "in" => 96.0,
+        "pc" => 16.0,
+        "pt" => 96.0 / 72.0,
+        "rem" | "rcap" | "ric" => rem(),
+        "rch" | "rex" => rem() * 0.5,
+        "rlh" => rem() * 1.2,
+        "em" | "cap" | "ic" => em(),
+        "ch" | "ex" => em() * 0.5,
+        "lh" => em() * 1.2,
+        "vw" | "vi" => vw,
+        "vh" | "vb" => vh,
+        "vmin" => vw.min(vh),
+        "vmax" => vw.max(vh),
+        _ => return None,
+    };
+    r.is_finite().then_some(r)
 }
 
 fn weight_num(v: &str) -> f32 {
@@ -554,11 +594,19 @@ struct Strs<'a> {
     e: &'a Env,
     q: selectors::context::QuirksMode,
     authors: Authors<'a>,
+    /// the window's innerWidth / innerHeight (viewport units)
+    vp: (f64, f64),
 }
 
 impl<'a> Strs<'a> {
-    fn new(e: &'a Env, el: NodeId) -> Self {
-        Strs { e, q: adapter::quirks_of(e, el), authors: sheet::author_sheets(e, e.rec(el).owner) }
+    fn new(e: &'a Env, el: NodeId, vp: (f64, f64)) -> Self {
+        Strs { e, q: adapter::quirks_of(e, el), authors: sheet::author_sheets(e, e.rec(el).owner), vp }
+    }
+
+    /// The viewport for lengths on `el`: none on the root element (jsdom 30 `#prepareDimension` is skipped
+    /// there, so `vh` & co stay as specified).
+    fn vp_of(&self, el: NodeId) -> Option<(f64, f64)> {
+        (document_element(self.e, el) != el).then_some(self.vp)
     }
 
     fn cascaded(&self, el: NodeId, p: u32) -> Option<&'a str> {
@@ -576,6 +624,8 @@ impl<'a> Strs<'a> {
         }
         // custom properties are inherited
         let inherited = info.is_none_or(|i| i.inherited);
+        let is_color = info.is_some_and(|i| i.flags & (flag::COLOR | flag::PAINT) != 0);
+        let at = |n: NodeId| if is_color { el } else { n };
         let mut n = el;
         loop {
             let parent = parent_element(self.e, n);
@@ -588,10 +638,11 @@ impl<'a> Strs<'a> {
                 Some("inherit") => true,
                 Some("initial") => false,
                 Some("unset") => inherited,
-                Some(v) => return if info.is_none() { v.to_string() } else { self.resolve(n, p, v) },
+                // a colour inherits as specified and resolves on `el` (jsdom 30: `currentcolor` is el's colour)
+                Some(v) => return if info.is_none() { v.to_string() } else { self.resolve(at(n), p, v) },
             };
             if !up || parent == 0 {
-                return self.initial(n, p);
+                return self.initial(at(n), p);
             }
             n = parent;
         }
@@ -610,11 +661,32 @@ impl<'a> Strs<'a> {
         self.resolve(el, p, info.initial)
     }
 
+    /// The computed `font-size` of `el` in px (16 for none).
+    fn font_px(&self, el: NodeId) -> f64 {
+        self.computed(el, props().ids.font_size)
+            .strip_suffix("px")
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(16.0)
+    }
+
+    /// The font size `rem` resolves against on `el`: the root element's, but 16 on the root element itself
+    /// (jsdom 30 `#prepareDimension`).
+    fn rem_px(&self, el: NodeId) -> f64 {
+        match document_element(self.e, el) {
+            0 => 16.0,
+            root if root == el => 16.0,
+            root => self.font_px(root),
+        }
+    }
+
     /// jsdom computed-value adjustments of a specified value.
     fn resolve(&self, el: NodeId, p: u32, v: &str) -> String {
         let pr = props();
         let ids = &pr.ids;
-        if v == "currentcolor" && pr.info(p).is_some_and(|i| i.flags & (flag::COLOR | flag::PAINT) != 0) {
+        // jsdom resolves longhands only; the shorthands it stores as one value keep the specified value
+        let flags = pr.info(p).filter(|i| i.longhands.is_empty()).map_or(0, |i| i.flags);
+        let is_color = flags & (flag::COLOR | flag::PAINT) != 0;
+        if v == "currentcolor" && is_color {
             return if p == ids.color {
                 match parent_element(self.e, el) {
                     0 => "rgb(0, 0, 0)".into(),
@@ -623,6 +695,9 @@ impl<'a> Strs<'a> {
             } else {
                 self.computed(el, ids.color)
             };
+        }
+        if is_color {
+            return value::computed_color(v).unwrap_or_else(|| v.to_string());
         }
         if let Some(side) = ids.border_side_width.iter().position(|&x| x == p) {
             let style = self.computed(el, ids.border_side_style[side]);
@@ -633,21 +708,34 @@ impl<'a> Strs<'a> {
                 "thin" => "1px".into(),
                 "medium" => "3px".into(),
                 "thick" => "5px".into(),
-                _ => v.to_string(),
+                _ => self.length(el, v),
             };
         }
         if p == ids.font_size {
             let parent_px = match parent_element(self.e, el) {
                 0 => 16.0,
-                par => self
-                    .computed(par, ids.font_size)
-                    .strip_suffix("px")
-                    .and_then(|n| n.parse().ok())
-                    .unwrap_or(16.0),
+                par => self.font_px(par),
             };
-            return font_size_px(v, parent_px).map(px).unwrap_or_else(|| v.to_string());
+            if let Some(&(_, x)) = ABS_FONT_SIZES.iter().find(|(k, _)| *k == v) {
+                return px(x);
+            }
+            let r = match v {
+                "larger" => Some(parent_px * 1.2),
+                "smaller" => Some(parent_px / 1.2),
+                _ => match v.strip_suffix('%').and_then(|n| n.parse::<f64>().ok()) {
+                    Some(n) => Some(n * parent_px / 100.0),
+                    None => length_px(v, || parent_px, || self.rem_px(el), self.vp_of(el)),
+                },
+            };
+            return r.map(px).unwrap_or_else(|| v.to_string());
         }
-        if p == ids.font_weight && (v == "bolder" || v == "lighter") {
+        if p == ids.font_weight {
+            match v {
+                "normal" => return "400".into(),
+                "bold" => return "700".into(),
+                "bolder" | "lighter" => {}
+                _ => return v.to_string(),
+            }
             let pw = match parent_element(self.e, el) {
                 0 => 400.0,
                 par => weight_num(&self.computed(par, ids.font_weight)),
@@ -669,7 +757,19 @@ impl<'a> Strs<'a> {
             };
             return fmt_num(w);
         }
+        if flags & flag::LENGTH != 0 {
+            return self.length(el, v);
+        }
         v.to_string()
+    }
+
+    /// A `<length>` longhand's computed value: jsdom resolves relative units against the element's own
+    /// font size (`em`) and the root's (`rem`).
+    fn length(&self, el: NodeId, v: &str) -> String {
+        match length_px(v, || self.font_px(el), || self.rem_px(el), self.vp_of(el)) {
+            Some(r) => px(r),
+            None => v.to_string(),
+        }
     }
 
     /// Computed value of an expanded shorthand (jsdom serializes computed shorthands in full).
@@ -697,7 +797,11 @@ impl<'a> Strs<'a> {
             }
             return parts[0].join(" ");
         }
-        let vals: Vec<String> = value::longhands(p).iter().map(|&l| get(l).unwrap_or_default()).collect();
+        let mut vals: Vec<String> = value::longhands(p).iter().map(|&l| get(l).unwrap_or_default()).collect();
+        if p == ids.font && vals.get(2).is_some_and(|w| w == "400") {
+            // font-weight computes `normal` to 400, which jsdom's computed `font` leaves out like `normal`
+            vals[2] = "normal".into();
+        }
         let refs: SmallVec<[&str; 12]> = vals.iter().map(String::as_str).collect();
         value::serialize_values(p, &refs).unwrap_or_default()
     }
@@ -705,12 +809,22 @@ impl<'a> Strs<'a> {
 
 /// `getComputedStyle(el).getPropertyValue(p)` for any property (non-core path).
 pub fn computed_str(e: &mut Env, el: NodeId, p: u32) -> String {
+    computed_str_in(e, el, p, DEFAULT_VIEWPORT)
+}
+
+/// [`computed_str`] in a window of `vp` = (innerWidth, innerHeight).
+pub fn computed_str_in(e: &mut Env, el: NodeId, p: u32, vp: (f64, f64)) -> String {
     if !e.is_element(el) {
         return String::new();
     }
     prepare_chain(e, el, false);
+    // `rem` reads the root element, which is not an ancestor of a detached or shadow-tree element
+    let root = document_element(e, el);
+    if root != 0 {
+        prepare_chain(e, root, false);
+    }
     // inheritance and currentcolor resolution may visit any ancestor; prepare_chain covered them all
-    Strs::new(e, el).computed(el, p)
+    Strs::new(e, el, vp).computed(el, p)
 }
 
 /// Property ids with a cascaded value on `el` (jsdom's computed declaration `length` / `item`), in
@@ -771,8 +885,8 @@ natives! {
         core(e, id)
     }
     /// getComputedStyle(el).getPropertyValue(p) for property id `p`.
-    fn csStr(e, id: u32, p: u32) -> &str {
-        let s = computed_str(e, id, p);
+    fn csStr(e, id: u32, p: u32, vw: f64, vh: f64) -> &str {
+        let s = computed_str_in(e, id, p, (vw, vh));
         e.scratch.clear();
         e.scratch.push_str(&s);
         &e.scratch
@@ -795,7 +909,7 @@ mod tests {
 
     fn doc(html: &str) -> (Env, NodeId) {
         let mut e = Env::new();
-        let d = e.parse_document(html);
+        let d = e.parse_document(html, false);
         (e, d)
     }
 
@@ -836,7 +950,7 @@ mod tests {
         let p = core(&mut e, i);
         assert_eq!((p >> pack::VISIBILITY_SHIFT) & 3, 1);
         let color = props().ids.color;
-        assert_eq!(computed_str(&mut e, i, color), "red");
+        assert_eq!(computed_str(&mut e, i, color), "rgb(255, 0, 0)");
         let o = by_id(&e, d, "o");
         e.set_attr(o, atom::STYLE, "display: none !important").unwrap();
         assert_eq!(display(&mut e, o), "none");
@@ -907,7 +1021,7 @@ mod tests {
         let x = by_id(&e, d, "x");
         let p = by_id(&e, d, "p");
         assert_eq!(display(&mut e, x), "flex");
-        assert_eq!(computed_str(&mut e, p, props().ids.color), "red");
+        assert_eq!(computed_str(&mut e, p, props().ids.color), "rgb(255, 0, 0)");
         assert_eq!((core(&mut e, p) >> pack::VISIBILITY_SHIFT) & 3, 1);
         e.set_attr(x, atom::ID, "y").unwrap();
         assert_eq!(display(&mut e, x), "block");
@@ -923,7 +1037,7 @@ mod tests {
         let (x, s1, s2) = (by_id(&e, d, "x"), by_id(&e, d, "s1"), by_id(&e, d, "s2"));
         let color = props().ids.color;
         assert_eq!(display(&mut e, x), "grid");
-        assert_eq!(computed_str(&mut e, x, color), "red"); // .a beats div by specificity
+        assert_eq!(computed_str(&mut e, x, color), "rgb(255, 0, 0)"); // .a beats div by specificity
         assert_eq!(core(&mut e, x) & pack::OPACITY_ONE, 0);
         let width = props().id("width").unwrap();
         assert!(!declared_props(&mut e, x).contains(&width));
@@ -947,7 +1061,7 @@ mod tests {
         let x = by_id(&e, d, "bar");
         assert_eq!(display(&mut e, x), "flex");
         assert_eq!((core(&mut e, x) >> pack::VISIBILITY_SHIFT) & 3, 1);
-        assert_eq!(computed_str(&mut e, x, props().ids.color), "red");
+        assert_eq!(computed_str(&mut e, x, props().ids.color), "rgb(255, 0, 0)");
         assert!(declared_props(&mut e, x).contains(&props().ids.color));
     }
 
@@ -958,7 +1072,7 @@ mod tests {
         let pr = props();
         let h = by_id(&e, d, "h");
         assert_eq!(computed_str(&mut e, h, pr.ids.font_size), "32px");
-        assert_eq!(computed_str(&mut e, h, pr.ids.font_weight), "bold");
+        assert_eq!(computed_str(&mut e, h, pr.ids.font_weight), "700");
         let b = by_id(&e, d, "b");
         assert_eq!(computed_str(&mut e, b, pr.ids.font_weight), "900");
         let a = by_id(&e, d, "a");
@@ -969,6 +1083,45 @@ mod tests {
         assert_eq!(computed_str(&mut e, dv, pr.ids.background_color), "rgba(0, 0, 0, 0)");
         assert_eq!(computed_str(&mut e, dv, pr.ids.flex), "0 1 auto");
         assert_eq!(computed_str(&mut e, dv, pr.id("width").unwrap()), "auto");
+    }
+
+    #[test]
+    fn computed_colours_and_lengths() {
+        let (mut e, d) = doc("<!DOCTYPE html><html style='font-size: 10px'><style>.g { color: grey } \
+             .t { background-color: transparent; border-top-color: Canvas; outline-color: auto }</style>\
+             <div id=p class=g style='font-size: 20px'><p id=c class=t style='width: 2em; height: 3rem; \
+             margin-left: 1in; padding-top: 10vh; line-height: 1.5; text-indent: 50%; font-weight: normal'>\
+             </p></div></html>");
+        let pr = props();
+        let id = |n: &str| pr.id(n).unwrap();
+        let (p, c) = (by_id(&e, d, "p"), by_id(&e, d, "c"));
+        assert_eq!(computed_str(&mut e, p, pr.ids.color), "rgb(128, 128, 128)");
+        // inherited colours and an unspecified currentcolor resolve on the element
+        assert_eq!(computed_str(&mut e, c, pr.ids.color), "rgb(128, 128, 128)");
+        assert_eq!(computed_str(&mut e, c, id("column-rule-color")), "rgb(128, 128, 128)");
+        assert_eq!(computed_str(&mut e, c, pr.ids.background_color), "rgba(0, 0, 0, 0)");
+        assert_eq!(computed_str(&mut e, c, id("border-top-color")), "rgb(255, 255, 255)");
+        assert_eq!(computed_str(&mut e, c, id("outline-color")), "rgba(0, 0, 0, 0)"); // jsdom 30
+        assert_eq!(computed_str(&mut e, c, id("width")), "40px");
+        assert_eq!(computed_str(&mut e, c, id("height")), "30px");
+        assert_eq!(computed_str(&mut e, c, id("margin-left")), "96px");
+        assert_eq!(computed_str(&mut e, c, id("padding-top")), "76.8px");
+        assert_eq!(computed_str(&mut e, c, pr.ids.line_height), "1.5");
+        assert_eq!(computed_str(&mut e, c, id("text-indent")), "50%");
+        assert_eq!(computed_str(&mut e, c, pr.ids.font_weight), "400");
+        assert_eq!(computed_str(&mut e, c, pr.ids.font), "20px / 1.5 depends on user agent");
+        // rem is 16px on the root element itself
+        let root = document_element(&e, c);
+        assert_eq!(computed_str(&mut e, root, pr.ids.font_size), "10px");
+        assert_eq!(px(96.0 / 72.0 * 10.0), "13.3333px");
+        assert_eq!(px(9.6e-7), "9.6e-7px");
+        assert_eq!(px(1e21), "1e+21px");
+        assert_eq!(length_px("10vh", || 0.0, || 0.0, None), None); // root element: jsdom leaves it
+        assert_eq!(length_px("10vw", || 0.0, || 0.0, Some((500.0, 400.0))), Some(50.0));
+        assert_eq!(length_px("1e1px", || 0.0, || 0.0, None), Some(10.0));
+        assert_eq!(length_px("3ex", || 20.0, || 0.0, None), Some(30.0));
+        assert_eq!(length_px("2", || 20.0, || 0.0, None), None);
+        assert_eq!(length_px("calc(1em + 2px)", || 20.0, || 0.0, None), None);
     }
 
     /// A 300-row table under an author sheet of `rules` class-keyed rules, none matching (Tailwind- /
@@ -1108,7 +1261,7 @@ mod tests {
         println!("computed_str color deep: {:.1} ns", t.elapsed().as_nanos() as f64 / n as f64);
         let t = std::time::Instant::now();
         for _ in 0..n {
-            let st = Strs::new(&e, b);
+            let st = Strs::new(&e, b, DEFAULT_VIEWPORT);
             s += st.cascaded(b, color).map_or(0, |v| v.len()) as u32;
         }
         println!("cascaded color one element: {:.1} ns", t.elapsed().as_nanos() as f64 / n as f64);

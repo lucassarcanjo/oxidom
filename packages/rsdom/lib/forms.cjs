@@ -32,6 +32,7 @@ function wrap(id) {
 
 /** Input type names indexed by the Rust type code, and the codes (generated from src/forms/types.rs). */
 const { NAMES: INPUT_TYPES, TY } = require('./generated/input-types.cjs');
+const inputNumber = require('./input-number.cjs');
 
 /** Validity bits (src/forms/mod.rs `vbits`). */
 const VB = {
@@ -105,13 +106,20 @@ function queueSelect(el) {
 
 // ===================================================================================== reflection
 
+// Element.prototype's attribute methods, set by install(): reflection reads and writes the content attribute
+// directly, so an instance that overrides getAttribute / setAttribute does not see it (jsdom reflects on the
+// impl; WPT html/dom/reflection-overridden-methods.html).
+let getAttr;
+let setAttr;
+let removeAttr;
+
 function reflectStr(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      return this.getAttribute(attr) ?? '';
+      return getAttr.call(this, attr) ?? '';
     },
     set(v) {
-      this.setAttribute(attr, v);
+      setAttr.call(this, attr, v);
     },
     enumerable: false,
     configurable: true,
@@ -121,11 +129,11 @@ function reflectStr(C, prop, attr = prop.toLowerCase()) {
 function reflectBool(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      return this.hasAttribute(attr);
+      return getAttr.call(this, attr) !== null;
     },
     set(v) {
-      if (v) this.setAttribute(attr, '');
-      else this.removeAttribute(attr);
+      if (v) setAttr.call(this, attr, '');
+      else removeAttr.call(this, attr);
     },
     enumerable: false,
     configurable: true,
@@ -144,7 +152,7 @@ function parseInteger(v) {
 function reflectLong(C, prop, attr, dflt, nonNeg = false) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return dflt;
       const n = parseInteger(v);
       if (n === null || n < -2147483648 || n > 2147483647 || (nonNeg && n < 0)) return dflt;
@@ -153,7 +161,7 @@ function reflectLong(C, prop, attr, dflt, nonNeg = false) {
     set(v) {
       const n = Number(v) | 0;
       if (nonNeg && n < 0) throw rt.domError(5, `The value provided (${n}) is negative.`);
-      this.setAttribute(attr, String(n));
+      setAttr.call(this, attr, String(n));
     },
     enumerable: false,
     configurable: true,
@@ -164,7 +172,7 @@ function reflectLong(C, prop, attr, dflt, nonNeg = false) {
 function reflectULong(C, prop, attr, dflt, positive = false) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return dflt;
       const n = parseInteger(v);
       if (n === null || n < 0 || n > 2147483647 || (positive && n === 0)) return dflt;
@@ -174,7 +182,7 @@ function reflectULong(C, prop, attr, dflt, positive = false) {
       let n = Number(v) >>> 0;
       if (n > 2147483647) n = dflt;
       if (positive && n === 0) throw rt.domError(5, 'The value provided is 0, which is not a valid positive value.');
-      this.setAttribute(attr, String(n));
+      setAttr.call(this, attr, String(n));
     },
     enumerable: false,
     configurable: true,
@@ -255,12 +263,12 @@ function parseURL(el, v) {
 function reflectURL(C, prop, attr = prop.toLowerCase()) {
   Object.defineProperty(C.prototype, prop, {
     get() {
-      const v = this.getAttribute(attr);
+      const v = getAttr.call(this, attr);
       if (v === null) return '';
       return parseURL(this, v) ?? v;
     },
     set(v) {
-      this.setAttribute(attr, v);
+      setAttr.call(this, attr, v);
     },
     enumerable: false,
     configurable: true,
@@ -375,6 +383,8 @@ class DOMTokenList {
   replace(token, newToken) {
     token = str(token);
     newToken = str(newToken);
+    // both empty checks (SyntaxError) come before both whitespace checks (InvalidCharacterError)
+    if (token === '' || newToken === '') validateToken('');
     validateToken(token);
     validateToken(newToken);
     const cur = this.#sync();
@@ -820,6 +830,11 @@ function idsToWrappers(ids) {
 }
 
 class HTMLOptionsCollection extends HTMLCollection {
+  /** The indexed setter, for the own index properties collections.cjs `syncOwn` defines. */
+  _setIndex(i, v) {
+    setOptionAt(this, i, v, 'HTMLOptionsCollection');
+  }
+
   get length() {
     const n = super.length;
     coverOptionIndices(n);
@@ -1207,6 +1222,7 @@ function runUaTasks() {
 function install(_rt, dom) {
   const C = rt.classes;
   const { HTMLElement, SVGElement, Element, Document } = dom;
+  ({ getAttribute: getAttr, setAttribute: setAttr, removeAttribute: removeAttr } = Element.prototype);
   rt.setUaTaskHandler(runUaTasks);
   attrSetAtom = dom.attrSetAtom;
 
@@ -1295,6 +1311,21 @@ function install(_rt, dom) {
     },
     set translate(v) {
       this.setAttribute('translate', v ? 'yes' : 'no');
+    },
+    // [Reflect, ReflectRange=(0, 8)] unsigned long (whatwg/html#11086); `:heading()` reads the attribute in Rust
+    get headingOffset() {
+      const m = /^[\t\n\f\r ]*\+?(\d+)/.exec(this.getAttribute('headingoffset') ?? '');
+      return m === null ? 0 : Math.min(8, Number(m[1]));
+    },
+    set headingOffset(v) {
+      const n = Number(v) >>> 0;
+      this.setAttribute('headingoffset', String(n > 2147483647 ? 0 : n));
+    },
+    get headingReset() {
+      return this.hasAttribute('headingreset');
+    },
+    set headingReset(v) {
+      this.toggleAttribute('headingreset', Boolean(v));
     },
     get draggable() {
       const v = rt.asciiLower(this.getAttribute('draggable') ?? '');
@@ -1388,13 +1419,46 @@ function install(_rt, dom) {
       return N.inputNumber(this._i);
     },
     set valueAsNumber(v) {
+      const n = +v; // WebIDL unrestricted double (a BigInt throws)
+      if (!Number.isFinite(n) && !Number.isNaN(n)) throw new TypeError('Failed to set infinite value as Number');
       const t = INPUT_TYPES[inputTypeOf(this._i)];
-      const n = Number(v);
-      if (t !== 'number' && t !== 'range') {
+      if (!inputNumber.NUMERIC.has(t)) {
         throw rt.domError(6, "Failed to set the 'valueAsNumber' property on 'HTMLInputElement': This input element does not support Number values.");
       }
-      if (!Number.isFinite(n) && !Number.isNaN(n)) throw new TypeError('Failed to set infinite value as Number');
-      this.value = Number.isNaN(n) ? '' : String(n);
+      inputNumber.setRaw(this, Number.isNaN(n) ? '' : inputNumber.numberToString(t, n));
+    },
+    get valueAsDate() {
+      const t = INPUT_TYPES[inputTypeOf(this._i)];
+      if (!inputNumber.DATE_TYPES.has(t)) return null;
+      const d = inputNumber.stringToDate(t, this.value);
+      const WDate = this.ownerDocument.defaultView?.Date ?? Date;
+      return d === null ? null : new WDate(d.getTime());
+    },
+    set valueAsDate(v) {
+      // WebIDL `object?` first (undefined is null), then the type, then jsdom's `isDate`
+      if (v === undefined) v = null;
+      if (v !== null && typeof v !== 'object' && typeof v !== 'function') {
+        throw new TypeError("Failed to set the 'valueAsDate' property on 'HTMLInputElement': The provided value is not an object.");
+      }
+      const t = INPUT_TYPES[inputTypeOf(this._i)];
+      if (!inputNumber.DATE_TYPES.has(t)) {
+        throw rt.domError(6, "Failed to set the 'valueAsDate' property on 'HTMLInputElement': This input element does not support Date values.");
+      }
+      let time = null;
+      if (v !== null) {
+        try {
+          time = Date.prototype.getTime.call(v); // any realm's Date
+        } catch {
+          throw new TypeError("Failed to set the 'valueAsDate' property on 'HTMLInputElement': The provided value is not a Date.");
+        }
+      }
+      inputNumber.setRaw(this, time === null || Number.isNaN(time) ? '' : inputNumber.dateToString(t, new Date(time)));
+    },
+    stepUp(n = 1) {
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], +n | 0, true); // WebIDL long
+    },
+    stepDown(n = 1) {
+      inputNumber.stepUpdate(this, INPUT_TYPES[inputTypeOf(this._i)], +n | 0, false); // WebIDL long
     },
     get files() {
       if (inputTypeOf(this._i) !== TY.FILE) return null;
@@ -1458,8 +1522,6 @@ function install(_rt, dom) {
   reflectBool(TextArea, 'readOnly', 'readonly');
   reflectLong(TextArea, 'maxLength', 'maxlength', -1, true);
   reflectLong(TextArea, 'minLength', 'minlength', -1, true);
-  reflectULong(TextArea, 'cols', 'cols', 20, true);
-  reflectULong(TextArea, 'rows', 'rows', 2, true);
 
   // ----------------------------------------------------------------------------------- select
   const Select = C.HTMLSelectElement;
@@ -1479,7 +1541,7 @@ function install(_rt, dom) {
       rt.mutated();
     },
     get options() {
-      return optionsOf(this);
+      return optionsOf(this)._synced();
     },
     get selectedOptions() {
       const s = bs(this);
@@ -1550,7 +1612,7 @@ function install(_rt, dom) {
       this.textContent = v;
     },
     get label() {
-      return this.getAttribute('label') ?? N.optionText(this._i);
+      return this.getAttributeNS(null, 'label') ?? N.optionText(this._i); // null namespace, as jsdom's
     },
     set label(v) {
       this.setAttribute('label', v);
@@ -1576,9 +1638,11 @@ function install(_rt, dom) {
     const o = doc.createElement('option');
     text = str(text);
     if (text !== '') o.appendChild(doc.createTextNode(text));
-    if (value !== undefined) o.setAttribute('value', value);
-    if (defaultSelected) o.setAttribute('selected', '');
-    o.selected = !!selected;
+    if (value !== undefined) o.setAttributeNS(null, 'value', value);
+    if (defaultSelected) o.setAttributeNS(null, 'selected', '');
+    // jsdom Window.js: the selectedness alone, so the selected attribute keeps driving it (not `o.selected`, which
+    // would set the dirtiness flag)
+    N.setSelectedness(o._i, !!selected);
     return o;
   }
   OptionFactory.prototype = Option.prototype;
@@ -1620,7 +1684,7 @@ function install(_rt, dom) {
   Object.defineProperty(Form.prototype, Symbol.iterator, { value: Array.prototype.values, writable: true, configurable: true });
   defineAll(Form, {
     get elements() {
-      return formElements(this);
+      return formElements(this)._synced();
     },
     get length() {
       const n = formElements(this).length;
@@ -1690,7 +1754,8 @@ function install(_rt, dom) {
     },
     get form() {
       const c = N.labelControl(this._i);
-      return c === 0 ? null : wrap(N.formOwner(c));
+      // jsdom: `control.form`, which a form-associated custom element does not have (undefined)
+      return c === 0 ? null : wrap(c).form;
     },
   });
   reflectStr(Label, 'htmlFor', 'for');
@@ -1702,7 +1767,7 @@ function install(_rt, dom) {
     },
     get elements() {
       const s = bs(this);
-      return s.coll ?? (s.coll = liveIds(null, this, N.fieldsetElements));
+      return (s.coll ?? (s.coll = liveIds(null, this, N.fieldsetElements)))._synced();
     },
   }, ConstraintValidation, FormAssociated);
   reflectBool(FieldSet, 'disabled');
@@ -1718,6 +1783,12 @@ function install(_rt, dom) {
 
   // <object> is a listed element (src/forms/mod.rs `is_listed`): form owner only (shadow-root thread, DESIGN §22)
   defineAll(C.HTMLObjectElement, FormAssociated);
+  defineAll(C.HTMLObjectElement, {
+    // No nested browsing contexts (ROADMAP Stage 4 `browsing-contexts`); jsdom's is null too.
+    get contentDocument() {
+      return null;
+    },
+  });
 
   const Output = C.HTMLOutputElement;
   defineAll(Output, {
@@ -1741,6 +1812,72 @@ function install(_rt, dom) {
   }, ConstraintValidation, FormAssociated, Labelable);
   reflectStr(Output, 'name');
   tokenListAccessor(Output, 'htmlFor', 'for');
+
+  // ------------------------------------------------------------------------------- meter, progress
+  // jsdom HTMLMeterElement-impl.js / HTMLProgressElement-impl.js: computed from the attributes on every read.
+  const num = (el, attr) => {
+    const v = el.getAttribute(attr);
+    return v === null ? null : inputNumber.parseFloatingPoint(v);
+  };
+  const setDouble = (el, attr, iface, v) => {
+    const n = +v; // WebIDL double (a BigInt throws)
+    if (!Number.isFinite(n)) throw new TypeError(`Failed to set the '${attr}' property on '${iface}': The provided value is not a finite floating-point value.`);
+    el.setAttribute(attr, String(n));
+  };
+  const meterMin = (el) => num(el, 'min') ?? 0;
+  const meterMax = (el) => Math.max(num(el, 'max') ?? 1, meterMin(el));
+  const clampMeter = (el, v) => Math.min(Math.max(v, meterMin(el)), meterMax(el));
+  const meterLow = (el) => clampMeter(el, num(el, 'low') ?? meterMin(el));
+  const meterHigh = (el) => Math.min(Math.max(num(el, 'high') ?? meterMax(el), meterLow(el)), meterMax(el));
+  const METER = {
+    value: (el) => clampMeter(el, num(el, 'value') ?? 0),
+    min: meterMin,
+    max: meterMax,
+    low: meterLow,
+    high: meterHigh,
+    optimum: (el) => clampMeter(el, num(el, 'optimum') ?? (meterMin(el) + meterMax(el)) / 2),
+  };
+  const Meter = C.HTMLMeterElement;
+  for (const [prop, get] of Object.entries(METER)) {
+    Object.defineProperty(Meter.prototype, prop, {
+      get() {
+        return get(this);
+      },
+      set(v) {
+        setDouble(this, prop, 'HTMLMeterElement', v);
+      },
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  defineAll(Meter, Labelable);
+
+  const progressMax = (el) => {
+    const m = num(el, 'max');
+    return m !== null && m > 0 ? m : 1;
+  };
+  const progressValue = (el) => {
+    const v = num(el, 'value');
+    return Math.min(v !== null && v > 0 ? v : 0, progressMax(el));
+  };
+  const Progress = C.HTMLProgressElement;
+  defineAll(Progress, {
+    get value() {
+      return this.hasAttribute('value') ? progressValue(this) : 0;
+    },
+    set value(v) {
+      setDouble(this, 'value', 'HTMLProgressElement', v);
+    },
+    get max() {
+      return progressMax(this);
+    },
+    set max(v) {
+      if (!(+v <= 0)) setDouble(this, 'max', 'HTMLProgressElement', v); // [ReflectPositive]
+    },
+    get position() {
+      return this.hasAttribute('value') ? progressValue(this) / progressMax(this) : -1;
+    },
+  }, Labelable);
 
   const Details = C.HTMLDetailsElement;
   reflectBool(Details, 'open');
@@ -1805,13 +1942,6 @@ function install(_rt, dom) {
     decode() {
       return Promise.resolve();
     },
-    get crossOrigin() {
-      return this.getAttribute('crossorigin');
-    },
-    set crossOrigin(v) {
-      if (v === null) this.removeAttribute('crossorigin');
-      else this.setAttribute('crossorigin', v);
-    },
   });
   reflectURL(Img, 'src');
   reflectURL(Img, 'lowsrc');
@@ -1849,10 +1979,16 @@ function install(_rt, dom) {
       const u = h === null ? null : parseURL(this, h);
       return u === null ? '' : new URL(u).origin;
     },
+    // the [stringifier] href: brand-checked, and the interface's own getter (not an overridden `this.href`)
     toString() {
-      return this.href;
+      const C = rt.classes;
+      if (!(this instanceof C.HTMLAnchorElement || this instanceof C.HTMLAreaElement)) {
+        throw new TypeError("'toString' called on an object that is not a valid instance of HTMLAnchorElement.");
+      }
+      return hrefOf.call(this);
     },
   };
+  const hrefOf = Object.getOwnPropertyDescriptor(Hyperlink, 'href').get;
   for (const part of URL_PARTS) {
     Object.defineProperty(Hyperlink, part, {
       get() {
@@ -1886,6 +2022,19 @@ function install(_rt, dom) {
       this.textContent = v;
     },
   });
+  // jsdom: the "child text content" (the Text children only), set as textContent.
+  const childText = {
+    get text() {
+      let s = '';
+      for (let c = this.firstChild; c !== null; c = c.nextSibling) if (c.nodeType === 3) s += c.data;
+      return s;
+    },
+    set text(v) {
+      this.textContent = String(v); // DOMString: null is "null" (textContent would make it empty)
+    },
+  };
+  defineAll(C.HTMLScriptElement, childText);
+  defineAll(C.HTMLTitleElement, childText);
   for (const p of ['coords', 'charset', 'name', 'rev', 'shape']) reflectStr(C.HTMLAnchorElement, p);
   reflectStr(C.HTMLAreaElement, 'alt');
   reflectStr(C.HTMLAreaElement, 'coords');
@@ -1902,5 +2051,5 @@ function install(_rt, dom) {
 
 module.exports = {
   install, INPUT_TYPES, DOMTokenList, ValidityState, focusingSteps, unfocusingSteps, currentFocus, formEntries,
-  baseURL,
+  baseURL, reflectStr, reflectBool, reflectLong, reflectURL, parseInteger,
 };

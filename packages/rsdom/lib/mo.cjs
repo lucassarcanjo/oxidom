@@ -12,6 +12,7 @@
 
 const rt = require('./runtime.cjs');
 const context = require('./context.cjs');
+const { shadowsExist } = require('./shadow.cjs');
 
 const { N, V, EPI, TOKEN } = rt;
 
@@ -142,6 +143,8 @@ function opt(v) {
 class MutationObserver {
   #id;
   #cb;
+  /** the browsing context of the first observed node's document (where callback errors are reported) */
+  #ctx = undefined;
 
   constructor(callback) {
     if (typeof callback !== 'function') {
@@ -153,6 +156,7 @@ class MutationObserver {
 
   observe(target, options = undefined) {
     const id = dom.nodeArg(target, 'observe', 'MutationObserver');
+    this.#ctx ??= (target.ownerDocument ?? target)._ctx;
     if (options !== undefined && options !== null && typeof options !== 'object' && typeof options !== 'function') {
       throw new TypeError("Failed to execute 'observe' on 'MutationObserver': parameter 2 is not of type 'MutationObserverInit'.");
     }
@@ -220,8 +224,11 @@ class MutationObserver {
       try {
         mo.#cb.call(mo, records, mo);
       } catch (err) {
-        // "report the exception": the current browsing context's window, else the process
-        context.reportError(err);
+        // "report the exception": the observed document's window (several `JSDOM` instances may be open), else
+        // the current browsing context's window, else the process
+        const c = mo.#ctx;
+        if (c !== undefined && !c.closed) require('./events.cjs').reportException(c.window, err);
+        else context.reportError(err);
       }
     };
   }
@@ -241,6 +248,9 @@ function onPending() {
 function tick() {
   queued = false;
   stats.ticks++;
+  // DOM "notify mutation observers" step 3: the signal slot list is taken before the callbacks run
+  const ns = shadowsExist() ? N.slotTakeSignals() : 0;
+  const signals = ns === 0 ? null : Array.from(rt.outIds(ns));
   const max = nextId - 1;
   let after = 0;
   for (;;) {
@@ -253,6 +263,16 @@ function tick() {
     const records = decode(w, s);
     const mo = live.get(obs);
     if (mo !== undefined && records.length !== 0) deliver(mo, records);
+  }
+  if (signals !== null) fireSlotChanges(signals);
+}
+
+/** Step 6: a trusted, bubbling `slotchange` at each signalled slot (src/slots.rs, DESIGN §42). */
+function fireSlotChanges(slots) {
+  const events = require('./events.cjs');
+  for (const id of slots) {
+    const slot = rt.wrap(id);
+    if (slot !== null) events.fire(slot, 'slotchange', { bubbles: true });
   }
 }
 

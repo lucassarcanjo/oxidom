@@ -13,19 +13,56 @@
 //! | `cloned` | cloning steps for each cloned element | forms |
 //! | `parsed` | once per parse, for the nodes it created (ids `base..`), before they are inserted | forms |
 //!
+//! Children-changed and both attribute hooks also bump the document version (`bump_doc_version`).
+//!
 //! The child-list module (tree.rs, DESIGN §17) is the only caller of the connectivity and children-changed
 //! hooks, and it queues the MutationObserver childList records itself (they need the exact
 //! added/removed/prev/next of each step, or the merged record of replace / replace-all).
 
-use crate::atoms::Atom;
+use crate::atoms::{Atom, atom};
 use crate::env::{Env, ep};
+use crate::node::{kind, meta};
 use crate::string::Str;
 use crate::table::NodeId;
 
 impl Env {
+    /// Bumps `EP[NAMED]` (Document's and Window's named properties by name) when `n` is an HTML embed / form /
+    /// iframe / img / object / frame element: the only elements that can contribute by name (jsdom drops its cache
+    /// on the same events).
+    #[inline]
+    fn bump_named_if_contributes(&mut self, n: NodeId) {
+        let r = self.rec(n);
+        if r.meta & (meta::KIND_MASK | meta::NS_MASK) == kind::ELEMENT
+            && matches!(
+                Atom(r.local),
+                atom::EMBED | atom::FORM | atom::IFRAME | atom::IMG | atom::OBJECT | atom::FRAME
+            )
+        {
+            self.ep.bump(ep::NAMED);
+        }
+    }
+
+    /// Bumps the document version (the document record's `attr_ver`: documents have no attributes) when `n`
+    /// is connected: what jsdom's `Document#_version` counts, child-list and attribute changes in the
+    /// document, for XPathResult's `invalidIteratorState` (lib/xpath.cjs, DESIGN §39). A plain increment, not
+    /// an epoch value, so it never returns to an earlier value. `CONNECTED` is shadow-including, so a
+    /// shadow tree's changes count too, where jsdom's parent chain stops at the shadow root.
+    #[inline]
+    fn bump_doc_version(&mut self, n: NodeId) {
+        let r = self.rec(n);
+        if r.meta & meta::CONNECTED != 0 {
+            let d = self.rec_mut(r.owner);
+            d.attr_ver = d.attr_ver.wrapping_add(1);
+        }
+    }
+
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_connected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
+        if self.script.on() {
+            self.script_connected(id);
+        }
         crate::style::on_node_connected(self, id);
         crate::forms::on_node_connected(self, id);
     }
@@ -33,6 +70,10 @@ impl Env {
     /// See module docs.
     #[inline]
     pub(crate) fn hook_node_disconnected(&mut self, id: NodeId) {
+        self.bump_named_if_contributes(id);
+        if self.script.on() {
+            self.script_disconnected(id);
+        }
         crate::focus::on_node_disconnected(self, id);
         crate::style::on_node_disconnected(self, id);
         crate::forms::on_node_disconnected(self, id);
@@ -53,6 +94,14 @@ impl Env {
             let old = self.elem(el).and_then(|d| d.find_ns(ns, local).map(|i| d.attrs[i].value.clone()));
             crate::mo::queue_attribute(self, el, local, ns, old.as_ref());
         }
+        self.bump_doc_version(el);
+        if self.rec(el).meta & crate::ce::CE_CUSTOM != 0 {
+            let old = self.get_attr_by_atoms(el, ns, local).cloned();
+            self.ce_attr_changed(el, local, ns, old.as_ref());
+        }
+        if self.script.on() {
+            self.script_attr_changed(el, local, ns);
+        }
         // forms only tests `old.is_some()` (the attribute was present: it still is)
         crate::forms::on_attr_changed(self, el, local, ns, Some(&Str::default()));
     }
@@ -62,6 +111,7 @@ impl Env {
     pub(crate) fn hook_children_changed(&mut self, parent: NodeId) {
         let v = self.ep.bump(ep::TREE);
         self.rec_mut(parent).child_ver = v;
+        self.bump_doc_version(parent);
         crate::style::on_children_changed(self, parent);
         crate::forms::on_children_changed(self, parent);
     }
@@ -71,7 +121,23 @@ impl Env {
     pub(crate) fn hook_attr_changed(&mut self, el: NodeId, local: Atom, ns: Atom, old: Option<&Str>) {
         let v = self.ep.bump(ep::ATTR);
         self.rec_mut(el).attr_ver = v;
+        self.bump_doc_version(el);
+        if ns == Atom::NONE
+            && matches!(local, atom::NAME | atom::ID)
+            && self.rec(el).meta & meta::CONNECTED != 0
+        {
+            self.bump_named_if_contributes(el);
+        }
         crate::mo::queue_attribute(self, el, local, ns, old);
+        if self.rec(el).meta & crate::ce::CE_CUSTOM != 0 {
+            self.ce_attr_changed(el, local, ns, old);
+        }
+        if self.script.on() {
+            self.script_attr_changed(el, local, ns);
+        }
+        if self.shadow.any() && ns == Atom::NONE && matches!(local, atom::SLOT | atom::NAME) {
+            self.slot_attr_changed(el, local, old);
+        }
         crate::style::on_attr_changed(self, el, local, ns, old);
         crate::forms::on_attr_changed(self, el, local, ns, old);
     }
@@ -92,6 +158,12 @@ impl Env {
     #[inline]
     pub(crate) fn hook_cloned(&mut self, src: NodeId, dst: NodeId) {
         crate::forms::on_cloned(self, src, dst);
+        if self.ce.any() {
+            self.ce_cloned(src, dst);
+        }
+        if self.script.any() {
+            self.script_cloned(src, dst);
+        }
     }
 
     /// See module docs. The parser links nodes raw (no per-node hooks); this lets areas initialise state

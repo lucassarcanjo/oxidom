@@ -94,6 +94,7 @@ impl Block {
 
     #[cfg(not(unix))]
     fn alloc(cap: u32) -> Block {
+        use std::alloc::GlobalAlloc;
         let layout = std::alloc::Layout::from_size_align(Self::bytes(cap), 64).unwrap();
         // SAFETY: non-zero size layout.
         let p = unsafe { std::alloc::System.alloc_zeroed(layout) };

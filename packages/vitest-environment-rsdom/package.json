@@ -1,7 +1,6 @@
 {
   "name": "vitest-environment-jetdom",
   "version": "0.1.0",
-  "private": true,
   "description": "Vitest environment for jetdom: `test.environment: 'jetdom'`",
   "keywords": ["vitest", "vitest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",

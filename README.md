@@ -61,7 +61,7 @@ jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 Requires Rust (stable) and Node.js 22+.
 
 ```bash
-git clone https://github.com/lucassarcanjo/rsdom && cd rsdom
+git clone https://github.com/lucassarcanjo/jetdom && cd jetdom
 npm ci
 npm run build          # builds the native addon into packages/rsdom/native/
 ```

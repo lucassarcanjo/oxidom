@@ -1,6 +1,6 @@
 # Migrating from jsdom to rsdom
 
-rsdom's npm name is `jetdom`. This guide covers moving a test suite from jsdom to rsdom: the configuration
+rsdom's npm name is `nativedom`. This guide covers moving a test suite from jsdom to rsdom: the configuration
 change for each runner, what carries over unchanged, and every known way rsdom behaves differently from jsdom
 30.1.3, which is the oracle rsdom is measured against.
 
@@ -13,7 +13,7 @@ Where things stand (2026-10-22): rsdom passes 97.4% of the subtests jsdom passes
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
 
-None of the packages is on npm yet: install `jetdom` and the environment packages from this repository
+None of the packages is on npm yet: install `nativedom` and the environment packages from this repository
 (`packages/rsdom`, `packages/vitest-environment-rsdom`, `packages/jest-environment-rsdom`; README "Usage").
 
 ## Contents
@@ -27,18 +27,18 @@ None of the packages is on npm yet: install `jetdom` and the environment package
 
 ## Vitest
 
-Install `jetdom` and `vitest-environment-jetdom` (Vitest 5 or later, Node 22 or later), then change one word:
+Install `nativedom` and `vitest-environment-nativedom` (Vitest 5 or later, Node 22 or later), then change one word:
 
 ```ts
 // vitest.config.ts
 export default defineConfig({
   test: {
-    environment: 'jetdom', // was: 'jsdom'
+    environment: 'nativedom', // was: 'jsdom'
   },
 })
 ```
 
-Per file, `// @vitest-environment jetdom` replaces `// @vitest-environment jsdom`.
+Per file, `// @vitest-environment nativedom` replaces `// @vitest-environment jsdom`.
 
 **Options.** `test.environmentOptions.jsdom` is read the way Vitest's jsdom environment reads it, with the same
 defaults (`url` `http://localhost:3000`, `pretendToBeVisual: true`):
@@ -51,7 +51,7 @@ defaults (`url` `http://localhost:3000`, `pretendToBeVisual: true`):
 | `console` | as on Vitest's jsdom environment: the window always has a virtual console forwarding to the test's `console` |
 | `resources: 'usable'`, `includeNodeLocations`, `cookieJar`, `beforeParse` | ignored |
 
-rsdom's own options go in `test.environmentOptions.jetdom` (`url`, and `html` as body markup) and win over the
+rsdom's own options go in `test.environmentOptions.nativedom` (`url`, and `html` as body markup) and win over the
 `jsdom` ones.
 
 **The `jsdom` global** is there, as under Vitest's jsdom environment: `jsdom.reconfigure({ url })`,
@@ -67,16 +67,16 @@ too, instead of failing the test.
 
 ## Jest
 
-Install `jetdom` and `jest-environment-jetdom` (Jest 30), then:
+Install `nativedom` and `jest-environment-nativedom` (Jest 30), then:
 
 ```js
 // jest.config.js
 module.exports = {
-  testEnvironment: 'jetdom', // was: 'jsdom'
+  testEnvironment: 'nativedom', // was: 'jsdom'
 };
 ```
 
-`jest-environment-jetdom` is a port of `jest-environment-jsdom`. `testEnvironmentOptions` (`url`, `html`,
+`jest-environment-nativedom` is a port of `jest-environment-jsdom`. `testEnvironmentOptions` (`url`, `html`,
 `userAgent`, `pretendToBeVisual`, `customExportConditions`, ...), the `@jest-environment-options` docblock, fake
 timers (modern and legacy), `this.dom` in a subclass and `getVmContext()` work the same.
 
@@ -87,7 +87,7 @@ hit under Vitest's default pools.
 ## The `JSDOM` API in plain Node
 
 ```js
-const { JSDOM, VirtualConsole } = require('jetdom'); // was: require('jsdom')
+const { JSDOM, VirtualConsole } = require('nativedom'); // was: require('jsdom')
 
 const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
 dom.window.document.querySelector('p').textContent; // 'Hello'
@@ -107,9 +107,9 @@ Several `JSDOM` instances in one thread share their interface objects (see [Setu
 
 ## TypeScript
 
-The packages ship their declarations. `jetdom`'s `JSDOM` API is typed as `@types/jsdom` types jsdom's, so
-replacing `import { JSDOM } from 'jsdom'` with `from 'jetdom'` type-checks unchanged. For the Vitest `jsdom`
-global, put `"jetdom/vitest-globals"` in `compilerOptions.types` where you had `"vitest/jsdom"`.
+The packages ship their declarations. `nativedom`'s `JSDOM` API is typed as `@types/jsdom` types jsdom's, so
+replacing `import { JSDOM } from 'jsdom'` with `from 'nativedom'` type-checks unchanged. For the Vitest `jsdom`
+global, put `"nativedom/vitest-globals"` in `compilerOptions.types` where you had `"vitest/jsdom"`.
 
 ## Test setup files
 

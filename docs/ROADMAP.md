@@ -9,7 +9,7 @@ comments cite, are recorded in [`lab/ROADMAP.md`](lab/ROADMAP.md). This file cov
 
 "Drop-in" has three parts, and each stage below moves at least one of them:
 
-1. **Same entry points.** `environment: 'jetdom'` in Vitest, `testEnvironment: 'jetdom'` in Jest, and a `JSDOM`-shaped
+1. **Same entry points.** `environment: 'nativedom'` in Vitest, `testEnvironment: 'nativedom'` in Jest, and a `JSDOM`-shaped
    programmatic API (`new JSDOM(html, options).window`).
 2. **Same behaviour.** Whatever passes on jsdom passes on rsdom. This is measured three ways: real libraries
    (`e2e/libraries`), web-platform-tests (`conformance/wpt`) and the WebIDL surface (`conformance/api-surface`).
@@ -32,7 +32,7 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
 ## Stage 0: Repository and distribution
 
 - [x] Monorepo layout: `crates/rsdom` (Rust), `packages/rsdom` (npm), e2e suites, benchmarks, conformance harnesses.
-- [x] `vitest-environment-jetdom` package so `environment: 'jetdom'` resolves like `'jsdom'`.
+- [x] `vitest-environment-nativedom` package so `environment: 'nativedom'` resolves like `'jsdom'`.
 - [ ] CI running on every PR. `.github/workflows/ci.yml` defines the jobs (lint, Rust tests, contract suite also in
       fallback mode, React app suite and the parity suite, on Linux), but GitHub Actions is disabled for this
       repository; until it runs, `npm run check` runs the same checks locally before merging.
@@ -40,10 +40,11 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
       fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
 - [ ] Prebuilt binaries for linux x64/arm64 (gnu and musl), darwin x64/arm64 and win32 x64: `.github/workflows/release.yml`
-      builds them all into the `jetdom` package (not yet run). Split them into `@jetdom/<triple>` `optionalDependencies`
+      builds them all into the `nativedom` package (dry run passed 2026-10-26). Split them into `@nativedom/<triple>` `optionalDependencies`
       if the download size becomes a problem.
-- [ ] Publish a first preview under the npm names `jetdom`, `vitest-environment-jetdom`, `jest-environment-jetdom` and
-      `@jetdom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`).
+- [ ] Publish a first preview under the npm names `nativedom`, `vitest-environment-nativedom`, `jest-environment-nativedom` and
+      `@nativedom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`; npm rejects `jetdom` as too
+      similar to `jsdom` and `jest-dom`).
 - [ ] Versioning and changelog (one version for all packages; changesets or a release script).
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
@@ -85,15 +86,15 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [ ] `JSDOM` class: `new JSDOM(html, { url, contentType, pretendToBeVisual, ... })`, `.window`, `.serialize()`,
       `.fragment()`; `JSDOM.fragment()` `jsdom-api`. Decide how several live `JSDOM` instances map onto one Env per
       thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). Class
-      done 2026-10-21 (DESIGN §31): `require('jetdom').JSDOM` and `VirtualConsole`, each instance a browsing context
+      done 2026-10-21 (DESIGN §31): `require('nativedom').JSDOM` and `VirtualConsole`, each instance a browsing context
       that becomes current; jsdom's API tests run on it, gap 426 -> 365 subtests. Left: XML content types (`xml`),
       `runScripts`, iframes and subresources (`browsing-contexts`), a cookie jar behind `document.cookie`,
       `requestInterceptor`, and per-instance interface objects.
 - [x] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
-      as well as `environmentOptions.jetdom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
+      as well as `environmentOptions.nativedom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
       environment, plus its virtual console (not-implemented methods log through `console.error`) and `jsdom`
       global.
-- [x] `jest-environment-jetdom` for Jest (`testEnvironment: 'jetdom'`). Done 2026-10-21 (DESIGN §32): a port of
+- [x] `jest-environment-nativedom` for Jest (`testEnvironment: 'nativedom'`). Done 2026-10-21 (DESIGN §32): a port of
       jest-environment-jsdom 30 on a vm context, checked side by side with it on jsdom 30.
 - [x] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports. Done
       2026-10-21 (DESIGN §33): the window on a vm context, as for Jest; the React app suite passes 90/90 in both pools

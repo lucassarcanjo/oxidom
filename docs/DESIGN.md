@@ -79,13 +79,13 @@ crates/rsdom/                 the native addon crate (napi-rs v3, cdylib + rlib)
 packages/rsdom/               the `rsdom` npm package
   lib/*.cjs                   the JS facade (plain CJS, loaded through createRequire, never through Vite)
   lib/vitest-environment.mjs  the Vitest Environment (`rsdom/vitest-environment`)
-  lib/jest-environment.cjs    the Jest environment class (`jetdom/jest-environment`, §32)
+  lib/jest-environment.cjs    the Jest environment class (`nativedom/jest-environment`, §32)
   lib/generated/              emitted by build.rs (gitignored)
   native/rsdom.<triple>.node  the addon (gitignored)
   test/contract/              one parity suite run against jsdom, happy-dom and rsdom
   test/native/                rsdom-only tests (protocols, wrappers, epochs, Vitest pools)
-packages/vitest-environment-rsdom/   `test.environment: 'jetdom'` (npm: vitest-environment-jetdom)
-packages/jest-environment-rsdom/     `testEnvironment: 'jetdom'` (npm: jest-environment-jetdom, DESIGN §32)
+packages/vitest-environment-rsdom/   `test.environment: 'nativedom'` (npm: vitest-environment-nativedom)
+packages/jest-environment-rsdom/     `testEnvironment: 'nativedom'` (npm: jest-environment-nativedom, DESIGN §32)
 e2e/react-app/                React 19 + Testing Library suite (90 tests), the end-to-end subject
 e2e/libraries/                real-library smoke tests (Radix, MUI, react-aria, lit, ...)
 bench/micro/  bench/e2e/      benchmark harnesses (phase reporter, runner); bench/results/
@@ -724,7 +724,7 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 - XMLHttpRequest, XMLHttpRequestUpload and XMLHttpRequestEventTarget (§21). With them axios picks its XHR adapter by default, as on jsdom.
 - `img.decode()` resolves immediately.
 
-**Options.** Options come from `options.jetdom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
+**Options.** Options come from `options.nativedom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
 
 **Supported pools.** forks and threads, with or without isolate. vm pools are unsupported: there is no `setupVM`, and objects there would come from the wrong realm.
 
@@ -1754,7 +1754,7 @@ over unchanged: `url`, `html` (a whole document, parsed as the context's `source
 `storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are ignored, so a `<script>`
 in `html` does not run where Vitest's jsdom default (`runScripts: 'dangerously'`) runs it. (`virtualConsole` is
 read too, but Vitest cannot pass one: options are cloned to the worker.)
-`environmentOptions.jetdom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
+`environmentOptions.nativedom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
 window gets a virtual console forwarding to the console (jsdom's default, so `console: false` changes nothing), so
 `alert()`, `scrollTo()` & co log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel goes there instead of failing the test; the global keeps its own
@@ -1768,7 +1768,7 @@ reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom sid
 
 ## 32. The Jest environment (ROADMAP Stage 2, 2026-10)
 
-`testEnvironment: 'jetdom'` resolves to `jest-environment-jetdom` (packages/jest-environment-rsdom), which builds
+`testEnvironment: 'nativedom'` resolves to `jest-environment-nativedom` (packages/jest-environment-rsdom), which builds
 its class from `lib/jest-environment.cjs` with its own `require`. That way jest-util, jest-mock and
 @jest/fake-timers, which are the package's dependencies as they are jest-environment-jsdom's, resolve from the Jest
 side. The class is a port of jest-environment-jsdom 30 (`@jest/environment-jsdom-abstract`): the same
@@ -1791,12 +1791,12 @@ workers and in band. As in the Vitest environment, a wrapper from an earlier fil
 work a file leaked that touches its old nodes later throws (`Illegal invocation`) in whichever file is running,
 where jsdom quietly mutates the closed window.
 
-**One facade per env.** Jest loads `require('jetdom')` in a test file through its own module registry: a second
+**One facade per env.** Jest loads `require('nativedom')` in a test file through its own module registry: a second
 copy of the facade over the same addon exports (Node caches `.node` files per process), whose `init()` would reset
 the env under the environment's document. `lib/facade.cjs` records its exports on the addon exports object
-(`Symbol.for('jetdom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
+(`Symbol.for('nativedom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
 parses the file when a workspace inlines it), so a helper `new JSDOM()` in a test, or jsdom
-aliased to jetdom, works.
+aliased to nativedom, works.
 
 **Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
 Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
@@ -1811,7 +1811,7 @@ lib/file-api.cjs). Scripts and inline event handler attributes do not run (rsdom
 `browsing-contexts`); the vm context would be where they could run later.
 
 **Tests.** `test/native/jest-env.test.mjs` runs the specs in test/fixtures/jest-env in child `jest` processes, in
-workers and in band, under jetdom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
+workers and in band, under nativedom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
 itself pins jsdom 26; a `ResourceLoader` shim maps its `userAgent` option onto jsdom 30's `resources`. Both must
 give the same results: the globals a test file sees, options from the docblock, testing-library with user-event and
 jest-dom, fake timers over timers and animation frames, a fresh document per file, a failing listener error, and
@@ -1821,7 +1821,7 @@ the not-implemented log.
 
 With `pool: 'vmThreads'` or `'vmForks'`, Vitest runs each test file in a vm context the environment's `setupVM()`
 returns, and calls its `teardown()` after the file. `lib/vitest-environment.mjs` now has one. It reads the same
-options as `setup()` (`environmentOptions.jsdom`, then `jetdom`, §31). It opens the window on a bare vm context's
+options as `setup()` (`environmentOptions.jsdom`, then `nativedom`, §31). It opens the window on a bare vm context's
 global the way the Jest environment does (`openVmWindow()` in lib/vm-window.cjs, §32): own window timers, plus
 the members a jsdom window takes from Node. On top of that it adds what Vitest's jsdom `setupVM` adds to its
 window:
@@ -1835,7 +1835,7 @@ window:
 Vitest's window error routing is installed as in `setup()`. Teardown closes the context and resets the env, so
 each file starts from a fresh document.
 
-Vitest executes externals in the vm context, so a test file's `require('jetdom')` / `import('jetdom')` is a
+Vitest executes externals in the vm context, so a test file's `require('nativedom')` / `import('nativedom')` is a
 second copy of the facade. It gets the first copy's exports (§32), and the facade entry has no top-level
 `return`, because Vite parses it when a workspace inlines the package. Only a copy loaded in Node's own realm
 records its exports (the addon exports object's prototype is that realm's `Object.prototype`): under another
@@ -1851,7 +1851,7 @@ jsdom's window, whose WebIDL layer works in the window's realm. With `RSDOM_COUN
 file list in VM pools (Vitest's worker state lives on the vm context).
 
 **Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
-in both pools, under jetdom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
+in both pools, under nativedom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
 - which globals a file sees, the window's `toString` and `TextEncoder` output's realm
 - testing-library with user-event and jest-dom
 - fake timers
@@ -1867,24 +1867,24 @@ lexical and tiptap, and rsdom fails lit.
 ## 34. TypeScript declarations (ROADMAP Stage 2, 2026-10)
 
 The packages ship hand-written declarations, listed under the `types` condition of each `exports` entry:
-- `lib/index.d.ts` for `jetdom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
-  against jsdom type-checks unchanged and a jetdom value fits where a jsdom-typed one is expected. `DOMWindow` is
+- `lib/index.d.ts` for `nativedom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
+  against jsdom type-checks unchanged and a nativedom value fits where a jsdom-typed one is expected. `DOMWindow` is
   copied from @types/jsdom (MIT), interface objects rsdom does not have yet included. `CookieJar` is a class
   (tough-cookie is now a dependency, as it is jsdom's, so it always exists), `nodeLocation()` and
   `getInternalVMContext()` return `never` (they always throw, §31), and `rt` / `dom` are internal. Like
   @types/jsdom, the package depends on `@types/node`.
 - `lib/index.cjs` names its exports for Node's CommonJS lexer (a never-run `module.exports = { ... }`), so
-  `import { JSDOM } from 'jetdom'` works in Node's ESM as the types allow.
-- `lib/vitest-environment.d.mts` for the environment, with `JetdomEnvironmentOptions` for
-  `environmentOptions.jetdom` (Vitest's `EnvironmentOptions` takes any key). `jetdom/vitest-globals` types the
+  `import { JSDOM } from 'nativedom'` works in Node's ESM as the types allow.
+- `lib/vitest-environment.d.mts` for the environment, with `NativedomEnvironmentOptions` for
+  `environmentOptions.nativedom` (Vitest's `EnvironmentOptions` takes any key). `nativedom/vitest-globals` types the
   `jsdom` global, as `vitest/jsdom` does for Vitest's jsdom environment.
-- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-jetdom
+- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-nativedom
   declares jest-environment-jsdom's class shape and `global` type (it depends on `@jest/environment` and
   `@jest/types` for them), as `export =` of the class with `default` and `TestEnvironment` on it, which is what
   index.js exports.
 
 `test/native/types.test.mjs` runs tsc (strict, lib check on) over test/types: the API with typed window members,
-jetdom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
+nativedom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
 `jsdom` global, and custom Jest environments, with `@ts-expect-error` lines that must stay errors. It also
 checks the declared exports against the entry's runtime exports and Node's ESM named exports.
 

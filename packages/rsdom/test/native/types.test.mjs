@@ -26,7 +26,7 @@ describe('TypeScript declarations', () => {
 
   it("every declared export is a named export for Node's ES module import", () => {
     // Node's own namespace keys for a CommonJS module: `default`, and `module.exports` since Node 23
-    const code = "import * as m from 'jetdom'; process.stdout.write(JSON.stringify(Object.keys(m).filter((k) => k !== 'default' && k !== 'module.exports')))";
+    const code = "import * as m from 'nativedom'; process.stdout.write(JSON.stringify(Object.keys(m).filter((k) => k !== 'default' && k !== 'module.exports')))";
     const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: root, encoding: 'utf8', timeout: 60_000 });
     expect(r.status, r.stderr).toBe(0);
     expect(JSON.parse(r.stdout).sort()).toEqual(Object.keys(require('../../lib/index.cjs')).sort());

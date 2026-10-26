@@ -1,5 +1,5 @@
-// The rsdom Jest environment (lib/jest-environment.cjs, package jest-environment-jetdom, DESIGN §32): the specs in
-// test/fixtures/jest-env run in child `jest` processes under jetdom and under jest-environment-jsdom's base class
+// The rsdom Jest environment (lib/jest-environment.cjs, package jest-environment-nativedom, DESIGN §32): the specs in
+// test/fixtures/jest-env run in child `jest` processes under nativedom and under jest-environment-jsdom's base class
 // on jsdom 30, and must give the same results.
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -23,7 +23,7 @@ function jest(dom, args = []) {
   return { status: r.status, out: r.stdout + r.stderr };
 }
 
-describe.each(['jsdom', 'jetdom'])('Jest fixture suite [%s]', (dom) => {
+describe.each(['jsdom', 'nativedom'])('Jest fixture suite [%s]', (dom) => {
   it('passes, in workers and in band', () => {
     for (const args of [[], ['--runInBand']]) {
       const { status, out } = jest(dom, args);

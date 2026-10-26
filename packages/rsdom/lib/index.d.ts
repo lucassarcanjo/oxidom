@@ -1,5 +1,5 @@
-// Type declarations for the `jetdom` package entry (ROADMAP Stage 2, DESIGN §34). The `JSDOM` API mirrors
-// @types/jsdom for jsdom 30 (refs/jsdom/lib/api.js), so code typed against jsdom type-checks against jetdom; what
+// Type declarations for the `nativedom` package entry (ROADMAP Stage 2, DESIGN §34). The `JSDOM` API mirrors
+// @types/jsdom for jsdom 30 (refs/jsdom/lib/api.js), so code typed against jsdom type-checks against nativedom; what
 // rsdom does not implement is typed as jsdom types it, and documented in DESIGN §31.
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
@@ -9,7 +9,7 @@ import * as tough from 'tough-cookie';
 
 /**
  * A window, as @types/jsdom 30 declares it (copied from it: MIT License, Copyright (c) Microsoft Corporation), so
- * a jetdom window is assignable where a jsdom one is expected. Members rsdom does not implement yet (`customElements`,
+ * a nativedom window is assignable where a jsdom one is expected. Members rsdom does not implement yet (`customElements`,
  * `XMLSerializer`, CSSOM rule classes, XPath: ROADMAP Stage 3) are declared as jsdom declares them.
  */
 export interface DOMWindow extends Omit<Window, "top" | "self" | "window" | number> {

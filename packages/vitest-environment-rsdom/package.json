@@ -1,12 +1,12 @@
 {
-  "name": "vitest-environment-jetdom",
+  "name": "vitest-environment-nativedom",
   "version": "0.1.0",
-  "description": "Vitest environment for jetdom: `test.environment: 'jetdom'`",
+  "description": "Vitest environment for nativedom: `test.environment: 'nativedom'`",
   "keywords": ["vitest", "vitest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/jetdom.git",
+    "url": "git+https://github.com/lucassarcanjo/nativedom.git",
     "directory": "packages/vitest-environment-rsdom"
   },
   "type": "module",
@@ -20,7 +20,7 @@
   },
   "files": ["index.js", "index.d.ts"],
   "peerDependencies": {
-    "jetdom": "0.1.0",
+    "nativedom": "0.1.0",
     "vitest": ">=5"
   }
 }

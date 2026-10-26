@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/jetdom.git"
+    "url": "git+https://github.com/lucassarcanjo/nativedom.git"
   },
   "engines": {
     "node": ">=22"
@@ -15,12 +15,12 @@
     "e2e/react-app"
   ],
   "scripts": {
-    "build": "npm run build --workspace=jetdom",
-    "build:debug": "npm run build:debug --workspace=jetdom",
+    "build": "npm run build --workspace=nativedom",
+    "build:debug": "npm run build:debug --workspace=nativedom",
     "test": "npm run test:rust && npm run test:js && npm run test:e2e",
     "test:rust": "cargo test --workspace",
-    "test:js": "npm test --workspace=jetdom",
-    "test:fallback": "npm run test:fallback --workspace=jetdom",
+    "test:js": "npm test --workspace=nativedom",
+    "test:fallback": "npm run test:fallback --workspace=nativedom",
     "test:e2e": "npm run test:rsdom --workspace=e2e/react-app",
     "test:parity": "node conformance/parity/run.mjs",
     "check": "npm run lint && npm test && npm run test:fallback && npm run test:parity && npm run check:scoreboard",

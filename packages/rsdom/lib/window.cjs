@@ -845,8 +845,8 @@ tag(FormData);
 
 /** Marker in `saved`: the key was one of Node's lazy globals, deleted without materialising it. */
 const LAZY_NATIVE = Symbol('lazy-native');
-/** Node 22's globals backed by undici (lazy V8 data properties): never read their descriptors. */
-const LAZY_NATIVE_KEYS = new Set(['FormData', 'Headers', 'Request', 'Response', 'MessageEvent', 'WebSocket', 'EventSource']);
+/** Node's globals backed by undici (lazy V8 data properties): never read their descriptors. CloseEvent is Node 23+. */
+const LAZY_NATIVE_KEYS = new Set(['FormData', 'Headers', 'Request', 'Response', 'MessageEvent', 'CloseEvent', 'WebSocket', 'EventSource']);
 
 // ========================================================================================= Window
 

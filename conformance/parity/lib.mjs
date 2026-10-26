@@ -144,18 +144,30 @@ const BY_HAND = new Set(['flaky', 'skip']);
 export const SKIPPED_BY_DEFAULT = new Set(['timeout', 'flaky', 'skip']);
 /** A file with more failing subtests than this gets one file-level entry with a passing-count floor. */
 export const SUBTEST_LIMIT = 50;
+/**
+ * `fail-node:<N` (the syntax of jsdom's to-run.yaml), set by hand: a failure of the Node runtime rather than of
+ * rsdom (Float16Array, TextDecoder encodings) that Node N fixed. It reads as `fail` below major N and as no entry
+ * from N on, and `--update` writes it back as it is on any Node.
+ */
+const NODE_FAIL = /^fail-node:<(\d+)$/;
+const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+/** The Node major the scoreboard reads `fail-node:<N` entries for, so it is the same on every Node (CI's). */
+export const REFERENCE_NODE = 22;
 
 export function expectationsFile(source) {
   return path.join(HERE, 'expectations', `${source}.yaml`);
 }
 
 /**
- * Reads expectations/<source>.yaml: Map(id -> entry), entry = { status, reason, pass } (file level; `pass` is
- * the number of subtests that must keep passing) or { subtests: Map(name -> reason) } (exactly these fail).
+ * Reads expectations/<source>.yaml for Node `major`: Map(id -> entry), entry = { status, reason, pass } (file
+ * level; `pass` is the number of subtests that must keep passing) or { subtests: Map(name -> reason) } (exactly
+ * these fail). `map.byNode` keeps the `fail-node:<N` entries as written (id -> { file: [status, reason, extra] }
+ * or { subtests: Map(name -> [status, reason]) }) for saveExpectations.
  */
-export function loadExpectations(source) {
+export function loadExpectations(source, major = NODE_MAJOR) {
   const f = expectationsFile(source);
   const map = new Map();
+  map.byNode = new Map();
   if (!fs.existsSync(f)) return map;
   const text = fs.readFileSync(f, 'utf8');
   // js-yaml throws on a document of comments only: a source with nothing expected to fail
@@ -163,15 +175,21 @@ export function loadExpectations(source) {
   for (const [id, v] of Object.entries(doc)) {
     if (Array.isArray(v)) {
       const [status, reason = '', extra] = v;
-      if (!STATUSES.includes(status)) throw new Error(`${f}: ${id}: unknown status "${status}" (expected one of ${STATUSES.join(', ')})`);
-      map.set(id, { status, reason: String(reason), pass: extra?.pass ?? 0 });
+      const node = NODE_FAIL.exec(status);
+      if (node) map.byNode.set(id, { file: v });
+      else if (!STATUSES.includes(status)) throw new Error(`${f}: ${id}: unknown status "${status}" (expected one of ${STATUSES.join(', ')}, or fail-node:<N)`);
+      if (!node || major < Number(node[1])) map.set(id, { status: node ? 'fail' : status, reason: String(reason), pass: extra?.pass ?? 0 });
     } else if (v && typeof v === 'object') {
       const subtests = new Map();
+      const byNode = new Map();
       for (const [name, sv] of Object.entries(v)) {
-        if (!Array.isArray(sv) || sv[0] !== 'fail') throw new Error(`${f}: ${id}: subtest "${name}" must be [fail, reason]`);
-        subtests.set(name, String(sv[1] ?? ''));
+        const node = Array.isArray(sv) && NODE_FAIL.exec(sv[0]);
+        if (!Array.isArray(sv) || (sv[0] !== 'fail' && !node)) throw new Error(`${f}: ${id}: subtest "${name}" must be [fail, reason] or [fail-node:<N, reason]`);
+        if (node) byNode.set(name, sv);
+        if (!node || major < Number(node[1])) subtests.set(name, String(sv[1] ?? ''));
       }
-      map.set(id, { subtests });
+      if (byNode.size) map.byNode.set(id, { subtests: byNode });
+      if (subtests.size) map.set(id, { subtests });
     } else {
       throw new Error(`${f}: ${id}: expected [status, reason] or a map of subtests`);
     }
@@ -189,16 +207,26 @@ export function saveExpectations(source, map) {
     '# entry whose status does not change). Format and workflow: conformance/parity/README.md.',
     '',
   ];
-  for (const id of [...map.keys()].sort()) {
+  const fileLine = (id, status, reason, pass) => `${key(id)}: [${status}, ${JSON.stringify(String(reason))}${pass ? `, {pass: ${pass}}` : ''}]`;
+  const byNode = map.byNode ?? new Map();
+  const ids = new Set([...map.keys(), ...byNode.keys()]);
+  for (const id of [...ids].sort()) {
     const e = map.get(id);
-    if (e.subtests) {
+    const b = byNode.get(id);
+    // `fail-node:<N` entries go back as written: the run that updates may be on a Node where they do not apply
+    if (b?.file) lines.push(fileLine(id, b.file[0], b.file[1] ?? '', b.file[2]?.pass));
+    else if (e && !e.subtests) lines.push(fileLine(id, e.status, e.reason, e.pass));
+    else {
+      const subtests = new Map([...(e?.subtests ?? [])].map(([name, reason]) => [name, ['fail', reason]]));
+      for (const [name, sv] of b?.subtests ?? []) subtests.set(name, sv);
       lines.push(`${key(id)}:`);
-      for (const name of [...e.subtests.keys()].sort()) lines.push(`  ${JSON.stringify(name)}: [fail, ${JSON.stringify(e.subtests.get(name))}]`);
-    } else {
-      lines.push(`${key(id)}: [${e.status}, ${JSON.stringify(e.reason)}${e.pass ? `, {pass: ${e.pass}}` : ''}]`);
+      for (const name of [...subtests.keys()].sort()) {
+        const [status, reason = ''] = subtests.get(name);
+        lines.push(`  ${JSON.stringify(name)}: [${status}, ${JSON.stringify(String(reason))}]`);
+      }
     }
   }
-  if (map.size === 0) lines.push('{}');
+  if (ids.size === 0) lines.push('{}');
   fs.writeFileSync(expectationsFile(source), lines.join('\n') + '\n');
 }
 

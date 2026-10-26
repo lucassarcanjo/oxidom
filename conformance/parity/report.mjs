@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SOURCES, RESULTS, loadExpectations, loadOracle, loadRoadmap } from './lib.mjs';
+import { SOURCES, RESULTS, REFERENCE_NODE, loadExpectations, loadOracle, loadRoadmap } from './lib.mjs';
 
 function fileGap(o, e) {
   const jsdomPass = o.pass;
@@ -44,7 +44,7 @@ export function computeReport() {
   for (const source of Object.keys(SOURCES)) {
     const oracle = loadOracle(source);
     if (!oracle.size) continue;
-    const exps = loadExpectations(source);
+    const exps = loadExpectations(source, REFERENCE_NODE);
     const tot = { source, files: 0, jsdomPass: 0, gap: 0, atParity: 0, fullyPassing: 0, entries: exps.size };
     for (const [id, o] of oracle) {
       keys.push(`${source}:${id}`);

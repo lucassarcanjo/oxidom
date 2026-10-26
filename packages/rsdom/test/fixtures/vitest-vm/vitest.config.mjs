@@ -1,5 +1,5 @@
 // Fixture for test/native/vitest-env.test.mjs: the same specs in Vitest's VM pools under the rsdom environment
-// and under Vitest's own jsdom environment (jsdom 30), which must agree. VITEST_DOM=jsdom | jetdom picks the
+// and under Vitest's own jsdom environment (jsdom 30), which must agree. VITEST_DOM=jsdom | nativedom picks the
 // environment; the pool comes from the command line.
 import { fileURLToPath } from 'node:url';
 

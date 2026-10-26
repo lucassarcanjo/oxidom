@@ -7,16 +7,16 @@
 // globals, safe timers and console exist and before any setup/test file is imported; `teardown()` runs when
 // the worker stops (isolate: true -> once per file; isolate: false -> once per worker).
 //
-// Options: `test.environmentOptions.jetdom = { url, html, shared, memo, prefilter, counters }`. The env vars
+// Options: `test.environmentOptions.nativedom = { url, html, shared, memo, prefilter, counters }`. The env vars
 // RSDOM_SHARED=0 / RSDOM_NO_MEMO=1 / RSDOM_NO_PREFILTER=1 / RSDOM_COUNTERS=1 win over the options (the facade
-// reads them once, when it is first loaded in this worker). `jetdom.html` is body markup.
+// reads them once, when it is first loaded in this worker). `nativedom.html` is body markup.
 //
 // `test.environmentOptions.jsdom` (ROADMAP Stage 2) is read as Vitest's jsdom environment reads it, so a
 // config written for jsdom works unchanged: `url`, `html` (a whole document, default `<!DOCTYPE html>`),
 // `userAgent` (or `resources.userAgent`), `pretendToBeVisual` (default true), `contentType` (HTML only),
 // `console`, `referrer`, `storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are
 // ignored: scripts in `html` do not run, where Vitest's jsdom default (`runScripts: 'dangerously'`) runs them.
-// A `jetdom` key wins over the `jsdom` one.
+// A `nativedom` key wins over the `jsdom` one.
 //
 // As in Vitest's jsdom environment, the window has a virtual console forwarding to the console (jsdom's
 // default whether `console` is set or not): not-implemented window methods (`alert`, `scrollTo`, ...) log
@@ -28,7 +28,7 @@ import path from 'node:path';
 
 const require = createRequire(import.meta.url);
 
-/** Maps `options.jetdom` onto the facade's env-var switches unless the env var is already set. */
+/** Maps `options.nativedom` onto the facade's env-var switches unless the env var is already set. */
 function applyOptions(o) {
   const env = process.env;
   const set = (k, v) => {
@@ -67,10 +67,10 @@ function dumpCounters(rt) {
 /**
  * Loads the facade and maps the environment options onto `context.open()` options: `environmentOptions.jsdom`
  * with the defaults of Vitest's jsdom environment (node_modules/vitest/dist/chunks/index.*.js `jsdom`), then
- * `environmentOptions.jetdom` over them (`jetdom.html` is body markup).
+ * `environmentOptions.nativedom` over them (`nativedom.html` is body markup).
  */
 function prepare(options) {
-  const o = options.jetdom ?? {};
+  const o = options.nativedom ?? {};
   applyOptions(o);
   const { rt } = require('./index.cjs'); // installs every area
   const api = require('./jsdom.cjs');

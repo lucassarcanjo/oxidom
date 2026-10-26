@@ -1,12 +1,12 @@
 {
-  "name": "jest-environment-jetdom",
+  "name": "jest-environment-nativedom",
   "version": "0.1.0",
-  "description": "Jest environment for jetdom: `testEnvironment: 'jetdom'`",
+  "description": "Jest environment for nativedom: `testEnvironment: 'nativedom'`",
   "keywords": ["jest", "jest-environment", "rsdom", "dom", "jsdom"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/jetdom.git",
+    "url": "git+https://github.com/lucassarcanjo/nativedom.git",
     "directory": "packages/jest-environment-rsdom"
   },
   "main": "index.js",
@@ -26,6 +26,6 @@
     "jest-util": "^30.0.0"
   },
   "peerDependencies": {
-    "jetdom": "0.1.0"
+    "nativedom": "0.1.0"
   }
 }

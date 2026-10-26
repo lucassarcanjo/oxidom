@@ -7,7 +7,7 @@ A DOM for Node.js test environments, implemented in Rust. The goal is a drop-in 
 // vitest.config.ts
 export default defineConfig({
   test: {
-    environment: 'jetdom', // was: 'jsdom'
+    environment: 'nativedom', // was: 'jsdom'
   },
 })
 ```
@@ -15,7 +15,8 @@ export default defineConfig({
 > **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 97.4% of what jsdom
 > passes in jsdom's own test suite, but it is not on npm yet. See [what works](#compatibility), the
 > [migration guide](docs/MIGRATING.md) and the [roadmap](docs/ROADMAP.md).
-> Its npm name is `jetdom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm.
+> Its npm name is `nativedom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm, and npm
+> rejects `jetdom` as too similar to `jsdom` and `jest-dom`.
 
 ## Why
 
@@ -61,35 +62,35 @@ jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 Requires Rust (stable) and Node.js 22+.
 
 ```bash
-git clone https://github.com/lucassarcanjo/jetdom && cd jetdom
+git clone https://github.com/lucassarcanjo/nativedom && cd nativedom
 npm ci
 npm run build          # builds the native addon into packages/rsdom/native/
 ```
 
-**Vitest.** Install `jetdom` and `vitest-environment-jetdom` (from this repository for now) and set
-`environment: 'jetdom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
+**Vitest.** Install `nativedom` and `vitest-environment-nativedom` (from this repository for now) and set
+`environment: 'nativedom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
 (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
 global (`jsdom.reconfigure({ url })`) is there. Scripts run as under Vitest's jsdom environment (`runScripts:
-'dangerously'` by default), external `<script src>` excepted. rsdom's own options go in `test.environmentOptions.jetdom` (`{ url, html }`, with
+'dangerously'` by default), external `<script src>` excepted. rsdom's own options go in `test.environmentOptions.nativedom` (`{ url, html }`, with
 `html` as body markup) and win over the `jsdom` ones. The VM pools (`pool: 'vmThreads'` / `'vmForks'`) work too. As on jsdom, `alert()`, `scrollTo()` and the other
 not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel is logged there instead of failing the test.
 
-**Jest.** Install `jetdom` and `jest-environment-jetdom` (from this repository for now) and set
-`testEnvironment: 'jetdom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
+**Jest.** Install `nativedom` and `jest-environment-nativedom` (from this repository for now) and set
+`testEnvironment: 'nativedom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
 `userAgent`, `pretendToBeVisual`, `customExportConditions`, ...) and the `@jest-environment-options` docblock work
 the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
 runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
 not `instanceof Error`. `customElements` is not there yet.
 
-**TypeScript.** The packages ship their declarations; `jetdom`'s `JSDOM` API is typed as @types/jsdom types
-jsdom's. For the Vitest `jsdom` global, use `types: ["jetdom/vitest-globals"]` where you had `vitest/jsdom`.
+**TypeScript.** The packages ship their declarations; `nativedom`'s `JSDOM` API is typed as @types/jsdom types
+jsdom's. For the Vitest `jsdom` global, use `types: ["nativedom/vitest-globals"]` where you had `vitest/jsdom`.
 
 **Plain Node.**
 
 ```js
-const { createWindow } = require('jetdom');
+const { createWindow } = require('nativedom');
 
 const { window, document } = createWindow({ url: 'https://example.test/' });
 document.body.innerHTML = '<button class="primary">Save</button>';
@@ -99,7 +100,7 @@ document.querySelector('button.primary').textContent; // 'Save'
 Or the jsdom API, unchanged:
 
 ```js
-const { JSDOM } = require('jetdom');
+const { JSDOM } = require('nativedom');
 
 const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
 dom.window.document.querySelector('p').textContent; // 'Hello'
@@ -115,9 +116,9 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 | path | what |
 |---|---|
 | [`crates/rsdom`](crates/rsdom) | the Rust core and Node-API bindings (napi-rs v3) |
-| [`packages/rsdom`](packages/rsdom) | the `jetdom` npm package: JS facade, native loader, Vitest environment, contract tests |
-| [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-jetdom`: makes `environment: 'jetdom'` resolve |
-| [`packages/jest-environment-rsdom`](packages/jest-environment-rsdom) | `jest-environment-jetdom`: makes `testEnvironment: 'jetdom'` resolve |
+| [`packages/rsdom`](packages/rsdom) | the `nativedom` npm package: JS facade, native loader, Vitest environment, contract tests |
+| [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-nativedom`: makes `environment: 'nativedom'` resolve |
+| [`packages/jest-environment-rsdom`](packages/jest-environment-rsdom) | `jest-environment-nativedom`: makes `testEnvironment: 'nativedom'` resolve |
 | [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |

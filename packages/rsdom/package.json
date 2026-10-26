@@ -1,12 +1,12 @@
 {
-  "name": "jetdom",
+  "name": "nativedom",
   "version": "0.1.0",
   "description": "A fast DOM for Node.js test environments, implemented in Rust: a drop-in replacement for jsdom",
   "keywords": ["dom", "jsdom", "html", "vitest", "testing", "napi", "rust"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/jetdom.git",
+    "url": "git+https://github.com/lucassarcanjo/nativedom.git",
     "directory": "packages/rsdom"
   },
   "engines": {

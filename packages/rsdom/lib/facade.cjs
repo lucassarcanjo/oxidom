@@ -57,5 +57,5 @@ module.exports = { createWindow, rt, dom, JSDOM, VirtualConsole, CookieJar, toug
 // context must not hand that file's realm to the next file
 const native = require('./native.cjs');
 if (Object.getPrototypeOf(native) === Object.prototype) {
-  Object.defineProperty(native, Symbol.for('jetdom.facade'), { value: module.exports });
+  Object.defineProperty(native, Symbol.for('nativedom.facade'), { value: module.exports });
 }

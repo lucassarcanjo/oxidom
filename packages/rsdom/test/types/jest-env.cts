@@ -1,9 +1,9 @@
-// Type-checked by test/native/types.test.mjs: a custom Jest environment extending jest-environment-jetdom, as
+// Type-checked by test/native/types.test.mjs: a custom Jest environment extending jest-environment-nativedom, as
 // projects extend jest-environment-jsdom.
-import JetdomEnvironment, { TestEnvironment } from 'jest-environment-jetdom';
+import NativedomEnvironment, { TestEnvironment } from 'jest-environment-nativedom';
 import type { EnvironmentContext, JestEnvironmentConfig } from '@jest/environment';
 
-class CustomEnvironment extends JetdomEnvironment {
+class CustomEnvironment extends NativedomEnvironment {
   constructor(config: JestEnvironmentConfig, context: EnvironmentContext) {
     super(config, context);
     this.global.myGlobal = 1;
@@ -17,5 +17,5 @@ class CustomEnvironment extends JetdomEnvironment {
   }
 }
 
-const same: typeof JetdomEnvironment = TestEnvironment;
+const same: typeof NativedomEnvironment = TestEnvironment;
 void [CustomEnvironment, same];

@@ -1,3 +1,3 @@
-// Type declarations for vitest-environment-jetdom: the environment of the jetdom package.
-export { default } from 'jetdom/vitest-environment';
-export type { JetdomEnvironmentOptions } from 'jetdom/vitest-environment';
+// Type declarations for vitest-environment-nativedom: the environment of the nativedom package.
+export { default } from 'nativedom/vitest-environment';
+export type { NativedomEnvironmentOptions } from 'nativedom/vitest-environment';

@@ -33,7 +33,7 @@ describe('vitest-environment module', () => {
     };
     Object.defineProperty(fake, 'localStorage', { get: () => { throw new Error('must not be read'); }, configurable: true });
     const before = descriptors(fake);
-    const { teardown } = await env.setup(fake, { jetdom: { url: 'http://localhost:3000/a' } });
+    const { teardown } = await env.setup(fake, { nativedom: { url: 'http://localhost:3000/a' } });
     expect(fake.window).toBe(fake);
     expect(fake.document.defaultView).toBe(fake);
     expect(fake.location.pathname).toBe('/a');
@@ -56,7 +56,7 @@ describe('vitest-environment module', () => {
 });
 
 describe('environmentOptions.jsdom (Vitest jsdom environment keys)', () => {
-  it('reads url, html, userAgent, pretendToBeVisual and referrer; a jetdom key wins', async () => {
+  it('reads url, html, userAgent, pretendToBeVisual and referrer; a nativedom key wins', async () => {
     const fake = {};
     const { teardown } = await env.setup(fake, {
       jsdom: {
@@ -66,7 +66,7 @@ describe('environmentOptions.jsdom (Vitest jsdom environment keys)', () => {
         pretendToBeVisual: false,
         referrer: 'https://ref.example/',
       },
-      jetdom: { url: 'https://example.org/y' },
+      nativedom: { url: 'https://example.org/y' },
     });
     expect([fake.location.href, fake.document.documentElement.lang, fake.document.body.innerHTML]).toEqual(['https://example.org/y', 'fr', '<p>hi</p>']);
     expect([fake.navigator.userAgent, fake.document.referrer]).toEqual(['agent/1', 'https://ref.example/']);
@@ -153,7 +153,7 @@ describe.each([
   }, 120_000);
 });
 
-// VM pools (DESIGN §33): test/fixtures/vitest-vm under jetdom and under Vitest's jsdom environment (the oracle).
+// VM pools (DESIGN §33): test/fixtures/vitest-vm under nativedom and under Vitest's jsdom environment (the oracle).
 const vmFixture = path.join(root, 'test/fixtures/vitest-vm');
 
 function runVm(dom, pool, extraEnv = {}) {
@@ -166,7 +166,7 @@ function runVm(dom, pool, extraEnv = {}) {
   return { status: r.status, out: r.stdout + r.stderr };
 }
 
-describe.each(['jsdom', 'jetdom'])('VM pools fixture suite [%s]', (dom) => {
+describe.each(['jsdom', 'nativedom'])('VM pools fixture suite [%s]', (dom) => {
   it.each(['vmThreads', 'vmForks'])('passes in %s', (pool) => {
     const { status, out } = runVm(dom, pool);
     expect(status, out).toBe(0);

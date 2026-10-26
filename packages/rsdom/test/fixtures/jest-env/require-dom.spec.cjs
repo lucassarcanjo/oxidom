@@ -1,8 +1,8 @@
-// Test code may load the DOM library itself (a helper `new JSDOM()`, jsdom aliased to jetdom): the window the
+// Test code may load the DOM library itself (a helper `new JSDOM()`, jsdom aliased to nativedom): the window the
 // environment installed keeps working.
 // (jsdom 30 itself cannot be required inside Jest on Node 22: an ESM dependency. The oracle run only checks the
 // environment document.)
-const JSDOM = process.env.JEST_DOM === 'jsdom' ? null : require('jetdom').JSDOM;
+const JSDOM = process.env.JEST_DOM === 'jsdom' ? null : require('nativedom').JSDOM;
 
 test('a JSDOM made in a test leaves the environment document alone', () => {
   document.body.innerHTML = '<p id=g>global</p>';

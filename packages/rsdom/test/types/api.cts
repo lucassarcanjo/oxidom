@@ -1,5 +1,5 @@
-// Type-checked by test/native/types.test.mjs (DESIGN §34): the jetdom entry, used the way jsdom's API is.
-import { JSDOM, VirtualConsole, CookieJar, createWindow, type DOMWindow, type ConstructorOptions, type SupportedContentTypes } from 'jetdom';
+// Type-checked by test/native/types.test.mjs (DESIGN §34): the nativedom entry, used the way jsdom's API is.
+import { JSDOM, VirtualConsole, CookieJar, createWindow, type DOMWindow, type ConstructorOptions, type SupportedContentTypes } from 'nativedom';
 
 const options: ConstructorOptions = { url: 'https://example.com/', pretendToBeVisual: true, storageQuota: 10, resources: { userAgent: 'x' } };
 const vc = new VirtualConsole().forwardTo(console, { jsdomErrors: ['not-implemented'] });

@@ -1,6 +1,6 @@
 'use strict';
-// The rsdom Jest environment (ROADMAP Stage 2, DESIGN §32): `testEnvironment: 'jetdom'` resolves to the package
-// `jest-environment-jetdom` (packages/jest-environment-rsdom), which builds its class here, passing its own
+// The rsdom Jest environment (ROADMAP Stage 2, DESIGN §32): `testEnvironment: 'nativedom'` resolves to the package
+// `jest-environment-nativedom` (packages/jest-environment-rsdom), which builds its class here, passing its own
 // `require` so that jest-util, jest-mock and @jest/fake-timers resolve from the Jest side.
 //
 // A port of jest-environment-jsdom 30 (@jest/environment-jsdom-abstract): Jest runs test files in a vm context
@@ -20,7 +20,7 @@ function environmentClass(jestRequire) {
   const { openVmWindow } = require('./vm-window.cjs');
   const api = require('./jsdom.cjs');
 
-  return class JetdomEnvironment {
+  return class NativedomEnvironment {
     customExportConditions = ['browser'];
 
     constructor(config, envContext) {

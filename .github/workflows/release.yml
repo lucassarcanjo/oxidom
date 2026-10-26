@@ -1,5 +1,5 @@
-# Builds the addon for every supported platform and publishes `jetdom`, `vitest-environment-jetdom` and `jest-environment-jetdom` to npm.
-# All binaries ship inside `jetdom` (native/rsdom.<triple>.node); lib/native.cjs picks the one for the host.
+# Builds the addon for every supported platform and publishes `nativedom`, `vitest-environment-nativedom` and `jest-environment-nativedom` to npm.
+# All binaries ship inside `nativedom` (native/rsdom.<triple>.node); lib/native.cjs picks the one for the host.
 #
 # Runs on a `v*` tag that matches the package versions, or by hand (Actions > Release > Run workflow), where
 # `dry_run` packs and checks everything without publishing. Safe to rerun: a package whose version is already on
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         env:
           RUSTFLAGS: ${{ contains(matrix.target, 'musl') && '-C target-feature=-crt-static' || '' }}
-        run: npm run build --workspace=jetdom -- --target ${{ matrix.target }} ${{ matrix.flags }}
+        run: npm run build --workspace=nativedom -- --target ${{ matrix.target }} ${{ matrix.flags }}
       - name: Smoke test
         if: matrix.smoke == 'node'
         shell: bash
@@ -114,7 +114,7 @@ jobs:
           v=$(node -p "require('./packages/rsdom/package.json').version")
           for p in vitest-environment-rsdom jest-environment-rsdom; do
             e=$(node -p "require('./packages/$p/package.json').version")
-            [ "$v" = "$e" ] || { echo "::error::jetdom is $v but packages/$p is $e"; exit 1; }
+            [ "$v" = "$e" ] || { echo "::error::nativedom is $v but packages/$p is $e"; exit 1; }
           done
           if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$v" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match package version $v"; exit 1
@@ -126,20 +126,20 @@ jobs:
       - name: Pack
         run: |
           mkdir -p "$RUNNER_TEMP/pack"
-          npm pack --workspace=jetdom --workspace=vitest-environment-jetdom --workspace=jest-environment-jetdom --pack-destination "$RUNNER_TEMP/pack"
+          npm pack --workspace=nativedom --workspace=vitest-environment-nativedom --workspace=jest-environment-nativedom --pack-destination "$RUNNER_TEMP/pack"
       - name: Smoke test the packed package
         run: |
           mkdir -p "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
           npm init -y > /dev/null
-          npm install --no-audit --no-fund "$RUNNER_TEMP"/pack/jetdom-*.tgz
-          node "$GITHUB_WORKSPACE/scripts/release-smoke.cjs" jetdom
+          npm install --no-audit --no-fund "$RUNNER_TEMP"/pack/nativedom-*.tgz
+          node "$GITHUB_WORKSPACE/scripts/release-smoke.cjs" nativedom
       - name: Publish
         if: github.event_name == 'push' || !inputs.dry_run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # jetdom first: both environment packages have it as a peer dependency.
-          for f in jetdom vitest-environment-jetdom jest-environment-jetdom; do
+          # nativedom first: both environment packages have it as a peer dependency.
+          for f in nativedom vitest-environment-nativedom jest-environment-nativedom; do
             tgz=$(ls "$RUNNER_TEMP"/pack/$f-[0-9]*.tgz)
             v=$(node -p "require('./packages/rsdom/package.json').version")
             if npm view "$f@$v" version > /dev/null 2>&1; then

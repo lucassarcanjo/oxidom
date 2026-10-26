@@ -157,7 +157,7 @@ export async function runOne(dom, test) {
   let envRet;
   try {
     const env = await loadEnv(dom);
-    envRet = await env.setup(globalThis, { jsdom: { url }, happyDOM: { url }, jetdom: { url } });
+    envRet = await env.setup(globalThis, { jsdom: { url }, happyDOM: { url }, nativedom: { url } });
   } catch (e) {
     out.harness = { status: 'SETUP_ERROR', message: trunc(e && e.stack) };
     return out;

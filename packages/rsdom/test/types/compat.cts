@@ -1,6 +1,6 @@
-// Type-checked by test/native/types.test.mjs: jetdom values where code typed against @types/jsdom expects jsdom's.
+// Type-checked by test/native/types.test.mjs: nativedom values where code typed against @types/jsdom expects jsdom's.
 import type * as jsdom from 'jsdom';
-import { JSDOM } from 'jetdom';
+import { JSDOM } from 'nativedom';
 
 function useWindow(window: jsdom.DOMWindow): Document {
   return window.document;

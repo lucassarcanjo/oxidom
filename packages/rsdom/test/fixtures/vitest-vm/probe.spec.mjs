@@ -1,4 +1,4 @@
-// What a test file sees in a VM pool: the same under jsdom and jetdom.
+// What a test file sees in a VM pool: the same under jsdom and nativedom.
 import { test, expect } from 'vitest';
 
 test('globals', () => {

@@ -1,4 +1,4 @@
-// What a test file sees: the same on jest-environment-jsdom and jest-environment-jetdom.
+// What a test file sees: the same on jest-environment-jsdom and jest-environment-nativedom.
 test('globals', () => {
   const id = setTimeout(() => {}, 0);
   clearTimeout(id);

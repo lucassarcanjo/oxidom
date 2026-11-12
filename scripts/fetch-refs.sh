@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shallow-clones the upstream sources rsdom is measured against into refs/ (gitignored), at the exact
+# Shallow-clones the upstream sources oxidom is measured against into refs/ (gitignored), at the exact
 # versions the packages pin. Code comments cite paths like `refs/jsdom/lib/jsdom/living/...`; they resolve
 # against these checkouts.
 #
@@ -8,10 +8,10 @@
 #                                    (~90 MB; conformance/parity and conformance/wpt run it)
 #   scripts/fetch-refs.sh --all      also happy-dom, vitest, dom-testing-library, react (reading material)
 #
-# RSDOM_REFS overrides the destination (default: <repo>/refs).
+# OXIDOM_REFS overrides the destination (default: <repo>/refs).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-dest="${RSDOM_REFS:-$root/refs}"
+dest="${OXIDOM_REFS:-$root/refs}"
 mkdir -p "$dest"
 
 # True when $1 is the top of its own checkout: git -C on a directory whose .git is broken would act on the

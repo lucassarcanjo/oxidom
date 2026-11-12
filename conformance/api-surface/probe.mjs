@@ -1,9 +1,9 @@
 // Step 2 of the surface census: installs ONE DOM on globalThis exactly the way Vitest 5 does (jsdom /
-// happy-dom: vitest's builtinEnvironments from e2e/react-app/node_modules/vitest; rsdom: packages/rsdom/lib/vitest-environment.mjs
+// happy-dom: vitest's builtinEnvironments from e2e/react-app/node_modules/vitest; oxidom: packages/oxidom/lib/vitest-environment.mjs
 // setup(globalThis)), then dumps raw facts about the global object and every interface it can reach.
 // No judgement happens here; analyze.mjs compares the dumps against the jsdom WebIDL.
 //
-//   node probe.mjs jsdom|happy-dom|rsdom   -> results/runtime-<kind>.json
+//   node probe.mjs jsdom|happy-dom|oxidom   -> results/runtime-<kind>.json
 //
 // Run each DOM in its own process (run.sh does that), so nothing leaks between them.
 import fs from 'node:fs';
@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lab = path.resolve(here, '../..'); // repository root
 const kind = process.argv[2];
-if (!['jsdom', 'happy-dom', 'rsdom'].includes(kind)) throw new Error('usage: node probe.mjs jsdom|happy-dom|rsdom');
+if (!['jsdom', 'happy-dom', 'oxidom'].includes(kind)) throw new Error('usage: node probe.mjs jsdom|happy-dom|oxidom');
 
 const idl = JSON.parse(fs.readFileSync(path.join(here, 'results/idl.json'), 'utf8'));
 
@@ -28,7 +28,7 @@ const realmBuiltins = new Set(vm.runInNewContext('Object.getOwnPropertyNames(glo
 const vitestRuntime = path.join(lab, 'node_modules/vitest/dist/runtime.js');
 const rt = await import(pathToFileURL(vitestRuntime).href);
 let env;
-if (kind === 'rsdom') env = (await import(pathToFileURL(path.join(lab, 'packages/rsdom/lib/vitest-environment.mjs')).href)).default;
+if (kind === 'oxidom') env = (await import(pathToFileURL(path.join(lab, 'packages/oxidom/lib/vitest-environment.mjs')).href)).default;
 else env = rt.builtinEnvironments[kind];
 const t0 = performance.now();
 const handle = await env.setup(globalThis, {});
@@ -41,7 +41,7 @@ for (const p of ['vitest', 'jsdom', 'happy-dom']) {
   } catch {}
 }
 try {
-  versions.rsdom = JSON.parse(fs.readFileSync(path.join(lab, 'packages/rsdom/package.json'), 'utf8')).version;
+  versions.oxidom = JSON.parse(fs.readFileSync(path.join(lab, 'packages/oxidom/package.json'), 'utf8')).version;
 } catch {}
 
 // ---- Helpers
@@ -356,7 +356,7 @@ for (const i of idl.interfaces) {
 // legitimately undefined outside dispatch).
 function underlyingWindow() {
   if (kind === 'jsdom') return globalThis.jsdom?.window ?? null;
-  if (kind === 'rsdom') return globalThis;
+  if (kind === 'oxidom') return globalThis;
   try {
     for (const sym of Object.getOwnPropertySymbols(document)) {
       const v = document[sym];

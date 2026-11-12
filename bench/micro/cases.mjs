@@ -10,7 +10,7 @@ import { bench, benchAsync, windowFor, installGlobalEnv, appRequire, need, roleS
 /**
  * Alternates per pass over a list of `len` elements, so element `i % len` really changes on every visit.
  * (`i & 1` would give each element of an even-length list the same value on every pass: a same-value
- * set, which rsdom does not treat as a change for style invalidation.)
+ * set, which oxidom does not treat as a change for style invalidation.)
  */
 const flip = (i, len) => ((i / len) | 0) & 1;
 
@@ -411,7 +411,7 @@ export const cases = {
         for (let i = 0; i < n; i++) s += w.getComputedStyle(cells[i & 63]).visibility.length;
         sink += s;
       }));
-      // jest-dom toHaveStyle-like reads: rsdom packs display/visibility/pointer-events/opacity/position into
+      // jest-dom toHaveStyle-like reads: oxidom packs display/visibility/pointer-events/opacity/position into
       // one snapshot; every other property is a separate lazy crossing (M9 review: the rows above only read
       // packed properties).
       metric('4 properties (display, color, margin-left, font-weight), cold after a class mutation', 'ns', () => bench(5_000, (n) => {
@@ -616,12 +616,12 @@ export const cases = {
       const m1 = process.memoryUsage();
       metric('RSS per retained <div class> (100k, wrapper alive)', 'bytes', () => (m1.rss - m0.rss) / N);
       metric('V8 heap + external per retained <div class>', 'bytes', () => (m1.heapUsed + m1.external - m0.heapUsed - m0.external) / N);
-      // rsdom keeps node data in Rust (RSS / external), so V8 heap alone is NOT comparable across DOMs:
+      // oxidom keeps node data in Rust (RSS / external), so V8 heap alone is NOT comparable across DOMs:
       // reported for attribution only (the ratio column says so).
-      metric('V8 heap only per retained <div class> (not comparable: rsdom data lives outside V8)', 'bytes-nc', () => (m1.heapUsed - m0.heapUsed) / N);
+      metric('V8 heap only per retained <div class> (not comparable: oxidom data lives outside V8)', 'bytes-nc', () => (m1.heapUsed - m0.heapUsed) / N);
       sink += host.childNodes.length;
       host.textContent = '';
-      // Churn: rsdom never reclaims node records inside an env (CONTRIBUTING §8), GC-based DOMs free them
+      // Churn: oxidom never reclaims node records inside an env (CONTRIBUTING §8), GC-based DOMs free them
       // (inside the timed loops of mutate / deep / parse). Created-and-discarded nodes, after 2x gc().
       const html = tableHTML(25); // ~300 nodes
       const CHURN = 2000;
@@ -646,7 +646,7 @@ export const cases = {
     async run({ metric, kind }) {
       const { ms, importMs, setupMs, teardown } = await installGlobalEnv(kind);
       metric('environment setup (import + window on globalThis), fresh process, in-process timing', 'ms', () => ms);
-      // breakdown only: jsdom / happy-dom import their package inside setup(), rsdom's facade loads lazily too
+      // breakdown only: jsdom / happy-dom import their package inside setup(), oxidom's facade loads lazily too
       metric('  of which: environment module import', 'ms-nc', () => importMs);
       metric('  of which: setup()', 'ms-nc', () => setupMs);
       const t0 = performance.now();

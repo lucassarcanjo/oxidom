@@ -1,0 +1,73 @@
+{
+  "name": "oxidom",
+  "version": "0.1.0",
+  "description": "A fast DOM for Node.js test environments, implemented in Rust: a drop-in replacement for jsdom",
+  "keywords": ["dom", "jsdom", "html", "vitest", "testing", "napi", "rust"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/oxidom.git",
+    "directory": "packages/oxidom"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "lib/index.cjs",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.cjs"
+    },
+    "./vitest-environment": {
+      "types": "./lib/vitest-environment.d.mts",
+      "default": "./lib/vitest-environment.mjs"
+    },
+    "./vitest-globals": {
+      "types": "./lib/vitest-globals.d.ts"
+    },
+    "./jest-environment": {
+      "types": "./lib/jest-environment.d.cts",
+      "default": "./lib/jest-environment.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "native/*.node"
+  ],
+  "napi": {
+    "binaryName": "oxidom"
+  },
+  "scripts": {
+    "build": "napi build --release --platform --no-js --manifest-path ../../crates/oxidom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:debug": "napi build --platform --no-js --manifest-path ../../crates/oxidom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:profiling": "napi build --profile profiling --platform --no-js --manifest-path ../../crates/oxidom/Cargo.toml --package-json-path package.json --output-dir native",
+    "build:counters": "napi build --release --features counters --platform --no-js --manifest-path ../../crates/oxidom/Cargo.toml --package-json-path package.json --target-dir ../../target/counters --output-dir native/counters",
+    "test": "vitest run",
+    "test:fallback": "OXIDOM_SHARED=0 vitest run"
+  },
+  "dependencies": {
+    "@types/node": "*",
+    "decimal.js": "^10.6.0",
+    "saxes": "^6.0.0",
+    "tough-cookie": "^6.0.2",
+    "w3c-xmlserializer": "^6.0.0"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.10.8",
+    "@jest/environment-jsdom-abstract": "30.5.2",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/user-event": "14.6.8",
+    "@types/chai": "5.2.3",
+    "@types/jsdom": "30.0.0",
+    "happy-dom": "21.0.3",
+    "jest": "30.5.2",
+    "jsdom": "30.1.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

@@ -5,22 +5,22 @@ import { defineConfig } from 'vitest/config'
  *
  *   DOM_ENV=jsdom      npx vitest run   (default)
  *   DOM_ENV=happy-dom  npx vitest run
- *   DOM_ENV=rsdom      npx vitest run
+ *   DOM_ENV=oxidom      npx vitest run
  *
  * Everything else (pool, isolation, setup files, transforms) is identical across
  * environments so that the only variable in the end-to-end benchmark is the DOM.
  */
-type DomEnv = 'jsdom' | 'happy-dom' | 'rsdom'
+type DomEnv = 'jsdom' | 'happy-dom' | 'oxidom'
 
-// rsdom is selected exactly like the builtin environments: Vitest resolves
-// `environment: 'nativedom'` (the npm name) to the `vitest-environment-nativedom`
-// package (packages/vitest-environment-rsdom, linked by the npm workspace),
-// which re-exports `nativedom/vitest-environment`. Switching a project from jsdom
-// to rsdom is that one-word change.
+// oxidom is selected exactly like the builtin environments: Vitest resolves
+// `environment: 'oxidom'` (the npm name) to the `vitest-environment-oxidom`
+// package (packages/vitest-environment-oxidom, linked by the npm workspace),
+// which re-exports `oxidom/vitest-environment`. Switching a project from jsdom
+// to oxidom is that one-word change.
 const ENVIRONMENTS: Record<DomEnv, string> = {
   jsdom: 'jsdom',
   'happy-dom': 'happy-dom',
-  rsdom: 'nativedom',
+  oxidom: 'oxidom',
 }
 
 const requested = (process.env.DOM_ENV ?? 'jsdom') as DomEnv

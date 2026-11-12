@@ -1,4 +1,4 @@
-# rsdom's expected failures in the parity suite: jsdom's legacy mocha tests (to-port-to-wpts).
+# oxidom's expected failures in the parity suite: jsdom's legacy mocha tests (to-port-to-wpts).
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 

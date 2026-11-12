@@ -1,12 +1,12 @@
 {
-  "name": "rsdom-compare-libs",
+  "name": "oxidom-compare-libs",
   "private": true,
   "type": "module",
-  "description": "Real-world library compatibility smoke tests run under jsdom / happy-dom / rsdom",
+  "description": "Real-world library compatibility smoke tests run under jsdom / happy-dom / oxidom",
   "scripts": {
     "test:jsdom": "DOM_ENV=jsdom vitest run",
     "test:happy-dom": "DOM_ENV=happy-dom vitest run",
-    "test:rsdom": "DOM_ENV=rsdom vitest run",
+    "test:oxidom": "DOM_ENV=oxidom vitest run",
     "run-all": "node run.mjs",
     "census": "node census.mjs"
   },

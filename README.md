@@ -1,4 +1,4 @@
-# rsdom
+# oxidom
 
 A DOM for Node.js test environments, implemented in Rust. The goal is a drop-in replacement for
 [jsdom](https://github.com/jsdom/jsdom): switch one word of configuration and run the same tests, faster.
@@ -7,26 +7,24 @@ A DOM for Node.js test environments, implemented in Rust. The goal is a drop-in 
 // vitest.config.ts
 export default defineConfig({
   test: {
-    environment: 'nativedom', // was: 'jsdom'
+    environment: 'oxidom', // was: 'jsdom'
   },
 })
 ```
 
-> **Status: pre-release.** rsdom runs an unmodified React 19 + Testing Library suite and passes 97.4% of what jsdom
-> passes in jsdom's own test suite, but it is not on npm yet. See [what works](#compatibility), the
-> [migration guide](docs/MIGRATING.md) and the [roadmap](docs/ROADMAP.md).
-> Its npm name is `nativedom`: an unrelated project owns `vitest-environment-rsdom` and the `@rsdom` scope on npm, and npm
-> rejects `jetdom` as too similar to `jsdom` and `jest-dom`.
+> **Status: preview.** oxidom runs an unmodified React 19 + Testing Library suite and passes 97.5% of what jsdom
+> passes in jsdom's own test suite. See [what works](#compatibility), the [migration guide](docs/MIGRATING.md) and
+> the [roadmap](docs/ROADMAP.md).
 
 ## Why
 
-On a 90-test React 19 suite (Vitest 5, default `forks` pool, 4 vCPUs) rsdom finishes in **4.27 s**, against
+On a 90-test React 19 suite (Vitest 5, default `forks` pool, 4 vCPUs) oxidom finishes in **4.27 s**, against
 10.74 s on happy-dom (2.5x) and 12.46 s on jsdom (2.9x).
 
 Only about 3% of the test time is spent inside Rust. The win comes from making the operations Testing Library
 and React lean on cheap: selector matching, `querySelectorAll`, `getComputedStyle`, HTML parsing and
 MutationObserver registration are 5-700x cheaper than in the JS DOMs, and environment setup takes 45 ms per file
-instead of 318-709 ms. Methodology, per-file numbers, ablations and where rsdom loses are in
+instead of 318-709 ms. Methodology, per-file numbers, ablations and where oxidom loses are in
 [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
 ## How it works
@@ -41,14 +39,14 @@ code. Parsing uses html5ever, selector matching uses Servo's `selectors` crate, 
 
 Measured against jsdom 30.1.3:
 
-| measure | rsdom |
+| measure | oxidom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on rsdom | 97.5% (163,519 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
+| subtests of jsdom's own test suite that pass on jsdom and also on oxidom | 97.5% (163,519 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
 | real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
 The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
-rsdom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
+oxidom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM environment exercises, jsdom's
 to-upstream tests, its legacy mocha tests and its API tests; the scoreboard breaks it down by roadmap item. The
 lab-phase baseline (API surface, WPT, 2026-10-17) is in [`docs/PARITY.md`](docs/PARITY.md).
 
@@ -57,40 +55,32 @@ The remaining library failure comes from a missing API: custom elements (lit), w
 Not supported today: loading `<script src>` and `<iframe src>`, layout, synchronous XMLHttpRequest. Every known difference from
 jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 
-## Usage (from source)
+## Usage
 
-Requires Rust (stable) and Node.js 22+.
+Requires Node.js 22+. Prebuilt binaries ship for Linux x64/arm64 (glibc and musl), macOS x64/arm64 and Windows x64.
 
-```bash
-git clone https://github.com/lucassarcanjo/nativedom && cd nativedom
-npm ci
-npm run build          # builds the native addon into packages/rsdom/native/
-```
-
-**Vitest.** Install `nativedom` and `vitest-environment-nativedom` (from this repository for now) and set
-`environment: 'nativedom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
+**Vitest.** `npm install --save-dev oxidom vitest-environment-oxidom` and set `environment: 'oxidom'`. A config written for Vitest's jsdom environment works unchanged: `test.environmentOptions.jsdom`
 (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`, ...) is read the way Vitest reads it, and the `jsdom`
 global (`jsdom.reconfigure({ url })`) is there. Scripts run as under Vitest's jsdom environment (`runScripts:
-'dangerously'` by default), external `<script src>` excepted. rsdom's own options go in `test.environmentOptions.nativedom` (`{ url, html }`, with
+'dangerously'` by default), external `<script src>` excepted. oxidom's own options go in `test.environmentOptions.oxidom` (`{ url, html }`, with
 `html` as body markup) and win over the `jsdom` ones. The VM pools (`pool: 'vmThreads'` / `'vmForks'`) work too. As on jsdom, `alert()`, `scrollTo()` and the other
 not-implemented window methods log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel is logged there instead of failing the test.
 
-**Jest.** Install `nativedom` and `jest-environment-nativedom` (from this repository for now) and set
-`testEnvironment: 'nativedom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
+**Jest.** `npm install --save-dev oxidom jest-environment-oxidom` and set `testEnvironment: 'oxidom'`. It is a port of `jest-environment-jsdom`: `testEnvironmentOptions` (`url`, `html`,
 `userAgent`, `pretendToBeVisual`, `customExportConditions`, ...) and the `@jest-environment-options` docblock work
 the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
-runs them). Arrays, typed arrays, promises and errors that rsdom itself creates come from Node's realm, not the test
+runs them). Arrays, typed arrays, promises and errors that oxidom itself creates come from Node's realm, not the test
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
 not `instanceof Error`. `customElements` is not there yet.
 
-**TypeScript.** The packages ship their declarations; `nativedom`'s `JSDOM` API is typed as @types/jsdom types
-jsdom's. For the Vitest `jsdom` global, use `types: ["nativedom/vitest-globals"]` where you had `vitest/jsdom`.
+**TypeScript.** The packages ship their declarations; `oxidom`'s `JSDOM` API is typed as @types/jsdom types
+jsdom's. For the Vitest `jsdom` global, use `types: ["oxidom/vitest-globals"]` where you had `vitest/jsdom`.
 
 **Plain Node.**
 
 ```js
-const { createWindow } = require('nativedom');
+const { createWindow } = require('oxidom');
 
 const { window, document } = createWindow({ url: 'https://example.test/' });
 document.body.innerHTML = '<button class="primary">Save</button>';
@@ -100,7 +90,7 @@ document.querySelector('button.primary').textContent; // 'Save'
 Or the jsdom API, unchanged:
 
 ```js
-const { JSDOM } = require('nativedom');
+const { JSDOM } = require('oxidom');
 
 const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
 dom.window.document.querySelector('p').textContent; // 'Hello'
@@ -115,22 +105,27 @@ dom.window.document.querySelector('p').textContent; // 'Hello'
 
 | path | what |
 |---|---|
-| [`crates/rsdom`](crates/rsdom) | the Rust core and Node-API bindings (napi-rs v3) |
-| [`packages/rsdom`](packages/rsdom) | the `nativedom` npm package: JS facade, native loader, Vitest environment, contract tests |
-| [`packages/vitest-environment-rsdom`](packages/vitest-environment-rsdom) | `vitest-environment-nativedom`: makes `environment: 'nativedom'` resolve |
-| [`packages/jest-environment-rsdom`](packages/jest-environment-rsdom) | `jest-environment-nativedom`: makes `testEnvironment: 'nativedom'` resolve |
-| [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and rsdom |
+| [`crates/oxidom`](crates/oxidom) | the Rust core and Node-API bindings (napi-rs v3) |
+| [`packages/oxidom`](packages/oxidom) | the `oxidom` npm package: JS facade, native loader, Vitest environment, contract tests |
+| [`packages/vitest-environment-oxidom`](packages/vitest-environment-oxidom) | `vitest-environment-oxidom`: makes `environment: 'oxidom'` resolve |
+| [`packages/jest-environment-oxidom`](packages/jest-environment-oxidom) | `jest-environment-oxidom`: makes `testEnvironment: 'oxidom'` resolve |
+| [`e2e/react-app`](e2e/react-app) | React 19 + Testing Library suite, run on jsdom, happy-dom and oxidom |
 | [`e2e/libraries`](e2e/libraries) | smoke tests of 20 real libraries (Radix, MUI, react-aria, lit, tiptap, ...) |
 | [`bench`](bench) | micro and end-to-end benchmarks, committed results |
-| [`conformance`](conformance) | jsdom's test suite as rsdom's gate (`parity`), web-platform-tests and WebIDL surface comparisons against jsdom |
+| [`conformance`](conformance) | jsdom's test suite as oxidom's gate (`parity`), web-platform-tests and WebIDL surface comparisons against jsdom |
 | [`scripts`](scripts) | data generators, `fetch-refs.sh` for upstream reference checkouts |
 | [`docs`](docs) | design, benchmarks, parity study, roadmap; [`docs/lab`](docs/lab) keeps the lab-phase record |
 
 ## Development
 
+Requires Rust (stable) and Node.js 22+.
+
 ```bash
-npm test               # Rust tests, contract suites (jsdom / happy-dom / rsdom), React app suite on rsdom
-npm run test:parity    # jsdom's own test suite on rsdom (needs scripts/fetch-refs.sh --wpt)
+git clone https://github.com/lucassarcanjo/oxidom && cd oxidom
+npm ci
+npm run build          # builds the native addon into packages/oxidom/native/
+npm test               # Rust tests, contract suites (jsdom / happy-dom / oxidom), React app suite on oxidom
+npm run test:parity    # jsdom's own test suite on oxidom (needs scripts/fetch-refs.sh --wpt)
 npm run lint           # clippy + rustfmt
 npm run check          # lint, npm test, the fallback-mode suites and test:parity: run it before merging
 npm run bench:micro    # see bench/README.md
@@ -140,7 +135,7 @@ GitHub Actions is disabled for this repository, so nothing runs these checks aut
 `.github/workflows/ci.yml` keeps the definition for when it is turned back on.
 
 Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): build and test commands, how to add a native function, the
-facade conventions and the invariants that keep rsdom fast.
+facade conventions and the invariants that keep oxidom fast.
 
 ## License
 

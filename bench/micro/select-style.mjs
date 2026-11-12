@@ -1,9 +1,9 @@
 // AREA A microbenchmarks (selectors, element.style, getComputedStyle), one fresh Node process per DOM
-// (jsdom 30.1.3, happy-dom 21.0.3, rsdom). Every "cold" read follows a mutation that invalidates the
-// relevant caches of every DOM (rsdom: EP[TREE]/EP[ATTR] for the qSA memo, EP[STYLE] for computed style);
-// "warm" reads repeat without mutations (rsdom: memo hits, a JS effect; reported separately).
+// (jsdom 30.1.3, happy-dom 21.0.3, oxidom). Every "cold" read follows a mutation that invalidates the
+// relevant caches of every DOM (oxidom: EP[TREE]/EP[ATTR] for the qSA memo, EP[STYLE] for computed style);
+// "warm" reads repeat without mutations (oxidom: memo hits, a JS effect; reported separately).
 //   node bench/micro/select-style.mjs [--write]      (needs a release build: npm run build)
-//   RSDOM_NO_MEMO=1 / RSDOM_NO_PREFILTER=1 / RSDOM_SHARED=0 node bench/micro/select-style.mjs   (ablations)
+//   OXIDOM_NO_MEMO=1 / OXIDOM_NO_PREFILTER=1 / OXIDOM_SHARED=0 node bench/micro/select-style.mjs   (ablations)
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const self = fileURLToPath(import.meta.url);
 const here = path.dirname(self);
-const ROLE_SELECTORS = fs.readFileSync(path.join(here, '../../crates/rsdom/data/role-selectors.txt'), 'utf8')
+const ROLE_SELECTORS = fs.readFileSync(path.join(here, '../../crates/oxidom/data/role-selectors.txt'), 'utf8')
   .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 
 function median(xs) {
@@ -55,12 +55,12 @@ function tableHtml(rows) {
 }
 
 function runChild(kind) {
-  const { makeWindow } = require('../../packages/rsdom/test/contract/adapter.cjs');
+  const { makeWindow } = require('../../packages/oxidom/test/contract/adapter.cjs');
   const w = makeWindow(kind);
   const d = w.document;
   const gcs = typeof w.getComputedStyle === 'function'
     ? (el) => w.getComputedStyle(el)
-    : require('../../packages/rsdom/lib/index.cjs').rt.getComputedStyle;
+    : require('../../packages/oxidom/lib/index.cjs').rt.getComputedStyle;
   const out = {};
   let sink = 0;
 
@@ -180,27 +180,27 @@ function runChild(kind) {
 if (process.argv[2] === '--child') {
   runChild(process.argv[3]);
 } else {
-  const kinds = ['jsdom', 'happy-dom', 'rsdom'];
+  const kinds = ['jsdom', 'happy-dom', 'oxidom'];
   const results = {};
   for (const k of kinds) {
     results[k] = JSON.parse(execFileSync(process.execPath, [self, '--child', k], { maxBuffer: 1 << 24 }).toString());
   }
-  const rows = Object.keys(results.rsdom);
+  const rows = Object.keys(results.oxidom);
   const fmt = (v) => (v == null || Number.isNaN(v) ? 'n/a' : v >= 100 ? v.toFixed(0) : v.toFixed(1));
-  const env = ['RSDOM_SHARED', 'RSDOM_NO_MEMO', 'RSDOM_NO_PREFILTER'].map((k) => `${k}=${process.env[k] ?? '-'}`).join(' ');
+  const env = ['OXIDOM_SHARED', 'OXIDOM_NO_MEMO', 'OXIDOM_NO_PREFILTER'].map((k) => `${k}=${process.env[k] ?? '-'}`).join(' ');
   const lines = [
-    `# rsdom area A micro: selectors / style (${new Date().toISOString()})`,
+    `# oxidom area A micro: selectors / style (${new Date().toISOString()})`,
     `# Node ${process.version}, ${os.cpus()[0].model} x${os.cpus().length}; ${env}; median of 7 runs, one process per DOM`,
     '# NOTE: 4 shared CPUs with two other agents building/testing: numbers are noisy (sanity only).',
-    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'rsdom'.padStart(10)}`,
+    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'oxidom'.padStart(10)}`,
   ];
   for (const r of rows) {
-    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.rsdom[r]).padStart(10)}`);
+    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.oxidom[r]).padStart(10)}`);
   }
   const text = lines.join('\n') + '\n';
   process.stdout.write(text);
   if (process.argv.includes('--write')) {
-    const suffix = process.env.RSDOM_NO_MEMO === '1' || process.env.RSDOM_NO_PREFILTER === '1' || process.env.RSDOM_SHARED === '0' ? '-ablation' : '';
+    const suffix = process.env.OXIDOM_NO_MEMO === '1' || process.env.OXIDOM_NO_PREFILTER === '1' || process.env.OXIDOM_SHARED === '0' ? '-ablation' : '';
     fs.writeFileSync(path.join(here, `select-style${suffix}.txt`), text);
   }
 }

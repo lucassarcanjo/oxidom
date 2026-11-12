@@ -1,8 +1,8 @@
-# rsdom micro benchmarks
+# oxidom micro benchmarks
 
-2026-10-17T02:56:33.565Z · Node v22.22.0 · Intel(R) Xeon(R) Processor @ 2.80GHz x4 · 5 processes per case and DOM (interleaved), median of 9 samples of ~100 ms each per process · git c4e213de00 · addon release 325866fa4f24 · jsdom 30.1.3 · happy-dom 21.0.3 · vitest 5.0.5 · RSDOM_BENCH_SAMPLES=9
+2026-10-17T02:56:33.565Z · Node v22.22.0 · Intel(R) Xeon(R) Processor @ 2.80GHz x4 · 5 processes per case and DOM (interleaved), median of 9 samples of ~100 ms each per process · git c4e213de00 · addon release 325866fa4f24 · jsdom 30.1.3 · happy-dom 21.0.3 · vitest 5.0.5 · OXIDOM_BENCH_SAMPLES=9
 
-| case (DESIGN §13 row) | metric | unit | jsdom | happy-dom | rsdom | rsdom vs best other |
+| case (DESIGN §13 row) | metric | unit | jsdom | happy-dom | oxidom | oxidom vs best other |
 |---|---|---|---:|---:|---:|---|
 | mutate (1) | createElement + appendChild + removeChild | ns | 4203 | 2084 (1937-2203) | 727 | 2.9x faster |
 | mutate (1) | insertBefore first child + remove() (100 siblings) | ns | 4561 | 2868 | 681 (620-752) | 4.2x faster |
@@ -35,7 +35,7 @@
 | mo (18) | burst of 100 mutations -> one callback delivery (await microtask) | us/burst | 476 (460-519) | 323 (305-352) | 60.8 (53.4-64.3) | 5.3x faster |
 | mem (19) | RSS per retained <div class> (100k, wrapper alive) | bytes | 2011 | 6569 | 347 | 5.8x less |
 | mem (19) | V8 heap + external per retained <div class> | bytes | 2123 | 6404 | 97.7 | 22x less |
-| mem (19) | V8 heap only per retained <div class> (not comparable: rsdom data lives outside V8) | bytes-nc | 2123 | 6404 | 97.7 | not comparable |
+| mem (19) | V8 heap only per retained <div class> (not comparable: oxidom data lives outside V8) | bytes-nc | 2123 | 6404 | 97.7 | not comparable |
 | mem (19) | churn: RSS growth per created-and-discarded node (2000 x innerHTML of 339 nodes, after gc) | bytes | 2.15 (-0.236-4.56) | 4.09 (0.665-4.77) | 173 | 80x more |
 | env (17) | environment setup (import + window on globalThis), fresh process, in-process timing | ms | 744 (692-779) | 323 (307-381) | 36.7 (34.1-44.6) | 8.8x faster |
 | env (17) |   of which: environment module import | ms-nc | 0.005 (0.004-0.006) | 0.005 (0.004-0.007) | 0.892 (0.769-1.43) | not comparable |
@@ -48,4 +48,4 @@
 | testing-library (dtl) | getAllByRole("row") on a 1000-row table | ms | 272 (253-303) | 13.1 (12.5-15.4) | 2.29 (2.20-3.16) | 5.7x faster |
 | testing-library (dtl) | getByRole("button", {name}) on the same table (accessible names) | ms | 214 | 21.0 (20.5-25.8) | 6.35 (5.87-7.09) | 3.3x faster |
 
-Value = median over processes of each process's median; (a-b) = min-max across processes when wider than 10%; `!` = at least one process ran above the load threshold (re-run on an idle machine). A ratio is printed only when the process ranges of rsdom and the best other DOM do not overlap. rsdom never reclaims nodes inside an env: mutate / deep / parse rows exclude the freeing work GC-based DOMs pay; see the mem `churn` row for the memory side of that trade-off.
+Value = median over processes of each process's median; (a-b) = min-max across processes when wider than 10%; `!` = at least one process ran above the load threshold (re-run on an idle machine). A ratio is printed only when the process ranges of oxidom and the best other DOM do not overlap. oxidom never reclaims nodes inside an env: mutate / deep / parse rows exclude the freeing work GC-based DOMs pay; see the mem `churn` row for the memory side of that trade-off.

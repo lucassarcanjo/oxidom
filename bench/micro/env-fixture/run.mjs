@@ -9,16 +9,16 @@ import { cleanEnv } from '../../provenance.mjs';
 import { median } from '../lib.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const rsdomRoot = path.resolve(here, '../../..');
-const vitestCli = path.join(rsdomRoot, 'node_modules/vitest/vitest.mjs');
-const reporter = path.join(rsdomRoot, 'bench/e2e/phase-reporter.mjs');
+const oxidomRoot = path.resolve(here, '../../..');
+const vitestCli = path.join(oxidomRoot, 'node_modules/vitest/vitest.mjs');
+const reporter = path.join(oxidomRoot, 'bench/e2e/phase-reporter.mjs');
 
 export function runEnvFixture(kind) {
-  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rsdom-envfix-')), 'phases.json');
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oxidom-envfix-')), 'phases.json');
   const t0 = performance.now();
   const r = spawnSync(process.execPath, [vitestCli, 'run', '--config', path.join(here, 'vitest.config.mjs'), '--pool=forks', '--maxWorkers=1', '--reporter=dot', `--reporter=${reporter}`], {
     cwd: here,
-    env: cleanEnv({ DOM_ENV: kind, RSDOM_PHASES_OUT: out, CI: '1', NO_COLOR: '1' }, ['RSDOM_SHARED', 'RSDOM_NO_MEMO', 'RSDOM_NO_PREFILTER', 'RSDOM_NATIVE']),
+    env: cleanEnv({ DOM_ENV: kind, OXIDOM_PHASES_OUT: out, CI: '1', NO_COLOR: '1' }, ['OXIDOM_SHARED', 'OXIDOM_NO_MEMO', 'OXIDOM_NO_PREFILTER', 'OXIDOM_NATIVE']),
     encoding: 'utf8',
     timeout: 300_000,
   });

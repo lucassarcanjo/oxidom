@@ -1,20 +1,20 @@
-# Migrating from jsdom to rsdom
+# Migrating from jsdom to oxidom
 
-rsdom's npm name is `nativedom`. This guide covers moving a test suite from jsdom to rsdom: the configuration
-change for each runner, what carries over unchanged, and every known way rsdom behaves differently from jsdom
-30.1.3, which is the oracle rsdom is measured against.
+This guide covers moving a test suite from jsdom to oxidom: the configuration
+change for each runner, what carries over unchanged, and every known way oxidom behaves differently from jsdom
+30.1.3, which is the oracle oxidom is measured against.
 
 Most suites need only the configuration change. Read [the divergences](#known-divergences) if a test fails after
-the switch, or before you switch if your suite relies on iframes or on loading `<script src>`, which rsdom
+the switch, or before you switch if your suite relies on iframes or on loading `<script src>`, which oxidom
 does not support yet.
 
-Where things stand (2026-10-22): rsdom passes 97.4% of the subtests jsdom passes in jsdom's own test suite
+Where things stand (2026-10-22): oxidom passes 97.4% of the subtests jsdom passes in jsdom's own test suite
 ([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
 ([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
 React 19 + Testing Library app suite at 90 of 90.
 
-None of the packages is on npm yet: install `nativedom` and the environment packages from this repository
-(`packages/rsdom`, `packages/vitest-environment-rsdom`, `packages/jest-environment-rsdom`; README "Usage").
+None of the packages is on npm yet: install `oxidom` and the environment packages from this repository
+(`packages/oxidom`, `packages/vitest-environment-oxidom`, `packages/jest-environment-oxidom`; README "Usage").
 
 ## Contents
 
@@ -27,23 +27,23 @@ None of the packages is on npm yet: install `nativedom` and the environment pack
 
 ## Vitest
 
-Install `nativedom` and `vitest-environment-nativedom` (Vitest 5 or later, Node 22 or later), then change one word:
+Install `oxidom` and `vitest-environment-oxidom` (Vitest 5 or later, Node 22 or later), then change one word:
 
 ```ts
 // vitest.config.ts
 export default defineConfig({
   test: {
-    environment: 'nativedom', // was: 'jsdom'
+    environment: 'oxidom', // was: 'jsdom'
   },
 })
 ```
 
-Per file, `// @vitest-environment nativedom` replaces `// @vitest-environment jsdom`.
+Per file, `// @vitest-environment oxidom` replaces `// @vitest-environment jsdom`.
 
 **Options.** `test.environmentOptions.jsdom` is read the way Vitest's jsdom environment reads it, with the same
 defaults (`url` `http://localhost:3000`, `pretendToBeVisual: true`):
 
-| `environmentOptions.jsdom` key | on rsdom |
+| `environmentOptions.jsdom` key | on oxidom |
 |---|---|
 | `url`, `referrer`, `contentType` (`text/html`), `userAgent`, `pretendToBeVisual`, `storageQuota` | as on jsdom |
 | `html` | as on jsdom: its `<script>`s run (with `runScripts: 'dangerously'`, the default) |
@@ -51,7 +51,7 @@ defaults (`url` `http://localhost:3000`, `pretendToBeVisual: true`):
 | `console` | as on Vitest's jsdom environment: the window always has a virtual console forwarding to the test's `console` |
 | `resources: 'usable'`, `includeNodeLocations`, `cookieJar`, `beforeParse` | ignored |
 
-rsdom's own options go in `test.environmentOptions.nativedom` (`url`, and `html` as body markup) and win over the
+oxidom's own options go in `test.environmentOptions.oxidom` (`url`, and `html` as body markup) and win over the
 `jsdom` ones.
 
 **The `jsdom` global** is there, as under Vitest's jsdom environment: `jsdom.reconfigure({ url })`,
@@ -67,27 +67,27 @@ too, instead of failing the test.
 
 ## Jest
 
-Install `nativedom` and `jest-environment-nativedom` (Jest 30), then:
+Install `oxidom` and `jest-environment-oxidom` (Jest 30), then:
 
 ```js
 // jest.config.js
 module.exports = {
-  testEnvironment: 'nativedom', // was: 'jsdom'
+  testEnvironment: 'oxidom', // was: 'jsdom'
 };
 ```
 
-`jest-environment-nativedom` is a port of `jest-environment-jsdom`. `testEnvironmentOptions` (`url`, `html`,
+`jest-environment-oxidom` is a port of `jest-environment-jsdom`. `testEnvironmentOptions` (`url`, `html`,
 `userAgent`, `pretendToBeVisual`, `customExportConditions`, ...), the `@jest-environment-options` docblock, fake
 timers (modern and legacy), `this.dom` in a subclass and `getVmContext()` work the same.
 
-The file runs in a vm context, so objects rsdom creates come from a different realm than the test's own
+The file runs in a vm context, so objects oxidom creates come from a different realm than the test's own
 (see [Realms](#realms)). That is the one class of difference you are likely to hit under Jest that you would not
 hit under Vitest's default pools.
 
 ## The `JSDOM` API in plain Node
 
 ```js
-const { JSDOM, VirtualConsole } = require('nativedom'); // was: require('jsdom')
+const { JSDOM, VirtualConsole } = require('oxidom'); // was: require('jsdom')
 
 const dom = new JSDOM('<!DOCTYPE html><p>Hello</p>', { url: 'https://example.test/', pretendToBeVisual: true });
 dom.window.document.querySelector('p').textContent; // 'Hello'
@@ -100,23 +100,23 @@ Supported: the options `url`, `referrer`, `contentType` (HTML and XML types), `p
 
 Not supported: `includeNodeLocations`,
 `nodeLocation()`, subresource loading (so `<script src>` does not load), `requestInterceptor`, and a cookie jar behind
-`document.cookie`. rsdom also has a lighter entry point, `createWindow({ url })`, which returns `{ window, document }` without
+`document.cookie`. oxidom also has a lighter entry point, `createWindow({ url })`, which returns `{ window, document }` without
 the `JSDOM` wrapper.
 
 Several `JSDOM` instances in one thread share their interface objects (see [Setup and API](#setup-and-api)).
 
 ## TypeScript
 
-The packages ship their declarations. `nativedom`'s `JSDOM` API is typed as `@types/jsdom` types jsdom's, so
-replacing `import { JSDOM } from 'jsdom'` with `from 'nativedom'` type-checks unchanged. For the Vitest `jsdom`
-global, put `"nativedom/vitest-globals"` in `compilerOptions.types` where you had `"vitest/jsdom"`.
+The packages ship their declarations. `oxidom`'s `JSDOM` API is typed as `@types/jsdom` types jsdom's, so
+replacing `import { JSDOM } from 'jsdom'` with `from 'oxidom'` type-checks unchanged. For the Vitest `jsdom`
+global, put `"oxidom/vitest-globals"` in `compilerOptions.types` where you had `"vitest/jsdom"`.
 
 ## Test setup files
 
-Setups written for jsdom shim what jsdom lacks. rsdom has some of those APIs, so a shim guarded by "only if
-missing" now gets rsdom's version instead:
+Setups written for jsdom shim what jsdom lacks. oxidom has some of those APIs, so a shim guarded by "only if
+missing" now gets oxidom's version instead:
 
-| API | jsdom | rsdom | what to do |
+| API | jsdom | oxidom | what to do |
 |---|---|---|---|
 | `matchMedia` | absent | present, `matches` always `false` | assign your mock unconditionally if a test needs `matches: true` |
 | `ResizeObserver`, `IntersectionObserver` | absent | present, callbacks never fire | assign your mock unconditionally if a test needs a callback |
@@ -127,17 +127,17 @@ missing" now gets rsdom's version instead:
 | `InputEvent#getTargetRanges` | absent | present | nothing; editors take their `beforeinput` path |
 | `customElements`, canvas `getContext` | present | absent | keep a polyfill, or wait for the roadmap items |
 
-Shims that assign unconditionally (`window.ResizeObserver = MockResizeObserver`) keep working: rsdom's built-ins
+Shims that assign unconditionally (`window.ResizeObserver = MockResizeObserver`) keep working: oxidom's built-ins
 are ordinary writable properties.
 
 ## Known divergences
 
 Each entry is tagged:
 
-- **[gap]**: rsdom lacks something jsdom has, or does worse. Most have a roadmap item.
-- **[spec]**: rsdom follows the spec or browsers where jsdom does not. These stay.
+- **[gap]**: oxidom lacks something jsdom has, or does worse. Most have a roadmap item.
+- **[spec]**: oxidom follows the spec or browsers where jsdom does not. These stay.
 - **[design]**: a structural difference (realm, identity, lifetime) that is neither.
-- **[beyond]**: an API rsdom has and jsdom lacks; feature detection takes a different path.
+- **[beyond]**: an API oxidom has and jsdom lacks; feature detection takes a different path.
 
 Each entry also says where it is recorded: `DESIGN §N` is [`DESIGN.md`](DESIGN.md), item ids in backticks are
 roadmap items with a row on the [scoreboard](../conformance/parity/results/summary.md).
@@ -170,7 +170,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
   document, as with jsdom without `resources: 'usable'`. `browsing-contexts` (part 3).
 - **[design] No window named properties under the Vitest environment** (`window.myFrame`, `window.someId`): its
   window is Node's own global. `JSDOM`, `createWindow()`, the VM pools and the Jest environment have them. DESIGN §46.
-- **[gap] User agent.** `navigator.userAgent` ends in `rsdom/0.1.0`, not `jsdom/30.1.3`. Code that looks for
+- **[gap] User agent.** `navigator.userAgent` ends in `oxidom/0.1.0`, not `jsdom/30.1.3`. Code that looks for
   "jsdom" in it will not match. DESIGN §31.
 - **[design] One set of interface objects per thread**, not per `JSDOM` instance: `dom1.window.Node ===
   dom2.window.Node`, so `instanceof` across instances holds where jsdom's fails. DESIGN §31.
@@ -187,7 +187,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[design] Vitest globals.** `window`, `self`, `top` and `parent` are `globalThis`; Node's timers,
   `queueMicrotask`, `performance`, `console`, `AbortController`, `MessageChannel`, `URL`, `fetch`, `crypto`,
   typed arrays and `DOMException` are Node's own. DESIGN §12.
-- **[design] Vitest teardown leaves no `FormData` global.** rsdom's `FormData` is pure JS, as jsdom's is, so
+- **[design] Vitest teardown leaves no `FormData` global.** oxidom's `FormData` is pure JS, as jsdom's is, so
   `fetch` does not treat it as multipart. DESIGN §14.2, §15.2.
 - **[design] Jest globals.** Members a jsdom window has are copied from Node (`URL`, `TextEncoder`,
   `AbortController`, `atob`, `performance`, `crypto`, ...); `fetch` and `structuredClone` stay undefined, as
@@ -231,8 +231,8 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 These apply under Jest and Vitest's VM pools, where the test file runs in a vm context. Vitest's default pools
 share one realm, so they do not apply there.
 
-- **[design] Objects rsdom creates come from Node's realm.** Arrays, typed arrays, promises and errors that
-  rsdom returns or throws fail `instanceof Array` and `expect(...).toThrow(TypeError)` in the test's realm. Use
+- **[design] Objects oxidom creates come from Node's realm.** Arrays, typed arrays, promises and errors that
+  oxidom returns or throws fail `instanceof Array` and `expect(...).toThrow(TypeError)` in the test's realm. Use
   `Array.isArray`, `toThrow('message')`, or check the error's `name`. DESIGN §32, §33.
 - **[design] `DOMException` is Node's** and is not `instanceof Error` in the vm context; abort reasons are such
   DOMExceptions. DESIGN §32.
@@ -263,7 +263,7 @@ share one realm, so they do not apply there.
   `transparent`, system colours and `currentcolor` resolve to `rgb()` like jsdom. DESIGN §30.
 - **[beyond] `:heading` and `:heading()` match headings** (with `headingoffset` / `headingreset`, and the
   `headingOffset` / `headingReset` properties); jsdom accepts the selectors and matches nothing. DESIGN §30.
-- **[gap] Specified-value parsing:** rsdom accepts `none` for `column-rule-color` and rounds `1e-8in` to `0in`.
+- **[gap] Specified-value parsing:** oxidom accepts `none` for `column-rule-color` and rounds `1e-8in` to `0in`.
   DESIGN §30.
 - **[gap] Computed style is partly live.** `display`, `visibility`, `pointerEvents`, `opacity` and `position`
   of a `getComputedStyle` result are a snapshot, as on jsdom; other properties are read at each access. DESIGN §8.2.
@@ -345,7 +345,7 @@ share one realm, so they do not apply there.
 
 ### Parsing and serialization
 
-- **[gap] Private-use characters U+10F800..U+10FFFF read back as lone surrogates**: rsdom stores lone surrogates
+- **[gap] Private-use characters U+10F800..U+10FFFF read back as lone surrogates**: oxidom stores lone surrogates
   as those code points, so they round-trip and CharacterData offsets inside a surrogate pair split it, as in
   jsdom (DESIGN §44).
 - **[spec] Customizable `<select>`:** html5ever keeps `<div>` inside `<option>` (2025 HTML change); parse5 drops

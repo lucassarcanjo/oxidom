@@ -1,4 +1,4 @@
-// Global test setup shared by every DOM environment (jsdom, happy-dom, rsdom).
+// Global test setup shared by every DOM environment (jsdom, happy-dom, oxidom).
 //
 // - Registers the @testing-library/jest-dom matchers on Vitest's `expect`
 //   (toBeInTheDocument, toHaveTextContent, toHaveStyle, ...).

@@ -1,10 +1,10 @@
-# rsdom design
+# oxidom design
 
-> Written during the lab phase (rsdom-lab, milestones M0-M9 in [`lab/ROADMAP.md`](lab/ROADMAP.md)) and kept as the
+> Written during the lab phase (oxidom-lab, milestones M0-M9 in [`lab/ROADMAP.md`](lab/ROADMAP.md)) and kept as the
 > architecture reference. Section numbers (`DESIGN §8.2`) are cited throughout the code; keep them stable and append
 > new sections instead of renumbering. Forward-looking work is in [`ROADMAP.md`](ROADMAP.md).
 
-rsdom is a DOM for Node.js test environments. The tree lives in Rust and is exposed to Node.js through a Node-API addon built with napi-rs v3. It runs as a Vitest environment for React 19, @testing-library/{react,dom,jest-dom} and user-event tests.
+oxidom is a DOM for Node.js test environments. The tree lives in Rust and is exposed to Node.js through a Node-API addon built with napi-rs v3. It runs as a Vitest environment for React 19, @testing-library/{react,dom,jest-dom} and user-event tests.
 
 **The question it answers:** can a Rust DOM beat jsdom and happy-dom, and if so, where?
 
@@ -59,8 +59,8 @@ Three candidate designs were scored by three judges on performance, correctness 
 ```
 Cargo.toml  Cargo.lock  rustfmt.toml  .cargo/config.toml (no target-cpu=native)   Rust workspace + profiles
 package.json  package-lock.json                                                     npm workspaces root
-crates/rsdom/                 the native addon crate (napi-rs v3, cdylib + rlib)
-  build.rs                    generates atoms, the natives registry and packages/rsdom/lib/generated/*
+crates/oxidom/                 the native addon crate (napi-rs v3, cdylib + rlib)
+  build.rs                    generates atoms, the natives registry and packages/oxidom/lib/generated/*
   data/                       build inputs: atoms/*.txt, events.txt, role-selectors.txt, interfaces.json, css/
   src/
     lib.rs  ffi.rs            module_exports registration, natives! macro, guard, args (primitive-only readers)
@@ -76,16 +76,16 @@ crates/rsdom/                 the native addon crate (napi-rs v3, cdylib + rlib)
     forms/                    FormState, value modes, selection, radio groups, labels, form owner, validity
     focus.rs  mo.rs
   tests/                      proptest differential tree model, parser fuzz
-packages/rsdom/               the `rsdom` npm package
+packages/oxidom/               the `oxidom` npm package
   lib/*.cjs                   the JS facade (plain CJS, loaded through createRequire, never through Vite)
-  lib/vitest-environment.mjs  the Vitest Environment (`rsdom/vitest-environment`)
-  lib/jest-environment.cjs    the Jest environment class (`nativedom/jest-environment`, §32)
+  lib/vitest-environment.mjs  the Vitest Environment (`oxidom/vitest-environment`)
+  lib/jest-environment.cjs    the Jest environment class (`oxidom/jest-environment`, §32)
   lib/generated/              emitted by build.rs (gitignored)
-  native/rsdom.<triple>.node  the addon (gitignored)
-  test/contract/              one parity suite run against jsdom, happy-dom and rsdom
-  test/native/                rsdom-only tests (protocols, wrappers, epochs, Vitest pools)
-packages/vitest-environment-rsdom/   `test.environment: 'nativedom'` (npm: vitest-environment-nativedom)
-packages/jest-environment-rsdom/     `testEnvironment: 'nativedom'` (npm: jest-environment-nativedom, DESIGN §32)
+  native/oxidom.<triple>.node  the addon (gitignored)
+  test/contract/              one parity suite run against jsdom, happy-dom and oxidom
+  test/native/                oxidom-only tests (protocols, wrappers, epochs, Vitest pools)
+packages/vitest-environment-oxidom/   `test.environment: 'oxidom'` (npm: vitest-environment-oxidom)
+packages/jest-environment-oxidom/     `testEnvironment: 'oxidom'` (npm: jest-environment-oxidom, DESIGN §32)
 e2e/react-app/                React 19 + Testing Library suite (90 tests), the end-to-end subject
 e2e/libraries/                real-library smoke tests (Radix, MUI, react-aria, lit, ...)
 bench/micro/  bench/e2e/      benchmark harnesses (phase reporter, runner); bench/results/
@@ -161,7 +161,7 @@ const _: () = assert!(core::mem::size_of::<NodeRec>() == 64);
 
 Growth can only happen inside **node-allocating calls**: create*, cloneNode, importNode, innerHTML/outerHTML/insertAdjacentHTML setters, a textContent setter, parseFragment and parseDocument. After any of these the facade runs `if (EP[GEN] !== gen) remap()`. No facade code may keep the table view in a local variable across a native call; this is enforced by lint and by a debug assert on `T.length`.
 
-**Fallback.** This applies when `napi_create_external_arraybuffer` returns `napi_no_external_buffers_allowed` (V8 sandbox, Electron), or when `RSDOM_SHARED=0` is set:
+**Fallback.** This applies when `napi_create_external_arraybuffer` returns `napi_no_external_buffers_allowed` (V8 sandbox, Electron), or when `OXIDOM_SHARED=0` is set:
 - `init` returns `null` instead of the buffer.
 - The facade installs the **crossing getter set**: `N.links(id)` fills 5 words into OUT, `N.kindTag(id)` returns a packed kind, ns and atom, and so on. These are memoised on the wrapper against `EP[TREE]`.
 - This is NAD's path. It doubles as the ablation that measures what the zero-copy table buys.
@@ -232,7 +232,7 @@ EP is a JS-allocated `Uint32Array(16)`, pinned with a `napi_ref`. Rust writes it
 ## 3. Binding strategy: napi-rs v3, raw callbacks
 
 ### 3.1 Registration
-`#[napi(module_exports)]` is used once (pattern from `refs/napi-rs/examples/napi/src/lib.rs` L76-81). It registers about 95 raw callbacks from a table generated by `build.rs`. The same table also emits `packages/rsdom/lib/generated/native.d.ts`, so the Rust and JS sides cannot drift.
+`#[napi(module_exports)]` is used once (pattern from `refs/napi-rs/examples/napi/src/lib.rs` L76-81). It registers about 95 raw callbacks from a table generated by `build.rs`. The same table also emits `packages/oxidom/lib/generated/native.d.ts`, so the Rust and JS sides cannot drift.
 
 ```rust
 type RawCb = unsafe extern "C" fn(sys::napi_env, sys::napi_callback_info) -> sys::napi_value;
@@ -267,7 +267,7 @@ pub fn init(exports: Object, env: napi::Env) -> napi::Result<()> {
 - Strings going out use latin1 when ASCII and UTF-8 otherwise.
 - Return values are u32, i32, bool, string, null or undefined. **Rust never creates objects or arrays.**
 - Errors: mutators return `0` on success or a small code, and the facade throws `new DOMException(MSG[c], NAME[c])` in the test realm. Codes: 1 HierarchyRequestError, 2 NotFoundError, 3 InvalidCharacterError, 4 SyntaxError, 5 IndexSizeError, 6 InvalidStateError, 7 NotSupportedError, 8 WrongDocumentError, 9 NamespaceError. Pre-insert validation order follows `refs/jsdom/lib/jsdom/living/nodes/Node-impl.js` (L833-1292 per docs/lab/research/jsdom.md).
-- Panics are caught by `catch_unwind` (`panic = "unwind"`) and rethrown as `Error('rsdom internal: …')`. An abort would kill the Vitest worker.
+- Panics are caught by `catch_unwind` (`panic = "unwind"`) and rethrown as `Error('oxidom internal: …')`. An abort would kill the Vitest worker.
 - Ids from JS are untrusted. A bad id returns 0, null or `ERR_NOT_FOUND`. It must never cause UB.
 
 ### 3.2 The boundary contract (exported native functions)
@@ -438,7 +438,7 @@ get isConnected() { return (T[(this._i << 4) + 5] & CONNECTED) !== 0 }
 
 ### 4.1 Class hierarchy
 
-All classes are defined once at module level in `packages/rsdom/lib/*.cjs`. `constructor.name` and `Symbol.toStringTag` equal the interface name. pretty-format matches on these (`refs/dom-testing-library/src/DOMElementFilter.ts` L159-180), and jest-dom uses `instanceof window.HTMLElement`.
+All classes are defined once at module level in `packages/oxidom/lib/*.cjs`. `constructor.name` and `Symbol.toStringTag` equal the interface name. pretty-format matches on these (`refs/dom-testing-library/src/DOMElementFilter.ts` L159-180), and jest-dom uses `instanceof window.HTMLElement`.
 
 ```
 EventTarget
@@ -545,7 +545,7 @@ matches(s) {
 
 DTL builds role selectors as `${name}${attributes}`, so they always start with a tag (`refs/dom-testing-library/src/role-helpers.js` L80-100) and are called via `node.matches` (L136). The preceding `node.type !== 'text'` check reads `INPUT_TYPE` from `T[o+10]`, also zero FFI.
 
-**qSA memo** (`RSDOM_NO_MEMO=1` disables it):
+**qSA memo** (`OXIDOM_NO_MEMO=1` disables it):
 - A bounded LRU of 64 entries keyed by `(root, sel)`.
 - Valid while `EP[TREE]`, `EP[ATTR]` and `EP[FORM]` are unchanged, and `EP[FOCUS]` too when the selector uses `:focus`.
 - Each hit returns a **fresh** NodeList built from the cached id array.
@@ -554,7 +554,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 
 ## 7. Form controls and React value tracking
 
-**Prototype contract** (to be enforced by contract tests run against jsdom, happy-dom and rsdom):
+**Prototype contract** (to be enforced by contract tests run against jsdom, happy-dom and oxidom):
 - `value` and `checked` are ES-class `get`/`set` pairs **owned by `HTMLInputElement.prototype`**.
 - `value` is owned by `HTMLTextAreaElement.prototype` and `HTMLSelectElement.prototype`.
 - `selectionStart`, `selectionEnd`, `selectionDirection`, `setSelectionRange`, `setRangeText` and `select` are on the input and textarea prototypes.
@@ -574,7 +574,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 
 **Internal reads never go through `element.value`.** React redefines `value` on each instance. Rust reads its own `FormState`.
 
-**Value memo.** `RSDOM_NO_MEMO` disables it. The input/textarea wrapper caches `_vm = [form_ver, string]`. The `value` getter is `T[o+12] === vm[0] ? vm[1] : refresh()`. This removes repeated crossings from controlled-input commits and from user-event typing reads.
+**Value memo.** `OXIDOM_NO_MEMO` disables it. The input/textarea wrapper caches `_vm = [form_ver, string]`. The `value` getter is `T[o+12] === vm[0] ? vm[1] : refresh()`. This removes repeated crossings from controlled-input commits and from user-event typing reads.
 
 ---
 
@@ -583,7 +583,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
 ### 8.1 Inline style
 - `InlineStyle` holds a `SmallVec<[(PropId u16, Value, important); 4]>`. Values are parsed with cssparser.
 - Normalisation: lengths, numbers (a unitless non-zero length is rejected), hex/rgb/hsl/named colours serialised as `rgb(r, g, b)`, keywords, and common shorthands (margin, padding, border, border-width/style/color, overflow, flex, background-color, font-weight). Invalid values are ignored.
-- Ported from jsdom 30 (crates/rsdom/src/style/value.rs):
+- Ported from jsdom 30 (crates/oxidom/src/style/value.rs):
   - `border` also resets `border-image` to `none`, as a thirteenth longhand. So `border-width` + `border-style` + `border-color` alone serialize as those three, not as `border`.
   - `background` takes comma-separated layers; each longhand holds one value per layer, and only the last layer may set the colour. The serializer follows jsdom's getter, including its origin/clip-before-attachment order.
   - `background-position` fills in the missing axis (`10px` becomes `10px center`).
@@ -593,7 +593,7 @@ DTL builds role selectors as `${name}${attributes}`, so they always start with a
   - CR, CR LF and FF become LF, and NUL becomes U+FFFD (CSS Syntax input preprocessing).
   - `calc()` of numbers, or of percentages, is evaluated in `rgb()` channels and `hsl()` saturation / lightness (not in hues, alphas or `min()`, which jsdom also resolves).
   - Longhands with different layer counts have no `background` shorthand. A removed `border-image` leaves `border` unserializable, where jsdom still serializes it from its stored shorthand.
-- **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on rsdom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
+- **The same value serializer is used for `element.style` and for computed values**, and computed values then resolve what jsdom 30 resolves (colour keywords to `rgb()`, `bold` to `700`, `em` to px: §30). So jest-dom `toHaveStyle('color: red')` fails on oxidom as it does on jsdom (docs/lab/research/testing-library.md); hex and `rgb()` round-trip.
 - The `style` attribute string is serialised lazily, only when something reads it: getAttribute, outerHTML, attributes, or an MO old value.
 - `CSSStyleDeclaration` is created lazily per element.
   - It has generated prototype accessors for camelCase, kebab-case, `Webkit*` and `cssFloat`.
@@ -624,7 +624,7 @@ Inherited properties are `visibility`, `pointer-events`, `color`, `font-*` and `
   validity input);
 - `<style>` text changes.
 
-**`aria-*`, `data-*` and text writes never bump STYLE unless a sheet reads them.** `RSDOM_NO_MEMO=1` disables the
+**`aria-*`, `data-*` and text writes never bump STYLE unless a sheet reads them.** `OXIDOM_NO_MEMO=1` disables the
 Rust memo as well as the facade's `_cs` memo (`StyleState.memo`, read from the environment at env creation).
 M9 review: before these rules the memo went stale for attribute- and text-dependent pseudo-classes when no state
 pseudo-class was in use (`b.disabled = true` kept `button:disabled { pointer-events: none }` unapplied, and a
@@ -635,7 +635,7 @@ pseudo-class was in use (`b.disabled = true` kept `button:disabled { pointer-eve
 function getComputedStyle(el, pseudo) {
   if (pseudo) return new PseudoComputedStyle();          // content 'none', display '' (dom-a11y passes ::before/::after)
   const e = EP[STYLE];
-  if (el._cse !== e) { el._csc = N.csCore(el._i); el._cse = e; }   // RSDOM_NO_MEMO=1 disables wrapper cache
+  if (el._cse !== e) { el._csc = N.csCore(el._i); el._cse = e; }   // OXIDOM_NO_MEMO=1 disables wrapper cache
   return new ComputedStyle(el._i, el._csc);              // display/visibility/pointerEvents/opacity/position = snapshot
 }
 ```
@@ -669,7 +669,7 @@ function getComputedStyle(el, pseudo) {
 ## 11. Interning, memory and teardown
 
 ### Interning
-- `build.rs` emits about 1,400 static atoms: HTML/SVG/MathML tags, common attributes, `aria-*`, event names and every name in aria-query's role selectors. They go both to Rust constants (`atom::DIV`, `atom::TYPE`, …) and to `packages/rsdom/lib/generated/atoms.cjs`.
+- `build.rs` emits about 1,400 static atoms: HTML/SVG/MathML tags, common attributes, `aria-*`, event names and every name in aria-query's role selectors. They go both to Rust constants (`atom::DIV`, `atom::TYPE`, …) and to `packages/oxidom/lib/generated/atoms.cjs`.
 - JS keeps `ATOM: Map<string, u32>`, `ATOMS[]` and `UPPER[]`.
 - **New names from JS:** `N.intern(s)` returns the id, and JS appends the string it already holds.
 - **New names from the parser:** JS calls `atomsFrom(k)` lazily when `EP[ATOM_LEN] > ATOMS.length`, for example when materialising an element whose atom JS does not know yet.
@@ -701,7 +701,7 @@ strip = "symbols"
 counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 ```
 - No `#[global_allocator]` (the system allocator; see §15 for why mimalloc was dropped). The node table is an anonymous `mmap(MAP_NORESERVE)`, so it is committed lazily.
-- Build with `napi build --release --platform -o packages/rsdom/native` (@napi-rs/cli 3.10.8). No `target-cpu=native`.
+- Build with `napi build --release --platform -o packages/oxidom/native` (@napi-rs/cli 3.10.8). No `target-cpu=native`.
 
 **Crates** (exact versions pinned at M0 after `cargo search`): napi 3.14 (`napi8`, raw `sys`), napi-derive 3.6, napi-build 2, html5ever 0.40, selectors 0.41, cssparser 0.38, precomputed-hash, rustc-hash 2, smallvec 1.13, compact_str 0.9, bitflags 2, memchr 2. (phf and mimalloc were dropped, §15.) Dev: proptest 1 for the differential tree-op fuzzing against a reference model.
 
@@ -709,12 +709,12 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 
 ## 12. Vitest environment
 
-`packages/rsdom/lib/vitest-environment.mjs` is the path used by `e2e/react-app/vitest.config.ts`.
+`packages/oxidom/lib/vitest-environment.mjs` is the path used by `e2e/react-app/vitest.config.ts`.
 
 **Export and loading.**
-- It default-exports `{ name: 'rsdom', viteEnvironment: 'client', setup(global, options) → { teardown } }`. The type comes from `vitest/runtime`.
+- It default-exports `{ name: 'oxidom', viteEnvironment: 'client', setup(global, options) → { teardown } }`. The type comes from `vitest/runtime`.
 - The facade and the `.node` file are loaded with `createRequire(import.meta.url)`. A static import of `.node` or of CJS fails under Vite (`refs/vitest/packages/vitest/src/integrations/env/loader.ts`, docs/lab/research/vitest-env.md §2).
-- Tests reach rsdom only through globals. Importing facade modules from a test would produce a second class identity.
+- Tests reach oxidom only through globals. Importing facade modules from a test would produce a second class identity.
 
 **`setup()`** runs before react-dom is imported:
 - It creates the document (html/head/body) and installs about 300 globals as **own data properties** on `globalThis` (about 1-2 ns per read, against 18-28 ns for populateGlobal accessors in `refs/vitest/packages/vitest/src/integrations/env/utils.ts`).
@@ -724,7 +724,7 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 - XMLHttpRequest, XMLHttpRequestUpload and XMLHttpRequestEventTarget (§21). With them axios picks its XHR adapter by default, as on jsdom.
 - `img.decode()` resolves immediately.
 
-**Options.** Options come from `options.nativedom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `RSDOM_SHARED`, `RSDOM_NO_MEMO`, `RSDOM_NO_PREFILTER` and `RSDOM_COUNTERS` override them.
+**Options.** Options come from `options.oxidom`: `{ shared: bool, memo: bool, prefilter: bool, counters: bool }`. Env vars `OXIDOM_SHARED`, `OXIDOM_NO_MEMO`, `OXIDOM_NO_PREFILTER` and `OXIDOM_COUNTERS` override them.
 
 **Supported pools.** forks and threads, with or without isolate. vm pools are unsupported: there is no `setupVM`, and objects there would come from the wrong realm.
 
@@ -734,7 +734,7 @@ counters = []   # bench build: per-fn call counts + rdtsc/Instant time
 
 These are predictions, to be verified in M8. **Measured values and win/lose verdicts for every row: `docs/BENCHMARKS.md`.** Baselines are the measured numbers in docs/research (same 4-vCPU VM, Node 22.22, about ±15%).
 
-**Cost model for rsdom:**
+**Cost model for oxidom:**
 | primitive | cost |
 |---|---|
 | raw crossing | about 30 ns |
@@ -744,13 +744,13 @@ These are predictions, to be verified in M8. **Measured values and win/lose verd
 | `W[id]` lookup | 1-2 ns |
 | wrapper allocation | 5 ns |
 
-| # | operation | jsdom | happy-dom | rsdom predicted | verdict | bench id |
+| # | operation | jsdom | happy-dom | oxidom predicted | verdict | bench id |
 |---|---|---|---|---|---|---|
 | 1 | createElement+appendChild+removeChild | 6.6 µs | 4.5 µs | 0.15-0.3 µs | **win 15-40×** | micro/mutate |
 | 2 | setAttribute | 1.9 µs | 4.9 µs | 70-120 ns | **win 15-50×** | micro/attr |
 | 3 | bottom-up detached build, 1001 nodes, depth 200 | 96-111 ms | 65-69 ms | ≈0.1-0.3 ms (no subtree walks) | **win** | micro/deep |
 | 4 | DFS walk via firstChild/nextSibling, steady or interleaved | 130 ns/node | 52 ns/node | 8-15 ns/node (25-30 megamorphic) | **win 2-5× vs happy-dom** | micro/walk |
-| 5 | same walk, fallback mode (`RSDOM_SHARED=0`), interleaved with mutations | 130 | 52 | 35-80 ns/node | **lose to happy-dom** (ablation) | micro/walk |
+| 5 | same walk, fallback mode (`OXIDOM_SHARED=0`), interleaved with mutations | 130 | 52 | 35-80 ns/node | **lose to happy-dom** (ablation) | micro/walk |
 | 6 | getAttribute / textContent of a tiny node | 340 ns | 38-110 ns | 60-100 ns | parity to **lose 2×** vs happy-dom; win 4× vs jsdom | micro/attr |
 | 7 | hasAttribute | ~250 ns | ~40 ns | 45-70 ns | **lose ~1.5×** vs happy-dom | micro/attr |
 | 8 | input.value get after write | ~300 ns | ~40 ns | 60-80 ns cold; 3-5 ns memo | memo: parity; no-memo: lose | micro/forms |
@@ -767,7 +767,7 @@ These are predictions, to be verified in M8. **Measured values and win/lose verd
 | 19 | memory per div | 1.6 KB | 3.7 KB | ~0.3 KB | **win**; no reclaim within a file | micro/mem |
 
 **Whole suite** (app/, 90 tests, 11 files, forks+isolate, 3 workers):
-| phase | jsdom | happy-dom | rsdom predicted |
+| phase | jsdom | happy-dom | oxidom predicted |
 |---|---|---|---|
 | environment | ~9.4 s CPU | ~4.5 s CPU | ~0.3 s |
 | tests | ~23 s | ~15 s | 6-10 s |
@@ -778,7 +778,7 @@ These are predictions, to be verified in M8. **Measured values and win/lose verd
 
 **Attribution rules for the report:**
 1. Report the environment phase separately from the tests phase, and say plainly that the setup win comes from module graph and facade size, not from Rust.
-2. Run the suite with `RSDOM_SHARED=0`, `RSDOM_NO_MEMO=1` and `RSDOM_NO_PREFILTER=1` (one at a time and all off), so wins can be split between Rust algorithms and JS memoisation or shared-memory layout.
+2. Run the suite with `OXIDOM_SHARED=0`, `OXIDOM_NO_MEMO=1` and `OXIDOM_NO_PREFILTER=1` (one at a time and all off), so wins can be split between Rust algorithms and JS memoisation or shared-memory layout.
 3. Use the bench build's crossing counters to check the prediction that the suite totals about 1.5M public DOM calls but only about 0.06-0.15 s of crossing cost.
 4. Benchmark only tests that pass on all three DOMs, and interleave mutations with reads, reporting cold and warm separately.
 
@@ -790,7 +790,7 @@ These are predictions, to be verified in M8. **Measured values and win/lose verd
    - Guardrails: the args module exposes primitive readers only, a debug re-entrancy counter, and a review checklist.
    - The node-table growth path calls no JS: it detaches and re-exports. The fallback never resizes a JS buffer from Rust; OUT overflow uses the pending/refill protocol.
 3. **Stale caches.** Every JS memo is keyed by a Rust-written counter.
-   - Guardrail: proptest random op sequences comparing the facade with `RSDOM_NO_MEMO=1` against a reference model and the jsdom oracles.
+   - Guardrail: proptest random op sequences comparing the facade with `OXIDOM_NO_MEMO=1` against a reference model and the jsdom oracles.
 4. **Behavioural breadth is the main schedule risk, more than speed.** It covers form semantics, focus rules, CSS normalisation and UA-table parity.
 5. **The selectors-crate adapter.** It is an API surface of about 30 methods, and selectors and cssparser versions are coupled.
    - Guardrail: pin exact versions and keep the adapter in one module.
@@ -800,7 +800,7 @@ These are predictions, to be verified in M8. **Measured values and win/lose verd
 
 ### 14.1 Divergences found while making the app suite green (M7)
 
-Each one is asserted in a contract test; the full list of older ones is in `rsdom/CONTRIBUTING.md` §8 and the
+Each one is asserted in a contract test; the full list of older ones is in `oxidom/CONTRIBUTING.md` §8 and the
 area status notes (`docs/lab/status/*.md`).
 
 - **Indexed properties of `select`, `select.options` and `form`** (round 1, `test/contract/forms.test.mjs`).
@@ -814,9 +814,9 @@ area status notes (`docs/lab/status/*.md`).
 
 ### 14.2 Divergences and fixes from the M9 correctness review
 
-Asserted in `packages/rsdom/test/contract/m9-review.test.mjs` (jsdom, happy-dom, rsdom) and `test/native/m9-review.test.mjs`.
+Asserted in `packages/oxidom/test/contract/m9-review.test.mjs` (jsdom, happy-dom, oxidom) and `test/native/m9-review.test.mjs`.
 
-Fixed (rsdom now matches jsdom): stale computed-style memo for attribute/text-dependent pseudo-classes (§8.2);
+Fixed (oxidom now matches jsdom): stale computed-style memo for attribute/text-dependent pseudo-classes (§8.2);
 `setCustomValidity` not invalidating `:invalid` in qSA and computed style; byte-slice panics in `:lang()` matching
 and `parse_time` on non-ASCII input; `moObserve` trusting its filter count (aborting allocation); `<details>`
 `toggle` events (coalesced, fired from a task, also for parser-created `<details open>`; EP[MO_PENDING] bit 1);
@@ -829,7 +829,7 @@ RTL set is the Hebrew/Arabic/Syriac/Thaana/NKo blocks and their presentation for
 characters); `:dir(<any ident>)`, `::slotted()` and `::part()` parse and never match; `:lang(\*-US)` (RFC 4647
 extended filtering when the range contains `*`).
 
-Remaining divergences (rsdom follows the spec or browsers where jsdom does not):
+Remaining divergences (oxidom follows the spec or browsers where jsdom does not):
 - `:empty` ignores empty Text nodes (Selectors 3/4, browsers); jsdom treats `<p>` with an empty Text child as
   non-empty.
 - `:lang()` honours `xml:lang` and non-ASCII subtags; jsdom ignores both.
@@ -843,20 +843,20 @@ Remaining divergences (rsdom follows the spec or browsers where jsdom does not):
 - The `toggle` event is a plain `Event` (no `oldState`/`newState`), as in jsdom.
 - A panic inside a native (a bug) is turned into a JS Error but the env is not transactional: a mutation can be
   left half-applied. The fuzzers in `tests/fuzz_parsers.rs` cover the parsers that take user strings.
-- Environment teardown on `globalThis` leaves no `FormData` global behind (rsdom deletes Node's lazy undici-backed
+- Environment teardown on `globalThis` leaves no `FormData` global behind (oxidom deletes Node's lazy undici-backed
   `FormData` instead of reading it, §15.2); with `isolate: false` this only matters after the worker's last DOM
-  file. rsdom's `FormData` is pure JS (as jsdom's), so `fetch` does not treat it as a multipart body.
+  file. oxidom's `FormData` is pure JS (as jsdom's), so `fetch` does not treat it as a multipart body.
 
 ## 15. Foundation implementation notes (M0-M2)
 
-What the implementation does differently from, or more precisely than, the sections above. `rsdom/CONTRIBUTING.md`
+What the implementation does differently from, or more precisely than, the sections above. `oxidom/CONTRIBUTING.md`
 is the working guide.
 
 - **Registration.** There is no hand-written function table. Each module declares raw callbacks in a
   `natives! { fn name(e, a: u32, s: str) -> Code { ... } }` block (`src/ffi.rs`). The macro emits the
   `extern "C"` callback (fixed-arity `napi_get_cb_info`, `&mut Env` from the data pointer, `catch_unwind`,
   debug re-entrancy check) and the module's `NATIVES` slice. build.rs scans `src/**` for these blocks and
-  generates the registry and `packages/rsdom/lib/generated/native.d.ts` from the same header lines.
+  generates the registry and `packages/oxidom/lib/generated/native.d.ts` from the same header lines.
 - **Signatures.** `init(ep: ArrayBuffer(64), out: resizable ArrayBuffer, cap, shared)`; `cap` forces small
   tables for tests and `shared=false` selects the fallback. `parseFragment(ctx, s, doc)` takes the document
   for the body-context case (`ctx = 0`). `toggleAttr` returns 0/1, or `16 + code` on error. Extra natives:
@@ -865,7 +865,7 @@ is the working guide.
   hooks `__echo`/`__panic`/`__outSeq`/`__strLen16`/`__tableCap`.
 - **Epoch page.** It adds `EP[11] REC` (bumped on every node-record write) and `EP[12] TEXT` (character-data
   changes). Slots 13-15 are pre-assigned to areas A, B and C.
-- **Fallback mode** (`RSDOM_SHARED=0` or no external buffers). JS keeps a mirror `Uint32Array` of records.
+- **Fallback mode** (`OXIDOM_SHARED=0` or no external buffers). JS keeps a mirror `Uint32Array` of records.
   `V.off(id)` re-fetches a record with `N.rec(id)` (16 words via OUT) when the record's cached `EP[REC]` is
   stale. Every getter uses the same code in both modes; only `off` differs. Measured walk cost: 122 ns/node
   in fallback mode against 18 in shared mode.
@@ -893,7 +893,7 @@ Four reviews (Rust soundness, Rust performance, DOM correctness, JS facade) of M
   addon it segfaulted Node when a worker thread loaded the addon after an earlier worker had exited
   (Vitest `pool: 'threads'` crashed). mimalloc v2 did not crash but both versions measured slower here than
   glibc malloc (create+append+remove 1.46 vs 0.89 µs, innerHTML of the 300-row table 3.2 vs 1.7 ms, 3x the
-  sys time from purge/refault). rsdom now uses the system allocator; `test/native/workers.test.mjs` runs six
+  sys time from purge/refault). oxidom now uses the system allocator; `test/native/workers.test.mjs` runs six
   sequential workers and a `pool: 'threads'` Vitest smoke run in child processes.
 - **Growth inside mutations.** Adopting a `<template>` with contents creates the destination's
   template-contents document, and convert-nodes-into-a-node creates a fragment before validating, so
@@ -907,7 +907,7 @@ Four reviews (Rust soundness, Rust performance, DOM correctness, JS facade) of M
   build-generated open-addressing static table (with hash fingerprints), then the env's dynamic table; each
   dynamic name is stored once. `atomsFrom` is length-prefixed (names can contain NUL). Class tokens are
   split without cloning the value and sized once. Id values and class tokens are still interned into the
-  same atom space (see the deferred items in rsdom/CONTRIBUTING.md §8).
+  same atom space (see the deferred items in oxidom/CONTRIBUTING.md §8).
 - **Strings.** `Str` caches a Latin-1 flag; egress never uses V8's UTF-8 decoder (ASCII: one-byte copy;
   Latin-1: branchless transcode + one-byte string; otherwise UTF-16). Ingress queries the UTF-16 length
   (O(1)) when the 512-byte stack buffer overflows and copies once into an uninitialised buffer; no UTF-8
@@ -916,7 +916,7 @@ Four reviews (Rust soundness, Rust performance, DOM correctness, JS facade) of M
   `RangeError: Invalid string length`.
 - **Data memo.** Character-data nodes use record word 11 (`attr_ver` of elements) as `DATA_VER`, set from
   `EP[TEXT]` on every data change; CharacterData wrappers memoize `data` in `_at` under `_ch = DATA_VER`
-  (`RSDOM_NO_MEMO=1` disables). Repeated `textContent`/`data` reads of text nodes cost one table read.
+  (`OXIDOM_NO_MEMO=1` disables). Repeated `textContent`/`data` reads of text nodes cost one table read.
 - **Collections.** Live NodeList/HTMLCollection/NamedNodeMap have index getters on the prototype (an
   intermediate prototype for live NodeLists, so static qSA lists keep fast own properties), a cursor
   cache, a hand-written iterator and `#private` state (Vitest `toEqual` compares them like jsdom's).
@@ -978,7 +978,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   the qSA memo keeps the wrapper array (a fresh NodeList per call, filled top-down); `on*` handlers share one
   invocation path (no closure each) and listener lists are a flat `[type, list]` array up to 8 types.
 - **Measured and not kept / not done.** A V8 code cache for the facade (vm.Script + cachedData) was slower
-  than plain `require` once its own module loads were counted. A `vitest-environment-rsdom` package instead
+  than plain `require` once its own module loads were counted. A `vitest-environment-oxidom` package instead
   of the path-based environment saved ~5 ms per file (noisy) but needs an installed package and an app config
   change. Not done (ceilings under ~1% of the app suite): per-node STYLE invalidation instead of the global
   epoch on child-list changes (needs a per-node validity key in Rust and JS), the property table / UA sheet
@@ -1025,7 +1025,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
   - **Per-document buckets.** Iterators are bucketed by their root's node document, so a removal looks only at
     its own document's iterators (one hash lookup), and a cross-document adoption re-buckets those whose root
     moved (template contents included). A dropped iterator stays in its bucket until a GC runs the
-    FinalizationRegistry callback, which can be much later (rsdom keeps nodes off the JS heap); the buckets
+    FinalizationRegistry callback, which can be much later (oxidom keeps nodes off the JS heap); the buckets
     confine that to its own document.
   - Cost: one emptiness test per removal while no iterator is alive. `NodeIterator.nextNode()` 27 ns/node;
     create + append + remove with one live iterator on the same document 0.7-0.9 us (jsdom 6.2 us). In a
@@ -1037,7 +1037,7 @@ probes) and kept only when it won without changing behaviour. Ablation flags sta
     call's earlier removals and an undo for calls that then failed validation.
 - **Verification.** `conformance/parity --item traversal`: all 17 files at parity, including
   `NodeIterator-removal.html`, which jsdom fails. `test/contract/traversal.test.mjs` adds the removal paths
-  that are rsdom-specific (innerHTML / outerHTML, textContent, replaceChildren, normalize, replaceChild,
+  that are oxidom-specific (innerHTML / outerHTML, textContent, replaceChildren, normalize, replaceChild,
   adoptNode, moves by insertion and by convert-nodes-into-a-node, calls that fail before or part-way through
   their removals, iterators on two documents) and the focus-scope walk libraries do. In `e2e/libraries`, Radix
   Dialog, Headless UI and react-aria now pass; lit gets past import and stops at custom elements /
@@ -1078,7 +1078,7 @@ A **browsing context** is one window: its window object, its document, the docum
 window starts and what it installed on a pre-existing global. `lib/context.cjs` owns all of it, and
 `createWindow()`, the Vitest environment (§12) and the `JSDOM` class (§31) are adapters over `open()`.
 
-- **Current context.** An Env (§2.1) holds any number of open contexts, but rsdom has one set of interface
+- **Current context.** An Env (§2.1) holds any number of open contexts, but oxidom has one set of interface
   objects per Env (`rt.classes`), not one per window. Whatever needs "the window" without a node to ask
   resolves through the current context: `new Text()` / `Comment` / `DocumentFragment` / `Range` / `Option` /
   `Image`, the URL of `new Document()` and `DOMParser` documents, the focus fast path (Rust's main document is
@@ -1142,7 +1142,7 @@ Invariant 2 (§0) allows JS to memoise Rust answers only, each memo validated by
 behind an ablation flag (§12). Until this section, every memo re-implemented that protocol by hand: about 17 sites,
 three key formulas for "these epoch slots are unchanged" (`TREE + ATTR`, the lossy `TREE * 0x1000 + (ATTR & 0xfff)`
 that returned a stale base URL after exactly 4096 attribute writes, and a recommended but non-monotonic
-`TREE ^ ATTR`), seven memos without the `RSDOM_NO_MEMO` switch, and two spellings of the env generation.
+`TREE ^ ATTR`), seven memos without the `OXIDOM_NO_MEMO` switch, and two spellings of the env generation.
 
 `lib/memo.cjs` now owns the protocol; a call site only says what its memo depends on and how to recompute it:
 
@@ -1290,7 +1290,7 @@ slots, scoped styles and declarative shadow DOM are Stage 4 (`shadow-dom`).
   native call (`shadowRootOf`) on a host. The mode lives in `Env.shadow` (a map by root id). `materialize` picks the
   `ShadowRoot` class from the bit, so wrapper identity and the zero-FFI link getters work unchanged.
 - **jsdom's surface, not more.** jsdom 30 implements `ShadowRootInit { required ShadowRootMode mode }` only, plus
-  `mode`, `host`, `innerHTML` and `activeElement`; rsdom matches it. `delegatesFocus`, `clonable`, `serializable`,
+  `mode`, `host`, `innerHTML` and `activeElement`; oxidom matches it. `delegatesFocus`, `clonable`, `serializable`,
   `slotAssignment`, `getHTML()` and `adoptedStyleSheets` are absent in both (lit falls back to `<style>` elements,
   as under jsdom). Validation is jsdom's: HTML namespace, one of the 18 valid host names or a valid custom element
   name (the PCENChar grammar of `is-potential-custom-element-name`, minus the reserved names), not already a host;
@@ -1385,7 +1385,7 @@ touch it, including jsdom's timing, which tests written against jsdom depend on.
   and browsers say `null`); `pushState` / `replaceState` structured-clone the state (jsdom keeps the object, a TODO
   in its source), so `history.state !== data`. `replaceState(data, '', '')` keeps the URL, as in jsdom (it used to
   drop the fragment).
-- **Not covered:** traversal to another document (rsdom does not navigate across documents), `scrollRestoration`
+- **Not covered:** traversal to another document (oxidom does not navigate across documents), `scrollRestoration`
   beyond storing the value, `beforeunload` / `pagehide`.
 - **Verification.** The parity suite selects no test for the item: WPT's history tests navigate documents, and
   jsdom's own tests touch history only through `reconfigure()` (Stage 2) and iframes. `test/contract/history.test.mjs`
@@ -1397,7 +1397,7 @@ touch it, including jsdom's timing, which tests written against jsdom depend on.
 ## 24. Inert observers and scrolling APIs (ROADMAP Stage 1, 2026-10)
 
 `lib/observers.cjs`, facade only, installed last (after `xhr`). jsdom has none of these, so test setups shim them;
-rsdom ships them so that those setups, and libraries that call them unguarded, work without shims. No Rust state:
+oxidom ships them so that those setups, and libraries that call them unguarded, work without shims. No Rust state:
 nothing here reads or authors the tree beyond what public members already expose.
 
 - **Observers never fire.** `ResizeObserver` and `IntersectionObserver` validate their arguments as the specs say
@@ -1417,7 +1417,7 @@ nothing here reads or authors the tree beyond what public members already expose
   writable, configurable, non-enumerable window members, so `window.ResizeObserver = Mock` (or
   `globalThis.ResizeObserver = ...` in the Vitest environment) replaces them; the Element members are ordinary
   writable prototype methods, so `Element.prototype.scrollIntoView = vi.fn()` works too. A setup that installs its
-  shim only when the API is missing (`tests/setup.ts`) now uses rsdom's.
+  shim only when the API is missing (`tests/setup.ts`) now uses oxidom's.
 - **Scrolling.** `scrollIntoView` is a no-op. `scroll`/`scrollTo`/`scrollBy` take the `(x, y)` and options forms,
   normalise non-finite values to 0 and write through the `scrollTop`/`scrollLeft` setters (area B keeps the last
   value assigned, as jsdom does), so a scroll followed by a read gives back what was asked; a single non-object
@@ -1435,7 +1435,7 @@ nothing here reads or authors the tree beyond what public members already expose
   computed, so it never hides.
 - **Measured.** No parity test selects these (their WPT DIR, css/cssom-view, is outside the selection);
   `test/contract/observers.test.mjs` runs against happy-dom and asserts jsdom has none. `e2e/libraries` without
-  shims: rsdom 14 -> 16 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
+  shims: oxidom 14 -> 16 of 20 (Headless UI, Radix Select), the same as with shims; `no-resizeobserver` and
   `no-pointer-capture` are jsdom-only causes now.
 - **Hit testing (added 2026-10-20, after the item).** `elementFromPoint` and `elementsFromPoint` on Document and
   ShadowRoot (DocumentOrShadowRoot, cssom-view) return `null` and `[]`: with no boxes, no point hits an element.
@@ -1444,7 +1444,7 @@ nothing here reads or authors the tree beyond what public members already expose
   `e2e/libraries`: error* -> pass, 18 -> 19 of 20 with and without shims). Missing or non-finite coordinates throw
   TypeError (WebIDL `double`). Beyond jsdom, which has neither. `caretPositionFromPoint`/`caretRangeFromPoint` stay
   undefined: ProseMirror feature-detects them, so a stub would change nothing. A setup that shims
-  `elementFromPoint` only when it is missing now gets rsdom's `null`; one that needs a hit must assign it
+  `elementFromPoint` only when it is missing now gets oxidom's `null`; one that needs a hit must assign it
   unconditionally (the method is a writable prototype member, so that wins).
 
 ---
@@ -1512,9 +1512,9 @@ comparison, stringification or live updates. `range.cjs` also owns `Document.pro
   `MutationObserver-characterData` and `MutationObserver-childList` (ranges in their scripts),
   `tuwpt:dom/nodes/tree-mutation-indexes` and `shadow-dom/Range-prototype-insertNode`.
   - `test/contract/range.test.mjs` runs on all three DOMs. It covers the API and every mutation path that is
-    one native in rsdom: innerHTML, textContent, replaceChildren, character-data edits, splitText,
+    one native in oxidom: innerHTML, textContent, replaceChildren, character-data edits, splitText,
     normalize, adoption into another document, and moves by insertion.
-  - `test/native/range.test.mjs` covers the rsdom protocols: unwrapped mutation natives, re-bucketing across
+  - `test/native/range.test.mjs` covers the oxidom protocols: unwrapped mutation natives, re-bucketing across
     documents and Attrs, more ranges than the first buffer holds, reset envs, and GC freeing registrations.
   - `src/range.rs` has unit tests for each step and for untrusted words.
 
@@ -1542,7 +1542,7 @@ Storage is a WebIDL legacy platform object with a named getter, setter and delet
   throws a `QuotaExceededError`, a DOMException subclass (code 22) with null `quota` and `requested`, as jsdom's
   does. The global is new.
 - **One area per window and kind.** jsdom shares an area between the windows of one origin inside one JSDOM
-  (frames) and fires `storage` events at the others; rsdom has no frames, so each window has its own two areas and
+  (frames) and fires `storage` events at the others; oxidom has no frames, so each window has its own two areas and
   no `storage` event is ever fired. `StorageEvent.initStorageEvent` exists (the WPT file is in this scope), with the
   dispatch check the other `init*Event` methods use.
 
@@ -1557,7 +1557,7 @@ Facade only (`lib/file-api.cjs`, installed after xhr): blob bytes are not DOM st
 `refs/jsdom/lib/jsdom/living/file-api/` and of the WebIDL conversions jsdom generates for it.
 
 - **Blob and File subclass Node's.** jsdom's Blob is its own class holding a `Uint8Array`; that is why, under
-  jsdom, `fetch(url, { body: blob })` and `new Response(blob)` do not take a window Blob. rsdom's `Blob extends`
+  jsdom, `fetch(url, { body: blob })` and `new Response(blob)` do not take a window Blob. oxidom's `Blob extends`
   Node's Blob instead, so the bytes stay in Node's blob store and fetch, Response, `URL.createObjectURL` and
   `structuredClone` accept it, while the constructor and `slice` follow WebIDL the way jsdom's bindings do: the
   `sequence<BlobPart>` is read through one `@@iterator` lookup and each part is converted as it comes, Blob parts
@@ -1593,7 +1593,7 @@ belongs to `core`.
 
 Facade only (`lib/events.cjs`, area B, in a block of its own before the EventTarget API). A port of
 `refs/jsdom/lib/jsdom/living/nodes/Document-impl.js` (`createEvent`, `eventInterfaceTable`) and of the event
-classes in `refs/jsdom/lib/jsdom/living/events/` that the table names and rsdom lacked.
+classes in `refs/jsdom/lib/jsdom/living/events/` that the table names and oxidom lacked.
 
 - **The initialized flag.** Event gets a private `#initialized`, true for constructed events, set by `initEvent`
   (which every `init*Event` calls); `uninitialize` / `isInitialized` reach it from the module, like
@@ -1615,7 +1615,7 @@ classes in `refs/jsdom/lib/jsdom/living/events/` that the table names and rsdom 
   window is refused too).
 - **Not done, deliberately:** `isTrusted` stays a prototype getter. `[LegacyUnforgeable]` makes it an own
   accessor on every event, which measured +140-280 ns on a ~1.4 µs MouseEvent construction for one WPT subtest.
-- **Harness fix** (`conformance/wpt/worker.mjs`): rsdom's "report an exception" fires the window's ErrorEvent and
+- **Harness fix** (`conformance/wpt/worker.mjs`): oxidom's "report an exception" fires the window's ErrorEvent and
   then emits `uncaughtException` (what makes a Vitest test fail); the worker turned that emit into a second window
   `error` event, so listener-error tests counted two. The worker now skips an error the window already received.
   jsdom never emits both, so its runs are unaffected.
@@ -1663,16 +1663,16 @@ so `getRangeAt(0)` threw after `collapse()` and user-event could not type into a
   parity 76.9% -> 88.8%). The 2 left are `addRange.htm` and `collapse.htm`, where jsdom runs `window.onload` twice
   and so reports a second, duplicate-named subtest. Two files now fail where jsdom fails too (`containsNode` on
   nodes outside the flat tree, `content-visibility: hidden` text). `test/contract/selection.test.mjs` runs the API
-  on all three DOMs. In `e2e/libraries`, Lexical typing passes on rsdom (it fails on jsdom and happy-dom: no
+  on all three DOMs. In `e2e/libraries`, Lexical typing passes on oxidom (it fails on jsdom and happy-dom: no
   `getTargetRanges`); tiptap's assertions pass, with one unhandled error from the missing `elementFromPoint`.
 
 ## 30. Computed-value fidelity (ROADMAP Stage 3, 2026-10)
 
 `getComputedStyle` returned the specified serialization for non-core properties, which kept jest-dom
-`toHaveStyle('color: red')` passing where jsdom 30 fails, but made rsdom diverge from jsdom on every test that reads a
+`toHaveStyle('color: red')` passing where jsdom 30 fails, but made oxidom diverge from jsdom on every test that reads a
 computed colour: the css/selectors invalidation tests check matching through `color`, so they were 2,800 of the
 3,147-subtest gap. It also broke the drop-in contract the other way: `expect(redEl).not.toHaveStyle('color: red')`
-passes on jsdom and failed on rsdom. Computed values now follow jsdom 30's `CSSStyleDeclaration#getComputedValue`
+passes on jsdom and failed on oxidom. Computed values now follow jsdom 30's `CSSStyleDeclaration#getComputedValue`
 (refs/jsdom/lib/jsdom/living/css/CSSStyleDeclaration-impl.js), all in `style/cascade.rs` `Strs::resolve`:
 
 - **Colours.** Longhands flagged `<color>` or `<paint>` in the property table: named colours become `rgb()`,
@@ -1692,12 +1692,12 @@ passes on jsdom and failed on rsdom. Computed values now follow jsdom 30's `CSSS
   and `%`. Percentages, unitless numbers, keywords and `calc()` stay as specified (jsdom reduces `calc()`).
   `computed_str` prepares the root element's inline style too, since a detached or shadow-tree element's `rem`
   reads a root that is not its ancestor.
-- Shorthands that rsdom stores as one value (`border-block`, `box-shadow`, ...) keep the specified value, as
+- Shorthands that oxidom stores as one value (`border-block`, `box-shadow`, ...) keep the specified value, as
   jsdom's do.
 
 Measured on the parity suite: the `computed-values` gap went from 3,147 to 366 subtests (206 -> 265 of 297 files at
 parity) and overall parity from 88.8% to 90.5%, with no regression. What remains is `:heading()` (a selector, 163),
-the CSSOM item (`insertRule`) and parsing differences in specified values (rsdom accepts `none` on
+the CSSOM item (`insertRule`) and parsing differences in specified values (oxidom accepts `none` on
 `column-rule-color` and rounds `1e-8in` to `0in` when parsing; jsdom does neither). `auto` is now accepted only on
 the four `<color>` properties jsdom accepts it on (`accent-`, `caret-`, `outline-`, `scrollbar-color`).
 `test/contract/computed-style.test.mjs` checks the resolved values against jsdom.
@@ -1744,8 +1744,8 @@ test adapter, which is now a one-line re-export.
   `UTF-8`.
 - **Not implemented.** `runScripts` (validated, then ignored; XML content types arrived with §38),
   `includeNodeLocations`, subresource loading beyond `fromURL()`'s page (`resources` other than `userAgent`), a
-  cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays rsdom's
-  (`... rsdom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
+  cookie jar behind `document.cookie`, and `requestInterceptor`. The default user agent stays oxidom's
+  (`... oxidom/0.1.0`), not jsdom's. A `JSDOM` at `about:blank` has storage, where jsdom throws a SecurityError.
 
 **The Vitest environment** (`lib/vitest-environment.mjs`) reads `environmentOptions.jsdom` the way Vitest's own
 jsdom environment does (its `setup()` in node_modules/vitest/dist/chunks/index.*.js), so a jsdom config moves
@@ -1754,7 +1754,7 @@ over unchanged: `url`, `html` (a whole document, parsed as the context's `source
 `storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are ignored, so a `<script>`
 in `html` does not run where Vitest's jsdom default (`runScripts: 'dangerously'`) runs it. (`virtualConsole` is
 read too, but Vitest cannot pass one: options are cloned to the worker.)
-`environmentOptions.nativedom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
+`environmentOptions.oxidom` keys win (its `html` stays body markup). Like Vitest's jsdom environment, the global
 window gets a virtual console forwarding to the console (jsdom's default, so `console: false` changes nothing), so
 `alert()`, `scrollTo()` & co log "Not implemented: ..." through `console.error`, and an uncaught error that an
 `error` listener saw but did not cancel goes there instead of failing the test; the global keeps its own
@@ -1764,11 +1764,11 @@ global's `top` alone, as under Vitest's jsdom environment (which copies the wind
 
 Measured on the parity suite: the `jsdom-api` gap went from 426 to 365 subtests, with no regression (virtual
 console 43, `window.close()` and `Window` 5, options 7, `Accept-Language` / user agent headers, not-implemented
-reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and rsdom side by side.
+reports). `test/contract/jsdom-api.test.mjs` runs the API on jsdom and oxidom side by side.
 
 ## 32. The Jest environment (ROADMAP Stage 2, 2026-10)
 
-`testEnvironment: 'nativedom'` resolves to `jest-environment-nativedom` (packages/jest-environment-rsdom), which builds
+`testEnvironment: 'oxidom'` resolves to `jest-environment-oxidom` (packages/jest-environment-oxidom), which builds
 its class from `lib/jest-environment.cjs` with its own `require`. That way jest-util, jest-mock and
 @jest/fake-timers, which are the package's dependencies as they are jest-environment-jsdom's, resolve from the Jest
 side. The class is a port of jest-environment-jsdom 30 (`@jest/environment-jsdom-abstract`): the same
@@ -1778,11 +1778,11 @@ console, with each jsdomError also logged as the Error), the same error routing 
 `error` listener saw fails the test), `customExportConditions`, legacy and modern fake timers, and `this.dom`.
 
 **The vm context.** Jest runs each test file in the vm context `getVmContext()` returns. jsdom's window is such a
-context's global. rsdom's window lives in Node's realm, so the environment creates a bare context and opens a
+context's global. oxidom's window lives in Node's realm, so the environment creates a bare context and opens a
 browsing context on its global (§18). That global gets three things:
 - Its own window timers (`context.open({ ownTimers })`). They use integer handles, report errors to the window,
   and are cancelled at close. A vm context has no timers, and jsdom's are the window's.
-- The members a jsdom window has that rsdom otherwise takes from Node's global (`URL`, `TextEncoder`,
+- The members a jsdom window has that oxidom otherwise takes from Node's global (`URL`, `TextEncoder`,
   `AbortController`, `atob`, `queueMicrotask`, `performance`, `crypto`, ...). These are copied from Node.
 - Nothing jsdom lacks, so `fetch` and `structuredClone` stay undefined, as under jest-environment-jsdom.
 
@@ -1791,12 +1791,12 @@ workers and in band. As in the Vitest environment, a wrapper from an earlier fil
 work a file leaked that touches its old nodes later throws (`Illegal invocation`) in whichever file is running,
 where jsdom quietly mutates the closed window.
 
-**One facade per env.** Jest loads `require('nativedom')` in a test file through its own module registry: a second
+**One facade per env.** Jest loads `require('oxidom')` in a test file through its own module registry: a second
 copy of the facade over the same addon exports (Node caches `.node` files per process), whose `init()` would reset
 the env under the environment's document. `lib/facade.cjs` records its exports on the addon exports object
-(`Symbol.for('nativedom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
+(`Symbol.for('oxidom.facade')`) and a later copy's `lib/index.cjs` hands those back (no top-level `return`: Vite
 parses the file when a workspace inlines it), so a helper `new JSDOM()` in a test, or jsdom
-aliased to nativedom, works.
+aliased to oxidom, works.
 
 **Realms.** Interface objects are installed on the context's global, so `instanceof HTMLElement` and the like hold.
 Arrays, promises and errors made by the facade come from Node's realm: `instanceof Array` or `toThrow(TypeError)`
@@ -1807,11 +1807,11 @@ output is the window's `Uint8Array`, as jsdom's own encoder's is. `AbortControll
 jsdom's impl arrays have the same split, but its WebIDL errors come from the window's realm. Two facade checks
 moved to realm-independent tests for this (Blob parts and `new JSDOM()` input use `util.types.isArrayBuffer` /
 `isAnyArrayBuffer`), and a FileReader's ArrayBuffer result is copied into its window's realm (`inRealm()` in
-lib/file-api.cjs). Scripts and inline event handler attributes do not run (rsdom runs no scripts, ROADMAP
+lib/file-api.cjs). Scripts and inline event handler attributes do not run (oxidom runs no scripts, ROADMAP
 `browsing-contexts`); the vm context would be where they could run later.
 
 **Tests.** `test/native/jest-env.test.mjs` runs the specs in test/fixtures/jest-env in child `jest` processes, in
-workers and in band, under nativedom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
+workers and in band, under oxidom and under `@jest/environment-jsdom-abstract` on jsdom 30. jest-environment-jsdom
 itself pins jsdom 26; a `ResourceLoader` shim maps its `userAgent` option onto jsdom 30's `resources`. Both must
 give the same results: the globals a test file sees, options from the docblock, testing-library with user-event and
 jest-dom, fake timers over timers and animation frames, a fresh document per file, a failing listener error, and
@@ -1821,7 +1821,7 @@ the not-implemented log.
 
 With `pool: 'vmThreads'` or `'vmForks'`, Vitest runs each test file in a vm context the environment's `setupVM()`
 returns, and calls its `teardown()` after the file. `lib/vitest-environment.mjs` now has one. It reads the same
-options as `setup()` (`environmentOptions.jsdom`, then `nativedom`, §31). It opens the window on a bare vm context's
+options as `setup()` (`environmentOptions.jsdom`, then `oxidom`, §31). It opens the window on a bare vm context's
 global the way the Jest environment does (`openVmWindow()` in lib/vm-window.cjs, §32): own window timers, plus
 the members a jsdom window takes from Node. On top of that it adds what Vitest's jsdom `setupVM` adds to its
 window:
@@ -1829,13 +1829,13 @@ window:
 - `structuredClone`, `BroadcastChannel`, `MessageChannel`, `MessagePort`, `TextEncoder` and `TextDecoder` when
   absent.
 - Node's `fetch`, `Request`, `Response`, `Headers`, `AbortController`, `AbortSignal`, `URL` and `URLSearchParams`.
-  Vitest wraps `Request` and `URL` so they accept jsdom's Blob; rsdom's Blob is a Node Blob, so Node's are used
+  Vitest wraps `Request` and `URL` so they accept jsdom's Blob; oxidom's Blob is a Node Blob, so Node's are used
   as they are.
 
 Vitest's window error routing is installed as in `setup()`. Teardown closes the context and resets the env, so
 each file starts from a fresh document.
 
-Vitest executes externals in the vm context, so a test file's `require('nativedom')` / `import('nativedom')` is a
+Vitest executes externals in the vm context, so a test file's `require('oxidom')` / `import('oxidom')` is a
 second copy of the facade. It gets the first copy's exports (§32), and the facade entry has no top-level
 `return`, because Vite parses it when a workspace inlines the package. Only a copy loaded in Node's own realm
 records its exports (the addon exports object's prototype is that realm's `Object.prototype`): under another
@@ -1844,14 +1844,14 @@ environment in a VM pool, a copy loaded inside one file's context is not handed 
 **Divergences.** The VM pools reuse a worker across files. Teardown resets the env, so a host-realm callback a
 file leaked (`setImmediate`, Node's `MessageChannel`, a fetch or fs callback) that touches that file's nodes after
 the reset throws `Illegal invocation`, which Vitest reports as an unhandled error while the next file runs; jsdom
-quietly mutates its closed window. Keeping the old documents instead would grow the env across files (rsdom frees
+quietly mutates its closed window. Keeping the old documents instead would grow the env across files (oxidom frees
 nodes only at a reset), so the reset stays. The §32 realm notes hold here as well: `toThrow(TypeError)` on a
 facade error, `DOMException instanceof Error`, `window instanceof EventTarget` and Blob promises differ from
-jsdom's window, whose WebIDL layer works in the window's realm. With `RSDOM_COUNTERS`, the counters lines carry no
+jsdom's window, whose WebIDL layer works in the window's realm. With `OXIDOM_COUNTERS`, the counters lines carry no
 file list in VM pools (Vitest's worker state lives on the vm context).
 
 **Tests.** `test/native/vitest-env.test.mjs` runs test/fixtures/vitest-vm
-in both pools, under nativedom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
+in both pools, under oxidom and under Vitest's own jsdom environment (jsdom 30). The two give the same results:
 - which globals a file sees, the window's `toString` and `TextEncoder` output's realm
 - testing-library with user-event and jest-dom
 - fake timers
@@ -1862,29 +1862,29 @@ in both pools, under nativedom and under Vitest's own jsdom environment (jsdom 3
 
 Beyond the fixture, the React app suite passes 90/90 in `vmThreads` on both, and the libraries suite gives the same
 counts as jsdom (35/37). On both, the network test fails in VM pools for lack of `WritableStream`; jsdom fails
-lexical and tiptap, and rsdom fails lit.
+lexical and tiptap, and oxidom fails lit.
 
 ## 34. TypeScript declarations (ROADMAP Stage 2, 2026-10)
 
 The packages ship hand-written declarations, listed under the `types` condition of each `exports` entry:
-- `lib/index.d.ts` for `nativedom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
-  against jsdom type-checks unchanged and a nativedom value fits where a jsdom-typed one is expected. `DOMWindow` is
-  copied from @types/jsdom (MIT), interface objects rsdom does not have yet included. `CookieJar` is a class
+- `lib/index.d.ts` for `oxidom`: `createWindow()` and the `JSDOM` API as @types/jsdom types jsdom 30, so code typed
+  against jsdom type-checks unchanged and a oxidom value fits where a jsdom-typed one is expected. `DOMWindow` is
+  copied from @types/jsdom (MIT), interface objects oxidom does not have yet included. `CookieJar` is a class
   (tough-cookie is now a dependency, as it is jsdom's, so it always exists), `nodeLocation()` and
   `getInternalVMContext()` return `never` (they always throw, §31), and `rt` / `dom` are internal. Like
   @types/jsdom, the package depends on `@types/node`.
 - `lib/index.cjs` names its exports for Node's CommonJS lexer (a never-run `module.exports = { ... }`), so
-  `import { JSDOM } from 'nativedom'` works in Node's ESM as the types allow.
-- `lib/vitest-environment.d.mts` for the environment, with `NativedomEnvironmentOptions` for
-  `environmentOptions.nativedom` (Vitest's `EnvironmentOptions` takes any key). `nativedom/vitest-globals` types the
+  `import { JSDOM } from 'oxidom'` works in Node's ESM as the types allow.
+- `lib/vitest-environment.d.mts` for the environment, with `OxidomEnvironmentOptions` for
+  `environmentOptions.oxidom` (Vitest's `EnvironmentOptions` takes any key). `oxidom/vitest-globals` types the
   `jsdom` global, as `vitest/jsdom` does for Vitest's jsdom environment.
-- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-nativedom
+- `lib/jest-environment.d.cts` for the environment builder, and the wrappers' `index.d.ts`. jest-environment-oxidom
   declares jest-environment-jsdom's class shape and `global` type (it depends on `@jest/environment` and
   `@jest/types` for them), as `export =` of the class with `default` and `TestEnvironment` on it, which is what
   index.js exports.
 
 `test/native/types.test.mjs` runs tsc (strict, lib check on) over test/types: the API with typed window members,
-nativedom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
+oxidom values passed to functions typed with @types/jsdom, an ES module consumer, a Vitest config and the
 `jsdom` global, and custom Jest environments, with `@ts-expect-error` lines that must stay errors. It also
 checks the declared exports against the entry's runtime exports and Node's ESM named exports.
 
@@ -1914,11 +1914,11 @@ keyframes and keyframe, namespace, counter-style), ported from jsdom 30 (refs/js
   (`cssSupports`, so it agrees with `style.setProperty`), conditions are `not` / `and` / `or` over parenthesized
   declarations, and `CSSSupportsRule#matches` uses the same evaluator.
 
-Divergences from jsdom: link sheets (`<link rel=stylesheet>`) have no `sheet` (rsdom loads no subresources, so
+Divergences from jsdom: link sheets (`<link rel=stylesheet>`) have no `sheet` (oxidom loads no subresources, so
 this differs only under `resources: 'usable'`); a
 `<style>`'s `media` is read when its sheet is first observed (jsdom reads it when the element is inserted, so
 setting `media` on a connected element before touching `sheet` differs); `@import` sheets are empty; a
-`selectorText` write is checked by rsdom's selector engine, so a selector csstree accepts but rsdom cannot match
+`selectorText` write is checked by oxidom's selector engine, so a selector csstree accepts but oxidom cannot match
 (an unknown pseudo-class) is ignored where jsdom stores it; changing a `<style>`'s `type` drops its sheet (jsdom
 ignores the attribute after insertion; this predates the CSSOM). `disabled` sheets still apply, as in jsdom.
 
@@ -1989,7 +1989,7 @@ to 96.7%. The rest is `document.open()` / `close()` (`core`) and frame loading (
 `lib/xml.cjs` ports jsdom's XML glue (refs/jsdom/lib/jsdom/browser/parser/xml.js, living/domparsing/*.js) over the
 two libraries jsdom itself uses, now dependencies and loaded on first use: **saxes** tokenizes, so what is well
 formed and every error message are jsdom's (`1:3: unclosed tag: a`), and **w3c-xmlserializer** serializes. Neither
-touches rsdom internals: the parser's events build the tree through the public DOM (`createElementNS`,
+touches oxidom internals: the parser's events build the tree through the public DOM (`createElementNS`,
 `setAttributeNS`, `appendChild`, template contents for an HTML `template`), and the serializer reads the public DOM.
 XML documents are rare in tests and small, so a native tree builder is not worth its code; the parse is all in one
 call, and a well-formedness error throws before the result is used.
@@ -2021,7 +2021,7 @@ attribute (`cssom`).
 
 `lib/xpath.cjs` is jsdom's own XPath 1.0 engine (refs/jsdom/lib/jsdom/level3/xpath.js, MIT), vendored with jsdom's
 formatting and in sloppy mode, so a diff against upstream stays readable. It reads only the public DOM (`parentNode`,
-`childNodes`, `attributes`, `getElementById`, ...), so it runs over rsdom's wrappers unchanged and matches jsdom result
+`childNodes`, `attributes`, `getElementById`, ...), so it runs over oxidom's wrappers unchanged and matches jsdom result
 for result, quirks included: `XPathException` is a plain `Error` with a `code`, and its `DOMException`s pass the
 legacy code as the message, as jsdom's do. It installs `XPathEvaluator`, `XPathExpression`, `XPathResult` and
 `XPathException` globals and `Document#evaluate` / `createExpression` / `createNSResolver`.
@@ -2029,15 +2029,15 @@ legacy code as the message, as jsdom's do. It installs `XPathEvaluator`, `XPathE
 The one change is `invalidIteratorState`. jsdom compares the document's internal `_version`, which child-list and
 attribute changes of nodes rooted in the document bump (same-value sets included). Rust keeps the same counter: the
 document record's ATTRS word, which documents do not otherwise use, is incremented by the children-changed and both
-attribute hooks when the mutated node is connected (crates/rsdom/src/hooks.rs `bump_doc_version`: one branch and one
+attribute hooks when the mutated node is connected (crates/oxidom/src/hooks.rs `bump_doc_version`: one branch and one
 write per mutation). xpath.cjs stamps it with the env generation and reads it directly, not through a memo, so
-RSDOM_NO_MEMO=1 does not change it. Mutations of detached nodes, template contents and other documents leave the
+OXIDOM_NO_MEMO=1 does not change it. Mutations of detached nodes, template contents and other documents leave the
 iterator valid, as in jsdom. One difference: `CONNECTED` is shadow-including, so a connected shadow tree's changes
 invalidate too, where jsdom's parent chain stops at the shadow root.
 
 jsdom's legacy `level3/xpath.js` test calls the engine's factory itself (`require('lib/jsdom/level3/xpath')(window)`);
-the parity worker redirects that require to rsdom's copy under rsdom (conformance/parity/mocha/xpath-shim.cjs), so its
-162 subtests measure rsdom. Parity: the `xpath` gap went from 66 to 5 subtests (8 -> 26 of 28 files). Four remaining
+the parity worker redirects that require to oxidom's copy under oxidom (conformance/parity/mocha/xpath-shim.cjs), so its
+162 subtests measure oxidom. Parity: the `xpath` gap went from 66 to 5 subtests (8 -> 26 of 28 files). Four remaining
 subtests compare results with `hasOwnProperty` on an HTMLCollection, whose live indices are prototype getters
 (§4.3); one needs a declarative shadow root.
 
@@ -2162,7 +2162,7 @@ target. This section ports jsdom 30's DOM "dispatch" (`EventTarget-impl.js` `_di
 - **Verification.** Parity `--item shadow-dom`: gap 197 -> 58 subtests; 16 files progressed (`slots*`, `slotchange-event`,
   `event-inside-slotted-node`, `HTMLSlotElement-interface`, the slot cases of `event-composed-path*` and
   `event-with-related-target`, ...). `imperative-slot-api-slotchange` loses 2 subtests that jsdom also fails: they
-  passed only because nothing fired `slotchange` (manual assignment is unimplemented in jsdom and rsdom alike).
+  passed only because nothing fired `slotchange` (manual assignment is unimplemented in jsdom and oxidom alike).
   `test/contract/shadow-slots.test.mjs` covers assignment, flattening, `slotchange` and the slotted event path;
   happy-dom 21 has no slot assignment, so it is pinned out. Overall parity 163,756 -> 163,912 subtests (97.7%);
   `uievents/focusevents/focusable-area-flat-tree` and `focusable-area` (12 subtests) progressed too. The rest of the gap: `delegatesFocus`, custom
@@ -2175,11 +2175,11 @@ to their hosts; the selector prefilter (`Pre::rejects`, which skipped every elem
 lets shadow hosts through. Both walks stop at a closed shadow root, as jsdom's selector engine does (it follows
 `host.shadowRoot.activeElement`, null for a closed root). Two differences remain: jsdom also stops matching the
 focused element itself with `:focus` inside a closed root, and its `:focus-visible` matches the retargeted
-`document.activeElement` (the host) rather than the focused element; rsdom's `:focus-visible` already differs outside
+`document.activeElement` (the host) rather than the focused element; oxidom's `:focus-visible` already differs outside
 shadow trees (it follows the focus-visible heuristics, jsdom matches any focused element). `slotchange.html` runs to jsdom's 16 passes (its expectation now records them). The rest
 of the `shadow-dom` gap, 29 subtests, is `untriaged/*` files that build their documents in an iframe ("Failed to
 create new rendered document", Stage 4 `browsing-contexts`). Scoped styles: jsdom's getComputedStyle reads only
-`document.styleSheets` (refs/jsdom/lib/jsdom/living/css/helpers/computed-style.js), and so does rsdom.
+`document.styleSheets` (refs/jsdom/lib/jsdom/living/css/helpers/computed-style.js), and so does oxidom.
 
 ## 43. Custom elements (ROADMAP Stage 4 `custom-elements`, 2026-10)
 
@@ -2228,7 +2228,7 @@ the attribute is observed), so ordinary pages queue nothing.
 - Upgrades run in the facade (`upgradeElement`): it enqueues the attribute and connected callbacks on the element's
   JS-side queue, runs the constructor with the element on the construction stack, and moves the state through
   failed / precustomized / custom (`ceSetState`).
-- Document parsing in rsdom never runs JS during the parse, so elements jsdom would construct synchronously (a
+- Document parsing in oxidom never runs JS during the parse, so elements jsdom would construct synchronously (a
   definition that exists while a window's document is parsed) are created undefined and upgraded in tree order
   right after it. Fragment parsing (`innerHTML`) already matches jsdom: undefined plus an upgrade reaction.
 
@@ -2240,7 +2240,7 @@ form-associated custom elements, custom states (`:state()`), `disabledFeatures` 
 failed element; jsdom's selector engine matches by registry lookup and caches results, so it can report a stale
 answer after `define` (it keeps `:not(:defined) { display: none }` in effect for an upgraded element). It also
 matches an element whose `is` value has no definition (`createElement('div', { is: 'x-unknown' })`) and a failed
-synchronous construction; rsdom follows the spec (state undefined or failed). `:defined` is a state pseudo-class
+synchronous construction; oxidom follows the spec (state undefined or failed). `:defined` is a state pseudo-class
 for the selector memos (`EP[REC]`). Interface classes are shared by every window, so a constructor defined in two
 windows' registries creates its `new` elements in the window that defined it last, where jsdom uses the realm of
 the `HTMLElement` it extends. A registry kept past `rt.reset()` ignores `define` and `upgrade`.
@@ -2257,18 +2257,18 @@ nothing more. The port:
 - Rust: `cb::FORM_ASSOCIATED` beside the callback bits of a definition; `is_labelable` accepts an element whose
   definition has it (set from the start of its upgrade, cleared if the constructor throws, as in jsdom), and the
   label memo is keyed on `CeState::def_gen`, which every definition change bumps. `label.form` is the control's
-  `form` property, as in jsdom (undefined for a custom element). `internals.labels` is a static list like rsdom's other `labels` (jsdom's is live).
+  `form` property, as in jsdom (undefined for a custom element). `internals.labels` is a static list like oxidom's other `labels` (jsdom's is live).
 
 **Verification.** `--item custom-elements`: the gap fell from 2,993 to about 240 subtests with part 1 and to 144
 with part 2, all in iframe-based files (`browsing-contexts`) but one: jsdom's selector engine matches a
-form-associated element in a disabled fieldset's first legend with `:enabled`, which rsdom does not. The iframe
+form-associated element in a disabled fieldset's first legend with `:enabled`, which oxidom does not. The iframe
 files build their documents with `test_with_window` or fetch them by XHR. test/contract/custom-elements.test.mjs
 covers the callback order library code depends on and the internals.
 
 ## 44. Lone surrogates (ROADMAP Stage 4 `surrogates`, 2026-10)
 
 Stage 4 design note. JS strings are UTF-16 and may hold unpaired surrogates (`'a😀b'.slice(0, 2)`,
-`deleteData` inside a pair, `'\ud83d'` written by a test). rsdom stores strings as UTF-8 (§2.3: html5ever,
+`deleteData` inside a pair, `'\ud83d'` written by a test). oxidom stores strings as UTF-8 (§2.3: html5ever,
 cssparser and selectors need it), and V8's UTF-8 conversion replaces every lone surrogate with U+FFFD, so they
 did not round-trip (CONTRIBUTING §8), and a CharacterData offset inside a pair rounded down to the code point.
 
@@ -2334,7 +2334,7 @@ text with `document.currentScript` set (null inside a shadow tree), errors repor
 (`reportException`). A post-connection reaction runs a script that is not parser-inserted, so `innerHTML` scripts
 never run; parsed scripts run in the post-parse pass. `src` scripts wait for part 3. `document.write()` is jsdom's: from a running
 script the markup goes right after the script and its scripts run; while the document loads it becomes the last
-element's content; afterwards it replaces the document (`open()` is jsdom's too). Known difference: rsdom parses a
+element's content; afterwards it replaces the document (`open()` is jsdom's too). Known difference: oxidom parses a
 whole document before any script runs, so a parsed script sees the markup after it.
 
 **Inline event handlers.** An `on*` attribute (null namespace) on an HTML or SVG element in a bound document queues
@@ -2357,12 +2357,12 @@ jsdom's `close()` resource queue does: `"interactive"` + `readystatechange` + `D
 other documents report `"complete"` as today.
 
 **Known differences from jsdom.** jsdom does not mark fragment-parsed scripts "already started", so it runs a
-clone of an `innerHTML` script; rsdom follows the standard. `nomodule` classic scripts run, as in jsdom. Under the
+clone of an `innerHTML` script; oxidom follows the standard. `nomodule` classic scripts run, as in jsdom. Under the
 Vitest environment scripts run in the test's own realm (the window is Node's global), where Vitest's jsdom
 environment runs them in jsdom's window, a different object from the test's `window`: there a script's
 `window.x = 1` is invisible to the test. The parity harness has the same split, so subtests that check a script
 did *not* run pass under jsdom by accident (`nomodule-set-on-inline-classic-scripts.html`), and ones that check it
-did run fail there; rsdom gets the latter and loses one of the former. The same realm choice means a script's
+did run fail there; oxidom gets the latter and loses one of the former. The same realm choice means a script's
 `var` / `function` / `const` globals stay on the worker's global after teardown (they are non-configurable), so
 with `isolate: false` a second file that runs the same top-level `const` fails; the VM pools and the Jest
 environment give each file its own vm context and are not affected.
@@ -2371,7 +2371,7 @@ Script reactions share the custom element queue, which runs each element's react
 appearance after the mutation: a script inserted together with custom elements runs after the `connectedCallback`s
 of the elements before it, where jsdom runs it first. "Already started" is set only when a script actually runs in
 a bound document (and by the parsers); jsdom also sets it for a script connected in a document without a window,
-so such a script moved into a scripting document later runs in rsdom and not in jsdom. The environments now run
+so such a script moved into a scripting document later runs in oxidom and not in jsdom. The environments now run
 scripts by default, as their jsdom counterparts do; `runScripts: 'outside-only'` turns that off.
 
 **Verification.** `--item browsing-contexts` and the suite: see the PR. test/contract/scripts.test.mjs runs the
@@ -2380,7 +2380,7 @@ behaviour side by side with jsdom.
 ## 46. Iframes (ROADMAP Stage 4 `browsing-contexts`, part 2, 2026-10)
 
 Stage 4 design note. A port of jsdom 30's `HTMLFrameElement-impl.js` (`loadFrame`, `refreshAccessors`, the
-post-connection, `src` and removing steps) on rsdom's browsing contexts (§18). Each `<iframe>` / `<frame>` connected
+post-connection, `src` and removing steps) on oxidom's browsing contexts (§18). Each `<iframe>` / `<frame>` connected
 in a document that has a window gets a child browsing context: its own window and document, in the same env. Like
 §45, Rust queues what the mutations owe a frame element and the facade (lib/frames.cjs) acts on it.
 

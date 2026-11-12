@@ -1,13 +1,13 @@
-# WPT behavioural conformance: jsdom vs happy-dom vs rsdom (global-install mode)
+# WPT behavioural conformance: jsdom vs happy-dom vs oxidom (global-install mode)
 
 Generated 2026-10-17T18:55:52.944Z by `node conformance/wpt/aggregate.mjs` from results/raw/*.jsonl. WPT commit `2971340498805350babb6c167e0df98eaa380f98` (the one jsdom pins).
-Versions: jsdom 30.1.3, happy-dom 21.0.3, vitest 5.0.5 (environments), rsdom @ working tree, Node 22.22.0.
+Versions: jsdom 30.1.3, happy-dom 21.0.3, vitest 5.0.5 (environments), oxidom @ working tree, Node 22.22.0.
 
 2389 test files (of 2389 selected), 187113 subtests (union of subtest names across the three DOMs).
 
 ## Overall
 
-|  | jsdom | happy-dom | rsdom |
+|  | jsdom | happy-dom | oxidom |
 | --- | ---: | ---: | ---: |
 | subtests passed | 162751 / 187113 (87.0%) | 55756 / 187113 (29.8%) | 86991 / 187113 (46.5%) |
 | mean per-file pass rate (each file weighs 1) | 66.3% | 38.1% | 40.4% |
@@ -24,7 +24,7 @@ Subtest totals are dominated by a few generated files (dom/ranges, selection, ht
 
 In Vitest global-install mode some globals stay Node's own. Areas built on them measure Node, not the DOM.
 
-| global | jsdom | happy-dom | rsdom |
+| global | jsdom | happy-dom | oxidom |
 | --- | --- | --- | --- |
 | TextEncoder | node | node | node |
 | TextDecoder | node | node | node |
@@ -57,7 +57,7 @@ In Vitest global-install mode some globals stay Node's own. Areas built on them 
 
 Cells: subtests passed (subtest pass %) / mean per-file pass rate.
 
-| area | files | subtests | jsdom | happy-dom | rsdom |
+| area | files | subtests | jsdom | happy-dom | oxidom |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | html/dom | 128 | 58508 | 49666 (84.9%) / 66.9% | 30850 (52.7%) / 31.7% | 41448 (70.8%) / 56.6% |
 | dom/ranges | 40 | 40318 | 40317 (100.0%) / 99.4% | 139 (0.3%) / 36.6% | 3395 (8.4%) / 39% |
@@ -88,18 +88,18 @@ Cells: subtests passed (subtest pass %) / mean per-file pass rate.
 | html focus & activation | 21 | 36 | 25 (69.4%) / 81.5% | 20 (55.6%) / 69.6% | 23 (63.9%) / 72% |
 | dom/abort | 4 | 35 | 23 (65.7%) / 73.4% | 33 (94.3%) / 96.7% | 35 (100.0%) / 100% |
 
-## Where happy-dom or rsdom beat jsdom
+## Where happy-dom or oxidom beat jsdom
 
-- **rsdom** in dom/nodes: 7410 vs jsdom 6409 of 7896 subtests (+1001) — mostly Node-compareDocumentPosition.html (1,444 subtests), where jsdom has a known failure (to-run.yaml: disconnected-node ordering not antisymmetric)
-- **rsdom** in dom/abort: 35 vs jsdom 23 of 35 subtests (+12) — caveat: AbortController/AbortSignal are Node's in the jsdom and rsdom environments (results/globals.json); jsdom loses subtests because its DOMException is not the one Node's AbortSignal uses, rsdom passes because it leaves Node's DOMException in place too — a global-install effect, not rsdom code
+- **oxidom** in dom/nodes: 7410 vs jsdom 6409 of 7896 subtests (+1001) — mostly Node-compareDocumentPosition.html (1,444 subtests), where jsdom has a known failure (to-run.yaml: disconnected-node ordering not antisymmetric)
+- **oxidom** in dom/abort: 35 vs jsdom 23 of 35 subtests (+12) — caveat: AbortController/AbortSignal are Node's in the jsdom and oxidom environments (results/globals.json); jsdom loses subtests because its DOMException is not the one Node's AbortSignal uses, oxidom passes because it leaves Node's DOMException in place too — a global-install effect, not oxidom code
 - **happy-dom** in dom/abort: 33 vs jsdom 23 of 35 subtests (+10) — happy-dom installs its own AbortController/AbortSignal, consistent with its DOMException; jsdom's environment keeps Node's AbortSignal next to jsdom's DOMException (global-install effect)
 
-By mean per-file pass rate: **happy-dom** in dom/abort: 96.7% vs jsdom 73.4%; **rsdom** in dom/abort: 100% vs jsdom 73.4%; **happy-dom** in html/semantics/embedded-content (img, media): 25.9% vs jsdom 24.1%; **happy-dom** in html/semantics/scripting (script, template, noscript): 30.3% vs jsdom 29.5%; **rsdom** in html/semantics/scripting (script, template, noscript): 30.8% vs jsdom 29.5%.
+By mean per-file pass rate: **happy-dom** in dom/abort: 96.7% vs jsdom 73.4%; **oxidom** in dom/abort: 100% vs jsdom 73.4%; **happy-dom** in html/semantics/embedded-content (img, media): 25.9% vs jsdom 24.1%; **happy-dom** in html/semantics/scripting (script, template, noscript): 30.3% vs jsdom 29.5%; **oxidom** in html/semantics/scripting (script, template, noscript): 30.8% vs jsdom 29.5%.
 
-Files where a DOM passes more subtests than jsdom: happy-dom 116, rsdom 74. Largest margins:
+Files where a DOM passes more subtests than jsdom: happy-dom 116, oxidom 74. Largest margins:
 
 - happy-dom: shadow-dom/declarative/gethtml.html (326 vs 0/6908); html/dom/elements/the-innertext-and-outertext-properties/innertext-setter.html (100 vs 8/126); html/semantics/embedded-content/the-img-element/update-the-source-set.html (55 vs 5/91); html/dom/elements/the-innertext-and-outertext-properties/outertext-setter.html (30 vs 2/43); css/selectors/parsing/parse-has.html (20 vs 0/29); css/selectors/parsing/parse-not.html (16 vs 0/26); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre (16 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=plaintext-only (16 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=true (16 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap (16 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=plaintext-only (16 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=true (16 vs 0/79)
-- rsdom: dom/nodes/Node-compareDocumentPosition.html (1444 vs 202/1444); html/dom/elements/the-innertext-and-outertext-properties/innertext-setter.html (92 vs 8/126); html/semantics/selectors/case-sensitivity/values.window.html (276 vs 230/276); html/dom/reflection-forms-weekmonth.html (1433 vs 1390/1579); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=plaintext-only (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=true (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=plaintext-only (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=true (34 vs 0/79); css/cssom/getComputedStyle-pseudo-with-argument.html (17 vs 0/22); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal (16 vs 0/79)
+- oxidom: dom/nodes/Node-compareDocumentPosition.html (1444 vs 202/1444); html/dom/elements/the-innertext-and-outertext-properties/innertext-setter.html (92 vs 8/126); html/semantics/selectors/case-sensitivity/values.window.html (276 vs 230/276); html/dom/reflection-forms-weekmonth.html (1433 vs 1390/1579); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=plaintext-only (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre&contenteditable=true (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=plaintext-only (34 vs 0/79); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=pre-wrap&contenteditable=true (34 vs 0/79); css/cssom/getComputedStyle-pseudo-with-argument.html (17 vs 0/22); html/dom/elements/the-innertext-and-outertext-properties/innertext-with-white-spaces.html?white-space=normal (16 vs 0/79)
 
 ## Top failure causes: jsdom
 
@@ -151,7 +151,7 @@ Files where a DOM passes more subtests than jsdom: happy-dom 116, rsdom 74. Larg
 | subtest TIMEOUT | 153 | 97 | FileAPI/reading-data-section/FileReader-multiple-reads.any.html |
 | subtest NOTRUN | 148 | 35 | FileAPI/reading-data-section/FileReader-multiple-reads.any.html |
 
-## Top failure causes: rsdom
+## Top failure causes: oxidom
 
 | cause | failing subtests | files | example file |
 | --- | ---: | ---: | --- |

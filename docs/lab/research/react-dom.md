@@ -1,6 +1,6 @@
-# How react-dom 19 touches the DOM at runtime: requirements for rsdom
+# How react-dom 19 touches the DOM at runtime: requirements for oxidom
 
-Status: research notes, 2026-10-16. Audience: whoever builds the rsdom facade and Vitest environment.
+Status: research notes, 2026-10-16. Audience: whoever builds the oxidom facade and Vitest environment.
 
 All paths are relative to `refs` unless they start with `/`. Shorthands:
 
@@ -11,7 +11,7 @@ All paths are relative to `refs` unless they start with `/`. Shorthands:
 **Sources.**
 - The `refs/react` clone is `main` @ `098d2e87` (2026-10-15), and its `SH/ReactVersion.js` reads `19.3.0`.
 - Every runtime claim was checked against the published **react-dom 19.3.1** bundle (`node_modules/react-dom/cjs/react-dom-client.development.js`). The code paths match.
-- I also ran a **dynamic trace**: jsdom 30.1.3 with every DOM prototype instrumented, running a realistic RTL 16.3.3 / DTL 10.4.2 / user-event 14.6.8 scenario. Calls are attributed to their caller library. See §14. The scripts are in `rsdom-lab/docs/research/react-dom-trace/`.
+- I also ran a **dynamic trace**: jsdom 30.1.3 with every DOM prototype instrumented, running a realistic RTL 16.3.3 / DTL 10.4.2 / user-event 14.6.8 scenario. Calls are attributed to their caller library. See §14. The scripts are in `oxidom-lab/docs/research/react-dom-trace/`.
 - Small "break it on purpose" experiments are in §15.
 
 Feature flags that decide which code paths are live are in `SH/ReactFeatureFlags.js`:
@@ -28,7 +28,7 @@ Feature flags that decide which code paths are live are in `SH/ReactFeatureFlags
 
 ---
 
-## 0. TL;DR: the 20 things that break React if rsdom gets them wrong
+## 0. TL;DR: the 20 things that break React if oxidom gets them wrong
 
 P0 means React crashes, silently misbehaves, or testing-library breaks. Each was confirmed by source reading. Items marked (exp) were also reproduced (§15).
 
@@ -136,7 +136,7 @@ All of this runs when `react-dom/client` is first imported. In Vitest that happe
 | `ReactFiberConfigDOM.js:5234` | `globalDocument = typeof document === 'undefined' ? null : document` | Used by `ReactDOM.preload/preinit/prefetchDNS/preconnect` (§4.9). Captured at load. |
 | `SH/reportGlobalError.js:10-49` | `typeof reportError === 'function'`, else `window.ErrorEvent`, else `process.emit` | Evaluated at load; it picks an implementation. See §5.6. |
 | `RD/client/ReactDOMClient.js:54-79` | DevTools hook and banner | §1. |
-| react-dom DEV `supportsUserTiming` (bundle line ~28169) | `typeof console.timeStamp === 'function' && typeof performance.measure === 'function'` | With Node's globals this is **true**, so DEV react-dom calls `performance.measure`/`clearMeasures` and `console.timeStamp` per component render and commit. **Benchmark fairness:** rsdom must not replace `performance` (Vitest's jsdom and happy-dom envs keep Node's), or it skips this cost and "wins" unfairly. |
+| react-dom DEV `supportsUserTiming` (bundle line ~28169) | `typeof console.timeStamp === 'function' && typeof performance.measure === 'function'` | With Node's globals this is **true**, so DEV react-dom calls `performance.measure`/`clearMeasures` and `console.timeStamp` per component render and commit. **Benchmark fairness:** oxidom must not replace `performance` (Vitest's jsdom and happy-dom envs keep Node's), or it skips this cost and "wins" unfairly. |
 | `scheduler` 0.28 (`scheduler/cjs/scheduler.development.js:183-232`) | `performance.now`, `setTimeout`, `clearTimeout`, `setImmediate` (preferred in Node), then `MessageChannel`, then `setTimeout` | Keep Node's timers and `setImmediate`. |
 | `react` core (`react/cjs/react.development.js:~612, 790, 824`) | `enqueueTask` via `require('timers').setImmediate`, falling back to `MessageChannel`; `reportError`/`window.ErrorEvent`; `queueMicrotask` | Used by `act`. |
 
@@ -293,7 +293,7 @@ Tests rendering `<title>` (common with React 19 metadata) therefore end up touch
 - `head.appendChild`, `insertBefore(instance, prior.nextSibling)`.
 - `link.onload = link.onerror = …`, `addEventListener('load'|'error')`.
 - `instance.complete` (img preload), `img.decode()`.
-- **Caveat:** `<link rel="stylesheet" precedence>` suspends the commit until its `load` event, or for up to `SUSPENSEY_STYLESHEET_TIMEOUT = 60000` ms (`:6748`). Without resource loading (jsdom's default too) such tests stall. rsdom could fire `load` asynchronously for stylesheet links to be friendlier, which is a deliberate divergence from jsdom.
+- **Caveat:** `<link rel="stylesheet" precedence>` suspends the commit until its `load` event, or for up to `SUSPENSEY_STYLESHEET_TIMEOUT = 60000` ms (`:6748`). Without resource loading (jsdom's default too) such tests stall. oxidom could fire `load` asynchronously for stylesheet links to be friendlier, which is a deliberate divergence from jsdom.
 
 ### 4.10 Suspensey images (live in stable because `enableViewTransition = true`)
 
@@ -411,7 +411,7 @@ Form actions need a **`FormData` global whose constructor accepts `(form, submit
 - Handler errors: `executeDispatch` catches them and calls `reportGlobalError(error)`. That uses `reportError` if defined, else `window.dispatchEvent(new window.ErrorEvent('error',{bubbles:true,cancelable:true,message,error}))`, and `console.error`s it unless canceled (`SH/reportGlobalError.js`).
   - jsdom: no `reportError`, `ErrorEvent` present.
   - Vitest's jsdom env turns an uncanceled window `error` with `.error` into an unhandled test error (`vitest/packages/vitest/src/integrations/env/jsdom.ts:8-34`).
-  - rsdom should expose `ErrorEvent` and a working `window.dispatchEvent`, and decide deliberately whether to add `reportError`. Absent matches jsdom.
+  - oxidom should expose `ErrorEvent` and a working `window.dispatchEvent`, and decide deliberately whether to add `reportError`. Absent matches jsdom.
 - Render errors under `act`: pushed to `ReactSharedInternals.thrownErrors` and rethrown by `act`, with no DOM involvement (bundle `logUncaughtError`, ~line 9806).
 - Outside `act`: `onUncaughtError` → `defaultOnUncaughtError` → `reportGlobalError`. Hydration recoverable errors take the same path.
 
@@ -571,7 +571,7 @@ React reads these in roughly descending frequency:
 - `devicePixelRatio`, `navigator.connection`, `performance.getEntriesByType` (suspensey images).
 - The globals `document`, `HTMLElement`, `FormData`, `Event`/`InputEvent` (hydration replay only, `RDB/events/ReactDOMEventReplaying.js:400-452`), `IntersectionObserver` (experimental), `reportError`/`ErrorEvent`, `queueMicrotask`, `setTimeout`, `requestAnimationFrame`, `AbortController` (React's per-root cache; 2 reads per render in the trace) and `MessageChannel`/`setImmediate` (scheduler, react `act`).
 
-In the Vitest environments `window === globalThis` and `document.defaultView` is redefined to return `globalThis` (`vitest/packages/vitest/src/integrations/env/utils.ts:92-108`). rsdom's env should do the same. `ownerDocument` and `defaultView` are constant per node for our single-document environment, so they should be served from JS without crossing to Rust.
+In the Vitest environments `window === globalThis` and `document.defaultView` is redefined to return `globalThis` (`vitest/packages/vitest/src/integrations/env/utils.ts:92-108`). oxidom's env should do the same. `ownerDocument` and `defaultView` are constant per node for our single-document environment, so they should be served from JS without crossing to Rust.
 
 ---
 
@@ -601,7 +601,7 @@ Vitest runs the development build by default (`NODE_ENV=test` resolves `react-do
 
 ---
 
-## 11. What react-dom does **not** need (good for scoping rsdom v0)
+## 11. What react-dom does **not** need (good for scoping oxidom v0)
 
 - Layout and geometry: `getBoundingClientRect`, `getClientRects`, `offset*`/`client*`, `scrollTo`, `getComputedStyle`. Only ViewTransition, Fragment refs (`observeUsing`, `getClientRects`, `scrollIntoView`) and test selectors use them, all experimental or opt-in.
 - `MutationObserver`, `IntersectionObserver`, `ResizeObserver`: none in stable react-dom paths. DTL needs `MutationObserver`.
@@ -753,7 +753,7 @@ The remainder of roughly 300 calls (mutations, form state, traversal, activeElem
 
 ---
 
-## 16. Design recommendations for the rsdom facade (from react-dom's point of view)
+## 16. Design recommendations for the oxidom facade (from react-dom's point of view)
 
 1. **JS object model, Rust storage.**
    - Pure-JS class hierarchy (`EventTarget`, `Node`, `CharacterData`/`Text`/`Comment`, `Element`, `HTMLElement`, per-tag `HTML*Element`, `SVGElement`, `Document`, `DocumentFragment`). Each instance holds a node id (a small integer in a field such as `this[ID]`).
@@ -776,7 +776,7 @@ The remainder of roughly 300 calls (mutations, form state, traversal, activeElem
 
 ## 17. jsdom vs happy-dom differences that touch React specifically
 
-| Behaviour | jsdom 30.1.3 | happy-dom 21.0.3 | rsdom recommendation |
+| Behaviour | jsdom 30.1.3 | happy-dom 21.0.3 | oxidom recommendation |
 |---|---|---|---|
 | `window.event` during dispatch | set (spec) | always `undefined` | set (spec) |
 | `reportError` | absent | absent | absent (React uses the ErrorEvent path) |
@@ -790,9 +790,9 @@ The remainder of roughly 300 calls (mutations, form state, traversal, activeElem
 
 ---
 
-## 18. Open questions and things to verify against rsdom later
+## 18. Open questions and things to verify against oxidom later
 
-- Run `trace.js` against rsdom once it exists (add an `IMPL === 'rsdom'` branch). Use the call counts as a regression budget, and the react-dom API set as a conformance checklist.
+- Run `trace.js` against oxidom once it exists (add an `IMPL === 'oxidom'` branch). Use the call counts as a regression budget, and the react-dom API set as a conformance checklist.
 - The reconciler is not in the sparse clone, so `clearContainer`'s call site and the suspensey lane mask were verified in the published bundle (lines ~14964-14982 and ~17460-17495), not in source.
 - The happy-dom trace (`node trace.js happy …`) is incomplete: some happy-dom classes live on the window prototype and weren't instrumented. Its react-dom call set matched jsdom where captured.
-- Decide whether rsdom fires `load` for `<link rel=stylesheet>` (§4.9) and `<img>` (`onLoad` tests). jsdom without resources never fires them.
+- Decide whether oxidom fires `load` for `<link rel=stylesheet>` (§4.9) and `<img>` (`onLoad` tests). jsdom without resources never fires them.

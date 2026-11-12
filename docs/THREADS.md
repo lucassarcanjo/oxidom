@@ -1,7 +1,7 @@
 # Parallel threads
 
 Several Claude Code sessions work on `docs/ROADMAP.md` items at the same time, one item per session, each on its own
-branch, all tagged `rsdom-parity`. This file is the contract between them. Everything in `CLAUDE.md` and
+branch, all tagged `oxidom-parity`. This file is the contract between them. Everything in `CLAUDE.md` and
 `CONTRIBUTING.md` still applies.
 
 ## Who owns what

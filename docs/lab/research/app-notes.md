@@ -1,8 +1,8 @@
 # Benchmark subject app: `e2e/react-app/`
 
 A dummy React 19 app plus a realistic Vitest + Testing Library suite. It is the
-end-to-end benchmark subject for **jsdom vs happy-dom vs rsdom**. The suite passes
-100% under jsdom and happy-dom (90/90 tests, 11 files). rsdom is wired in through
+end-to-end benchmark subject for **jsdom vs happy-dom vs oxidom**. The suite passes
+100% under jsdom and happy-dom (90/90 tests, 11 files). oxidom is wired in through
 a config hook (see below), but the environment file does not exist yet.
 
 ## How to run
@@ -12,13 +12,13 @@ cd app
 npm ci
 npm run test:jsdom        # DOM_ENV=jsdom     vitest run   (default if DOM_ENV is unset)
 npm run test:happy-dom    # DOM_ENV=happy-dom vitest run
-npm run test:rsdom        # DOM_ENV=rsdom     vitest run   (needs packages/rsdom/lib/vitest-environment.mjs)
+npm run test:oxidom        # DOM_ENV=oxidom     vitest run   (needs packages/oxidom/lib/vitest-environment.mjs)
 npm run typecheck         # tsc --noEmit (TypeScript 7.0.2)
 ```
 
 An unknown `DOM_ENV` makes the config throw (`Unknown DOM_ENV "x"`).
-`DOM_ENV=rsdom` currently fails with `Failed to load url rsdom-lab/rsdom/js/vitest-environment.js ... Does the file exist?`,
-which is expected until the rsdom package ships that file.
+`DOM_ENV=oxidom` currently fails with `Failed to load url oxidom-lab/oxidom/js/vitest-environment.js ... Does the file exist?`,
+which is expected until the oxidom package ships that file.
 
 ## Pinned versions (`e2e/react-app/package.json`, exact versions)
 
@@ -54,14 +54,14 @@ here, because the whole suite passes on jsdom.
   `testTimeout: 5000`. The pool, isolation and transforms are left at their
   defaults (pool `forks`, isolate `true`). That means **one fresh environment per
   test file**, which is what most real projects run.
-- **rsdom hook**: `DOM_ENV=rsdom` maps to
-  `fileURLToPath(new URL('../rsdom/js/vitest-environment.js', import.meta.url))`,
-  which is `rsdom-lab/rsdom/js/vitest-environment.js`. Vitest treats an
+- **oxidom hook**: `DOM_ENV=oxidom` maps to
+  `fileURLToPath(new URL('../oxidom/js/vitest-environment.js', import.meta.url))`,
+  which is `oxidom-lab/oxidom/js/vitest-environment.js`. Vitest treats an
   environment name that starts with `/` or `.` as a path
   (`refs/vitest/packages/vitest/src/integrations/env/loader.ts`, `loadEnvironment`).
   With the default Vite module runner, the file is imported **through Vite's
   module runner** (`loader.import(packageId)`), not through a plain Node
-  `import`. So the rsdom environment should load its `.node` addon with
+  `import`. So the oxidom environment should load its `.node` addon with
   `createRequire(import.meta.url)`, not with a bare `import`. The default export
   must be an `Environment` object (`name`, `viteEnvironment: 'client'`,
   `setup()`, and optionally `setupVM()`), as documented in
@@ -175,7 +175,7 @@ The main cost is **role queries**, whose per-element cost is
 cost is **mounting and reordering large subtrees** (createElement /
 insertBefore / removeChild / setAttribute / text). happy-dom is not faster than
 jsdom at DOM mutation: its render and sort numbers are equal or worse. That is
-the opening for rsdom.
+the opening for oxidom.
 
 ## Notable findings and adjustments
 
@@ -186,13 +186,13 @@ the opening for rsdom.
    does have `cells`. jsdom implements it in
    `refs/jsdom/lib/jsdom/living/nodes/HTMLTableSectionElement-impl.js:9`. The heavy
    test was rewritten to use `tbody.querySelectorAll('tr')` and
-   `row.querySelectorAll('td')`, the more common real-world form. rsdom can
+   `row.querySelectorAll('td')`, the more common real-world form. oxidom can
    still implement `rows`/`cells` cheaply.
 2. **`toBeValid()` / `toBeInvalid()` also consult `checkValidity()`**
    (`refs/jest-dom/src/to-be-invalid.js:7-19`). Both envs implement email
    `typeMismatch`, so an `<input type=email required>` holding `not-an-email` is
    invalid even without `aria-invalid`. The test asserts `aria-invalid="false"`
-   before blur instead. **rsdom must implement constraint validation
+   before blur instead. **oxidom must implement constraint validation
    (`required`, `type=email`) or `toBeValid`/`toBeInvalid` diverge.**
 3. **`fireEvent.click` does not move focus.** The Dashboard dialog test calls
    `trigger.focus()` before `fireEvent.click(trigger)` so focus restoration can
@@ -201,10 +201,10 @@ the opening for rsdom.
    warnings and no React errors. The intentional error test mocks
    `console.error`.
 5. A render that throws (`Theme.test.tsx`: "throws a helpful error outside the
-   provider") is rethrown by React 19 `act` under both envs. rsdom needs no
+   provider") is rethrown by React 19 `act` under both envs. oxidom needs no
    special handling, but window `error` event plumbing should not swallow it.
 
-## DOM APIs and features the suite exercises (the rsdom target)
+## DOM APIs and features the suite exercises (the oxidom target)
 
 The list is grouped by consumer. Paths are relative to `refs/` unless they say
 `e2e/react-app/node_modules/...` (user-event and scheduler are not cloned under `refs/`).
@@ -347,7 +347,7 @@ The list is grouped by consumer. Paths are relative to `refs/` unless they say
   - jsdom computes `display: none` for `[hidden]`, as browsers do from the UA
     stylesheet. happy-dom 21.0.3 returns `display: block` (checked with a
     standalone script). The suite still passes on happy-dom only because of the
-    explicit checks above. rsdom should match jsdom and browsers.
+    explicit checks above. oxidom should match jsdom and browsers.
 - Cheap early exits matter. `aria-hidden="true"` and `element.hidden` are
   checked before `getComputedStyle`, and `visibility` is inherited, so one
   `getComputedStyle(el).visibility` check covers the whole ancestor chain

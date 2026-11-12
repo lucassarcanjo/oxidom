@@ -1,4 +1,4 @@
-# rsdom roadmap
+# oxidom roadmap
 
 > Lab record: milestones M0-M9 are complete. The current roadmap is [`../ROADMAP.md`](../ROADMAP.md).
 
@@ -13,7 +13,7 @@ Paths under `refs/` are relative to `refs`.
 
 **Scope:** React 19 + @testing-library/react, dom, jest-dom and user-event, running under Vitest 5. The subject is `e2e/react-app/`: 11 files and 90 tests, all green on jsdom 30.1.3 and happy-dom 21.0.3.
 
-**Testing before M6.** The facade exposes `createWindow()` for plain Node. `test/contract/*.test.js` uses an adapter `makeWindow('jsdom'|'happy-dom'|'rsdom')` and runs in Vitest's `node` environment. Every behavioural assertion is checked against all three DOMs. A case jsdom and happy-dom disagree on gets a comment and is pinned to jsdom.
+**Testing before M6.** The facade exposes `createWindow()` for plain Node. `test/contract/*.test.js` uses an adapter `makeWindow('jsdom'|'happy-dom'|'oxidom')` and runs in Vitest's `node` environment. Every behavioural assertion is checked against all three DOMs. A case jsdom and happy-dom disagree on gets a comment and is pinned to jsdom.
 
 ---
 
@@ -35,12 +35,12 @@ Paths under `refs/` are relative to `refs`.
 ---
 
 ## M0: Crate, napi skeleton and build
-- [x] `rsdom/` cargo crate with release profile `lto=fat`, `codegen-units=1`, `opt-level=3`, `panic=unwind`. Crate versions pinned exactly after `cargo search`. (mimalloc was dropped after the foundation review: it crashed sequential worker threads and was slower here, DESIGN §15.1.)
-- [x] `build.rs` generates the static atom table, tag-to-interface table, the `FNS` function table, `packages/rsdom/lib/generated/atoms.cjs` and `packages/rsdom/lib/generated/native.d.ts`.
+- [x] `oxidom/` cargo crate with release profile `lto=fat`, `codegen-units=1`, `opt-level=3`, `panic=unwind`. Crate versions pinned exactly after `cargo search`. (mimalloc was dropped after the foundation review: it crashed sequential worker threads and was slower here, DESIGN §15.1.)
+- [x] `build.rs` generates the static atom table, tag-to-interface table, the `FNS` function table, `packages/oxidom/lib/generated/atoms.cjs` and `packages/oxidom/lib/generated/native.d.ts`.
 - [x] `cb!` macro (implemented as `natives!`, which also emits each module's registry entry): fixed-arity `napi_get_cb_info`, `&mut Env` from the data pointer, `catch_unwind` guard, debug re-entrancy counter. `args` module with primitive readers only.
 - [x] `init(EP, OUT)` returns the external node-table ArrayBuffer, or `null` if `napi_no_external_buffers_allowed`. Also `nodeTable`, `bindOut`, `outRefill`, `destroy`.
 - [x] Table growth (detach the old AB, bump `EP[GEN]`) and the OUT overflow protocol (pending, `EP[OUT_NEED]`, JS resize, refill).
-- [x] `napi build --release --platform -o packages/rsdom/native` works, and `npm run build` in `rsdom/` builds the addon.
+- [x] `napi build --release --platform -o packages/oxidom/native` works, and `npm run build` in `oxidom/` builds the addon.
 
 **Acceptance**
 - [x] Microbench gate: a raw u32 crossing takes ≤ 35 ns, a getAttr-shaped call (2×u32 in, latin1 out) ≤ 90 ns, and a JS table-read walk ≤ 10 ns/node. If a gate fails, stop and investigate. Record the results in `bench/micro/m0-gates.txt`.
@@ -65,18 +65,18 @@ table walk 5 ns/node, init RSS +0 KiB). Threads independence is tested with `wor
 - Reflection: `id`, `className`
 - Node constants on both Node and Node.prototype
 - JS: the `W[]` identity table, TOKEN-guarded classes with exact `constructor.name` and `Symbol.toStringTag`, all ~70 HTML*Element classes (`HTMLUnknownElement` only for unknown tags), and zero-FFI getters from the table
-- The crossing-getter fallback set (`RSDOM_SHARED=0`)
+- The crossing-getter fallback set (`OXIDOM_SHARED=0`)
 
 **P1:** `compareDocumentPosition`, `isEqualNode`, `isSameNode`, `cloneNode(deep)`, `importNode`, `adoptNode`, `normalize`, `splitText`, `replaceChildren`, `before`/`after`/`replaceWith`/`prepend`/`append`, `appendData`/`insertData`/`deleteData`/`replaceData`/`substringData` (UTF-16 offsets).
 
 **Acceptance**
-- [x] The tree and attribute oracle tests ported from docs/lab/research/jsdom.md §6.1-6.7 pass on rsdom and jsdom: validation order, `insertBefore(n, n)` no-op, moves, live-collection iteration while removing (2 of 4 skipped), attribute order, and same-value `setAttribute`.
+- [x] The tree and attribute oracle tests ported from docs/lab/research/jsdom.md §6.1-6.7 pass on oxidom and jsdom: validation order, `insertBefore(n, n)` no-op, moves, live-collection iteration while removing (2 of 4 skipped), attribute order, and same-value `setAttribute`.
 - [x] The prototype and identity contract tests pass on all three DOMs: `el === el.parentNode.firstChild`, expandos survive, `Object.prototype.toString(div) === '[object HTMLDivElement]'`, `Node.prototype.ELEMENT_NODE === 1`.
-- [x] proptest: 10k random op sequences give identical trees in Rust and in the reference model, with `debug_assert` link invariants holding. The contract tests also pass with `RSDOM_SHARED=0`.
+- [x] proptest: 10k random op sequences give identical trees in Rust and in the reference model, with `debug_assert` link invariants holding. The contract tests also pass with `OXIDOM_SHARED=0`.
 - [x] Bottom-up detached build of 1001 nodes at depth 200 takes under 1 ms.
 
-**Status (M1 done, P0 + all P1):** contract suites `packages/rsdom/test/contract/{tree,attributes,prototype}.test.mjs`
-(green on jsdom and rsdom, happy-dom divergences pinned), `crates/rsdom/tests/prop_tree.rs` (10k by default, 100k
+**Status (M1 done, P0 + all P1):** contract suites `packages/oxidom/test/contract/{tree,attributes,prototype}.test.mjs`
+(green on jsdom and oxidom, happy-dom divergences pinned), `crates/oxidom/tests/prop_tree.rs` (10k by default, 100k
 verified with `--release`). Bottom-up build: 0.4-1.7 ms per run, median 0.97 ms (`bench/micro/m1m2.txt`); it
 is bound by first-touch page faults in this VM (~2 µs per 4 KiB page, nodes are never reclaimed), so single
 runs can exceed 1 ms. Divergence from jsdom by design: MathML elements are `MathMLElement`.
@@ -98,7 +98,7 @@ runs can exceed 1 ms. Divergence from jsdom by design: MathML elements are `Math
 - [x] Serializing 3.6k elements takes ≤ 3 ms.
 
 **Status (M2 done, P0 + P1; P2 innerText/outerText aliases done):** 60-snippet corpus + 12 context cases + 6
-DOMParser documents match jsdom (`packages/rsdom/test/contract/parse-serialize.test.mjs`); one documented divergence
+DOMParser documents match jsdom (`packages/oxidom/test/contract/parse-serialize.test.mjs`); one documented divergence
 (html5ever implements the 2025 customizable-`<select>` parser rules). Serializing the 300-row table (2.7k
 elements, ~3.6k nodes) takes ~0.12 ms; parsing it ~5 ms (jsdom ~48 ms). "One MO record per innerHTML set" is
 verified against the stub record accounting in `src/mo.rs` (end-to-end delivery is M6).
@@ -111,13 +111,13 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
 - The JS `SEL` cache, the corrected tag prefilter (DESIGN §6.3), and the zero-FFI `input.type` from table state bits.
 - Unsupported syntax throws SyntaxError.
 
-**P1:** `^= $= *= |=`, `[a=v i]`, `:is/:where/:has`, `:nth-child/:first-child/:last-child/:only-child`, sibling combinators `+ ~`, `:enabled :required :read-only :placeholder-shown :empty :root :scope :focus-within`, live `getElementsByTagName`/`getElementsByClassName`/`getElementsByName`, and the epoch-validated qSA LRU memo (`RSDOM_NO_MEMO` to disable).
+**P1:** `^= $= *= |=`, `[a=v i]`, `:is/:where/:has`, `:nth-child/:first-child/:last-child/:only-child`, sibling combinators `+ ~`, `:enabled :required :read-only :placeholder-shown :empty :root :scope :focus-within`, live `getElementsByTagName`/`getElementsByClassName`/`getElementsByName`, and the epoch-validated qSA LRU memo (`OXIDOM_NO_MEMO` to disable).
 
 **P2:** custom right-to-left fast compiler, positive-only attribute bloom for `hasAttribute`/`matches`.
 
 **Acceptance**
-- [x] The 113 aria-query role selectors that DTL generates (`refs/dom-testing-library/src/role-helpers.js` L80-139) give identical `matches()` results on rsdom and jsdom over every element of a generated fixture. Implicit roles from DTL's own `getImplicitAriaRoles` also match.
-- [x] Results are identical with the prefilter on and off. The contract suite is green with `RSDOM_NO_PREFILTER=1` and with `RSDOM_NO_MEMO=1`.
+- [x] The 113 aria-query role selectors that DTL generates (`refs/dom-testing-library/src/role-helpers.js` L80-139) give identical `matches()` results on oxidom and jsdom over every element of a generated fixture. Implicit roles from DTL's own `getImplicitAriaRoles` also match.
+- [x] Results are identical with the prefilter on and off. The contract suite is green with `OXIDOM_NO_PREFILTER=1` and with `OXIDOM_NO_MEMO=1`.
 - [x] Cold qSA on a 3k-element table takes ≤ 100 µs, and the prefiltered `matches` miss takes ≤ 15 ns.
 
 ## M4: Events (EventTarget, Event classes, dispatch, default actions)
@@ -147,7 +147,7 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
 **P1:** WheelEvent, TouchEvent, DragEvent, ClipboardEvent, ProgressEvent, PopStateEvent, PageTransitionEvent. `form.requestSubmit`, `form.submit()` as a no-op stub.
 
 **Acceptance**
-- [x] The jsdom oracles for event phase order, listener add and remove during dispatch, checkbox activation and revert, and `new Event('click')` (no activation) pass on rsdom and jsdom.
+- [x] The jsdom oracles for event phase order, listener add and remove during dispatch, checkbox activation and revert, and `new Event('click')` (no activation) pass on oxidom and jsdom.
 - [x] An RTL-free React smoke test passes in plain Node using `createWindow()`: createRoot, render, click, and onChange from checkbox and text input via `fireEvent`.
 - [x] A test asserts that dispatch makes no N-API crossings beyond activation calls.
 
@@ -192,7 +192,7 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
   - `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')` has both a getter and a setter.
   - Instances have no own `value`.
   - React's `trackValueOnNode` pattern works, and DTL's `setNativeValue` pattern works.
-- [x] The form oracle table in docs/lab/research/jsdom.md §6.8 (value, defaultValue and attribute; select and option) passes on rsdom and jsdom.
+- [x] The form oracle table in docs/lab/research/jsdom.md §6.8 (value, defaultValue and attribute; select and option) passes on oxidom and jsdom.
 - [x] user-event `type` with emoji and `selectionStart` checks matches jsdom.
 - [x] The focus-order oracle and the focus fixup on removal pass.
 
@@ -200,8 +200,8 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
 
 ## M6: Window, globals, Vitest environment, MutationObserver, getComputedStyle
 **P0 APIs**
-- `packages/rsdom/lib/vitest-environment.mjs`:
-  - default export `{name: 'rsdom', viteEnvironment: 'client', setup → {teardown}}`
+- `packages/oxidom/lib/vitest-environment.mjs`:
+  - default export `{name: 'oxidom', viteEnvironment: 'client', setup → {teardown}}`
   - loads the facade and addon through `createRequire`
   - installs globals as data properties: window, self, top and parent are all globalThis, and `document.defaultView === globalThis`
   - keeps Node's timers, `performance`, `queueMicrotask`, `AbortController`, `MessageChannel`, typed arrays and `console`
@@ -228,10 +228,10 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
   - `getPropertyValue` plus camelCase and kebab-case getters
   - pseudo-elements return content `'none'`
 
-**P1:** author sheets with attribute and pseudo-class selectors, `:focus` dependency tracking, `CSSStyleSheet` stubs (`document.styleSheets` length), environment options read from `options.rsdom`, and the `vitest-environment-rsdom` package alias for docblocks.
+**P1:** author sheets with attribute and pseudo-class selectors, `:focus` dependency tracking, `CSSStyleSheet` stubs (`document.styleSheets` length), environment options read from `options.oxidom`, and the `vitest-environment-oxidom` package alias for docblocks.
 
 **Acceptance**
-- [x] `DOM_ENV=rsdom npx vitest run src/__tests__/Counter.test.tsx` passes in `e2e/react-app/`.
+- [x] `DOM_ENV=oxidom npx vitest run src/__tests__/Counter.test.tsx` passes in `e2e/react-app/`.
 - [x] DTL `waitFor` and `findBy*` resolve through MO, not through 50 ms polling. Asserted by counting `drainRecords` calls.
 - [x] Accessible names match jsdom for `<button>Save<span>d</span></button>`, which gives "Saved".
 - [x] `getComputedStyle` cold after a mutation takes ≤ 1 µs; `aria-*`/`data-*`/text writes do not bump STYLE (unit test on `EP[3]`).
@@ -239,11 +239,11 @@ verified against the stub record accounting in `src/mo.rs` (end-to-end delivery 
 - [x] `pool: 'threads'` with `isolate: false` runs 3 files per worker with no leaked DOM between files, using the app's `afterEach(cleanup)`.
 
 ## M7: Make the dummy app suite green
-- [x] `cd app && npm run test:rsdom` runs 90/90 tests across all 11 files, under the forks+isolate default, `pool: 'threads'`, and `threads` with `isolate: false`.
+- [x] `cd app && npm run test:oxidom` runs 90/90 tests across all 11 files, under the forks+isolate default, `pool: 'threads'`, and `threads` with `isolate: false`.
 - [x] Each failure is triaged against jsdom and happy-dom behaviour. Every fix gets a contract test, so the contract suite grows.
 - [x] No test in `e2e/react-app/` is modified. Any divergence that cannot be fixed is documented in DESIGN §14 and in the report.
-- [x] The suite also passes with `RSDOM_SHARED=0`, `RSDOM_NO_MEMO=1` and `RSDOM_NO_PREFILTER=1` set, one at a time and all together. This proves the shortcuts are semantically transparent.
-- [x] The `RSDOM_COUNTERS=1` build reports crossings per file. The total is compared with the prediction of about 1.5M DOM calls, which should cost 0.06-0.15 s of crossing time.
+- [x] The suite also passes with `OXIDOM_SHARED=0`, `OXIDOM_NO_MEMO=1` and `OXIDOM_NO_PREFILTER=1` set, one at a time and all together. This proves the shortcuts are semantically transparent.
+- [x] The `OXIDOM_COUNTERS=1` build reports crossings per file. The total is compared with the prediction of about 1.5M DOM calls, which should cost 0.06-0.15 s of crossing time.
 
 ## M8: Benchmarks (micro and Vitest end-to-end)
 **Micro** (`bench/micro`, one Node process per DOM, warm-up first, then the median of at least 7 runs):
@@ -267,7 +267,7 @@ Every read benchmark interleaves mutations, and cold and warm results are report
 **End-to-end** (`bench/e2e`):
 - Each sample is a fresh `vitest run` with the custom phase reporter (environment, import, tests, wall). Use N ≥ 5, report medians and spread, pin `maxWorkers`, use the same config and setup files, and vary only `DOM_ENV`.
 - Matrix: forks+isolate (default), threads, threads with `isolate: false`, and `maxWorkers=1`.
-- Ablation runs for rsdom: `RSDOM_SHARED=0`, `RSDOM_NO_MEMO=1`, `RSDOM_NO_PREFILTER=1`, and all three off.
+- Ablation runs for oxidom: `OXIDOM_SHARED=0`, `OXIDOM_NO_MEMO=1`, `OXIDOM_NO_PREFILTER=1`, and all three off.
 - Per-file results, with DataTable.heavy called out.
 
 **Acceptance**
@@ -286,5 +286,5 @@ Every read benchmark interleaves mutations, and cold and warm results are report
   - the P2 fast selector compiler, if `selectors` overhead shows up
   - positive-only attribute bloom for `hasAttribute`
   - megamorphic getter hotspots
-- [x] `cargo clippy -D warnings` and `cargo test` pass, the contract suite is green on all three DOMs, and proptest runs 100k cases. (Verified at 38c1d03: clippy clean, 92 cargo tests, 811 contract/native tests, proptest 100k in release 15.5 s, app 90/90 on rsdom.)
-- [x] Re-run M8. Publish the comparison artifact covering the features built, caveats (unsupported surface, divergences such as live non-core computed props, stale held-list indexing and UTF-8 lone surrogates), where rsdom loses, and the ablation attribution. (Published in rsdom-lab: `docs/report/index.html`.)
+- [x] `cargo clippy -D warnings` and `cargo test` pass, the contract suite is green on all three DOMs, and proptest runs 100k cases. (Verified at 38c1d03: clippy clean, 92 cargo tests, 811 contract/native tests, proptest 100k in release 15.5 s, app 90/90 on oxidom.)
+- [x] Re-run M8. Publish the comparison artifact covering the features built, caveats (unsupported surface, divergences such as live non-core computed props, stale held-list indexing and UTF-8 lone surrogates), where oxidom loses, and the ablation attribution. (Published in oxidom-lab: `docs/report/index.html`.)

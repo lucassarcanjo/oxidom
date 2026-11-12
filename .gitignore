@@ -2,7 +2,7 @@
 node_modules/
 target/
 *.node
-packages/rsdom/lib/generated/
+packages/oxidom/lib/generated/
 dist/
 .vite/
 .vitest-cache/

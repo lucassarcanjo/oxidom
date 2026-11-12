@@ -1,7 +1,7 @@
-# rsdom area A micro: selectors / style (2026-10-16T21:30:00.207Z)
-# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=- RSDOM_NO_MEMO=1 RSDOM_NO_PREFILTER=1; median of 7 runs, one process per DOM
+# oxidom area A micro: selectors / style (2026-10-16T21:30:00.207Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; OXIDOM_SHARED=- OXIDOM_NO_MEMO=1 OXIDOM_NO_PREFILTER=1; median of 7 runs, one process per DOM
 # NOTE: 4 shared CPUs with two other agents building/testing: numbers are noisy (sanity only).
-operation                                                                    jsdom  happy-dom     rsdom
+operation                                                                    jsdom  happy-dom     oxidom
 matches(): 108 DTL role selectors x every element (ns/call)                   2731        179      82.2
 matches() prefilter miss: td.matches(input[...]) (ns)                         2371        131      51.5
 matches() hit through Rust: input:not([list])[type=email] (ns)                2639        133       105

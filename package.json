@@ -1,11 +1,11 @@
 {
-  "name": "rsdom-monorepo",
+  "name": "oxidom-monorepo",
   "private": true,
-  "description": "rsdom: a fast, drop-in replacement for jsdom, implemented in Rust",
+  "description": "oxidom: a fast, drop-in replacement for jsdom, implemented in Rust",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucassarcanjo/nativedom.git"
+    "url": "git+https://github.com/lucassarcanjo/oxidom.git"
   },
   "engines": {
     "node": ">=22"
@@ -15,13 +15,13 @@
     "e2e/react-app"
   ],
   "scripts": {
-    "build": "npm run build --workspace=nativedom",
-    "build:debug": "npm run build:debug --workspace=nativedom",
+    "build": "npm run build --workspace=oxidom",
+    "build:debug": "npm run build:debug --workspace=oxidom",
     "test": "npm run test:rust && npm run test:js && npm run test:e2e",
     "test:rust": "cargo test --workspace",
-    "test:js": "npm test --workspace=nativedom",
-    "test:fallback": "npm run test:fallback --workspace=nativedom",
-    "test:e2e": "npm run test:rsdom --workspace=e2e/react-app",
+    "test:js": "npm test --workspace=oxidom",
+    "test:fallback": "npm run test:fallback --workspace=oxidom",
+    "test:e2e": "npm run test:oxidom --workspace=e2e/react-app",
     "test:parity": "node conformance/parity/run.mjs",
     "check": "npm run lint && npm test && npm run test:fallback && npm run test:parity && npm run check:scoreboard",
     "check:scoreboard": "node conformance/parity/report.mjs > /dev/null && git diff --exit-code conformance/parity/results/summary.md",

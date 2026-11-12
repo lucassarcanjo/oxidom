@@ -4,21 +4,21 @@ import { defineConfig } from 'vitest/config'
 /**
  * Real-world library compatibility suite.
  *
- *   DOM_ENV=jsdom|happy-dom|rsdom  npx vitest run
+ *   DOM_ENV=jsdom|happy-dom|oxidom  npx vitest run
  *   LIBS_POLYFILLS=0               disables the documented test-setup shims (tests/setup.ts)
  *
  * Mirrors e2e/react-app/vitest.config.ts: the only variable between runs is the DOM environment.
  */
-type DomEnv = 'jsdom' | 'happy-dom' | 'rsdom'
+type DomEnv = 'jsdom' | 'happy-dom' | 'oxidom'
 
-const RSDOM_ENVIRONMENT = fileURLToPath(
-  new URL('../../packages/rsdom/lib/vitest-environment.mjs', import.meta.url),
+const OXIDOM_ENVIRONMENT = fileURLToPath(
+  new URL('../../packages/oxidom/lib/vitest-environment.mjs', import.meta.url),
 )
 
 const ENVIRONMENTS: Record<DomEnv, string> = {
   jsdom: 'jsdom',
   'happy-dom': 'happy-dom',
-  rsdom: RSDOM_ENVIRONMENT,
+  oxidom: OXIDOM_ENVIRONMENT,
 }
 
 const requested = (process.env.DOM_ENV ?? 'jsdom') as DomEnv
@@ -34,7 +34,7 @@ export default defineConfig({
       // Same URL for all three DOMs (react-router BrowserRouter, axios/msw relative URLs).
       jsdom: { url: 'http://localhost:3000/' },
       happyDOM: { url: 'http://localhost:3000/' },
-      nativedom: { url: 'http://localhost:3000/' },
+      oxidom: { url: 'http://localhost:3000/' },
     },
     globals: true,
     setupFiles: ['./tests/setup.ts'],

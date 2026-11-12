@@ -3,28 +3,28 @@
 // `evidence` says how each cause was verified (stack frame, probe fact, or counterfactual run).
 export const CAUSES = [
   {
-    id: 'rsdom-no-treewalker', category: 'missing-api', doms: ['rsdom'],
-    title: 'rsdom has no TreeWalker / NodeFilter (document.createTreeWalker undefined)',
+    id: 'oxidom-no-treewalker', category: 'missing-api', doms: ['oxidom'],
+    title: 'oxidom has no TreeWalker / NodeFilter (document.createTreeWalker undefined)',
     re: /NodeFilter is not defined|createTreeWalker is not a function/,
-    evidence: 'First error is a ReferenceError/TypeError at the library call site: @radix-ui/react-focus-scope getTabbableCandidates (focus-scope.tsx:350), @headlessui/react hooks/use-tree-walker.js, react-aria overlays/ariaHideOutside.ts:128 and focus/FocusScope.tsx:858 (useHasTabbableChild), lit-html.ts:730 (template walker, at import time). Probe: typeof NodeFilter/createTreeWalker === "undefined" only in rsdom (diag-facts). docs/lab/ROADMAP.md lists TreeWalker as out of scope because "no target library uses them"; the static census (results/census.json) finds createTreeWalker in several of the libraries tested here.',
+    evidence: 'First error is a ReferenceError/TypeError at the library call site: @radix-ui/react-focus-scope getTabbableCandidates (focus-scope.tsx:350), @headlessui/react hooks/use-tree-walker.js, react-aria overlays/ariaHideOutside.ts:128 and focus/FocusScope.tsx:858 (useHasTabbableChild), lit-html.ts:730 (template walker, at import time). Probe: typeof NodeFilter/createTreeWalker === "undefined" only in oxidom (diag-facts). docs/lab/ROADMAP.md lists TreeWalker as out of scope because "no target library uses them"; the static census (results/census.json) finds createTreeWalker in several of the libraries tested here.',
   },
   {
-    id: 'rsdom-no-shadowroot-global', category: 'missing-api', doms: ['rsdom'],
-    title: 'rsdom has no ShadowRoot global (Shadow DOM out of scope); @mui/utils contains() does `instanceof ShadowRoot` unguarded',
+    id: 'oxidom-no-shadowroot-global', category: 'missing-api', doms: ['oxidom'],
+    title: 'oxidom has no ShadowRoot global (Shadow DOM out of scope); @mui/utils contains() does `instanceof ShadowRoot` unguarded',
     re: /ShadowRoot is not defined/,
-    evidence: 'ReferenceError at @mui/utils/contains/contains.mjs:26 called from @mui/material Unstable_TrapFocus/FocusTrap.mjs:126 (every MUI Modal/Dialog). Probe: typeof ShadowRoot === "undefined" only in rsdom.',
+    evidence: 'ReferenceError at @mui/utils/contains/contains.mjs:26 called from @mui/material Unstable_TrapFocus/FocusTrap.mjs:126 (every MUI Modal/Dialog). Probe: typeof ShadowRoot === "undefined" only in oxidom.',
   },
   {
-    id: 'rsdom-no-custom-elements', category: 'missing-api', doms: ['rsdom'],
-    title: 'rsdom has no customElements: lit falls back to @lit-labs/ssr-dom-shim, whose registry never upgrades elements',
+    id: 'oxidom-no-custom-elements', category: 'missing-api', doms: ['oxidom'],
+    title: 'oxidom has no customElements: lit falls back to @lit-labs/ssr-dom-shim, whose registry never upgrades elements',
     re: /to be an instance of CounterButton|Cannot read properties of null \(reading 'querySelector'\)/, file: /lit/,
-    evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in rsdom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.',
+    evidence: 'Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in oxidom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.',
   },
   {
     id: 'no-elementFromPoint', category: 'missing-api', doms: ['jsdom'],
     title: 'document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor',
     re: /elementFromPoint is not a function/,
-    evidence: 'Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom, present in happy-dom and (since 2026-10-20, returning null like happy-dom\'s) rsdom.',
+    evidence: 'Unhandled TypeError at prosemirror-view posAtCoords (dist/index.js:473) from handlers.mousedown. Probe: elementFromPoint missing in jsdom, present in happy-dom and (since 2026-10-20, returning null like happy-dom\'s) oxidom.',
   },
   {
     id: 'jsdom-no-range-geometry', category: 'missing-api', doms: ['jsdom'],
@@ -36,7 +36,7 @@ export const CAUSES = [
     id: 'no-getTargetRanges', category: 'missing-api+tooling', doms: ['jsdom', 'happy-dom'],
     title: 'InputEvent#getTargetRanges missing, so Lexical disables its beforeinput path; its mutation fallback reverts the bare text node user-event inserts (user-event sends input with data=null)',
     re: /last "vi\.fn\(\)" call to have been called with \[ 'Hi' \]/, file: /lexical/,
-    evidence: "lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (rsdom has it; since its Selection holds a real Range, 2026-10-20, Lexical typing passes there).",
+    evidence: "lexical/dist/Lexical.dev.js:75 CAN_USE_BEFORE_INPUT = 'getTargetRanges' in new InputEvent('input'). Event trace: beforeinput(insertText,'H') not prevented, user-event inserts 'H', MutationObserver record removes it, editor text stays ''. Counterfactual: defining InputEvent.prototype.getTargetRanges before Lexical loads makes typing pass in jsdom and happy-dom (oxidom has it; since its Selection holds a real Range, 2026-10-20, Lexical typing passes there).",
   },
   {
     id: 'happy-dom-document-instanceof', category: 'wrong-behaviour', doms: ['happy-dom'],
@@ -54,12 +54,12 @@ export const CAUSES = [
     id: 'no-pointer-capture', category: 'missing-api (documented shim)', doms: ['jsdom'],
     title: 'Element#hasPointerCapture missing; Radix Select trigger pointerdown throws (only without the documented shim)',
     re: /hasPointerCapture is not a function|Unable to find role="option" and name "Banana"/,
-    evidence: 'Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively, rsdom since 2026-10-20 (packages/rsdom/lib/observers.cjs).',
+    evidence: 'Unhandled TypeError at @radix-ui/react-select dist/index.mjs:230 (trigger onPointerDown); the listbox never opens. Passes once the shim from tests/setup.ts is applied. happy-dom implements pointer capture natively, oxidom since 2026-10-20 (packages/oxidom/lib/observers.cjs).',
   },
   {
     id: 'no-resizeobserver', category: 'missing-api (documented shim)', doms: ['jsdom'],
     title: 'ResizeObserver missing; Headless UI element-movement tracking throws (only without the documented shim)',
     re: /ResizeObserver is not defined/,
-    evidence: 'Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively, rsdom since 2026-10-20 (inert, packages/rsdom/lib/observers.cjs).',
+    evidence: 'Unhandled ReferenceError at @headlessui/react dist/utils/element-movement.js from menu/listbox machines. happy-dom implements ResizeObserver natively, oxidom since 2026-10-20 (inert, packages/oxidom/lib/observers.cjs).',
   },
 ]

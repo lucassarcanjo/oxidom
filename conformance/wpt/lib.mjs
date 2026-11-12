@@ -9,20 +9,20 @@ export const HERE = path.dirname(fileURLToPath(import.meta.url));
 /** Repository root. */
 export const LAB = path.resolve(HERE, '../..');
 export const RESULTS = path.join(HERE, 'results');
-/** scripts/fetch-refs.sh's destination, which RSDOM_REFS overrides there too. */
-export const REFS = path.resolve(process.env.RSDOM_REFS || path.join(LAB, 'refs'));
+/** scripts/fetch-refs.sh's destination, which OXIDOM_REFS overrides there too. */
+export const REFS = path.resolve(process.env.OXIDOM_REFS || path.join(LAB, 'refs'));
 export const JSDOM_WPT = path.join(REFS, 'jsdom/test/web-platform-tests');
 /** jsdom's own WPT-format tests; their pages load testharness.js and shared helpers from WPT_ROOT. */
 export const TUWPT_ROOT = path.join(JSDOM_WPT, 'to-upstream');
 /** Sparse checkout of web-platform-tests at the commit jsdom pins (see README.md); WPT_ROOT overrides it. */
 export const WPT_ROOT = process.env.WPT_ROOT ?? path.join(REFS, 'wpt');
 export const WPT_COMMIT = '2971340498805350babb6c167e0df98eaa380f98';
-export const DOMS = ['jsdom', 'happy-dom', 'rsdom'];
+export const DOMS = ['jsdom', 'happy-dom', 'oxidom'];
 /** Origin the test pages pretend to be served from (passed to every environment as its URL). */
 export const ORIGIN = 'http://web-platform.test:8000';
 
 export const appRequire = createRequire(path.join(LAB, 'e2e/react-app/package.json'));
-export const rsdomRequire = createRequire(path.join(LAB, 'packages/rsdom/package.json'));
+export const oxidomRequire = createRequire(path.join(LAB, 'packages/oxidom/package.json'));
 
 export function readJSON(p) {
   return JSON.parse(fs.readFileSync(p, 'utf8'));

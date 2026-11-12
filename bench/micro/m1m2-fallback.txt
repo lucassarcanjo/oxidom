@@ -1,6 +1,6 @@
-# rsdom M1/M2 micro (2026-10-16T19:54:56.174Z)
-# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=0; median of 7 runs, one process per DOM
-operation                                                                    jsdom  happy-dom     rsdom
+# oxidom M1/M2 micro (2026-10-16T19:54:56.174Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; OXIDOM_SHARED=0; median of 7 runs, one process per DOM
+operation                                                                    jsdom  happy-dom     oxidom
 createElement+appendChild+removeChild (ns)                                    4119       2120      1303
 setAttribute (ns)                                                              642       1506       319
 getAttribute (ns)                                                              209       25.1      66.4

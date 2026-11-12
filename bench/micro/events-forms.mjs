@@ -1,7 +1,7 @@
 // Area B microbenchmarks (events, focus, form controls), one fresh Node process per DOM (jsdom 30.1.3,
-// happy-dom 21.0.3, rsdom). Reads interleave writes where a DOM could otherwise serve a cached answer.
+// happy-dom 21.0.3, oxidom). Reads interleave writes where a DOM could otherwise serve a cached answer.
 //   node bench/micro/events-forms.mjs [--write]        (needs a release build: npm run build)
-//   RSDOM_SHARED=0 / RSDOM_NO_MEMO=1 node bench/micro/events-forms.mjs   (ablations)
+//   OXIDOM_SHARED=0 / OXIDOM_NO_MEMO=1 node bench/micro/events-forms.mjs   (ablations)
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -37,7 +37,7 @@ const MOUSE_PROPS = ['type', 'target', 'currentTarget', 'eventPhase', 'bubbles',
   'ctrlKey', 'shiftKey', 'altKey', 'metaKey', 'button', 'buttons', 'relatedTarget', 'movementX', 'movementY'];
 
 function runChild(kind) {
-  const { makeWindow } = require('../../packages/rsdom/test/contract/adapter.cjs');
+  const { makeWindow } = require('../../packages/oxidom/test/contract/adapter.cjs');
   const w = makeWindow(kind);
   const d = w.document;
   const body = d.body;
@@ -60,7 +60,7 @@ function runChild(kind) {
       }
     }
   }) / 1000;
-  // A fresh container per "root" with fresh closures: rsdom retains every wrapper (and its listeners) for the
+  // A fresh container per "root" with fresh closures: oxidom retains every wrapper (and its listeners) for the
   // env's lifetime (no reclamation, DESIGN §11), so this row is dominated by GC of the retained heap.
   out['fresh container + 143 new listeners, retained (us)'] = bench(200, (n) => {
     for (let k = 0; k < n; k++) {
@@ -173,27 +173,27 @@ function runChild(kind) {
 if (process.argv[2] === '--child') {
   runChild(process.argv[3]);
 } else {
-  const kinds = ['jsdom', 'happy-dom', 'rsdom'];
+  const kinds = ['jsdom', 'happy-dom', 'oxidom'];
   const results = {};
   for (const k of kinds) {
     results[k] = JSON.parse(execFileSync(process.execPath, [self, '--child', k], { maxBuffer: 1 << 24 }).toString());
   }
-  const rows = Object.keys(results.rsdom);
+  const rows = Object.keys(results.oxidom);
   const fmt = (v) => (v == null || Number.isNaN(v) ? 'n/a' : v >= 100 ? v.toFixed(0) : v.toFixed(1));
-  const flags = ['RSDOM_SHARED', 'RSDOM_NO_MEMO'].map((f) => `${f}=${process.env[f] ?? '-'}`).join(' ');
+  const flags = ['OXIDOM_SHARED', 'OXIDOM_NO_MEMO'].map((f) => `${f}=${process.env[f] ?? '-'}`).join(' ');
   const lines = [
-    `# rsdom area B micro: events / focus / forms (${new Date().toISOString()})`,
+    `# oxidom area B micro: events / focus / forms (${new Date().toISOString()})`,
     `# Node ${process.version}, ${os.cpus()[0].model} x${os.cpus().length}; ${flags}; median of 7 runs, one process per DOM`,
     '# One process per DOM, no cross-process spread (unlike run.mjs): use for orders of magnitude; load average at start is not recorded.',
-    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'rsdom'.padStart(10)}`,
+    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'oxidom'.padStart(10)}`,
   ];
   for (const r of rows) {
-    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.rsdom[r]).padStart(10)}`);
+    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.oxidom[r]).padStart(10)}`);
   }
   const text = lines.join('\n') + '\n';
   process.stdout.write(text);
   if (process.argv.includes('--write')) {
-    const suffix = process.env.RSDOM_SHARED === '0' ? '-fallback' : process.env.RSDOM_NO_MEMO === '1' ? '-nomemo' : '';
+    const suffix = process.env.OXIDOM_SHARED === '0' ? '-fallback' : process.env.OXIDOM_NO_MEMO === '1' ? '-nomemo' : '';
     fs.writeFileSync(path.join(here, `events-forms${suffix}.txt`), text);
   }
 }

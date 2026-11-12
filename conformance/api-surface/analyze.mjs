@@ -9,7 +9,7 @@ import { importance } from './importance.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const R = (f) => JSON.parse(fs.readFileSync(path.join(here, 'results', f), 'utf8'));
 const idl = R('idl.json');
-const DOMS = ['jsdom', 'happy-dom', 'rsdom'];
+const DOMS = ['jsdom', 'happy-dom', 'oxidom'];
 const rt = Object.fromEntries(DOMS.map((d) => [d, R(`runtime-${d}.json`)]));
 const baseline = new Set(rt.jsdom.baselineNames);
 const realm = new Set(rt.jsdom.realmBuiltins);
@@ -192,7 +192,7 @@ function countArea(list) {
 }
 // Informational: interfaces missing from a DOM's global although instances of a same-named class exist.
 const hiddenInterfaces = {};
-for (const d of ['happy-dom', 'rsdom']) {
+for (const d of ['happy-dom', 'oxidom']) {
   hiddenInterfaces[d] = [];
   for (const i of interfaces) {
     if (i.exposure[d].present || !i.exposure.jsdom.present) continue;
@@ -231,7 +231,7 @@ const extrasCount = extras.map((e) => {
   return o;
 });
 
-// ------------------------------------------------------------------ Reverse census (what happy-dom / rsdom have that jsdom lacks)
+// ------------------------------------------------------------------ Reverse census (what happy-dom / oxidom have that jsdom lacks)
 const OBJECT_PROTO = Object.getOwnPropertyNames(Object.prototype);
 const jsdomGlobalNames = new Set([...rt.jsdom.windowNames, ...jw.chain.flatMap((l) => l.own), ...Object.keys(rt.jsdom.globals).filter((k) => rt.jsdom.globals[k].present)]);
 function reverse(dom) {
@@ -269,7 +269,7 @@ function reverse(dom) {
     indexAccessorsOnPrototype: indexAccessors,
   };
 }
-const reverseCensus = { 'happy-dom': reverse('happy-dom'), rsdom: reverse('rsdom') };
+const reverseCensus = { 'happy-dom': reverse('happy-dom'), oxidom: reverse('oxidom') };
 
 // ------------------------------------------------------------------ Importance-ranked gaps
 const ifaceIndex = new Map(interfaces.map((i) => [i.name, i]));
@@ -321,7 +321,7 @@ function rawStatus(dom, key) {
 }
 const jsdomLacks = notInJsdom.map((key) => ({ key, tier: ranked.find((r) => r.key === key).tier, ...Object.fromEntries(DOMS.map((d) => [d, rawStatus(d, key)])) }));
 const topMissing = {};
-for (const d of ['happy-dom', 'rsdom']) topMissing[d] = ranked.filter((r) => r.jsdom !== 'not-in-jsdom' && (r[d] === 'M' || r[d] === 'I')).map((r) => ({ key: r.key, tier: r.tier, status: r[d], why: r.why }));
+for (const d of ['happy-dom', 'oxidom']) topMissing[d] = ranked.filter((r) => r.jsdom !== 'not-in-jsdom' && (r[d] === 'M' || r[d] === 'I')).map((r) => ({ key: r.key, tier: r.tier, status: r[d], why: r.why }));
 // jsdom-in-vitest: things jsdom has but the vitest global does not (populateGlobal copies only own keys / KEYS)
 topMissing['jsdom (vitest global)'] = ranked.filter((r) => r.jsdom === 'M' || r.jsdom === 'I').map((r) => ({ key: r.key, tier: r.tier, status: r.jsdom, why: r.why }));
 
@@ -341,8 +341,8 @@ fs.writeFileSync(path.join(here, 'results/surface.json'), JSON.stringify(surface
 // ------------------------------------------------------------------ summary.md
 const pct = (a, b) => (b ? `${((100 * a) / b).toFixed(1)}%` : 'n/a');
 const L = [];
-L.push('# API surface census: jsdom vs happy-dom vs rsdom', '');
-L.push(`Generated ${meta.generated} by \`conformance/api-surface\` (node ${meta.node}; jsdom ${meta.versions.jsdom}, happy-dom ${meta.versions['happy-dom']}, vitest ${meta.versions.vitest}, rsdom ${meta.versions.rsdom}).`);
+L.push('# API surface census: jsdom vs happy-dom vs oxidom', '');
+L.push(`Generated ${meta.generated} by \`conformance/api-surface\` (node ${meta.node}; jsdom ${meta.versions.jsdom}, happy-dom ${meta.versions['happy-dom']}, vitest ${meta.versions.vitest}, oxidom ${meta.versions.oxidom}).`);
 L.push('Each DOM was installed on `globalThis` exactly as the Vitest 5 environment does it, in its own process; presence is read from the global object the tests see.', '');
 L.push('## Totals (WebIDL from jsdom living/, 227 files)', '');
 L.push(`- IDL: ${idlTotal.interfaces} interfaces exposed on Window, ${idlTotal.members} members (attributes, operations, constants, statics, iterator methods; overloads deduplicated; indexed/named getters excluded).`);
@@ -357,20 +357,20 @@ L.push('', 'Status legend: R = own property of the right object (interface proto
 L.push('');
 L.push(`Interfaces whose global is Node's own class rather than the DOM's (counted as present): ${DOMS.map((d) => `${d}: ${interfaces.filter((i) => i.exposure[d].fromNode).map((i) => i.name).join(', ') || 'none'}`).join('; ')}.`, '');
 L.push('## Per area (members counted only where jsdom has them; a member of a missing interface counts as missing)', '');
-L.push('| area | jsdom ifaces | happy-dom ifaces | rsdom ifaces | jsdom members | happy-dom members | % | rsdom members | % |');
+L.push('| area | jsdom ifaces | happy-dom ifaces | oxidom ifaces | jsdom members | happy-dom members | % | oxidom members | % |');
 L.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|');
-for (const a of byArea) L.push(`| ${a.area} | ${a.interfaces} | ${a['happy-dom'].interfaces} | ${a.rsdom.interfaces} | ${a.members} | ${a['happy-dom'].members} | ${pct(a['happy-dom'].members, a.members)} | ${a.rsdom.members} | ${pct(a.rsdom.members, a.members)} |`);
+for (const a of byArea) L.push(`| ${a.area} | ${a.interfaces} | ${a['happy-dom'].interfaces} | ${a.oxidom.interfaces} | ${a.members} | ${a['happy-dom'].members} | ${pct(a['happy-dom'].members, a.members)} | ${a.oxidom.members} | ${pct(a.oxidom.members, a.members)} |`);
 L.push('');
 L.push('### Missing interfaces per area', '');
 for (const a of byArea) {
   const h = a['happy-dom'].missingInterfaces;
-  const r = a.rsdom.missingInterfaces;
+  const r = a.oxidom.missingInterfaces;
   if (!h.length && !r.length) continue;
-  L.push(`- **${a.area}**: happy-dom lacks ${h.length ? h.join(', ') : 'none'}; rsdom lacks ${r.length ? r.join(', ') : 'none'}.`);
+  L.push(`- **${a.area}**: happy-dom lacks ${h.length ? h.join(', ') : 'none'}; oxidom lacks ${r.length ? r.join(', ') : 'none'}.`);
 }
 L.push('');
 L.push('### Interfaces missing from the global although instances exist (informational, not counted)', '');
-for (const d of ['happy-dom', 'rsdom']) L.push(`- ${d}: ${hiddenInterfaces[d].map((h) => `${h.name} (via ${h.via}; ${h.instanceMembers}/${h.of} instance members reachable)`).join(', ') || 'none'}`);
+for (const d of ['happy-dom', 'oxidom']) L.push(`- ${d}: ${hiddenInterfaces[d].map((h) => `${h.name} (via ${h.via}; ${h.instanceMembers}/${h.of} instance members reachable)`).join(', ') || 'none'}`);
 L.push('');
 L.push('## Window members (jsdom has no Window.webidl; derived from jsdom\'s real window object)', '');
 L.push(`${windowCount.members} members, ${windowCount.alsoInPlainNode} of which plain Node also has (timers, atob, fetch, performance, ...).`, '');
@@ -381,14 +381,14 @@ L.push('');
 for (const d of DOMS) L.push(`- ${d} missing: ${windowCount[d].missing.join(', ') || 'none'}`);
 L.push('');
 L.push('## jsdom interfaces outside living/*.webidl (members from jsdom\'s runtime prototypes)', '');
-L.push('| interface | members | jsdom | happy-dom | rsdom |');
+L.push('| interface | members | jsdom | happy-dom | oxidom |');
 L.push('|---|---:|---|---|---|');
 for (const e of extrasCount) L.push(`| ${e.name} | ${e.members} | ${DOMS.map((d) => `${e[d].present ? '' : '(no global) '}${e[d].members}/${e.members}${e[d].fromNode ? ' (Node\'s)' : ''}`).join(' | ')} |`);
 const csp = extrasCount.find((e) => e.name === 'CSSStyleProperties');
 if (csp?.camelCaseUnprefixed) L.push('', `CSSStyleProperties, camelCase unprefixed accessors only: ${csp.camelCaseUnprefixed.members} in jsdom; ${DOMS.filter((d) => d !== 'jsdom').map((d) => `${d} ${csp.camelCaseUnprefixed[d]}`).join(', ')}.`);
 L.push('', 'CSSStyleProperties members are CSS property accessors (camelCase, dashed and webkit-prefixed); they are checked on each DOM\'s `document.body.style` instance chain.', '');
 L.push('## Most important gaps for app testing (curated tiers, see importance.mjs)', '');
-for (const d of ['happy-dom', 'rsdom', 'jsdom (vitest global)']) {
+for (const d of ['happy-dom', 'oxidom', 'jsdom (vitest global)']) {
   const list = topMissing[d];
   L.push(`### ${d}: ${list.length} of ${ranked.length - notInJsdom.length} curated items missing`, '');
   for (const t of ['P0', 'P1', 'P2']) {
@@ -400,12 +400,12 @@ for (const d of ['happy-dom', 'rsdom', 'jsdom (vitest global)']) {
 L.push('`*` = the whole interface is missing from the global.', '');
 if (jsdomLacks.length) {
   L.push('### Curated items jsdom itself lacks (excluded from the counts above)', '');
-  L.push('| key | tier | jsdom | happy-dom | rsdom |', '|---|---|---|---|---|');
-  for (const x of jsdomLacks) L.push(`| \`${x.key}\` | ${x.tier} | ${x.jsdom} | ${x['happy-dom']} | ${x.rsdom} |`);
+  L.push('| key | tier | jsdom | happy-dom | oxidom |', '|---|---|---|---|---|');
+  for (const x of jsdomLacks) L.push(`| \`${x.key}\` | ${x.tier} | ${x.jsdom} | ${x['happy-dom']} | ${x.oxidom} |`);
   L.push('');
 }
-L.push('## Reverse census: present in happy-dom / rsdom, absent from jsdom', '');
-for (const d of ['happy-dom', 'rsdom']) {
+L.push('## Reverse census: present in happy-dom / oxidom, absent from jsdom', '');
+for (const d of ['happy-dom', 'oxidom']) {
   const rc = reverseCensus[d];
   const cls = rc.onlyGlobals.filter((g) => g.classLike).map((g) => g.name);
   const oth = rc.onlyGlobals.filter((g) => !g.classLike).map((g) => g.name);
@@ -424,7 +424,7 @@ fs.writeFileSync(path.join(here, 'results/summary.md'), L.join('\n') + '\n');
 const MM = ['# Missing members per area (members jsdom exposes; generated by analyze.mjs)', '', 'Members of interfaces missing from the global are not listed here (see "Missing interfaces per area" in summary.md). `(on subclass)` = defined only on a subclass prototype.', ''];
 for (const a of byArea) {
   MM.push(`## ${a.area}`, '');
-  for (const d of ['happy-dom', 'rsdom']) MM.push(`- **${d}** (${a[d].missingMembers.length}): ${a[d].missingMembers.join(', ') || 'none'}`);
+  for (const d of ['happy-dom', 'oxidom']) MM.push(`- **${d}** (${a[d].missingMembers.length}): ${a[d].missingMembers.join(', ') || 'none'}`);
   MM.push('');
 }
 fs.writeFileSync(path.join(here, 'results/missing-members.md'), MM.join('\n'));

@@ -6,7 +6,7 @@ events/forms/focus area B.
 
 ## What is implemented
 
-**MutationObserver** (`src/mo.rs`, `packages/rsdom/lib/mo.cjs`; DESIGN §9)
+**MutationObserver** (`src/mo.rs`, `packages/oxidom/lib/mo.cjs`; DESIGN §9)
 - `observe` is O(1): one registration in `MoState.regs`, the `OBSERVED` meta bit on the target, an env-wide
   registration count. No subtree walk (happy-dom walks the subtree on every `observe`; DTL's `waitFor` calls it
   on every wait). `disconnect` is O(nodes that observer registered on).
@@ -36,7 +36,7 @@ events/forms/focus area B.
   mo::tests::cost_probe -- --ignored --nocapture`); append + remove under a subtree observer incl. building the
   records with `takeRecords()` ~1.2 us per pair vs ~0.6 us without an observer (jsdom ~10 us, happy-dom ~9 us).
 
-**Window and globals** (`packages/rsdom/lib/window.cjs`; DESIGN §12)
+**Window and globals** (`packages/oxidom/lib/window.cjs`; DESIGN §12)
 - `makeWindow` installs onto `options.global` (the Vitest environment passes `globalThis`) or builds a
   null-prototype object (`createWindow()`). Every member is an own DATA property (writable, configurable;
   non-enumerable on the global, like `populateGlobal`'s).
@@ -47,7 +47,7 @@ events/forms/focus area B.
   null, `origin`, `Location` (http://localhost:3000/ or `options.url`; fragment navigations and
   `history.pushState/replaceState` change the URL and `document.URL`; other navigations are not implemented,
   like jsdom), `History`, `Navigator` (UA `Mozilla/5.0 (linux) AppleWebKit/537.36 (KHTML, like Gecko)
-  rsdom/0.1.0`: no Chrome/Firefox token), `Screen` (jsdom parity: sizes 0), `localStorage`/`sessionStorage`
+  oxidom/0.1.0`: no Chrome/Firefox token), `Screen` (jsdom parity: sizes 0), `localStorage`/`sessionStorage`
   (`Storage`), `matchMedia` (`MediaQueryList`, `matches` always false: no media-query evaluation),
   `requestAnimationFrame`/`cancelAnimationFrame` on Node timers (16 ms, numeric ids, cancelled at teardown,
   callback errors reported on the window), `getComputedStyle` (area A's `rt.getComputedStyle`; a stub returning
@@ -65,17 +65,17 @@ events/forms/focus area B.
   `AbortSignal`, `MessageChannel`, typed arrays, `Blob`, `File`, `URL`, `fetch`, `crypto`, `DOMException`,
   `structuredClone`. Not defined (feature detection must not be fooled): `customElements`, `ResizeObserver`,
   `IntersectionObserver`, `DataTransfer`, `requestIdleCallback`, `TextEvent`, `reportError`, `documentMode`.
-- `__rsdom` (non-enumerable diagnostics): `moStats` (ticks / takes / records), `counters()`, flags.
+- `__oxidom` (non-enumerable diagnostics): `moStats` (ticks / takes / records), `counters()`, flags.
 
-**Vitest environment** (`packages/rsdom/lib/vitest-environment.mjs`; docs/lab/research/vitest-env.md)
-- `{ name: 'rsdom', viteEnvironment: 'client', prewarmModules: false, setup(global, options) -> { teardown } }`.
-  Facade and addon via `createRequire(import.meta.url)`; tests reach rsdom only through globals.
-- Options `environmentOptions.rsdom = { url, html, shared, memo, prefilter, counters }`; `RSDOM_SHARED=0`,
-  `RSDOM_NO_MEMO=1`, `RSDOM_NO_PREFILTER=1`, `RSDOM_COUNTERS=1` win (set before the facade loads in the worker).
+**Vitest environment** (`packages/oxidom/lib/vitest-environment.mjs`; docs/lab/research/vitest-env.md)
+- `{ name: 'oxidom', viteEnvironment: 'client', prewarmModules: false, setup(global, options) -> { teardown } }`.
+  Facade and addon via `createRequire(import.meta.url)`; tests reach oxidom only through globals.
+- Options `environmentOptions.oxidom = { url, html, shared, memo, prefilter, counters }`; `OXIDOM_SHARED=0`,
+  `OXIDOM_NO_MEMO=1`, `OXIDOM_NO_PREFILTER=1`, `OXIDOM_COUNTERS=1` win (set before the facade loads in the worker).
 - Teardown: window error routing removed, animation frames cancelled, every global the window defined restored
   to its original descriptor (only the keys it defines are read: a whole-global descriptor snapshot would
   trigger Node's lazy web globals), then `rt.reset()` (one `destroy`, every wrapper neutered). With
-  `RSDOM_COUNTERS=1` the worker's counters are appended as one JSON line to `RSDOM_COUNTERS_OUT`.
+  `OXIDOM_COUNTERS=1` the worker's counters are appended as one JSON line to `OXIDOM_COUNTERS_OUT`.
 - Setup cost (bare process, integrated build): ~66 ms including module loading; area A's `style.cjs`
   install is ~24 ms of it, the window itself a few ms (~25 ms in total on the C branch alone).
 
@@ -85,14 +85,14 @@ events/forms/focus area B.
   `{"enabled","calls","ns","fns":{name:[calls,ns]}}`; `countersReset()`; `countersEnabled()`. Without the
   feature no timing code is emitted and `Counters` is zero-sized.
 - `npm run build:counters` builds into `native/counters/` (own target dir); the environment loads it when
-  `RSDOM_COUNTERS=1`.
+  `OXIDOM_COUNTERS=1`.
 
 **Benchmark harness** (`bench/README.md`)
 - `bench/micro/run.mjs`: every case in one fresh process per DOM, warm-up + median of >= 7 samples, JSON +
   markdown, n/a with a reason when an API is missing; all DESIGN §13 micro rows plus React render/update and
   Testing Library role queries through each DOM's Vitest environment.
 - `bench/e2e/run.mjs` + `phase-reporter.mjs`: the app suite N times per DOM, interleaved, per-phase sums,
-  per-file times, matrix forks / threads / threads+isolate:false / serial, rsdom ablations, "common passing
+  per-file times, matrix forks / threads / threads+isolate:false / serial, oxidom ablations, "common passing
   files" accounting, optional counters run.
 
 ## Tests
@@ -111,20 +111,20 @@ events/forms/focus area B.
 - `test/native/vitest-env.test.mjs`: Environment shape; setup/teardown on a stand-in global restores every
   descriptor and neuters the DOM; the fixture `test/fixtures/vitest-env` (globals, window plumbing, DTL
   `waitFor`/`findByText` through MO with a 10 s polling interval, three files sharing one DOM) under forks,
-  threads, threads + `isolate: false` + 1 worker, and `RSDOM_SHARED=0`.
+  threads, threads + `isolate: false` + 1 worker, and `OXIDOM_SHARED=0`.
 - Rust unit tests in `src/mo.rs` (records, filters, old values, transients per observer, re-observe,
   disconnect, take ordering/range, invalid arguments) and `src/counters.rs`.
-- Everything green with `RSDOM_SHARED=0`; `cargo clippy --all-targets -D warnings` (also with
+- Everything green with `OXIDOM_SHARED=0`; `cargo clippy --all-targets -D warnings` (also with
   `--features counters`), `cargo fmt --check`, `cargo test`.
 
 ## Integration preview (A + B + C)
 
 Not committed as code: the area A (`cd0951b`) and area B (`97750fa`) branch diffs applied on top of this branch
 in a scratch copy, built and tested:
-- the full rsdom suite (26 files, 661 tests) passes, also with `RSDOM_SHARED=0`;
-- `DOM_ENV=rsdom npx vitest run src/__tests__/Counter.test.tsx` passes (7/7);
+- the full oxidom suite (26 files, 661 tests) passes, also with `OXIDOM_SHARED=0`;
+- `DOM_ENV=oxidom npx vitest run src/__tests__/Counter.test.tsx` passes (7/7);
 - the app suite: **89/90** under forks+isolate, threads, threads+isolate:false, and 1 worker, and with
-  `RSDOM_SHARED=0`, `RSDOM_NO_MEMO=1 RSDOM_NO_PREFILTER=1`. The one failure is area B's: jest-dom
+  `OXIDOM_SHARED=0`, `OXIDOM_NO_MEMO=1 OXIDOM_NO_PREFILTER=1`. The one failure is area B's: jest-dom
   `toHaveDisplayValue` does `Array.from(select)`, which needs `select.length` + indexed access (B's documented
   "`select[index]` not implemented");
 - the vitest-env fixture including DTL `waitFor`/`findByText` resolving via MO (13/13).
@@ -132,9 +132,9 @@ Results of that build: `bench/results/preview/` (see below).
 
 ### Preview results (`bench/results/`, noisy shared VM: indicative only)
 
-DESIGN §13 rows, predicted vs measured (median of 7; jsdom / happy-dom / rsdom):
+DESIGN §13 rows, predicted vs measured (median of 7; jsdom / happy-dom / oxidom):
 
-| # | operation | predicted rsdom | jsdom | happy-dom | rsdom | verdict |
+| # | operation | predicted oxidom | jsdom | happy-dom | oxidom | verdict |
 |---|---|---|---:|---:|---:|---|
 | 1 | create + append + remove | 0.15-0.3 us | 4.35 us | 1.85 us | 0.87 us | win 2.1x vs happy-dom; prediction missed (JS facade + fresh memory per node) |
 | 2 | setAttribute | 70-120 ns | 617 ns | 1418 ns | 156 ns | win 4x |
@@ -144,7 +144,7 @@ DESIGN §13 rows, predicted vs measured (median of 7; jsdom / happy-dom / rsdom)
 | 7 | hasAttribute unchanged | 45-70 ns, lose 1.5x | 196 ns | 23 ns | 62 ns | **lose 2.7x** vs happy-dom |
 | 9 | DTL role selectors, matches() | 3-10 ns prefiltered | 2695 ns | 137 ns | 24 ns/call | win 5.8x (JS prefilter effect, area A) |
 | 10 | qSA cold, 2.7k-element table | 20-80 us | 3374 us | 2260 us | 59 us | win 38x |
-| 11 | qSA warm, no mutation | 0.3-0.6 us (memo) | 180 us | 0.30 us | 12.7 us | **lose 43x** vs happy-dom (it returns a cached list; rsdom builds a fresh 300-item NodeList per hit) |
+| 11 | qSA warm, no mutation | 0.3-0.6 us (memo) | 180 us | 0.30 us | 12.7 us | **lose 43x** vs happy-dom (it returns a cached list; oxidom builds a fresh 300-item NodeList per hit) |
 | 12 | getComputedStyle cold after mutation | 0.1-1 us | 522 us | 1271 us | 2.6 us | win 200x (prediction missed 2.5x) |
 | 13 | focus() | 0.3-1 us | 178 us | 9.7 us | 1.4 us | win 6.8x |
 | 14 | MouseEvent dispatch, 20 levels | parity | 20.2 us | 16.2 us | 3.4 us | win 4.7x (pure JS design, area B) |
@@ -158,25 +158,25 @@ DESIGN §13 rows, predicted vs measured (median of 7; jsdom / happy-dom / rsdom)
 | - | React 19 createRoot + render 1000 rows / update | - | 189 / 58 ms | 254 / 75 ms | 74 / 45 ms | win 2.6x / 1.3x (React's own work dominates updates) |
 | - | DTL getAllByRole('row'), 1000 rows / getByRole(name) | - | 278 / 226 ms | 15.0 / 18.3 ms | 2.6 / 6.5 ms | win 5.7x / 2.8x |
 
-Whole suite (`e2e/react-app/`, 3 workers; rsdom 89/90, "common" = the 10 files passing everywhere), medians:
+Whole suite (`e2e/react-app/`, 3 workers; oxidom 89/90, "common" = the 10 files passing everywhere), medians:
 
-| config | jsdom wall | happy-dom wall | rsdom wall | tests (common) jsdom / happy / rsdom | environment Σ jsdom / happy / rsdom |
+| config | jsdom wall | happy-dom wall | oxidom wall | tests (common) jsdom / happy / oxidom | environment Σ jsdom / happy / oxidom |
 |---|---:|---:|---:|---|---|
 | forks + isolate (default) | 13.3 s | 10.8 s | **4.9 s** | 20.9 / 14.3 / 5.0 s | 10.2 / 4.7 / 1.7 s |
 | threads + isolate | 13.0 s | 10.9 s | **5.0 s** | 20.3 / 14.3 / 5.1 s | 9.3 / 4.3 / 1.4 s |
 | threads, isolate: false | 11.6 s | 9.9 s | **3.8 s** | 16.1 / 12.2 / 4.1 s | (Pitfall A) |
 | threads, isolate: false, 1 worker | 16.5 s | 13.6 s | **5.3 s** | 13.3 / 10.7 / 2.9 s | 0.71 / 0.30 / 0.11 s |
 
-- rsdom is ~2.7x faster than jsdom and ~2.2x faster than happy-dom in wall time with the default pool
+- oxidom is ~2.7x faster than jsdom and ~2.2x faster than happy-dom in wall time with the default pool
   (prediction: 2-2.5x / 1.5-2x), ~3.1x / 2.6x serially. DataTable.heavy: 11.5 s / 9.4 s / 2.6 s.
-- Ablations (serial, tests (common)): all shortcuts on 2.95 s; `RSDOM_SHARED=0` 3.37 s (+14%);
-  `RSDOM_NO_MEMO=1` 3.00 s; `RSDOM_NO_PREFILTER=1` 2.97 s; all off 3.06 s. The JS memo and prefilter are worth
+- Ablations (serial, tests (common)): all shortcuts on 2.95 s; `OXIDOM_SHARED=0` 3.37 s (+14%);
+  `OXIDOM_NO_MEMO=1` 3.00 s; `OXIDOM_NO_PREFILTER=1` 2.97 s; all off 3.06 s. The JS memo and prefilter are worth
   little end to end; the zero-copy table ~10-15%; the bulk of the win is Rust-side algorithms plus the JS
   design of events and records (dispatch is pure JS in every DOM).
-- Environment phase: rsdom pays ~140-170 ms per file under 3 parallel workers and ~110 ms serially, although
+- Environment phase: oxidom pays ~140-170 ms per file under 3 parallel workers and ~110 ms serially, although
   the environment itself sets up in ~66 ms in a bare process (micro row 17): the rest is Vitest loading a
-  *path* environment through its Vite module runner. Built-in environments skip that; publishing rsdom as a
-  `vitest-environment-rsdom` package (externalized, ROADMAP M6 P1) should remove most of it.
+  *path* environment through its Vite module runner. Built-in environments skip that; publishing oxidom as a
+  `vitest-environment-oxidom` package (externalized, ROADMAP M6 P1) should remove most of it.
 - Native crossings (counters build, forks run): 634k native calls, 221 ms inside natives in total (incl.
   ~13 ms of timer overhead), 464k calls / 157 ms of them in DataTable.heavy. Prediction: ~1.5M calls,
   0.06-0.15 s. Fewer calls than predicted (zero-FFI table reads and memos absorb more), more time per call;
@@ -198,7 +198,7 @@ Whole suite (`e2e/react-app/`, 3 workers; rsdom 89/90, "common" = the 10 files p
 
 - AREA A: `rt.getComputedStyle` (installed as `window.getComputedStyle`, unbound), `rt.N.cssProp` (used by
   `CSS.supports`), `rt.classes.*` (installed generically). Perf note: `style.cjs` install takes ~24 ms per
-  environment setup (generated CSSOM accessors), the largest single cost of rsdom's env setup.
+  environment setup (generated CSSOM accessors), the largest single cost of oxidom's env setup.
 - AREA B: `require('./events.cjs').installWindow(win, document)` (window EventTarget, `event`, on* handlers),
   `events.reportException(win, err)` (rAF / MO callback errors), `require('./forms.cjs').formEntries(form,
   submitter)` (FormData override), `rt.classes` Event classes / `Option` / `Image` / `HashChangeEvent`
@@ -214,6 +214,6 @@ Whole suite (`e2e/react-app/`, 3 workers; rsdom 89/90, "common" = the 10 files p
 
 ## Not done
 
-- The `vitest-environment-rsdom` package alias for `@vitest-environment rsdom` docblocks (ROADMAP M6 P1).
+- The `vitest-environment-oxidom` package alias for `@vitest-environment oxidom` docblocks (ROADMAP M6 P1).
 - Final M8 numbers on the merged build (the preview numbers come from a scratch integration while other
   agents shared the 4 CPUs).

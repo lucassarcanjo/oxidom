@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
-repository = "https://github.com/lucassarcanjo/nativedom"
+repository = "https://github.com/lucassarcanjo/oxidom"
 
 # Profiles are workspace-wide (cargo ignores them in member manifests).
 [profile.release]

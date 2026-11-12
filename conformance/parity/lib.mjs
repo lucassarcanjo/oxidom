@@ -1,5 +1,5 @@
 // Shared pieces of the parity suite (conformance/parity, README.md there): the four test sources taken from
-// jsdom's own test suite, the expectations files (rsdom's known failures, a ratchet) and the jsdom oracle
+// jsdom's own test suite, the expectations files (oxidom's known failures, a ratchet) and the jsdom oracle
 // (what jsdom itself passes in the same harness), and the comparison of a run against them.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -146,7 +146,7 @@ export const SKIPPED_BY_DEFAULT = new Set(['timeout', 'flaky', 'skip']);
 export const SUBTEST_LIMIT = 50;
 /**
  * `fail-node:<N` (the syntax of jsdom's to-run.yaml), set by hand: a failure of the Node runtime rather than of
- * rsdom (Float16Array, TextDecoder encodings) that Node N fixed. It reads as `fail` below major N and as no entry
+ * oxidom (Float16Array, TextDecoder encodings) that Node N fixed. It reads as `fail` below major N and as no entry
  * from N on, and `--update` writes it back as it is on any Node.
  */
 const NODE_FAIL = /^fail-node:<(\d+)$/;
@@ -202,7 +202,7 @@ const key = (s) => (PLAIN_KEY.test(s) ? s : JSON.stringify(s));
 
 export function saveExpectations(source, map) {
   const lines = [
-    `# rsdom's expected failures in the parity suite: ${SOURCES[source].title}.`,
+    `# oxidom's expected failures in the parity suite: ${SOURCES[source].title}.`,
     '# Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an',
     '# entry whose status does not change). Format and workflow: conformance/parity/README.md.',
     '',

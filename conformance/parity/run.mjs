@@ -1,5 +1,5 @@
 // The parity suite: jsdom's own test suite (WPT as jsdom runs it, jsdom's to-upstream WPT tests, its legacy mocha
-// tests and its API tests) run against rsdom, gated by checked-in expectations. README.md has the workflow.
+// tests and its API tests) run against oxidom, gated by checked-in expectations. README.md has the workflow.
 //
 //   node conformance/parity/run.mjs [patterns...] [options]
 //
@@ -7,7 +7,7 @@
 //                     (e.g. dom/traversal, legacy:node-iterator, 'wpt:dom/nodes/Node-*')
 //   --source a,b      only these sources (wpt, tuwpt, legacy, api; default all)
 //   --item <id>       only the tests of a roadmap item (roadmap.yaml), e.g. --item traversal
-//   --dom jsdom       run jsdom against the oracle instead of rsdom against the expectations
+//   --dom jsdom       run jsdom against the oracle instead of oxidom against the expectations
 //   --update          rewrite the expectations (or, with --dom jsdom, the oracle) for the files that ran, then
 //                     regenerate results/summary.md; a run over a whole source also drops stale entries
 //   --all             also run files expected to time out, and flaky or skipped files (reported, never gating)
@@ -42,8 +42,8 @@ for (let i = 0; i < argv.length; i++) {
   } else if (a.startsWith('--')) flags.add(a.slice(2));
   else patterns.push(a);
 }
-const dom = opts.dom ?? 'rsdom';
-if (!['rsdom', 'jsdom'].includes(dom)) throw new Error(`--dom must be rsdom or jsdom, not ${dom}`);
+const dom = opts.dom ?? 'oxidom';
+if (!['oxidom', 'jsdom'].includes(dom)) throw new Error(`--dom must be oxidom or jsdom, not ${dom}`);
 const update = flags.has('update');
 const sources = (opts.source ?? Object.keys(SOURCES).join(',')).split(',');
 for (const s of sources) if (!SOURCES[s]) throw new Error(`unknown source ${s} (expected ${Object.keys(SOURCES).join(', ')})`);
@@ -52,7 +52,7 @@ if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error(`--concur
 const WPT_TIMEOUT_MS = Number(process.env.WPT_TIMEOUT_MS ?? 10_000);
 // generous: the webstorage quota files take ~32 s on an idle 4-core machine
 const HARD_KILL_MS = { wpt: WPT_TIMEOUT_MS + 50_000, tuwpt: WPT_TIMEOUT_MS + 50_000, legacy: 180_000, api: 180_000 };
-const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'rsdom-parity-compile-cache');
+const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'oxidom-parity-compile-cache');
 
 function runJob(source, test) {
   return new Promise((resolve) => {

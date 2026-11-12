@@ -1,7 +1,7 @@
-# rsdom area B micro: events / focus / forms (2026-10-16T20:54:20.777Z)
-# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; RSDOM_SHARED=0 RSDOM_NO_MEMO=-; median of 7 runs, one process per DOM
+# oxidom area B micro: events / focus / forms (2026-10-16T20:54:20.777Z)
+# Node v22.22.0, Intel(R) Xeon(R) Processor @ 2.80GHz x4; OXIDOM_SHARED=0 OXIDOM_NO_MEMO=-; median of 7 runs, one process per DOM
 # NOISY: measured while other agents shared the 4 CPUs; use for orders of magnitude only.
-operation                                                                    jsdom  happy-dom     rsdom
+operation                                                                    jsdom  happy-dom     oxidom
 addEventListener + removeEventListener x143, one container (us)               82.9       54.9      25.6
 fresh container + 143 new listeners, retained (us)                            58.6       46.1      99.8
 new MouseEvent + dispatch, 20 levels, React-like root listeners (ns)         19482      17602      3985

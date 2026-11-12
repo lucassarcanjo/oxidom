@@ -1,9 +1,9 @@
-# happy-dom 21.0.3 and linkedom 0.18.13: what makes them fast, what they skip, and what rsdom should copy
+# happy-dom 21.0.3 and linkedom 0.18.13: what makes them fast, what they skip, and what oxidom should copy
 
 Scope: the source of happy-dom (`refs/happy-dom`, tag `v21.0.3`, commit `875ef5c`), the Vitest
 happy-dom environment (`refs/vitest`, 5.0.5) and linkedom (`refs/linkedom`, 0.18.13, commit `3fcf145`).
 The goal is to explain *why* happy-dom beats jsdom where it does, where it does not, and which data
-structures and tricks rsdom (Rust arena + N-API + JS facade) should adopt or avoid.
+structures and tricks oxidom (Rust arena + N-API + JS facade) should adopt or avoid.
 
 All source paths below are relative to `refs`. `HD/` is shorthand for
 `happy-dom/packages/happy-dom/src/`, `LK/` for `linkedom/esm/`, `VT/` for
@@ -61,7 +61,7 @@ Companion notes: `jsdom.md` (jsdom internals, hot spots H1-H14), `react-dom.md` 
    - Every insert re-walks the whole inserted subtree (`connectedToNode`). React builds detached
      trees bottom-up, so this costs O(n·depth): a 1001-node, depth-200 build takes 65-69 ms. jsdom
      pays the same O(n·depth), and more (96-111 ms), because the spec's insertion steps visit every
-     inclusive descendant. This is an open opportunity for rsdom (§5.1).
+     inclusive descendant. This is an open opportunity for oxidom (§5.1).
    - Every node eagerly allocates **7 cache `Map`s, 4 listener `Map`s, 4 arrays**, and every
      Element a `NamedNodeMap` with 3 more `Map`s plus a `Set` and a `Map`. That is 49 symbol-keyed
      own properties per `div`.
@@ -77,7 +77,7 @@ Companion notes: `jsdom.md` (jsdom internals, hot spots H1-H14), `react-dom.md` 
    - Dependencies are incomplete. Computed style only registers ancestors, so `.a + li` rules go
      stale (verified, §2.13).
    - `focus()` clears the document's cache, which drops *every* connected selector cache.
-   - **rsdom should copy the memoisation, not the invalidation scheme. Use generation counters
+   - **oxidom should copy the memoisation, not the invalidation scheme. Use generation counters
      (epochs).**
 5. **linkedom keeps the document as one doubly linked list in document order.** Each element has a
    start node and an `END` marker, and attributes sit inline after the start. As a result:
@@ -94,7 +94,7 @@ Companion notes: `jsdom.md` (jsdom internals, hot spots H1-H14), `react-dom.md` 
    - `isConnected`, `contains` and `compareDocumentPosition` walk ancestors.
    - css-select's `:first-child` and sibling combinators re-materialise sibling lists per element.
    - `compareDocumentPosition` is **wrong**: it compares depths, not order (verified).
-6. **What rsdom should take:**
+6. **What oxidom should take:**
    - **From happy-dom:**
      - shared module-level classes
      - lazy computed style with per-element memo
@@ -129,7 +129,7 @@ Companion notes: `jsdom.md` (jsdom internals, hot spots H1-H14), `react-dom.md` 
 
 ---
 
-## 1. Why this matters for rsdom
+## 1. Why this matters for oxidom
 
 | Fact | Source |
 |---|---|
@@ -176,7 +176,7 @@ wins end to end despite slower mutations.
   - DTL's pretty-format DOM plugin only recognises nodes whose `constructor.name` matches
     `/^((HTML|SVG)\w*)?Element$/`, `Text`, `Comment` or `DocumentFragment`
     (`dom-testing-library/src/DOMElementFilter.ts:159-185`).
-  - **rsdom wrappers must use the real interface names**, or DTL error messages print nodes as
+  - **oxidom wrappers must use the real interface names**, or DTL error messages print nodes as
     plain objects instead of markup.
 - **The value accessor sits on the exact prototype.** `HTMLInputElement.prototype` owns `value` and
   `checked` accessors, and `node.constructor.prototype` is that prototype, because `HTMLInputElement`
@@ -232,7 +232,7 @@ Costs this creates:
   (`jsdom/lib/jsdom/living/nodes/Node-impl.js:1088-1116`). Measured with the same probe
   (`happy-dom-probes/bottomup-jsdom.cjs`): 2.7-3.3 ms, 6.8-10.6 ms and **96-111 ms** for depth
   10/50/200. So happy-dom is ~1.5× better here, not worse. Neither skips the walk when nothing in the
-  subtree needs it. rsdom can: walk only when connectivity changes, or when the subtree contains
+  subtree needs it. oxidom can: walk only when connectivity changes, or when the subtree contains
   nodes with insertion steps (a per-subtree count of `script`/`iframe`/`style`/`link`/form-associated
   or custom elements).
 
@@ -261,7 +261,7 @@ Measured heap per node (`ops2.mjs`, `--expose-gc`; jsdom from `jsdom-probes/mem.
 | `div` + id + class | **9,084 B** | 2,365 B | + 2 Attr nodes in the list |
 | `input` | 3,909 B | 1,706 B | |
 
-Lesson: happy-dom's speed is **not** from lean nodes. rsdom should allocate nothing optional per
+Lesson: happy-dom's speed is **not** from lean nodes. oxidom should allocate nothing optional per
 node: caches, listener maps, `classList`, `style` and `dataset` all lazy. In Rust, the node itself
 should be a compact struct.
 
@@ -469,7 +469,7 @@ Lessons:
   declaration** and call `setAttribute('style', …)` (`:240-275`), which runs the full §2.4 pipeline.
   Cost: 3.9-4.7 µs (jsdom 2.3-3.5 µs).
 - camelCase and kebab-case lookups go through two static tables (`HD/css/declaration/CSSPropertyList.ts`).
-- Lesson for rsdom: store the declaration block natively and serialize the `style` attribute
+- Lesson for oxidom: store the declaration block natively and serialize the `style` attribute
   **lazily on read**. React writes styles property by property.
 
 ### 2.8 Events
@@ -494,7 +494,7 @@ Lessons:
   - `HTMLLabelElement` forwards clicks to its control (`HD/nodes/html-label-element/HTMLLabelElement.ts:110-130`).
   - `HTMLButtonElement` submits or resets (`HD/nodes/html-button-element/HTMLButtonElement.ts:373-400`).
 
-  This is simple and is all that `fireEvent.click` and `user-event` need. rsdom can do the same in
+  This is simple and is all that `fireEvent.click` and `user-event` need. oxidom can do the same in
   its JS facade.
 - **Skipped:**
   - shadow-DOM retargeting
@@ -624,7 +624,7 @@ Lessons:
     keep Node's timers. `requestAnimationFrame`, `Event`, `document` and `navigator` *are* overridden.
   - Then `global.window = global.self = global.top = global.parent = global`, and
     `document.defaultView` is redefined to return `global` (`VT/utils.ts:92-108`).
-- **Consequences for an rsdom environment:**
+- **Consequences for an oxidom environment:**
   - Everything the window must expose has to be an **own property of the window object** or in
     Vitest's KEYS list. Prototype getters are not enumerated by `getOwnPropertyNames`.
   - `bindFunctions` calls `.bind(win)` on every non-class function key. Keep the function count
@@ -824,7 +824,7 @@ Do **not** keep:
 
 ---
 
-## 5. Lessons and concrete data-structure recommendations for rsdom
+## 5. Lessons and concrete data-structure recommendations for oxidom
 
 ### 5.1 Tree storage (Rust)
 
@@ -908,7 +908,7 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
   - The cold path must therefore also be fast. That is Rust's job: linkedom-style flat walks with a
     precompiled matcher, which should run at least 10× faster than happy-dom cold (§2.5 table).
 - **Returning the same `NodeList` object** for a cached `qSA` (as happy-dom does) is observable but
-  harmless, since the list is static. rsdom can return a fresh JS array-backed `NodeList` built from
+  harmless, since the list is static. oxidom can return a fresh JS array-backed `NodeList` built from
   the cached id vector. Identity does not matter.
 
 ### 5.4 Selector engine
@@ -932,7 +932,7 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
   - `matches`/`closest` are right-to-left on the single element.
   - An ancestor bloom filter (as in browsers) is optional; DTL's selectors are mostly compound.
 - **Batch for DTL:** an internal `rs.matchesAny(id, selectorListId)` that returns the *index* of the
-  first matching selector. This would let rsdom expose a faster path for implicit-role computation
+  first matching selector. This would let oxidom expose a faster path for implicit-role computation
   if it ever patches `getImplicitAriaRoles`. Not required; plain `matches` with memo is enough.
 - **Return `Uint32Array`s of ids** and map them to wrappers in JS through the id-indexed wrapper
   table (`jsdom.md` §8.2, `react-dom.md` §16.2).
@@ -978,7 +978,7 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
 - **Activation behaviour as a dispatch hook** in the facade (§2.8). Keep listeners in JS: they are
   JS functions. Build the propagation path with one Rust call (`rs.ancestors(id)`), or from wrapper
   `parentNode` reads.
-- Optional: **zero-delay timer grouping** is only relevant if rsdom overrides timers. It should not:
+- Optional: **zero-delay timer grouping** is only relevant if oxidom overrides timers. It should not:
   Vitest keeps Node's timers (§2.12).
 
 ### 5.7 Patterns to avoid (from happy-dom and linkedom)
@@ -996,13 +996,13 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
 9. linkedom's fresh `childNodes` arrays, O(depth) `isConnected`, and depth-based
    `compareDocumentPosition`.
 10. Regex-based HTML and selector parsing with silent truncation (`:not(a b)` → `:not(a)`). If
-    rsdom does not support something, it should throw `SyntaxError`, not answer wrongly.
+    oxidom does not support something, it should throw `SyntaxError`, not answer wrongly.
 
 ### 5.8 Where Rust can win, and where it cannot (boundary economics)
 
 - An N-API call costs roughly 50-150 ns plus string marshalling (`jsdom.md` H5). happy-dom's
   `getAttribute` is 38 ns and its `nodeType` read is about 1 ns. **Rust cannot beat happy-dom on
-  single cheap reads.** rsdom must keep those in JS (cached immutable facts) or at least at parity
+  single cheap reads.** oxidom must keep those in JS (cached immutable facts) or at least at parity
   (`getAttribute` through an atom id).
 - Rust wins on **bulk algorithms**, where a single crossing replaces thousands of JS operations:
   - cold `qSA` (target ≤0.2 ms on the 3k table, vs 3-10 ms for happy-dom cold)
@@ -1016,12 +1016,12 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
 - Rust also wins on **memory**: a node at around 64-128 B plus an optional rare-data box, vs 1.6 KB
   (jsdom) and 3.7 KB (happy-dom). Wrappers are created only when a node crosses to JS.
 - **Mutations are where happy-dom is weakest** and React render/re-order dominates the heavy tests
-  (`app-notes.md`: render 1000 rows 553 ms on happy-dom vs 475 ms on jsdom). An rsdom `appendChild`
+  (`app-notes.md`: render 1000 rows 553 ms on happy-dom vs 475 ms on jsdom). An oxidom `appendChild`
   at ≈0.3-0.5 µs (one crossing + O(1) relink + epoch bump) would be 10-20× faster than both.
 
 ---
 
-## 6. Pitfalls checklist for rsdom (derived from this study)
+## 6. Pitfalls checklist for oxidom (derived from this study)
 
 - [ ] `constructor.name` per interface; `HTMLInputElement.prototype` owns `value`/`checked` accessors (§2.1).
 - [ ] Window exposes constructors and functions as **own** properties; methods bound or `this`-tolerant (§2.12).
@@ -1043,7 +1043,7 @@ liability: memory growth, misses, and global wipes on focus. Use **epochs**:
 ## 7. Reproducing the measurements
 
 ```sh
-cd rsdom-lab
+cd oxidom-lab
 node docs/lab/research/happy-dom-probes/env.mjs                  # import + window creation, realm facts
 node docs/lab/research/happy-dom-probes/ops.mjs                  # same op list as jsdom-probes/ops.cjs (+ cold/warm qSA, structural probes)
 node --expose-gc docs/lab/research/happy-dom-probes/ops2.mjs     # computed style cold/warm, textContent, serialize, focus, affectsCache growth, bytes/node

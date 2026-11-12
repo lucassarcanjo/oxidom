@@ -1,26 +1,26 @@
-# rsdom roadmap
+# oxidom roadmap
 
 **Goal:** a drop-in replacement for jsdom. A project that runs its tests on jsdom switches one word of
 configuration and gets the same results, faster.
 
-The lab answered the first question: on an unmodified React 19 + Testing Library suite, rsdom runs 2.9x faster
+The lab answered the first question: on an unmodified React 19 + Testing Library suite, oxidom runs 2.9x faster
 than jsdom and 2.5x faster than happy-dom ([`BENCHMARKS.md`](BENCHMARKS.md)). The lab milestones M0-M9, which code
 comments cite, are recorded in [`lab/ROADMAP.md`](lab/ROADMAP.md). This file covers what comes next.
 
 "Drop-in" has three parts, and each stage below moves at least one of them:
 
-1. **Same entry points.** `environment: 'nativedom'` in Vitest, `testEnvironment: 'nativedom'` in Jest, and a `JSDOM`-shaped
+1. **Same entry points.** `environment: 'oxidom'` in Vitest, `testEnvironment: 'oxidom'` in Jest, and a `JSDOM`-shaped
    programmatic API (`new JSDOM(html, options).window`).
-2. **Same behaviour.** Whatever passes on jsdom passes on rsdom. This is measured three ways: real libraries
+2. **Same behaviour.** Whatever passes on jsdom passes on oxidom. This is measured three ways: real libraries
    (`e2e/libraries`), web-platform-tests (`conformance/wpt`) and the WebIDL surface (`conformance/api-surface`).
-3. **Installable.** `npm i -D rsdom` works on every mainstream platform without a Rust toolchain.
+3. **Installable.** `npm i -D oxidom` works on every mainstream platform without a Rust toolchain.
 
 Baseline (2026-10-17, [`PARITY.md`](PARITY.md)): 62% of jsdom's IDL members, 51% of the WPT subtests jsdom passes,
 11 of the 18 real libraries that pass on jsdom, and the full 90-test React app suite.
 
 **How progress is measured.** The parity suite ([`conformance/parity`](../conformance/parity/README.md)) runs jsdom's
-own test suite against rsdom: WPT files from the 67 of jsdom's 127 `to-run.yaml` DIRs relevant to a DOM environment,
-jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests (about 2,600 files). On 2026-10-19 rsdom
+own test suite against oxidom: WPT files from the 67 of jsdom's 127 `to-run.yaml` DIRs relevant to a DOM environment,
+jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests (about 2,600 files). On 2026-10-19 oxidom
 passed **53.5%** of the subtests jsdom passes there; the scoreboard,
 [`results/summary.md`](../conformance/parity/results/summary.md), has the current numbers and every item's remaining
 gap. Each item below names its scope in the suite in backticks (`conformance/parity/roadmap.yaml`):
@@ -31,8 +31,8 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
 
 ## Stage 0: Repository and distribution
 
-- [x] Monorepo layout: `crates/rsdom` (Rust), `packages/rsdom` (npm), e2e suites, benchmarks, conformance harnesses.
-- [x] `vitest-environment-nativedom` package so `environment: 'nativedom'` resolves like `'jsdom'`.
+- [x] Monorepo layout: `crates/oxidom` (Rust), `packages/oxidom` (npm), e2e suites, benchmarks, conformance harnesses.
+- [x] `vitest-environment-oxidom` package so `environment: 'oxidom'` resolves like `'jsdom'`.
 - [ ] CI running on every PR. `.github/workflows/ci.yml` defines the jobs (lint, Rust tests, contract suite also in
       fallback mode, React app suite and the parity suite, on Linux), but GitHub Actions is disabled for this
       repository; until it runs, `npm run check` runs the same checks locally before merging.
@@ -40,11 +40,12 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
       fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
 - [ ] Prebuilt binaries for linux x64/arm64 (gnu and musl), darwin x64/arm64 and win32 x64: `.github/workflows/release.yml`
-      builds them all into the `nativedom` package (dry run passed 2026-10-26). Split them into `@nativedom/<triple>` `optionalDependencies`
+      builds them all into the `oxidom` package (dry run passed 2026-10-26). Split them into `@oxidom/<triple>` `optionalDependencies`
       if the download size becomes a problem.
-- [ ] Publish a first preview under the npm names `nativedom`, `vitest-environment-nativedom`, `jest-environment-nativedom` and
-      `@nativedom/*` (an unrelated project owns `vitest-environment-rsdom` and `@rsdom/*`; npm rejects `jetdom` as too
-      similar to `jsdom` and `jest-dom`).
+- [ ] Publish a first preview under the npm names `oxidom`, `vitest-environment-oxidom`, `jest-environment-oxidom` and
+      `@oxidom/*`. Earlier names were taken or refused: an unrelated project owns `vitest-environment-rsdom` and
+      `@rsdom/*`, and npm rejects `jetdom` (too similar to `jsdom` and `jest-dom`) and `nativedom` (too similar to
+      `native-dom`).
 - [ ] Versioning and changelog (one version for all packages; changesets or a release script).
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
@@ -52,14 +53,14 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
       that publish their summaries; the parity suite's scoreboard is already committed with every change that moves it.
 - [ ] Refresh the parity oracle with each jsdom release. Bump every pin: the jsdom tag and `WPT_COMMIT` in
       `scripts/fetch-refs.sh`, `WPT_COMMIT` in `conformance/wpt/lib.mjs`, and the `jsdom` devDependency in
-      `packages/rsdom/package.json` and `e2e/react-app/package.json` followed by `npm install` (`--dom jsdom` runs
+      `packages/oxidom/package.json` and `e2e/react-app/package.json` followed by `npm install` (`--dom jsdom` runs
       `node_modules/jsdom`, not `refs/jsdom`). Then re-fetch (`rm -rf refs/jsdom && scripts/fetch-refs.sh --wpt`) and
       run `npm run test:parity -- --dom jsdom --update --all`, then `npm run test:parity -- --update --all` (`--all` also
       reruns the ~130 files expected to time out, about 10 s each, so their entries follow the new versions).
 
 ## Stage 1: Close the measured library gaps
 
-Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen in the library sample
+Items 1, 2, 4 and 5 of the parity roadmap remove every oxidom-only failure seen in the library sample
 ([`PARITY.md`](PARITY.md) §3.2). Each is small or medium.
 
 - [x] **TreeWalker / NodeIterator / NodeFilter** (S) `traversal`. Unblocks Radix Dialog, Headless UI, react-aria and
@@ -86,23 +87,23 @@ Items 1, 2, 4 and 5 of the parity roadmap remove every rsdom-only failure seen i
 - [ ] `JSDOM` class: `new JSDOM(html, { url, contentType, pretendToBeVisual, ... })`, `.window`, `.serialize()`,
       `.fragment()`; `JSDOM.fragment()` `jsdom-api`. Decide how several live `JSDOM` instances map onto one Env per
       thread (today `createWindow()` makes one main document per Env; `main: false` creates a secondary one). Class
-      done 2026-10-21 (DESIGN §31): `require('nativedom').JSDOM` and `VirtualConsole`, each instance a browsing context
+      done 2026-10-21 (DESIGN §31): `require('oxidom').JSDOM` and `VirtualConsole`, each instance a browsing context
       that becomes current; jsdom's API tests run on it, gap 426 -> 365 subtests. Left: XML content types (`xml`),
       `runScripts`, iframes and subresources (`browsing-contexts`), a cookie jar behind `document.cookie`,
       `requestInterceptor`, and per-instance interface objects.
 - [x] Accept Vitest's `environmentOptions.jsdom` keys (`url`, `html`, `userAgent`, `pretendToBeVisual`, `console`)
-      as well as `environmentOptions.nativedom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
+      as well as `environmentOptions.oxidom`. Done 2026-10-21 (DESIGN §31): read with the defaults of Vitest's jsdom
       environment, plus its virtual console (not-implemented methods log through `console.error`) and `jsdom`
       global.
-- [x] `jest-environment-nativedom` for Jest (`testEnvironment: 'nativedom'`). Done 2026-10-21 (DESIGN §32): a port of
+- [x] `jest-environment-oxidom` for Jest (`testEnvironment: 'oxidom'`). Done 2026-10-21 (DESIGN §32): a port of
       jest-environment-jsdom 30 on a vm context, checked side by side with it on jsdom 30.
 - [x] Vitest VM pools (`pool: 'vmThreads'` / `'vmForks'`, the environment's `setupVM`), which jsdom supports. Done
       2026-10-21 (DESIGN §33): the window on a vm context, as for Jest; the React app suite passes 90/90 in both pools
       and the libraries suite matches jsdom's result.
-- [x] TypeScript declarations for the public API (`rsdom`, `rsdom/vitest-environment`).
+- [x] TypeScript declarations for the public API (`oxidom`, `oxidom/vitest-environment`).
       Done 2026-10-21 (DESIGN §34): `lib/index.d.ts` (the `JSDOM` API as @types/jsdom types it), the Vitest and
       Jest environments, type-checked in the package suite.
-- [x] Migration guide: jsdom to rsdom, with the known divergences listed in one place. Done 2026-10-21:
+- [x] Migration guide: jsdom to oxidom, with the known divergences listed in one place. Done 2026-10-21:
       [`MIGRATING.md`](MIGRATING.md).
 
 ## Stage 3: Breadth parity with jsdom
@@ -112,7 +113,7 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 - [x] Selection backed by real Ranges (M) `selection`. tiptap and lexical typing through user-event. Done 2026-10-20
       (DESIGN §29): jsdom's Selection over the live Range (identity through addRange, direction, selectionchange);
       42 -> 62 of 64 suite files at parity, gap 19,944 -> 2 subtests (a jsdom onload quirk). Lexical typing now passes
-      on rsdom; tiptap's assertions pass, its remaining unhandled error is `elementFromPoint`.
+      on oxidom; tiptap's assertions pass, its remaining unhandled error is `elementFromPoint`.
 - [x] CSSOM rule objects: `CSSStyleSheet.insertRule`, `cssRules` (L) `cssom`. The largest WPT gap share. Done
       2026-10-21 (DESIGN §35): a Rust rule tree behind jsdom's CSSOM classes, `CSS.supports` like jsdom; 138 -> 223
       of 260 suite files at parity, gap 681 -> 219 subtests, overall parity 90.5% -> 90.9%. Left: value serialization
@@ -166,7 +167,7 @@ In parity-score order ([`PARITY.md`](PARITY.md) §3.2 and §3.3 give effort and 
 
 ## Stage 4: Architectural work
 
-These change rsdom's data model or add a second browsing context. Each needs a design note in
+These change oxidom's data model or add a second browsing context. Each needs a design note in
 [`DESIGN.md`](DESIGN.md) before code.
 
 - [x] Full Shadow DOM: event retargeting, slots, `:focus` on hosts (L) `shadow-dom` (DESIGN §42). Scoped styles: jsdom
@@ -184,7 +185,7 @@ These change rsdom's data model or add a second browsing context. Each needs a d
 
 ## Not planned
 
-- Layout and geometry: rsdom, like jsdom, reports zero sizes; unlike jsdom, `elementFromPoint` exists and finds nothing
+- Layout and geometry: oxidom, like jsdom, reports zero sizes; unlike jsdom, `elementFromPoint` exists and finds nothing
   (DESIGN §24).
 - Canvas, media playback and WebSocket.
 - `contentEditable` editing and `execCommand` beyond what Selection and Range need.

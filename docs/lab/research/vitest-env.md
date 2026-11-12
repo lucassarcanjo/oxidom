@@ -1,6 +1,6 @@
-# Vitest 5.0.5: custom environments, phase timings and benchmarking (requirements for rsdom)
+# Vitest 5.0.5: custom environments, phase timings and benchmarking (requirements for oxidom)
 
-Scope: how to plug rsdom into Vitest 5.0.5 as a test environment, how jsdom and happy-dom install
+Scope: how to plug oxidom into Vitest 5.0.5 as a test environment, how jsdom and happy-dom install
 their window onto `globalThis`, what React Testing Library expects from the global, how to read the
 per-phase timings, how to run the suite N times for a fair benchmark, and what changes when the DOM
 is a native N-API addon that runs inside Vitest workers.
@@ -27,11 +27,11 @@ with Node v22.22.0. The probe scripts are in `docs/lab/research/vitest-env-probe
 
 1. **The env is a default-exported object** `{ name, viteEnvironment: 'client', setup(global, options) { ...; return { teardown(global) {} } } }`.
    The type is `Environment` from `vitest/runtime`; v5 removed `vitest/environments`. Omitting
-   `viteEnvironment` breaks the run: it falls back to `name`, and you get `The environment rsdom was not defined in the Vite config.` **[verified]**
+   `viteEnvironment` breaks the run: it falls back to `name`, and you get `The environment oxidom was not defined in the Vite config.` **[verified]**
 2. **There are three ways to reference it.**
    - A path in config: `environment: '/abs/or/./relative/path.(js|ts)'`. This is what `e2e/react-app/vitest.config.ts` already does.
-   - A bare name `rsdom`, which loads the package `vitest-environment-rsdom`.
-   - A docblock `// @vitest-environment rsdom`, which accepts **only names**. Paths are silently ignored and the
+   - A bare name `oxidom`, which loads the package `vitest-environment-oxidom`.
+   - A docblock `// @vitest-environment oxidom`, which accepts **only names**. Paths are silently ignored and the
      file falls back to the config env (regex `[\w-]+`). **[verified]**
 3. **Setup happens once per worker, before anything else.** In v5, `setup()` runs when the worker starts
    (`'start'` message), before Vitest's own globals (`afterEach`, `expect`, ...), before safe timers are
@@ -39,12 +39,12 @@ with Node v22.22.0. The probe scripts are in `docs/lab/research/vitest-env-probe
    - With `isolate: true` (default) every test file gets a new worker, so there is one `setup()` per file.
    - With `isolate: false` there is one `setup()` per worker, and the DOM persists across files.
    - `teardown()` runs when the worker stops. **[verified]**
-4. **`populateGlobal` semantics matter for rsdom**:
+4. **`populateGlobal` semantics matter for oxidom**:
    - The globals it installs are accessor properties (getter + setter), and `window`, `self`, `top`, `parent` are all set to `globalThis`.
    - `document.defaultView` is rewritten to return `globalThis`.
    - All 227 names in `KEYS` are defined even when the window lacks them, and any Node global in `KEYS`
      (`Event`, `EventTarget`, `Blob`, typed arrays, ...) is overridden **even with `undefined`**. **[verified]**
-   - rsdom should either provide every overlapping key, or install its globals itself as data properties.
+   - oxidom should either provide every overlapping key, or install its globals itself as data properties.
      An accessor global costs about 20 ns per read, a data property about 1-2 ns. **[verified]**
 5. **RTL auto-cleanup only works with `globals: true`**, because it needs a global `afterEach` when the module is first imported.
    - With `isolate: false` it registers only for the **first** file of each worker, because the RTL module stays cached.
@@ -109,7 +109,7 @@ Field by field:
     - `require.extensions` stubs for `.css/.scss/.sass/.less` and asset extensions
       (`vitest/src/runtime/setup-node.ts:34-49`).
     - The same transform pipeline, and therefore the same `fsModuleCache` entries, as jsdom and happy-dom.
-  - **rsdom must use `'client'`** for an apples-to-apples benchmark.
+  - **oxidom must use `'client'`** for an apples-to-apples benchmark.
   - Resolve conditions are the server conditions in both cases: `mainFields: []`, and the default server
     conditions minus `module` (`vitest/src/node/plugins/utils.ts:163-184`).
 - **`transformMode`** is accepted for backwards compatibility. It prints a deprecation warning and is mapped to
@@ -130,7 +130,7 @@ Field by field:
   - **Only the docblock options**, wrapped under the env name, when the file has `@vitest-environment-options`:
     `{ [name]: json }`. The single exception is `happy-dom`, which becomes `happyDOM`
     (`vitest/src/utils/test-helpers.ts:43-56`). They *replace* the config options rather than merging with them. **[verified]**
-  - Convention for rsdom: `environmentOptions: { rsdom: { url, ... } }`, read as `options.rsdom ?? {}`.
+  - Convention for oxidom: `environmentOptions: { oxidom: { url, ... } }`, read as `options.oxidom ?? {}`.
 
 Public helpers (`vitest/src/public/runtime.ts:12-19`):
 `import { builtinEnvironments, populateGlobal, type Environment } from 'vitest/runtime'`.
@@ -139,24 +139,24 @@ Public helpers (`vitest/src/public/runtime.ts:12-19`):
 - `vitest/docs/config/environment.md` still shows `import type { Environment } from 'vitest'` and
   `vitest/environments`. Both are stale: `Environment` is exported only from `vitest/runtime`.
 
-Recommended skeleton for rsdom. It is a sketch: the real globals list comes from the rsdom facade.
+Recommended skeleton for oxidom. It is a sketch: the real globals list comes from the oxidom facade.
 
 ```ts
-// rsdom/js/vitest-environment.ts  (ESM; loaded by Vitest's env ModuleRunner, see section 2)
+// oxidom/js/vitest-environment.ts  (ESM; loaded by Vitest's env ModuleRunner, see section 2)
 import { createRequire } from 'node:module'
 import type { Environment } from 'vitest/runtime'
 
 const require = createRequire(import.meta.url)
 // CJS, so it goes through Node's native require: shared CJS cache, never transformed by Vite
-const rsdom = require('../index.cjs')
+const oxidom = require('../index.cjs')
 
 export default <Environment>{
-  name: 'rsdom',
+  name: 'oxidom',
   viteEnvironment: 'client',
   prewarmModules: false,
   async setup(global, options) {
-    const opts = (options.rsdom ?? {}) as { url?: string }
-    const win = rsdom.createWindow({ url: opts.url ?? 'http://localhost:3000' })
+    const opts = (options.oxidom ?? {}) as { url?: string }
+    const win = oxidom.createWindow({ url: opts.url ?? 'http://localhost:3000' })
     const restore = installGlobals(global, win)   // section 5: data properties + saved descriptors
     return {
       teardown(global) {
@@ -195,7 +195,7 @@ Source: `vitest/src/integrations/env/loader.ts`.
      - The same JS file imported by the env **and** by a test file is **evaluated twice**, once per ModuleRunner,
        so its classes are not identical. Dynamic `import(fileUrl)` goes through the runner too.
        Only Node-native loads, `createRequire` or externalized `node_modules` packages, share one instance.
-       Therefore **tests must reach rsdom only through globals**, or rsdom's JS must be loaded via `createRequire`.
+       Therefore **tests must reach oxidom only through globals**, or oxidom's JS must be loaded via `createRequire`.
      - When the env lives in a real package under `node_modules`, for example `vitest-environment-nativepkg`
        with `"type": "module"`, it is externalized and loaded by native Node `import`. Static imports of a CJS
        binding that `require`s a `.node` then work, in forks and in threads.
@@ -205,9 +205,9 @@ Source: `vitest/src/integrations/env/loader.ts`.
 4. **Validation** (`loader.ts:76-106`): the default export must be an object, and `transformMode`, if set, must be `web` or `ssr`.
 
 Practical choices for the lab:
-- **Today:** `e2e/react-app/vitest.config.ts` passes the absolute path `../rsdom/js/vitest-environment.js`. This works, but the
-  docblock form `@vitest-environment rsdom` will not. Load the `.node` with `createRequire`.
-- **For per-file docblocks:** add `"vitest-environment-rsdom": "file:../rsdom"` to the app's devDependencies.
+- **Today:** `e2e/react-app/vitest.config.ts` passes the absolute path `../oxidom/js/vitest-environment.js`. This works, but the
+  docblock form `@vitest-environment oxidom` will not. Load the `.node` with `createRequire`.
+- **For per-file docblocks:** add `"vitest-environment-oxidom": "file:../oxidom"` to the app's devDependencies.
   npm makes a symlink. Vite resolves to the real path outside `node_modules`, so the module is still inlined
   and the `createRequire` rule still applies. Alternatively, publish or pack it so it sits physically in `node_modules`.
 - **Test code gotcha (viteEnvironment `client`):** Vite rewrites `new URL('./x', import.meta.url)` in test files relative
@@ -229,7 +229,7 @@ Worker flow in v5, for the `forks` and `threads` pools:
 | 6 | `runBaseTests.ts:64-110` | For each file: `resetModules` if `isolate`, then `setupFiles` and the test file are imported with `{ invalidate: true }` (`runtime/runners/test.ts:65-81`; `runtime/runner/collect.ts:58-108`), then the tests run. |
 | 7 | `init.ts:271-314` | `'stop'` runs `entrypoint.teardown()`, then the env's `teardown(globalThis)` and `loader.close()`. Forks are then SIGTERMed, with SIGKILL after 500 ms (`forksWorker.ts:9,99-101`). Threads get `terminate()`. |
 
-Implications for rsdom:
+Implications for oxidom:
 - **The env cannot rely on Vitest globals.** `typeof global.afterEach === 'undefined'` inside `setup()` **[verified]**.
   Do not install `afterEach` hooks from the env. Leave that to setup files.
 - **Do not override the timer family or `console`.** Vitest captures safe timers and replaces `console` right after env setup.
@@ -331,8 +331,8 @@ Source: `vitest/src/integrations/env/utils.ts` (117 lines) and `jsdom-keys.ts` (
   `URLSearchParams`, `FormData`, so happy-dom's fetch stack *overrides* Node's.
 - Teardown runs `await happyDOM.abort()` and then `close()`.
 
-**Recommendation for rsdom.** There are two viable designs.
-- **A.** Build a plain JS "window" object whose **own** properties include every interface and window function rsdom implements,
+**Recommendation for oxidom.** There are two viable designs.
+- **A.** Build a plain JS "window" object whose **own** properties include every interface and window function oxidom implements,
   then call `populateGlobal(global, win, { bindFunctions: true })`.
   - Pass through Node's own values for the 23 overlapping keys you do not implement (`win.Uint8Array = globalThis.Uint8Array`, ...),
     otherwise they become `undefined`.
@@ -408,13 +408,13 @@ History (npm dist):
   `TestModule.diagnostic()` gained `concurrencyId` (`vitest/docs/guide/migration/index.md:591-607`).
   It also added `fsModuleCache` (default on), `vitest doctor`, and the percentage `Duration` line.
 
-Pool trade-offs relevant to rsdom (`vitest/docs/config/pool.md`; `vitest/docs/guide/improving-performance.md:105-146`):
+Pool trade-offs relevant to oxidom (`vitest/docs/config/pool.md`; `vitest/docs/guide/improving-performance.md:105-146`):
 - **`forks`** (default): one OS process per worker. Each spawn plus bundle load cost about 172 ms per file here,
   with environment `node` and 8 trivial files **[verified]**.
 - **`threads`**: workers are `worker_threads` inside the main Vitest process, at about 147 ms each. `process.chdir` is not available.
   The docs warn that native modules may segfault there (`vitest/docs/guide/common-errors.md:125-145`).
 - **`isolate: false`** reuses workers: 236 ms wall for the same 8 files versus 570-671 ms. It is the fastest mode, but tests must tolerate a shared DOM.
-- **`vmThreads`/`vmForks`**: one env module per worker and a fresh `setupVM()` context per file. See section 10 for why rsdom should not start here.
+- **`vmThreads`/`vmForks`**: one env module per worker and a fresh `setupVM()` context per file. See section 10 for why oxidom should not start here.
 
 ---
 
@@ -523,7 +523,7 @@ Recommended protocol. The prototype harness is `docs/lab/research/vitest-env-pro
      (`vitest/docs/config/fsmodulecache.md`, `fsmodulecachepath.md`). The warm-up makes the samples warm-cache runs, which is what developers see.
    - For cold numbers, pass `--fsModuleCache=false` or run `vitest --clearCache` before each sample.
    - Optionally set `NODE_COMPILE_CACHE` for every config (`vitest/docs/guide/improving-performance.md:148-158`).
-3. **Same pipeline for all DOMs.** Use the same config file and `setupFiles`, `globals: true`, and `viteEnvironment: 'client'` in rsdom.
+3. **Same pipeline for all DOMs.** Use the same config file and `setupFiles`, `globals: true`, and `viteEnvironment: 'client'` in oxidom.
    That way transforms and the cache are shared, and only `environment` differs. This matches `e2e/react-app/vitest.config.ts` with `DOM_ENV`.
 4. **Pin parallelism.** Pass `--maxWorkers=N` explicitly (default 3 here), and add a serial row
    (`--no-file-parallelism`, or `--maxWorkers=1`) to get per-file costs without CPU contention.
@@ -560,9 +560,9 @@ Sample (indicative, N=3, 4 small RTL files, warm cache; raw in `results-vitest-5
 \* inflated by Pitfall A in section 8.1.
 
 Floor with environment `node` (8 trivial files): forks 671 ms, threads 570 ms, threads no-isolate 236 ms.
-- With `isolate: true` the per-file cost that rsdom cannot remove is about 150-170 ms of worker spawn, plus re-importing React and RTL
+- With `isolate: true` the per-file cost that oxidom cannot remove is about 150-170 ms of worker spawn, plus re-importing React and RTL
   (about 200-300 ms of `import` per file here).
-- rsdom wins in `isolate: true` only through the `environment` phase. In `isolate: false` it wins only through the `tests` phase.
+- oxidom wins in `isolate: true` only through the `environment` phase. In `isolate: false` it wins only through the `tests` phase.
 
 ---
 
@@ -604,7 +604,7 @@ Design rules for the Rust side:
    - An explicit O(1) teardown keeps both cases cheap and deterministic.
 4. **Report external memory** with `adjust_external_memory` if Rust holds large buffers, so V8's GC heuristics stay sane.
 5. **Loading:**
-   - Use `createRequire(import.meta.url)('…/rsdom.linux-x64-gnu.node')`, or a CJS loader `index.cjs`, from the env module.
+   - Use `createRequire(import.meta.url)('…/oxidom.linux-x64-gnu.node')`, or a CJS loader `index.cjs`, from the env module.
    - Do **not** `import` the `.node` file or the napi-generated CJS `index.js` statically from an env file outside `node_modules`:
      that fails with `Failed to parse source for import analysis ... .node`, or with `module is not defined` **[verified]**.
 6. **vm pools**: `setupVM` must return a `vm` context. Objects created by N-API belong to the **main** realm.
@@ -613,23 +613,23 @@ Design rules for the Rust side:
    - The Vitest docs list the same family of issues for `toStrictEqual` and DOM methods returning arrays (`vitest/docs/config/pool.md`, vmThreads warning).
    - Supporting vm pools properly would mean evaluating the JS facade *inside* each context and creating arrays and objects there
      instead of in Rust. Defer this, and do not offer `setupVM` in v0, so users get a clear error instead of subtle realm bugs.
-7. The docs advise `forks` when native modules crash in `threads` (`vitest/docs/guide/common-errors.md:125-145`). rsdom should still
+7. The docs advise `forks` when native modules crash in `threads` (`vitest/docs/guide/common-errors.md:125-145`). oxidom should still
    benchmark `threads`, because it is the fastest non-vm mode and the probe shows napi-rs is safe there.
 
 ---
 
 ## 11. Pitfalls checklist
 
-- [ ] `viteEnvironment: 'client'` is set. Without it the run fails with `environment rsdom was not defined in the Vite config`.
+- [ ] `viteEnvironment: 'client'` is set. Without it the run fails with `environment oxidom was not defined in the Vite config`.
 - [ ] Do not expect `@vitest-environment ./path` docblocks to work. They are silently ignored, so use names (packages) or projects.
-- [ ] `options` is the **whole** `environmentOptions` object, or only the docblock options. Read `options.rsdom`.
+- [ ] `options` is the **whole** `environmentOptions` object, or only the docblock options. Read `options.oxidom`.
 - [ ] Do not install `afterEach` or other Vitest globals from the env. They do not exist yet.
 - [ ] Do not override `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask` or `console`. Vitest captures and replaces them after the env.
 - [ ] If you use `populateGlobal`, provide values for every `KEYS` entry that exists in Node (`Event`, `EventTarget`, `Blob`, `FormData`,
       typed arrays, `navigator`, ...), or they become `undefined`. Also remember that every `KEYS` name exists as a global even if unimplemented.
 - [ ] Interfaces must be **own** properties of the window object passed to `populateGlobal`. Prototype methods are not copied unless they are in `KEYS`.
 - [ ] `document.defaultView` must be `globalThis`, and the classes on `globalThis` must be the classes of the created nodes (jest-dom `instanceof` checks).
-- [ ] Tests must not import rsdom JS modules directly. The env and the tests run in different ModuleRunners and get different class identities.
+- [ ] Tests must not import oxidom JS modules directly. The env and the tests run in different ModuleRunners and get different class identities.
       Expose everything via globals, or load the JS via `createRequire`.
 - [ ] Use `createRequire` for the `.node` file. Never statically import `.node`, or CJS outside `node_modules`, in the env file.
 - [ ] Keep no mutable per-document state in Rust `static`s. The threads pool shares the process.

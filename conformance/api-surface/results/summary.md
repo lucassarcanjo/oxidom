@@ -1,6 +1,6 @@
-# API surface census: jsdom vs happy-dom vs rsdom
+# API surface census: jsdom vs happy-dom vs oxidom
 
-Generated 2026-10-19T16:53:24.827Z by `conformance/api-surface` (node v22.22.0; jsdom 30.1.3, happy-dom 21.0.3, vitest 5.0.5, rsdom 0.1.0).
+Generated 2026-10-19T16:53:24.827Z by `conformance/api-surface` (node v22.22.0; jsdom 30.1.3, happy-dom 21.0.3, vitest 5.0.5, oxidom 0.1.0).
 Each DOM was installed on `globalThis` exactly as the Vitest 5 environment does it, in its own process; presence is read from the global object the tests see.
 
 ## Totals (WebIDL from jsdom living/, 227 files)
@@ -12,19 +12,19 @@ Each DOM was installed on `globalThis` exactly as the Vitest 5 environment does 
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | jsdom | 209/209 | 100.0% | 1877/1877 | 100.0% | 1877/1877 | 100.0% | 0 | 0 |
 | happy-dom | 178/209 | 85.2% | 1344/1877 | 71.6% | 941/1877 | 50.1% | 129 | 38 |
-| rsdom | 149/209 | 71.3% | 1167/1877 | 62.2% | 1166/1877 | 62.1% | 0 | 0 |
+| oxidom | 149/209 | 71.3% | 1167/1877 | 62.2% | 1166/1877 | 62.1% | 0 | 0 |
 
-Excluding the HTML spec's obsolete features (6 interfaces such as HTMLMarqueeElement, and 98 obsolete members such as `align`/`bgColor`): jsdom 203 interfaces / 1733 members; happy-dom 177 (87.2%) / 1341 (77.4%); rsdom 143 (70.4%) / 1140 (65.8%).
+Excluding the HTML spec's obsolete features (6 interfaces such as HTMLMarqueeElement, and 98 obsolete members such as `align`/`bgColor`): jsdom 203 interfaces / 1733 members; happy-dom 177 (87.2%) / 1341 (77.4%); oxidom 143 (70.4%) / 1140 (65.8%).
 
-Mixins are counted on every interface that includes them, so 339 of the 1877 members are `on*` event-handler attributes (GlobalEventHandlers alone is included by HTMLElement, SVGElement and Document). Excluding `on*` handlers: jsdom 1538 members; happy-dom 1092 (71.0%); rsdom 858 (55.8%).
+Mixins are counted on every interface that includes them, so 339 of the 1877 members are `on*` event-handler attributes (GlobalEventHandlers alone is included by HTMLElement, SVGElement and Document). Excluding `on*` handlers: jsdom 1538 members; happy-dom 1092 (71.0%); oxidom 858 (55.8%).
 
 Status legend: R = own property of the right object (interface prototype; constructor for statics/constants; the namespace object; the instance for [LegacyUnforgeable]); C = inherited from another object in the chain; O = own property of an instance only (class field); S = only on a subclass prototype; M = missing; I = interface missing.
 
-Interfaces whose global is Node's own class rather than the DOM's (counted as present): jsdom: AbortController, AbortSignal, Headers, TextDecoder, TextEncoder; happy-dom: TextDecoder, TextEncoder; rsdom: AbortController, AbortSignal, Blob, Crypto, DOMException, File, Headers, MessageEvent, Performance, TextDecoder, TextEncoder, WebSocket.
+Interfaces whose global is Node's own class rather than the DOM's (counted as present): jsdom: AbortController, AbortSignal, Headers, TextDecoder, TextEncoder; happy-dom: TextDecoder, TextEncoder; oxidom: AbortController, AbortSignal, Blob, Crypto, DOMException, File, Headers, MessageEvent, Performance, TextDecoder, TextEncoder, WebSocket.
 
 ## Per area (members counted only where jsdom has them; a member of a missing interface counts as missing)
 
-| area | jsdom ifaces | happy-dom ifaces | rsdom ifaces | jsdom members | happy-dom members | % | rsdom members | % |
+| area | jsdom ifaces | happy-dom ifaces | oxidom ifaces | jsdom members | happy-dom members | % | oxidom members | % |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | CSSOM | 25 | 15 | 2 | 98 | 50 | 51.0% | 10 | 10.2% |
 | Custom elements & Shadow DOM | 4 | 4 | 2 | 13 | 13 | 100.0% | 1 | 7.7% |
@@ -46,25 +46,25 @@ Interfaces whose global is Node's own class rather than the DOM's (counted as pr
 
 ### Missing interfaces per area
 
-- **CSSOM**: happy-dom lacks CSSCounterStyleRule, CSSImportRule, CSSLayerBlockRule, CSSLayerStatementRule, CSSNamespaceRule, CSSNestedDeclarations, CSSPageRule, CSSRuleList, StyleSheet, StyleSheetList; rsdom lacks CSSConditionRule, CSSContainerRule, CSSCounterStyleRule, CSSFontFaceRule, CSSGroupingRule, CSSImportRule, CSSKeyframeRule, CSSKeyframesRule, CSSLayerBlockRule, CSSLayerStatementRule, CSSMediaRule, CSSNamespaceRule, CSSNestedDeclarations, CSSPageRule, CSSRule, CSSRuleList, CSSScopeRule, CSSStyleRule, CSSStyleSheet, CSSSupportsRule, MediaList, StyleSheet, StyleSheetList.
-- **Custom elements & Shadow DOM**: happy-dom lacks none; rsdom lacks CustomElementRegistry, ShadowRoot.
-- **DOM core**: happy-dom lacks CDATASection, DOMImplementation, DOMStringMap, DOMTokenList, QuotaExceededError; rsdom lacks QuotaExceededError.
-- **Events**: happy-dom lacks DeviceMotionEventAcceleration, DeviceMotionEventRotationRate, PromiseRejectionEvent; rsdom lacks BeforeUnloadEvent, BlobEvent, CloseEvent, DeviceMotionEvent, DeviceMotionEventAcceleration, DeviceMotionEventRotationRate, DeviceOrientationEvent, PromiseRejectionEvent.
-- **File API**: happy-dom lacks none; rsdom lacks FileReader.
-- **Forms & constraint validation**: happy-dom lacks ElementInternals, HTMLFormControlsCollection; rsdom lacks ElementInternals.
-- **Geometry**: happy-dom lacks none; rsdom lacks DOMRect, DOMRectReadOnly.
-- **HTML elements**: happy-dom lacks HTMLDirectoryElement, HTMLFontElement, HTMLFrameElement, HTMLFrameSetElement, HTMLMarqueeElement; rsdom lacks none.
-- **Misc (performance, crypto)**: happy-dom lacks Crypto, Performance; rsdom lacks none.
-- **Networking (XHR, fetch, WebSocket)**: happy-dom lacks none; rsdom lacks XMLHttpRequest, XMLHttpRequestEventTarget, XMLHttpRequestUpload.
-- **Parsing & serialization**: happy-dom lacks none; rsdom lacks XMLSerializer.
-- **SVG**: happy-dom lacks none; rsdom lacks SVGAnimatedPreserveAspectRatio, SVGAnimatedRect, SVGAnimatedString, SVGNumber, SVGPreserveAspectRatio, SVGRect, SVGStringList.
-- **Traversal, Range & Selection**: happy-dom lacks AbstractRange, StaticRange; rsdom lacks AbstractRange, NodeFilter, NodeIterator, StaticRange, TreeWalker.
-- **Window, navigation & history**: happy-dom lacks BarProp, External; rsdom lacks BarProp, External, MimeType, MimeTypeArray, Plugin, PluginArray.
+- **CSSOM**: happy-dom lacks CSSCounterStyleRule, CSSImportRule, CSSLayerBlockRule, CSSLayerStatementRule, CSSNamespaceRule, CSSNestedDeclarations, CSSPageRule, CSSRuleList, StyleSheet, StyleSheetList; oxidom lacks CSSConditionRule, CSSContainerRule, CSSCounterStyleRule, CSSFontFaceRule, CSSGroupingRule, CSSImportRule, CSSKeyframeRule, CSSKeyframesRule, CSSLayerBlockRule, CSSLayerStatementRule, CSSMediaRule, CSSNamespaceRule, CSSNestedDeclarations, CSSPageRule, CSSRule, CSSRuleList, CSSScopeRule, CSSStyleRule, CSSStyleSheet, CSSSupportsRule, MediaList, StyleSheet, StyleSheetList.
+- **Custom elements & Shadow DOM**: happy-dom lacks none; oxidom lacks CustomElementRegistry, ShadowRoot.
+- **DOM core**: happy-dom lacks CDATASection, DOMImplementation, DOMStringMap, DOMTokenList, QuotaExceededError; oxidom lacks QuotaExceededError.
+- **Events**: happy-dom lacks DeviceMotionEventAcceleration, DeviceMotionEventRotationRate, PromiseRejectionEvent; oxidom lacks BeforeUnloadEvent, BlobEvent, CloseEvent, DeviceMotionEvent, DeviceMotionEventAcceleration, DeviceMotionEventRotationRate, DeviceOrientationEvent, PromiseRejectionEvent.
+- **File API**: happy-dom lacks none; oxidom lacks FileReader.
+- **Forms & constraint validation**: happy-dom lacks ElementInternals, HTMLFormControlsCollection; oxidom lacks ElementInternals.
+- **Geometry**: happy-dom lacks none; oxidom lacks DOMRect, DOMRectReadOnly.
+- **HTML elements**: happy-dom lacks HTMLDirectoryElement, HTMLFontElement, HTMLFrameElement, HTMLFrameSetElement, HTMLMarqueeElement; oxidom lacks none.
+- **Misc (performance, crypto)**: happy-dom lacks Crypto, Performance; oxidom lacks none.
+- **Networking (XHR, fetch, WebSocket)**: happy-dom lacks none; oxidom lacks XMLHttpRequest, XMLHttpRequestEventTarget, XMLHttpRequestUpload.
+- **Parsing & serialization**: happy-dom lacks none; oxidom lacks XMLSerializer.
+- **SVG**: happy-dom lacks none; oxidom lacks SVGAnimatedPreserveAspectRatio, SVGAnimatedRect, SVGAnimatedString, SVGNumber, SVGPreserveAspectRatio, SVGRect, SVGStringList.
+- **Traversal, Range & Selection**: happy-dom lacks AbstractRange, StaticRange; oxidom lacks AbstractRange, NodeFilter, NodeIterator, StaticRange, TreeWalker.
+- **Window, navigation & history**: happy-dom lacks BarProp, External; oxidom lacks BarProp, External, MimeType, MimeTypeArray, Plugin, PluginArray.
 
 ### Interfaces missing from the global although instances exist (informational, not counted)
 
 - happy-dom: Crypto (via crypto; 2/2 instance members reachable), DOMImplementation (via document.implementation; 3/4 instance members reachable), DOMStringMap (via dataset; 0/0 instance members reachable), DOMTokenList (via classList; 15/15 instance members reachable), HTMLFormControlsCollection (via form.elements; 1/1 instance members reachable), Performance (via performance; 3/3 instance members reachable)
-- rsdom: none
+- oxidom: none
 
 ## Window members (jsdom has no Window.webidl; derived from jsdom's real window object)
 
@@ -74,15 +74,15 @@ Interfaces whose global is Node's own class rather than the DOM's (counted as pr
 |---|---:|---:|---:|---:|
 | jsdom (Vitest global) | 180/180 | 100.0% | 170/170 | 100.0% |
 | happy-dom | 151/180 | 83.9% | 141/170 | 82.9% |
-| rsdom | 165/180 | 91.7% | 155/170 | 91.2% |
+| oxidom | 165/180 | 91.7% | 155/170 | 91.2% |
 
 - jsdom missing: none
 - happy-dom missing: alert, captureEvents, confirm, event, external, frameElement, length, locationbar, menubar, moveBy, moveTo, oncopy, oncut, onpaste, ontouchcancel, ontouchend, ontouchmove, ontouchstart, origin, personalbar, print, prompt, releaseEvents, scrollbars, status, statusbar, stop, toolbar, webkitURL
-- rsdom missing: captureEvents, customElements, external, length, locationbar, menubar, name, personalbar, postMessage, releaseEvents, scrollbars, status, statusbar, toolbar, webkitURL
+- oxidom missing: captureEvents, customElements, external, length, locationbar, menubar, name, personalbar, postMessage, releaseEvents, scrollbars, status, statusbar, toolbar, webkitURL
 
 ## jsdom interfaces outside living/*.webidl (members from jsdom's runtime prototypes)
 
-| interface | members | jsdom | happy-dom | rsdom |
+| interface | members | jsdom | happy-dom | oxidom |
 |---|---:|---|---|---|
 | URL | 16 | 16/16 | 16/16 | 16/16 (Node's) |
 | URLSearchParams | 14 | 14/14 (Node's) | 14/14 | 14/14 (Node's) |
@@ -93,7 +93,7 @@ Interfaces whose global is Node's own class rather than the DOM's (counted as pr
 | XPathResult | 19 | 19/19 | (no global) 0/19 | (no global) 0/19 |
 | XPathEvaluator | 3 | 3/3 | (no global) 0/3 | (no global) 0/3 |
 
-CSSStyleProperties, camelCase unprefixed accessors only: 753 in jsdom; happy-dom 590, rsdom 753.
+CSSStyleProperties, camelCase unprefixed accessors only: 753 in jsdom; happy-dom 590, oxidom 753.
 
 CSSStyleProperties members are CSS property accessors (camelCase, dashed and webkit-prefixed); they are checked on each DOM's `document.body.style` instance chain.
 
@@ -105,7 +105,7 @@ CSSStyleProperties members are CSS property accessors (camelCase, dashed and web
 - **P1** (11): `Element.ariaLabel`, `HTMLElement.offsetParent`, `HTMLElement.attachInternals`, `HTMLElement.draggable`, `PromiseRejectionEvent`*, `DOMTokenList`*, `StaticRange`*, `Performance`*, `window.alert`, `window.confirm`, `window.event`
 - **P2** (12): `CDATASection`*, `DOMImplementation`*, `CSSRuleList`*, `StyleSheetList`*, `BarProp`*, `External`*, `Crypto`*, `ElementInternals`*, `HTMLFormControlsCollection`*, `QuotaExceededError`*, `Document.evaluate`, `Document.lastModified`
 
-### rsdom: 71 of 385 curated items missing
+### oxidom: 71 of 385 curated items missing
 
 - **P1** (41): `Document.createEvent`, `Document.createTreeWalker`, `Document.styleSheets`, `Range.deleteContents`, `Range.insertNode`, `HTMLInputElement.valueAsDate`, `HTMLInputElement.stepUp`, `Element.attachShadow`, `Element.role`, `Element.ariaLabel`, `HTMLElement.attachInternals`, `HTMLSlotElement.assignedNodes`, `BeforeUnloadEvent`*, `PromiseRejectionEvent`*, `CloseEvent`*, `XMLSerializer`*, `ShadowRoot`*, `CustomElementRegistry`*, `DOMRect`*, `DOMRectReadOnly`*, `FileReader`*, `XMLHttpRequest`*, `StaticRange`*, `CustomElementRegistry.define`*, `CustomElementRegistry.get`*, `CustomElementRegistry.whenDefined`*, `CustomElementRegistry.upgrade`*, `XMLHttpRequest.open`*, `XMLHttpRequest.send`*, `XMLHttpRequest.setRequestHeader`*, `XMLHttpRequest.abort`*, `XMLHttpRequest.responseText`*, `XMLHttpRequest.status`*, `XMLHttpRequest.onload`*, `FileReader.readAsText`*, `FileReader.readAsDataURL`*, `FileReader.readAsArrayBuffer`*, `FileReader.result`*, `window.customElements`, `window.postMessage`, `window.name`
 - **P2** (30): `TreeWalker`*, `NodeIterator`*, `NodeFilter`*, `CSSStyleSheet`*, `CSSRule`*, `CSSRuleList`*, `StyleSheetList`*, `MediaList`*, `SVGRect`*, `DeviceOrientationEvent`*, `DeviceMotionEvent`*, `BarProp`*, `External`*, `Plugin`*, `PluginArray`*, `MimeType`*, `MimeTypeArray`*, `ElementInternals`*, `XMLHttpRequestUpload`*, `BlobEvent`*, `QuotaExceededError`*, `CSSStyleSheet.insertRule`*, `CSSStyleSheet.deleteRule`*, `CSSStyleSheet.cssRules`*, `CSSStyleSheet.replaceSync`*, `CSSStyleSheet.replace`*, `Document.createNodeIterator`, `Document.evaluate`, `Document.currentScript`, `Document.lastModified`
@@ -117,7 +117,7 @@ CSSStyleProperties members are CSS property accessors (camelCase, dashed and web
 
 ### Curated items jsdom itself lacks (excluded from the counts above)
 
-| key | tier | jsdom | happy-dom | rsdom |
+| key | tier | jsdom | happy-dom | oxidom |
 |---|---|---|---|---|
 | `Document.elementFromPoint` | P1 | M | C | M |
 | `Range.getBoundingClientRect` | P1 | M | C | R |
@@ -147,7 +147,7 @@ CSSStyleProperties members are CSS property accessors (camelCase, dashed and web
 | `Document.designMode` | P2 | M | M | M |
 | `Document.fonts` | P2 | M | M | M |
 
-## Reverse census: present in happy-dom / rsdom, absent from jsdom
+## Reverse census: present in happy-dom / oxidom, absent from jsdom
 
 ### happy-dom
 
@@ -186,10 +186,10 @@ CSSStyleProperties members are CSS property accessors (camelCase, dashed and web
   - Selection: baseNode, baseOffset, extentNode, extentOffset
   - ShadowRoot: onslotchange, clonable, delegatesFocus, serializable, slotAssignment, fullscreenElement, pictureInPictureElement, pointerLockElement, adoptedStyleSheets, getAnimations, setHTMLUnsafe
 
-### rsdom
+### oxidom
 
 - 5 global interfaces jsdom lacks: AnimationEvent, ClipboardEvent, DragEvent, MathMLElement, MediaQueryList
-- 13 other globals / Window members jsdom lacks (Node built-ins filtered out): __rsdom, closed, onanimationcancel, onanimationend, onanimationiteration, onanimationstart, onselectionchange, onselectstart, ontransitioncancel, ontransitionend, ontransitionrun, ontransitionstart, opener
+- 13 other globals / Window members jsdom lacks (Node built-ins filtered out): __oxidom, closed, onanimationcancel, onanimationend, onanimationiteration, onanimationstart, onselectionchange, onselectstart, ontransitioncancel, ontransitionend, ontransitionrun, ontransitionstart, opener
 - numeric index accessors defined on prototypes (not API names; jsdom uses a proxy per instance): CSSStyleDeclaration 0..31, DOMTokenList 0..31, HTMLCollection 0..254, HTMLFormElement 0..255, HTMLOptionsCollection 0..254, HTMLSelectElement 0..255, NamedNodeMap 0..15
 - 82 interface members on shared interfaces that jsdom lacks (plus 22 underscore-internal names not listed):
   - Document: onanimationstart, onanimationiteration, onanimationend, onanimationcancel, ontransitionrun, ontransitionstart, ontransitionend, ontransitioncancel, onselectionchange, onselectstart, domain, scrollingElement

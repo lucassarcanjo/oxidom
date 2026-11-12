@@ -1,6 +1,6 @@
 # napi-rs v3 performance research: fastest bindings for a Rust-resident DOM
 
-Status: research and measurement notes for rsdom (Rust DOM exposed to Node via napi-rs, used as a Vitest environment).
+Status: research and measurement notes for oxidom (Rust DOM exposed to Node via napi-rs, used as a Vitest environment).
 Date: 2026-10-16. Measured on Node v22.22.0 (V8 12.4.254.21-node.33), napi 3.14.2, napi-derive 3.6.12
 (napi-derive-backend 6.1.5), napi-sys 3.4.0, Rust 1.97, Intel Xeon 2.8 GHz, 4 vCPU shared VM.
 
@@ -8,7 +8,7 @@ Every reference-repo claim cites a path relative to `refs`. The macro code gener
 (`napi-derive-backend`) and `napi-sys` are not in the sparse checkout, so those cites point at the cargo registry copy
 (`~/.cargo/registry/src/index.crates.io-*/napi-derive-backend-6.1.5/...`).
 
-Probe sources and raw outputs: `rsdom-lab/docs/research/napi-probes/` (crate + `bench*.cjs` + `results-*.txt`).
+Probe sources and raw outputs: `oxidom-lab/docs/research/napi-probes/` (crate + `bench*.cjs` + `results-*.txt`).
 
 ---
 
@@ -74,7 +74,7 @@ For context, jsdom and happy-dom on the same machine (see §2.6):
 | `setAttribute` | 1.9 µs | 4.9 µs |
 | `createElement` + `appendChild` + `removeChild` | 6.6 µs | 4.5 µs |
 
-A raw crossing costs 30-70 ns, so rsdom has plenty of headroom on writes and queries. Reads (`tagName` is 8 ns in
+A raw crossing costs 30-70 ns, so oxidom has plenty of headroom on writes and queries. Reads (`tagName` is 8 ns in
 happy-dom) only win if they avoid crossings, which means using views and atom tables.
 
 ---
@@ -276,7 +276,7 @@ macro_rules! args {                       // fixed-arity napi_get_cb_info, no al
 unsafe fn guard(env: sys::napi_env, f: impl FnOnce() -> sys::napi_value) -> sys::napi_value {
   match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
     Ok(v) => v,
-    Err(_) => { sys::napi_throw_error(env, ptr::null(), c"rsdom: internal panic".as_ptr()); ptr::null_mut() }
+    Err(_) => { sys::napi_throw_error(env, ptr::null(), c"oxidom: internal panic".as_ptr()); ptr::null_mut() }
   }
 }
 
@@ -453,7 +453,7 @@ unsafe fn view_u32(env: sys::napi_env, v: &mut Vec<u32>) -> Result<sys::napi_val
   copying `napi_create_arraybuffer` in every `from_data`/`from_external` path
   (`napi-rs/crates/napi/src/bindgen_runtime/js_values/arraybuffer.rs` L195-L250 and L1160-L1230;
   `buffer.rs` L36-L90 calls this "the same path Electron uses"). A copy breaks the "view of live Rust memory" design,
-  so rsdom must detect the status and switch to §5.3, never to a silent copy.
+  so oxidom must detect the status and switch to §5.3, never to a silent copy.
 - Node may build with the sandbox or pointer compression in the future (experimental "pointer-compression" Node
   builds exist), so the fallback is worth keeping.
 - **Vec reallocation is the hazard.** The view's pointer dangles after `push` grows the Vec. The defences are:
@@ -564,7 +564,7 @@ writes (1.9-6.6 µs).
 ### Environment and teardown wiring
 
 - Vitest's built-in envs return `teardown()`, which calls `window.close()`
-  (`vitest/packages/vitest/src/integrations/env/jsdom.ts` L169-L174, `happy-dom.ts` L4-L10 and L43-L44). rsdom's env
+  (`vitest/packages/vitest/src/integrations/env/jsdom.ts` L169-L174, `happy-dom.ts` L4-L10 and L43-L44). oxidom's env
   does the same and calls `destroyDocument`.
 - The default pool is **`forks`** (`vitest/docs/config/pool.md` L8-L9). Each child process `dlopen`s the `.node`
   once and runs many test files sequentially, so the arena-per-document model reuses allocator memory nicely,
@@ -573,7 +573,7 @@ writes (1.9-6.6 µs).
   - Use **`thread_local!`** state, or `napi_set_instance_data` / napi-rs `Env::set_instance_data`, for documents
     and interners. **Never use process-global `static Mutex` state on hot paths**: it is contended across workers
     and it is exactly what makes napi-rs class methods slow.
-  - Vitest's docs warn that some native libraries segfault in `threads` (pool.md L17). rsdom must be thread-safe in
+  - Vitest's docs warn that some native libraries segfault in `threads` (pool.md L17). oxidom must be thread-safe in
     the sense of "no shared mutable statics".
 - `vmThreads`/`vmForks`: the addon's JS objects belong to the main context, while the test globals live in a vm
   context. Create JS objects only in the facade, which is evaluated inside the test context, so `instanceof` and
@@ -587,7 +587,7 @@ writes (1.9-6.6 µs).
 ## 7. Build configuration
 
 ```toml
-# rsdom/Cargo.toml
+# oxidom/Cargo.toml
 [lib]
 crate-type = ["cdylib"]
 
@@ -638,13 +638,13 @@ fn main() { napi_build::setup(); }
   middle ground. Changing RUSTFLAGS invalidates the whole cargo cache.
 - **Local build with `@napi-rs/cli` (latest 3.10.8). Verified:**
   - `npm i -D @napi-rs/cli@3`
-  - add `"napi": { "binaryName": "rsdom" }` to package.json
-  - `npx napi build --release --platform -o <dir> [--manifest-path rsdom/Cargo.toml] [--features …] [--esm]`
+  - add `"napi": { "binaryName": "oxidom" }` to package.json
+  - `npx napi build --release --platform -o <dir> [--manifest-path oxidom/Cargo.toml] [--features …] [--esm]`
   - This produces `<binaryName>.linux-x64-gnu.node`, an `index.js` platform loader and `index.d.ts`, with no
     publishing.
   - Raw `extern "C"` exports do **not** appear in the generated `.d.ts`, so hand-write a small `native.d.ts` for the
     internal API.
-  - Without the CLI: `cargo build --release && cp target/release/librsdom.so rsdom.node`, then `require('./rsdom.node')`.
+  - Without the CLI: `cargo build --release && cp target/release/liboxidom.so oxidom.node`, then `require('./oxidom.node')`.
     For local experiments this is simpler and the CLI adds little.
 - Build times on this box: a cold build of the napi-rs dependency set took ~22 s, and incremental builds with fat
   LTO about 6 s.
@@ -655,7 +655,7 @@ fn main() { napi_build::setup(); }
 
 | Need | Crate (version in cargo cache) | Assessment |
 |---|---|---|
-| HTML parsing (`innerHTML`, `DOMParser`, initial document) | **html5ever 0.40.1** / markup5ever 0.40.0 / web_atoms 0.3.0 / tendril 0.5.1 | Spec-compliant tree builder. Implement `TreeSink` (`~/.cargo/registry/src/*/markup5ever-0.40.0/interface/tree_builder.rs` L137+) with `type Handle = u32` (a NodeId) over the arena. The trait takes `&self`, so wrap the arena in `RefCell` during the parse. `elem_name()` must return a borrowed `ExpandedName`, so keep the parser's own `QualName` per element in a side table during the parse, or store `LocalName`s. Convert atoms to rsdom u32 atoms in `create_element`. `<template>` contents need `get_template_contents`. Use `parse_fragment` for `innerHTML`. |
+| HTML parsing (`innerHTML`, `DOMParser`, initial document) | **html5ever 0.40.1** / markup5ever 0.40.0 / web_atoms 0.3.0 / tendril 0.5.1 | Spec-compliant tree builder. Implement `TreeSink` (`~/.cargo/registry/src/*/markup5ever-0.40.0/interface/tree_builder.rs` L137+) with `type Handle = u32` (a NodeId) over the arena. The trait takes `&self`, so wrap the arena in `RefCell` during the parse. `elem_name()` must return a borrowed `ExpandedName`, so keep the parser's own `QualName` per element in a side table during the parse, or store `LocalName`s. Convert atoms to oxidom u32 atoms in `create_element`. `<template>` contents need `get_template_contents`. Use `parse_fragment` for `innerHTML`. |
 | CSS selector parsing and matching | **selectors 0.41.0** + **cssparser 0.38.0** (+ servo_arc, precomputed-hash) | Servo/Stylo's engine supports Level 4 (`:is`, `:where`, `:not(list)`, `:has`, `:nth-child(An+B of S)`), bloom filters and nth-index caches. Cost is integration: implement `SelectorImpl` (~10 associated types; atoms must implement `PrecomputedHash`), `Parser` (non-tree-structural pseudo-classes such as `:checked`, `:disabled`, `:focus`, `:hover`, `:enabled`, `:required`, `:read-only`, `:placeholder-shown`, `:focus-visible`, `:focus-within`) and `Element` (~30 methods, `selectors-0.41.0/tree.rs` L46-L183). Match with `matches_selector_list` (`matching.rs` L123) and `MatchingContext::new(...)` (`context.rs` L200). Cache parsed `SelectorList`s by selector string (testing-library re-queries the same selectors constantly, and happy-dom caches results too, §2.6). |
 | (alternative) hand-written matcher | none | A ~600-line matcher for compound selectors (type/id/class/attribute ops) with descendant and child combinators plus a few pseudos covers most testing-library and jest-dom traffic and is easy to make atom-fast. Falling back to an "unsupported selector" error breaks user code. **Recommend `selectors`** for correctness, plus a fast path for the hottest simple selectors (`*`, `[data-testid="x"]`, `#id`, `tag`). |
 | Interning | own `FxHashMap` + `Vec<Box<str>>` interner (rustc-hash 2.1.3 cached); `string_cache` 0.11 only at the html5ever boundary | See §4.2 for the global-mutex caveat on dynamic atoms. |

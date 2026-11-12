@@ -1,7 +1,7 @@
-# conformance/parity: jsdom's test suite as rsdom's gate
+# conformance/parity: jsdom's test suite as oxidom's gate
 
-rsdom aims to be a drop-in replacement for jsdom, and jsdom is the behavioural oracle (CONTRIBUTING §6). This
-directory runs **jsdom's own test suite** against rsdom and gates changes on it. GitHub Actions is disabled for
+oxidom aims to be a drop-in replacement for jsdom, and jsdom is the behavioural oracle (CONTRIBUTING §6). This
+directory runs **jsdom's own test suite** against oxidom and gates changes on it. GitHub Actions is disabled for
 this repository, so nothing runs it automatically: run it before merging (`npm run check` runs it with the other
 checks).
 
@@ -15,15 +15,15 @@ checks).
 Every file runs in a fresh process, the way a Vitest test file sees the DOM: WPT pages through
 `conformance/wpt/worker.mjs` (global-install mode, described in `conformance/wpt/README.md`), mocha files
 through `mocha/worker.cjs`, which runs them unmodified with a small `mocha-sugar-free` runner
-(`mocha/sugar-free.cjs`) and, for rsdom, rsdom's own `JSDOM` class (`mocha/rsdom-jsdom.cjs` maps jsdom's `lib/api.js` onto the package entry).
+(`mocha/sugar-free.cjs`) and, for oxidom, oxidom's own `JSDOM` class (`mocha/oxidom-jsdom.cjs` maps jsdom's `lib/api.js` onto the package entry).
 
 Three committed files drive it:
 
-- **`expectations/<source>.yaml`**: everything rsdom is known to fail. Anything not listed must pass. This is the
+- **`expectations/<source>.yaml`**: everything oxidom is known to fail. Anything not listed must pass. This is the
   ratchet: a run fails when something listed starts passing (lock it in) or something unlisted starts failing (a
   regression).
 - **`oracle/<source>.json`**: what jsdom passes in the same harness, file by file. It is the denominator of the
-  parity score and tells which rsdom failures are parity gaps and which jsdom shares.
+  parity score and tells which oxidom failures are parity gaps and which jsdom shares.
 - **`roadmap.yaml`**: the tests that measure each item of `docs/ROADMAP.md`.
 
 `results/summary.md` is the scoreboard (parity per source and per roadmap item), regenerated from those three
@@ -36,7 +36,7 @@ npm ci && npm run build          # the addon
 scripts/fetch-refs.sh --wpt      # refs/jsdom (v30.1.3) and refs/wpt (the commit jsdom pins, sparse): ~60 + ~90 MB on disk
 ```
 
-`RSDOM_REFS=<dir>` puts the checkouts in `<dir>` instead of `refs/`; the suite honours the same variable.
+`OXIDOM_REFS=<dir>` puts the checkouts in `<dir>` instead of `refs/`; the suite honours the same variable.
 
 ## Daily use
 
@@ -73,7 +73,7 @@ run unless `--all` is given. Under `--all`, `flaky` and `skip` files are reporte
 
 1. `npm run test:parity -- --item <id>` runs the item's scope. Its failures are all expected, so a green run
    prints only counts: the failures to fix are the item's entries in `expectations/*.yaml`, each with a reason,
-   and `results/raw/rsdom.jsonl` has every subtest result of the run. An item with `tests: []` in `roadmap.yaml`
+   and `results/raw/oxidom.jsonl` has every subtest result of the run. An item with `tests: []` in `roadmap.yaml`
    has no tests in the selection; `--item` reports `no test matches` for it, and its contract tests carry it.
 2. Implement. Re-run the item (or one file) as you go; PROGRESS lines are the subtests you fixed.
 3. `npm run test:parity -- --update --item <id>` rewrites the expectations for those files and regenerates
@@ -108,8 +108,8 @@ html/semantics/embedded-content/the-img-element/reuse-img.html: [timeout, "harne
 | `crash` | the process died or hung past the hard limit | yes |
 | `timeout` | testharness timed out (10 s) | no |
 | `flaky` | set by hand: the result varies between runs; never gates | no |
-| `skip` | set by hand: the file does not measure rsdom (say why in the reason); never gates, left out of the score | no |
-| `fail-node:<N` | set by hand, file or subtest: a failure of the Node runtime, not of rsdom, that Node N fixed (jsdom's `to-run.yaml` syntax). Below major N it is `fail`; from N on it is no entry, so the test must pass. `--update` writes it back as it is on any Node, and the scoreboard reads it as on Node 22 so it is the same on every Node | yes |
+| `skip` | set by hand: the file does not measure oxidom (say why in the reason); never gates, left out of the score | no |
+| `fail-node:<N` | set by hand, file or subtest: a failure of the Node runtime, not of oxidom, that Node N fixed (jsdom's `to-run.yaml` syntax). Below major N it is `fail`; from N on it is no entry, so the test must pass. `--update` writes it back as it is on any Node, and the scoreboard reads it as on Node 22 so it is the same on every Node | yes |
 
 A run compares each file with its entry: no entry means every subtest must pass, and at least as many as jsdom
 passes; a subtest list means exactly those may fail, and the others (jsdom's passes, less the listed failures
@@ -129,11 +129,11 @@ harness change alters what jsdom passes. jsdom passing a test through
 this harness is the actual drop-in question: would it pass in a Vitest test file on jsdom?
 
 The pins move together: the jsdom tag and `WPT_COMMIT` in `scripts/fetch-refs.sh`, `WPT_COMMIT` in
-`conformance/wpt/lib.mjs`, and the `jsdom` devDependency in `packages/rsdom/package.json` and
+`conformance/wpt/lib.mjs`, and the `jsdom` devDependency in `packages/oxidom/package.json` and
 `e2e/react-app/package.json`, followed by `npm install`. `--dom jsdom` runs `node_modules/jsdom`; `refs/jsdom`
 only supplies the test files. `docs/ROADMAP.md` (Stage 0) has the steps.
 
-**Parity** (the scoreboard's main number) is, of the subtests jsdom passes, the share rsdom passes. It is
+**Parity** (the scoreboard's main number) is, of the subtests jsdom passes, the share oxidom passes. It is
 computed from the committed files alone (`report.mjs` explains the per-file rule); files marked `skip` are left
 out.
 
@@ -149,8 +149,8 @@ out.
 
 ## Relationship to the rest of the test suite
 
-- `packages/rsdom/test/contract` stays the fast, targeted parity suite (seconds, three DOMs side by side, every
+- `packages/oxidom/test/contract` stays the fast, targeted parity suite (seconds, three DOMs side by side, every
   feature's own cases). The parity suite is the broad net: thousands of upstream files nobody here wrote.
-- `conformance/wpt` is the 2026-10-17 measurement of all three DOMs (jsdom, happy-dom, rsdom) behind
+- `conformance/wpt` is the 2026-10-17 measurement of all three DOMs (jsdom, happy-dom, oxidom) behind
   `docs/PARITY.md`; this directory reuses its selection and worker.
 - `e2e/react-app` and `e2e/libraries` test real applications and libraries.

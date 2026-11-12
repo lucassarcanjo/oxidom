@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// Regenerates the CSS data rsdom vendors from jsdom 30.1.3 (a devDependency of packages/rsdom):
-//   crates/rsdom/data/css/properties.tsv  every CSS property jsdom knows (lib/generated/css-property-definitions.js
+// Regenerates the CSS data oxidom vendors from jsdom 30.1.3 (a devDependency of packages/oxidom):
+//   crates/oxidom/data/css/properties.tsv  every CSS property jsdom knows (lib/generated/css-property-definitions.js
 //                                    + css-property-metadata.js): name, inherited, initial value, value-type
 //                                    flags, longhands. The id of a property is its line index (0-based, after
 //                                    the header comments); Rust (src/style/props.rs) reads this file and
 //                                    build.rs turns it into lib/generated/css-properties.cjs for the facade
-//                                    (packages/rsdom/lib/style.cjs), so they cannot drift.
-//   crates/rsdom/data/css/default-stylesheet.css  jsdom's UA stylesheet (lib/jsdom/browser/default-stylesheet.css), the
-//                                    first level of rsdom's cascade (DESIGN §8.2).
+//                                    (packages/oxidom/lib/style.cjs), so they cannot drift.
+//   crates/oxidom/data/css/default-stylesheet.css  jsdom's UA stylesheet (lib/jsdom/browser/default-stylesheet.css), the
+//                                    first level of oxidom's cascade (DESIGN §8.2).
 // The outputs are committed (hermetic builds). Run: `node scripts/gen-css-data.mjs`.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +21,7 @@ const version = require('jsdom/package.json').version;
 const gen = path.join(jsdomRoot, 'lib/generated');
 const defs = require(path.join(gen, 'css-property-definitions.js'));
 const meta = require(path.join(gen, 'css-property-metadata.js'));
-const out = path.resolve(here, '../crates/rsdom/data/css');
+const out = path.resolve(here, '../crates/oxidom/data/css');
 fs.mkdirSync(out, { recursive: true });
 
 /** Value-type flags (mirrored in src/style/props.rs `flag`). */

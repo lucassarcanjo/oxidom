@@ -1,0 +1,26 @@
+{
+  "name": "vitest-environment-oxidom",
+  "version": "0.1.0",
+  "description": "Vitest environment for oxidom: `test.environment: 'oxidom'`",
+  "keywords": ["vitest", "vitest-environment", "oxidom", "dom", "jsdom"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/oxidom.git",
+    "directory": "packages/vitest-environment-oxidom"
+  },
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts"],
+  "peerDependencies": {
+    "oxidom": "0.1.0",
+    "vitest": ">=5"
+  }
+}

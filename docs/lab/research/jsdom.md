@@ -1,4 +1,4 @@
-# jsdom 30.1.3: architecture, hot spots and spec traps (requirements for rsdom)
+# jsdom 30.1.3: architecture, hot spots and spec traps (requirements for oxidom)
 
 Scope: what jsdom provides that React 19 + Testing Library rely on, where jsdom spends its time,
 and which spec behaviours are easy to get wrong. It also covers how the Vitest jsdom environment
@@ -9,7 +9,7 @@ Companion notes, not repeated here:
 - `docs/lab/research/react-dom.md`: everything react-dom touches.
 
 This file is the jsdom-side view. Each item is mapped to the jsdom source that implements it, so
-that rsdom can copy the semantics without copying the costs.
+that oxidom can copy the semantics without copying the costs.
 
 Path conventions:
 - `jsdom/...`, `vitest/...`, `dom-testing-library/...` etc. are relative to `refs`.
@@ -53,7 +53,7 @@ them as indicative. Run-to-run noise is up to about 2x for the selector numbers.
    - `[CEReactions]` stack push/pop, even on some getters
    - `tryWrapperForImpl` on the return value
 
-   rsdom pays an N-API crossing instead. It is only faster if a crossing costs less than this, or if
+   oxidom pays an N-API crossing instead. It is only faster if a crossing costs less than this, or if
    more work happens per crossing.
 6. **Mutations do broad, eager invalidation.** Each insert or remove:
    - bumps `_version` on **every ancestor**
@@ -85,7 +85,7 @@ them as indicative. Run-to-run noise is up to about 2x for the selector numbers.
     `window/self/top/parent = globalThis` and redefines `document.defaultView` to return
     `globalThis`. jsdom's `DOMException`, its TypeErrors and its typed arrays come from **another
     realm**: `instanceof Error` and `instanceof Uint8Array` are false in the test realm (measured).
-    rsdom should not reproduce that.
+    oxidom should not reproduce that.
 11. **jsdom quirks the suite can see** (measured; tests may rely on these accidentally):
     - `getComputedStyle()` returns a **snapshot**, not a live object.
     - Detached elements still get UA-default computed values (`div` gives `display: block`).
@@ -184,7 +184,7 @@ Notes:
   `shadowIncludingRoot(this).nodeType === DOCUMENT_NODE` (`Node-impl.js:429-432`). It is O(1) when
   cached and O(depth) for detached trees, which is the common case during React's render phase.
 
-**rsdom takeaway:** this is roughly what an arena with `u32` links gives for free. Store
+**oxidom takeaway:** this is roughly what an arena with `u32` links gives for free. Store
 `parent/first/last/prev/next` as indices, `child_count` per node, and an optional sibling-index cache.
 Do not tie root caching to Documents. A per-node "tree id" or generation counter works for detached
 trees too.
@@ -223,7 +223,7 @@ Document-level caches:
   (`Element-impl.js:67-75`).
 - **Window named properties** (`jsdom/lib/jsdom/living/window-properties.js`). Per-window trackers of
   `id`/`name` → `Set<Element>`. They are updated for every attached element
-  (`Node-impl.js:141`) and every attribute change (`Element-impl.js:65`). P2 for rsdom: Vitest copies
+  (`Node-impl.js:141`) and every attribute change (`Element-impl.js:65`). P2 for oxidom: Vitest copies
   only *own* window props, and named properties live on the prototype chain
   (`Window.js:92`, `windowProperties.create`).
 
@@ -793,13 +793,13 @@ Sources: `vitest/packages/vitest/src/integrations/env/jsdom.ts`, `.../env/jsdom-
 - `DOMException.prototype` inherits from the **vm realm's** `Error.prototype` (`interfaces.js:267`), so
   `domException instanceof Error` is **false** in the test realm. `global.DOMException` is jsdom's,
   because it is in `KEYS`, so `toThrow(DOMException)` still works.
-- rsdom can do better than jsdom on both points: create errors in the realm Vitest runs tests in, and
+- oxidom can do better than jsdom on both points: create errors in the realm Vitest runs tests in, and
   do not override Node's typed arrays.
 
-### 3.5 What an rsdom Vitest environment has to mirror
+### 3.5 What an oxidom Vitest environment has to mirror
 
 - `name`, `viteEnvironment: 'client'`, `setup(global, options)` (and optionally `setupVM`).
-  `options.rsdom` mirrors `options.jsdom`.
+  `options.oxidom` mirrors `options.jsdom`.
 - **The same globals jsdom exposes**, or at least: `KEYS` plus every interface constructor the app and
   libraries touch (`app-notes.md` §Globals), and `window/self/top/parent === globalThis`.
   `document.defaultView === globalThis` must hold. Prefer making the real window object *be*
@@ -811,7 +811,7 @@ Sources: `vitest/packages/vitest/src/integrations/env/jsdom.ts`, `.../env/jsdom-
 - **AbortSignal**: accept Node's `AbortSignal` in `addEventListener({signal})` natively. No patch needed.
 - **Teardown**: remove installed globals and restore originals, and free the Rust document arena.
 - **Budget**: jsdom pays ~0.7 s import + ~85 ms window + ~485 `defineProperty` calls per test file.
-  An rsdom env that loads in tens of milliseconds saves about **0.8 s per test file**. On the 11-file
+  An oxidom env that loads in tens of milliseconds saves about **0.8 s per test file**. On the 11-file
   app with 4 workers that is about 2+ s of wall clock, before any DOM-op speedups.
 
 ---
@@ -862,7 +862,7 @@ Each row names the jsdom reference to read when implementing it.
 Ordered roughly by impact on the benchmark suite. "Cost" figures are measured as described in the
 header. "Why" cites the code.
 
-| # | hot spot | cost (jsdom 30.1.3) | why | rsdom opportunity |
+| # | hot spot | cost (jsdom 30.1.3) | why | oxidom opportunity |
 |---|---|---|---|---|
 | H1 | **Environment creation** (per test file) | `require('jsdom')` 0.63-0.74 s + first window 85 ms + `populateGlobal` (~485 defines) | 3,651 modules, 281 generated wrapper files including the 47,854-line `CSSStyleProperties.js`, undici, css-tree, mdn-data. `vm.createContext` and installing about 210 interfaces per window (§2.11) | A small JS facade + `.node` addon, with lazily defined interfaces. Target < 50 ms per file |
 | H2 | **`getComputedStyle` after a mutation** | 150-700 µs cold, 2-60 µs warm; plus 1.6-2.4 µs allocation per call | Whole-document style cache dropped on any connected mutation, focus change, value or checkedness change (§1.3). The UA sheet is re-matched per element through dom-selector on wrappers. Inherited props recurse to the root (§2.8). A new declaration + Proxy per call | Cascade in Rust over a precompiled UA sheet (keyed by tag/attr). **Fine-grained invalidation**: only properties that depend on the changed attribute or tag, or a per-node style generation. Memoize inherited values per ancestor. Return a cheap read-only object (or a lazy one with getters calling Rust once per property) |
@@ -940,7 +940,7 @@ Observed errors:
 - Inserting into a parent whose subtree contains a focused element and then removing that element is
   the "focus fixup" case (§6.9).
 - **Live Range offsets** must shift on insert and remove (`Node-impl.js:1034-1049, 1207-1237`). This is
-  P1 for rsdom: user-event and React selection restore use Ranges/Selection only lightly.
+  P1 for oxidom: user-event and React selection restore use Ranges/Selection only lightly.
 
 ### 6.3 Adopting nodes (DOM "adopt")
 
@@ -956,7 +956,7 @@ Observed errors:
   becomes the new document.
 - `adoptNode(document)` raises `NotSupportedError`; `adoptNode(shadowRoot)` raises
   `HierarchyRequestError`. `importNode` clones (`Document-impl.js:1033-1066`).
-- An rsdom design with **one arena per Document** has to support cross-arena moves:
+- An oxidom design with **one arena per Document** has to support cross-arena moves:
   `document.implementation.createHTMLDocument()` is used by some libraries, and DOMParser output gets
   adopted. The simplest approach is one arena per *environment*, with `ownerDocument` as a field.
 
@@ -967,7 +967,7 @@ Observed errors:
   live collection says 3).
 - **Iterating a live collection while removing from it skips items.** Measured: `for (const c of ul.children) c.remove()`
   over 4 items iterates 2 and leaves 2, exactly as in browsers. Code that relies on this behaviour, or
-  works around it with `Array.from`, must observe the same results. An rsdom "materialise an array
+  works around it with `Array.from`, must observe the same results. An oxidom "materialise an array
   snapshot at iterator creation" shortcut would **change** behaviour. Iterators must index the live
   list on each step: `ArrayIterator` over the Proxy, as `HTMLCollection-impl.js:81-84` does with
   `this._list[Symbol.iterator]()` after `_update()`. The `_list` array is mutated in place by later
@@ -994,7 +994,7 @@ Observed errors:
 - **Retargeting** (shadow DOM): `retarget(A, B)` repeatedly replaces A with its root's host while A's
   root is a shadow root that is not a shadow-including ancestor of B (`helpers/shadow-dom.js:76-92`).
   `relatedTarget` is retargeted per path entry. If target and relatedTarget become equal at some host,
-  the path stops there (`EventTarget-impl.js:206-207`). Shadow DOM is P2 for rsdom. Keep the struct
+  the path stops there (`EventTarget-impl.js:206-207`). Shadow DOM is P2 for oxidom. Keep the struct
   shape so it can be added later.
 - **`composedPath()`** during dispatch returns wrappers: target, ancestors, `#document`, Window
   (measured `SPAN>DIV>BODY>HTML>#document>Window`). After dispatch it returns `[]`.
@@ -1115,10 +1115,10 @@ Generated by `jsdom/scripts/webidl/reflection.js`:
   `value` property on the element that delegates to the **prototype descriptor**
   (`react/packages/react-dom-bindings/src/client/inputValueTracking.js`, see `react-dom.md` §6.1).
   DTL `fireEvent.change(el, {target:{value}})` calls the **prototype's** setter directly so that the
-  tracker sees a change (`dom-testing-library/src/events.js:106-123`). rsdom needs:
+  tracker sees a change (`dom-testing-library/src/events.js:106-123`). oxidom needs:
   1. own `get`/`set` accessors for `value`/`checked` on `HTMLInputElement.prototype` (not inherited
      from a shared base)
-  2. the tracker redefinition on the instance must not break internal reads; rsdom-internal code must
+  2. the tracker redefinition on the instance must not break internal reads; oxidom-internal code must
      read the Rust-side value and **never** go through the JS property
 
 ### 6.9 `focus` / `blur` and event order
@@ -1191,7 +1191,7 @@ b.blur():    blur:b (active=BODY, related=null) | focusout:b (active=BODY)
 
 ## 7. jsdom deviations and quirks that tests may (accidentally) depend on
 
-| quirk | jsdom 30.1.3 (measured / cited) | browser | rsdom suggestion |
+| quirk | jsdom 30.1.3 (measured / cited) | browser | oxidom suggestion |
 |---|---|---|---|
 | `getComputedStyle()` result | snapshot, read-only | live | Live is cheap if it is a lazy getter object; either choice passes the suite |
 | Computed style of detached element | UA defaults (`display:block`) | empty strings | Match jsdom (tests sometimes call it before attaching) |
@@ -1210,7 +1210,7 @@ b.blur():    blur:b (active=BODY, related=null) | focusout:b (active=BODY)
 
 ---
 
-## 8. Design recommendations for rsdom (derived from jsdom)
+## 8. Design recommendations for oxidom (derived from jsdom)
 
 1. **Copy jsdom's semantics, not its structure.** jsdom's impl files are close transliterations of
    the spec algorithms and are good references. Its *structure* is the problem: eager wrapper and impl
@@ -1252,7 +1252,7 @@ b.blur():    blur:b (active=BODY, related=null) | focusout:b (active=BODY)
    `constructor.name` and `nodeType`; DTL and jest-dom use `instanceof window.HTMLElement`.
 8. **Get the error realm right** (§3.4) and replicate Vitest's error-event semantics (§3.2 step 6).
 9. **Benchmark mutation-interleaved workloads** (§5 caveats). The jsdom probes in
-   `docs/lab/research/jsdom-probes/` can be pointed at rsdom (same API) for apples-to-apples
+   `docs/lab/research/jsdom-probes/` can be pointed at oxidom (same API) for apples-to-apples
    micro-benchmarks.
 
 ---
@@ -1260,7 +1260,7 @@ b.blur():    blur:b (active=BODY, related=null) | focusout:b (active=BODY)
 ## 9. Reproducing the measurements
 
 ```bash
-cd rsdom-lab/docs/research/jsdom-probes
+cd oxidom-lab/docs/research/jsdom-probes
 node envcreate.cjs        # require + new JSDOM timings, realm checks
 node reqprofile.cjs       # module-load self-time by package
 node ops.cjs              # DOM op micro-benchmarks (table in §5)
@@ -1269,6 +1269,6 @@ node oracle.cjs           # spec-behaviour oracle outputs (§6)
 node --expose-gc mem.cjs  # heap bytes per node
 ```
 
-All scripts `require("rsdom-lab/app/node_modules/jsdom")` (30.1.3) and print to stdout.
+All scripts `require("oxidom-lab/app/node_modules/jsdom")` (30.1.3) and print to stdout.
 The output of one full run is saved in `results-jsdom-30.1.3.txt`. npm prints `EBADENGINE` warnings
 because jsdom 30 declares `node ^22.22.2` and Node here is 22.22.0; they are harmless.

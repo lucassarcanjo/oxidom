@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs the library suite (tests/) and the diagnostics (diagnostics/) under each DOM, sequentially.
 //   node run.mjs                 -> all DOMs, both modes (with / without documented shims) + diagnostics
-//   node run.mjs --doms=rsdom    -> subset
+//   node run.mjs --doms=oxidom    -> subset
 // Outputs: results/raw/<mode>-<dom>.json (Vitest JSON reporter) and results/raw/<mode>-<dom>.log
 // (default reporter, no colour; the aggregator parses "Unhandled Errors" from it).
 import { spawnSync } from 'node:child_process'
@@ -13,7 +13,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const raw = path.join(here, 'results/raw')
 fs.mkdirSync(raw, { recursive: true })
 const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? `=${d}`).split('=')[1]
-const doms = arg('doms', 'jsdom,happy-dom,rsdom').split(',')
+const doms = arg('doms', 'jsdom,happy-dom,oxidom').split(',')
 const modes = arg('modes', 'polyfills,nopolyfills,diagnostics').split(',')
 const vitest = path.join(here, 'node_modules/vitest/vitest.mjs')
 

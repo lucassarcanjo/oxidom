@@ -12,7 +12,7 @@
    "gitRev": "c4e213de0028ff8898d1da799951a20f3df7278c",
    "gitDirty": true,
    "addon": {
-    "path": "native/rsdom.linux-x64-gnu.node",
+    "path": "native/oxidom.linux-x64-gnu.node",
     "sha256": "325866fa4f24cc5eb956b1142607278eb9cf225d95181b30ce839845241a202f",
     "bytes": 2343184,
     "mtime": "2026-10-17T02:55:23.397Z",
@@ -283,7 +283,7 @@
      "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
      "envSetups": 11
     },
-    "rsdom": {
+    "oxidom": {
      "runs": 7,
      "valid": 7,
      "excluded": 0,
@@ -647,7 +647,7 @@
      "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
      "envSetups": 11
     },
-    "rsdom": {
+    "oxidom": {
      "runs": 7,
      "valid": 7,
      "excluded": 0,
@@ -1011,7 +1011,7 @@
      "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
      "envSetups": 11
     },
-    "rsdom": {
+    "oxidom": {
      "runs": 7,
      "valid": 7,
      "excluded": 0,
@@ -1375,7 +1375,7 @@
      "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
      "envSetups": 3
     },
-    "rsdom": {
+    "oxidom": {
      "runs": 7,
      "valid": 7,
      "excluded": 0,
@@ -1739,7 +1739,7 @@
      "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
      "envSetups": 1
     },
-    "rsdom": {
+    "oxidom": {
      "runs": 7,
      "valid": 7,
      "excluded": 0,
@@ -1862,7 +1862,7 @@
  },
  "ablations": {
   "forks": {
-   "RSDOM_SHARED=0": {
+   "OXIDOM_SHARED=0": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -1976,7 +1976,7 @@
     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
     "envSetups": 11
    },
-   "RSDOM_NO_MEMO=1": {
+   "OXIDOM_NO_MEMO=1": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -2090,7 +2090,7 @@
     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
     "envSetups": 11
    },
-   "RSDOM_NO_PREFILTER=1": {
+   "OXIDOM_NO_PREFILTER=1": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -2320,7 +2320,7 @@
    }
   },
   "serial": {
-   "RSDOM_SHARED=0": {
+   "OXIDOM_SHARED=0": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -2434,7 +2434,7 @@
     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
     "envSetups": 1
    },
-   "RSDOM_NO_MEMO=1": {
+   "OXIDOM_NO_MEMO=1": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -2548,7 +2548,7 @@
     "criticalName": "src/__tests__/DataTable.heavy.test.tsx",
     "envSetups": 1
    },
-   "RSDOM_NO_PREFILTER=1": {
+   "OXIDOM_NO_PREFILTER=1": {
     "runs": 7,
     "valid": 7,
     "excluded": 0,
@@ -2793,7 +2793,7 @@
      "environment": 390,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 70,
      "import": 17,
      "environment": 57,
@@ -2813,7 +2813,7 @@
      "environment": 440,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 181,
      "import": 19,
      "environment": 53,
@@ -2833,7 +2833,7 @@
      "environment": 411,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 63,
      "import": 13,
      "environment": 60,
@@ -2853,7 +2853,7 @@
      "environment": 413,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 214,
      "import": 45,
      "environment": 59,
@@ -2873,7 +2873,7 @@
      "environment": 424,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 2672,
      "import": 28,
      "environment": 64,
@@ -2893,7 +2893,7 @@
      "environment": 404,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 753,
      "import": 22,
      "environment": 53,
@@ -2913,7 +2913,7 @@
      "environment": 478,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 324,
      "import": 64,
      "environment": 55,
@@ -2933,7 +2933,7 @@
      "environment": 435,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 1316,
      "import": 71,
      "environment": 58,
@@ -2953,7 +2953,7 @@
      "environment": 408,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 84,
      "import": 21,
      "environment": 56,
@@ -2973,7 +2973,7 @@
      "environment": 449,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 84,
      "import": 22,
      "environment": 51,
@@ -2993,7 +2993,7 @@
      "environment": 389,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 455,
      "import": 21,
      "environment": 54,
@@ -3015,7 +3015,7 @@
      "environment": 312,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 68,
      "import": 13,
      "environment": 44,
@@ -3035,7 +3035,7 @@
      "environment": 315,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 156,
      "import": 14,
      "environment": 42,
@@ -3055,7 +3055,7 @@
      "environment": 297,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 69,
      "import": 13,
      "environment": 47,
@@ -3075,7 +3075,7 @@
      "environment": 329,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 208,
      "import": 26,
      "environment": 42,
@@ -3095,7 +3095,7 @@
      "environment": 307,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 2253,
      "import": 17,
      "environment": 51,
@@ -3115,7 +3115,7 @@
      "environment": 311,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 503,
      "import": 16,
      "environment": 42,
@@ -3135,7 +3135,7 @@
      "environment": 307,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 260,
      "import": 50,
      "environment": 45,
@@ -3155,7 +3155,7 @@
      "environment": 319,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 978,
      "import": 43,
      "environment": 57,
@@ -3175,7 +3175,7 @@
      "environment": 288,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 74,
      "import": 13,
      "environment": 43,
@@ -3195,7 +3195,7 @@
      "environment": 299,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 66,
      "import": 13,
      "environment": 42,
@@ -3215,7 +3215,7 @@
      "environment": 295,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 349,
      "import": 13,
      "environment": 47,
@@ -3237,7 +3237,7 @@
      "environment": 337,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 91,
      "import": 12,
      "environment": 75,
@@ -3257,7 +3257,7 @@
      "environment": 359,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 190,
      "import": 18,
      "environment": 59,
@@ -3277,7 +3277,7 @@
      "environment": 361,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 84,
      "import": 17,
      "environment": 56,
@@ -3297,7 +3297,7 @@
      "environment": 359,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 188,
      "import": 29,
      "environment": 55,
@@ -3317,7 +3317,7 @@
      "environment": 340,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 2806,
      "import": 20,
      "environment": 63,
@@ -3337,7 +3337,7 @@
      "environment": 405,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 644,
      "import": 16,
      "environment": 67,
@@ -3357,7 +3357,7 @@
      "environment": 374,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 300,
      "import": 70,
      "environment": 57,
@@ -3377,7 +3377,7 @@
      "environment": 409,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 1341,
      "import": 63,
      "environment": 65,
@@ -3397,7 +3397,7 @@
      "environment": 338,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 81,
      "import": 20,
      "environment": 63,
@@ -3417,7 +3417,7 @@
      "environment": 375,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 92,
      "import": 16,
      "environment": 60,
@@ -3437,7 +3437,7 @@
      "environment": 375,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 420,
      "import": 21,
      "environment": 50,
@@ -3459,7 +3459,7 @@
      "environment": 367,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 27,
      "import": 2,
      "environment": 66,
@@ -3479,7 +3479,7 @@
      "environment": 367,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 120,
      "import": 4,
      "environment": 66,
@@ -3499,7 +3499,7 @@
      "environment": 405,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 25,
      "import": 3,
      "environment": 78,
@@ -3519,7 +3519,7 @@
      "environment": 405,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 126,
      "import": 10,
      "environment": 66,
@@ -3539,7 +3539,7 @@
      "environment": 388,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 2537,
      "import": 22,
      "environment": 59,
@@ -3559,7 +3559,7 @@
      "environment": 405,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 652,
      "import": 20,
      "environment": 66,
@@ -3579,7 +3579,7 @@
      "environment": 405,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 226,
      "import": 40,
      "environment": 66,
@@ -3599,7 +3599,7 @@
      "environment": 367,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 1320,
      "import": 61,
      "environment": 66,
@@ -3619,7 +3619,7 @@
      "environment": 394,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 32,
      "import": 3,
      "environment": 78,
@@ -3639,7 +3639,7 @@
      "environment": 362,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 32,
      "import": 3,
      "environment": 78,
@@ -3659,7 +3659,7 @@
      "environment": 367,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 199,
      "import": 5,
      "environment": 66,
@@ -3681,7 +3681,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 17,
      "import": 2,
      "environment": 0,
@@ -3701,7 +3701,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 103,
      "import": 3,
      "environment": 0,
@@ -3721,7 +3721,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 18,
      "import": 3,
      "environment": 0,
@@ -3741,7 +3741,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 83,
      "import": 8,
      "environment": 0,
@@ -3761,7 +3761,7 @@
      "environment": 289,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 2190,
      "import": 17,
      "environment": 49,
@@ -3781,7 +3781,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 381,
      "import": 4,
      "environment": 0,
@@ -3801,7 +3801,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 181,
      "import": 6,
      "environment": 0,
@@ -3821,7 +3821,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 903,
      "import": 32,
      "environment": 0,
@@ -3841,7 +3841,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 22,
      "import": 2,
      "environment": 0,
@@ -3861,7 +3861,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 21,
      "import": 3,
      "environment": 0,
@@ -3881,7 +3881,7 @@
      "environment": 0,
      "state": "passed"
     },
-    "rsdom": {
+    "oxidom": {
      "tests": 198,
      "import": 4,
      "environment": 0,
@@ -4066,7 +4066,7 @@
     "spread": 0.112
    }
   },
-  "rsdom": {
+  "oxidom": {
    "matrix": "threads-noiso",
    "wall": {
     "n": 7,

@@ -9,7 +9,7 @@ import { CAUSES } from './causes.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const raw = path.join(here, 'results/raw')
-const DOMS = ['jsdom', 'happy-dom', 'rsdom']
+const DOMS = ['jsdom', 'happy-dom', 'oxidom']
 const MODES = ['polyfills', 'nopolyfills', 'diagnostics']
 const GROUP = { tabbable: 'focus-trap + tabbable', 'focus-trap': 'focus-trap + tabbable' }
 const VERSION_PKG = { 'focus-trap + tabbable': ['focus-trap', 'tabbable'], '@tiptap/react': ['@tiptap/react', '@tiptap/starter-kit'], lexical: ['lexical', '@lexical/react'], '@mui/material': ['@mui/material', '@emotion/react', '@emotion/styled'] }
@@ -136,7 +136,7 @@ for (const mode of MODES) for (const dom of DOMS) {
 
 const result = {
   generated: new Date().toISOString(),
-  versions: { node: process.version, vitest: ver('vitest'), jsdom: ver('jsdom'), 'happy-dom': ver('happy-dom'), react: ver('react'), '@testing-library/react': ver('@testing-library/react'), '@testing-library/user-event': ver('@testing-library/user-event'), '@testing-library/jest-dom': ver('@testing-library/jest-dom'), rsdom: 'working tree, packages/rsdom/native/rsdom.linux-x64-gnu.node' },
+  versions: { node: process.version, vitest: ver('vitest'), jsdom: ver('jsdom'), 'happy-dom': ver('happy-dom'), react: ver('react'), '@testing-library/react': ver('@testing-library/react'), '@testing-library/user-event': ver('@testing-library/user-event'), '@testing-library/jest-dom': ver('@testing-library/jest-dom'), oxidom: 'working tree, packages/oxidom/native/oxidom.linux-x64-gnu.node' },
   statusLegend: { pass: 'all tests of the library passed, no unhandled errors', fail: 'at least one test failed (or the test file failed to import)', error: 'all assertions passed but Vitest reported an unhandled error/rejection attributed to one of its tests (the run exits 1)' },
   shims: { applied: 'tests/setup.ts, only if the API is missing; identical code for all DOMs', installedPerDom: probes },
   totals,
@@ -153,16 +153,16 @@ fs.writeFileSync(path.join(here, 'results/libs.json'), JSON.stringify(result, nu
 // ---------------------------------------------------------------- summary.md
 const S = { pass: 'pass', fail: '**FAIL**', error: 'error*' }
 const md = []
-md.push('# Real-world library compatibility: jsdom vs happy-dom vs rsdom', '')
+md.push('# Real-world library compatibility: jsdom vs happy-dom vs oxidom', '')
 md.push(`Generated ${result.generated} by \`e2e/libraries/aggregate.mjs\`. Versions: ${Object.entries(result.versions).map(([k, v]) => `${k} ${v}`).join(', ')}.`, '')
 md.push('Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.', '')
 md.push('## Totals', '', '| run | tests | pass | pass + unhandled error | fail | libraries fully passing |', '|---|---|---|---|---|---|')
 for (const [k, t] of Object.entries(totals)) if (!k.startsWith('diagnostics')) md.push(`| ${k} | ${t.tests} | ${t.pass} | ${t.passWithUnhandled} | ${t.fail} | ${t.libsPass}/${libs.length} |`)
 md.push('', '`error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library\'s test. Vitest then exits 1, so CI goes red.', '')
-md.push('## Per library (with documented shims)', '', '| library | version | tests | jsdom | happy-dom | rsdom | without shims (jsdom / happy-dom / rsdom) |', '|---|---|---|---|---|---|---|')
+md.push('## Per library (with documented shims)', '', '| library | version | tests | jsdom | happy-dom | oxidom | without shims (jsdom / happy-dom / oxidom) |', '|---|---|---|---|---|---|---|')
 for (const l of libs) {
   const cell = (d) => `${S[l.results[d].status]} ${l.results[d].passed}/${l.results[d].total}`
-  md.push(`| ${l.lib} | ${l.version.replace(/, /g, '<br>')} | ${l.results.jsdom.total} | ${cell('jsdom')} | ${cell('happy-dom')} | ${cell('rsdom')} | ${DOMS.map((d) => S[l.resultsWithoutShims[d].status]).join(' / ')} |`)
+  md.push(`| ${l.lib} | ${l.version.replace(/, /g, '<br>')} | ${l.results.jsdom.total} | ${cell('jsdom')} | ${cell('happy-dom')} | ${cell('oxidom')} | ${DOMS.map((d) => S[l.resultsWithoutShims[d].status]).join(' / ')} |`)
 }
 md.push('', '## Root causes (each one verified)', '')
 for (const c of CAUSES) {
@@ -170,23 +170,23 @@ for (const c of CAUSES) {
   md.push(`### ${c.title}`, '', `- **DOM(s):** ${c.doms.join(', ')}. **Category:** ${c.category}. **Libraries hit:** ${affected.join(', ') || '(diagnostics only)'}`, `- **Evidence:** ${c.evidence}`, '')
 }
 md.push(unexplained.length ? `**UNEXPLAINED failures: ${unexplained.length}** (see libs.json \`unexplained\`)` : 'Every failing test and every unhandled error, in all six runs, maps to one of the causes above (`unexplained` is empty).', '')
-md.push('## Counterfactual checks (diagnostics/counterfactual.test.tsx)', '', 'Each check re-runs a failing scenario after shimming only the API named as the root cause. A pass confirms the diagnosis. On rsdom these scenarios hit an earlier blocker first, which is listed below.', '', '| scenario | jsdom | happy-dom | rsdom |', '|---|---|---|---|')
+md.push('## Counterfactual checks (diagnostics/counterfactual.test.tsx)', '', 'Each check re-runs a failing scenario after shimming only the API named as the root cause. A pass confirms the diagnosis. On oxidom these scenarios hit an earlier blocker first, which is listed below.', '', '| scenario | jsdom | happy-dom | oxidom |', '|---|---|---|---|')
 if (result.counterfactuals) {
   const titles = result.counterfactuals.jsdom.map((t) => t.title)
   for (const ti of titles) md.push(`| ${ti} | ${DOMS.map((d) => { const t = result.counterfactuals[d].find((x) => x.title === ti); return t.status === 'fail' ? `fail (${t.cause})` : t.status === 'pass+unhandled' ? `pass, then unhandled: ${t.unhandled.join('; ').slice(0, 80)}` : 'pass' }).join(' | ')} |`)
 }
 md.push('', '## Shims ("polyfills")', '', 'Only shims that library docs or the Jest docs tell jsdom users to add are allowed: `matchMedia`, `ResizeObserver`, `Element#scrollIntoView`, and `Element#hasPointerCapture`/`setPointerCapture`/`releasePointerCapture`. Each one is installed only when the API is missing. The two "Testing in JSDom" READMEs of tabbable and focus-trap say to pass `displayCheck: \'none\'`, and the tests do that for every DOM. The shims each DOM actually needed:', '')
 for (const d of DOMS) md.push(`- ${d}: ${probes[d].length ? probes[d].join(', ') : 'none (all present natively)'}`)
-md.push('', 'Without shims, Radix Select and Headless UI fail on jsdom. happy-dom and rsdom (since its inert observers, DESIGN §24) need no shims.', '')
+md.push('', 'Without shims, Radix Select and Headless UI fail on jsdom. happy-dom and oxidom (since its inert observers, DESIGN §24) need no shims.', '')
 if (census) {
-  md.push('## Static census: DOM APIs referenced by the 20 libraries', '', 'Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its dependency closure, excluding react and react-dom. "Used by" means the identifier appears in the code. It does not mean a test executed it. The Range rows also require `createRange` or `getRangeAt` in the same file, which approximates the receiver. "Native" is measured inside each Vitest environment with no shims (`tests/_env-probe.test.ts`, `LIBS_POLYFILLS=0`).', '', '| API | area | used by (of 20) | jsdom | happy-dom | rsdom |', '|---|---|---|---|---|---|')
+  md.push('## Static census: DOM APIs referenced by the 20 libraries', '', 'Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its dependency closure, excluding react and react-dom. "Used by" means the identifier appears in the code. It does not mean a test executed it. The Range rows also require `createRange` or `getRangeAt` in the same file, which approximates the receiver. "Native" is measured inside each Vitest environment with no shims (`tests/_env-probe.test.ts`, `LIBS_POLYFILLS=0`).', '', '| API | area | used by (of 20) | jsdom | happy-dom | oxidom |', '|---|---|---|---|---|---|')
   const yn = (v) => (v === true ? 'yes' : v === false ? '**no**' : 'n/a')
-  for (const a of [...census.apis].sort((x, y) => y.usedBy.length - x.usedBy.length)) md.push(`| ${a.id} | ${a.area} | ${a.usedBy.length} | ${yn(a.available.jsdom)} | ${yn(a.available['happy-dom'])} | ${yn(a.available.rsdom)} |`)
+  for (const a of [...census.apis].sort((x, y) => y.usedBy.length - x.usedBy.length)) md.push(`| ${a.id} | ${a.area} | ${a.usedBy.length} | ${yn(a.available.jsdom)} | ${yn(a.available['happy-dom'])} | ${yn(a.available.oxidom)} |`)
   md.push('', '### Referenced-but-missing APIs per DOM (count of libraries referencing each)', '')
   for (const d of DOMS) md.push(`- **${d}** (${census.missingApisReferenced[d].length} APIs): ${census.missingApisReferenced[d].map((r) => `${r.api} (${r.libs})`).join(', ')}`)
   md.push('')
 }
-md.push('## Caveats', '', '- These are smoke tests, 1 to 3 per library. A pass shows that a typical happy path works. It does not prove full compatibility.', '- Static census hits come from identifier presence. Many are feature-detected or sit on code paths the tests never reach. Use them as a risk indicator. They do not predict failures.', '- Typing into contenteditable editors (Lexical, tiptap) also depends on how @testing-library/user-event simulates input. The Lexical typing failure on jsdom and happy-dom is partly a tooling limit. The counterfactual shows that the missing `getTargetRanges` is enough to explain it.', '- Unhandled errors are attributed to a test with Vitest\'s "last test to run" heuristic.', `- On rsdom, ${runs['polyfills-rsdom'].tests.filter((t) => t.cause && CAUSES.find((c) => c.id === t.cause)?.category === 'missing-api').length} tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.`, '')
+md.push('## Caveats', '', '- These are smoke tests, 1 to 3 per library. A pass shows that a typical happy path works. It does not prove full compatibility.', '- Static census hits come from identifier presence. Many are feature-detected or sit on code paths the tests never reach. Use them as a risk indicator. They do not predict failures.', '- Typing into contenteditable editors (Lexical, tiptap) also depends on how @testing-library/user-event simulates input. The Lexical typing failure on jsdom and happy-dom is partly a tooling limit. The counterfactual shows that the missing `getTargetRanges` is enough to explain it.', '- Unhandled errors are attributed to a test with Vitest\'s "last test to run" heuristic.', `- On oxidom, ${runs['polyfills-oxidom'].tests.filter((t) => t.cause && CAUSES.find((c) => c.id === t.cause)?.category === 'missing-api').length} tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.`, '')
 fs.writeFileSync(path.join(here, 'results/summary.md'), md.join('\n'))
 console.log(JSON.stringify(totals, null, 1))
 console.log('unexplained:', unexplained)

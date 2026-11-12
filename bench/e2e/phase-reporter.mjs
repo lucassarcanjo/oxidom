@@ -1,6 +1,6 @@
 // Vitest 5 reporter for the end-to-end benchmark (bench/e2e/run.mjs): absolute per-file phase durations (the
 // v5 `Duration` line only prints percentages, and the JSON reporter has no phases; docs/lab/research/vitest-env.md
-// §8). Writes JSON to $RSDOM_PHASES_OUT.
+// §8). Writes JSON to $OXIDOM_PHASES_OUT.
 //
 // Phases per file (ms), as Vitest 5 defines them (reporters/durationBreakdown.ts):
 //   environment = environmentLoad (env module import + setup(); see Pitfall A for isolate: false)
@@ -61,6 +61,6 @@ export default class PhaseReporter {
       maxWorkers: this.vitest.config.maxWorkers,
       files,
     };
-    if (process.env.RSDOM_PHASES_OUT) writeFileSync(process.env.RSDOM_PHASES_OUT, JSON.stringify(out));
+    if (process.env.OXIDOM_PHASES_OUT) writeFileSync(process.env.OXIDOM_PHASES_OUT, JSON.stringify(out));
   }
 }

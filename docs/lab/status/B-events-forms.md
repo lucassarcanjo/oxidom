@@ -5,7 +5,7 @@ Branch `feat/area-b-events-forms`. ROADMAP M4 (P0 + P1) and the area-B part of M
 
 ## What is implemented
 
-**Rust** (`crates/rsdom/src/forms/`, `crates/rsdom/src/focus.rs`)
+**Rust** (`crates/oxidom/src/forms/`, `crates/oxidom/src/focus.rs`)
 - `forms/types.rs`: input type table (5-bit code mirrored into `NodeRec.state`, `text = 0`), value modes,
   value sanitization for every type jsdom sanitizes (text/search/tel/password/url/email(+multiple)/color/
   date/month/week/time/datetime-local/number/range), the date/time/week/month microsyntaxes, valid
@@ -26,7 +26,7 @@ Branch `feat/area-b-events-forms`. ROADMAP M4 (P0 + P1) and the area-B part of M
   `EP[FOCUS]` for the main document, `EP[14]` focus version, removal fixup without blur, `EP[FOCUS]`
   follows `setMainDocument`.
 
-**JS** (`packages/rsdom/lib/events.cjs`, `packages/rsdom/lib/forms.cjs`)
+**JS** (`packages/oxidom/lib/events.cjs`, `packages/oxidom/lib/forms.cjs`)
 - EventTarget: listener lists on the wrapper (`_ev`), capture/passive/once/signal, dedup by (callback,
   capture), `handleEvent` looked up at call time, React's passive probe, jsdom's default-passive rule.
 - Dispatch: path from the node table's parent links (zero FFI), then document, then window (not for
@@ -51,7 +51,7 @@ Branch `feat/area-b-events-forms`. ROADMAP M4 (P0 + P1) and the area-B part of M
   dispatchEvent) area C binds to `globalThis`; `createWindow()` calls it.
 - Form controls: own `value`/`checked` accessors on `HTMLInputElement.prototype` (and `value` on the
   textarea/select prototypes), selection members own on the input and textarea prototypes, value memo in
-  `_vm` keyed by FORM_VER (`RSDOM_NO_MEMO=1` disables it; the setter seeds it when Rust reports that the
+  `_vm` keyed by FORM_VER (`OXIDOM_NO_MEMO=1` disables it; the setter seeds it when Rust reports that the
   stored value is exactly the argument), selection memo, checked/selected/indeterminate/type from state bits,
   file inputs (`FileList`, `C:\fakepath\` value), valueAsNumber, `list`, all jsdom reflections (incl.
   maxLength/minLength [ReflectNonNegative], size/rows/cols [ReflectPositive]), textarea, select
@@ -79,18 +79,18 @@ Branch `feat/area-b-events-forms`. ROADMAP M4 (P0 + P1) and the area-B part of M
   table, value modes, sanitization, select/option oracle, UTF-16 selection, labels/forms/reset, fieldset,
   validity), `focus.test.mjs` (§6.9 order oracle, gates, fixup), `html-elements.test.mjs`,
   `user-event.test.mjs` (user-event `type` with emoji: final value and every offset match jsdom).
-- rsdom-only: `test/native/events-forms.test.mjs` (a 20-deep dispatch with React-like listeners makes
+- oxidom-only: `test/native/events-forms.test.mjs` (a 20-deep dispatch with React-like listeners makes
   zero N-API calls; checkbox activation crosses only for `preActivate` / `cancelActivation`; value memo;
   parser hook; clone; focus epochs; uncaught listener errors), `test/native/react-smoke.test.mjs` (React 19
   createRoot/render/click/onChange for checkbox and text input, label click, focus, unmount, plain Node on
   `createWindow()`), `test/native/form-entries.test.mjs`.
-- Rust unit tests in `src/forms/` and `src/focus.rs`. All green with `RSDOM_SHARED=0` and `RSDOM_NO_MEMO=1`.
+- Rust unit tests in `src/forms/` and `src/focus.rs`. All green with `OXIDOM_SHARED=0` and `OXIDOM_NO_MEMO=1`.
 
 ## Benchmarks (`bench/micro/events-forms.mjs`, results in `events-forms*.txt`)
 
 Release build, median of 7, one process per DOM, measured while two other agents shared the 4 CPUs (noisy):
 
-| operation | jsdom | happy-dom | rsdom |
+| operation | jsdom | happy-dom | oxidom |
 |---|---|---|---|
 | add + remove 143 listeners, one container | 96.8 us | 35.1 us | 19.0 us |
 | fresh container + 143 new listeners, retained | 75.0 us | 45.7 us | 74.7 us |
@@ -105,14 +105,14 @@ Release build, median of 7, one process per DOM, measured while two other agents
 | setSelectionRange + selectionStart get | 5393 ns | 3946 ns | 813 ns |
 | select.value set + get | 1964 ns | 1209 ns | 216 ns |
 
-Ablations (same run): with `RSDOM_NO_MEMO=1` an unchanged `input.value` read is a crossing (74 ns, slower
-than happy-dom's 64 ns in that run) and set + get is 218 ns; with `RSDOM_SHARED=0` (crossing-getter fallback)
+Ablations (same run): with `OXIDOM_NO_MEMO=1` an unchanged `input.value` read is a crossing (74 ns, slower
+than happy-dom's 64 ns in that run) and set + get is 218 ns; with `OXIDOM_SHARED=0` (crossing-getter fallback)
 `input.checked` is 8.4 ns and `setSelectionRange` + `selectionStart` 2.4 us, dispatch stays ~4 us.
 
 Honest reading: events are pure JS in all three DOMs, so the dispatch win is a JS-design effect (table
 parent links, #private event state, no per-dispatch struct allocation), not Rust. The form wins come from
 Rust-side state plus the FORM_VER memo (see the `-nomemo` / `-fallback` tables for the ablations). The one
-loss: creating many containers with fresh listeners is GC-bound in rsdom because every wrapper (and its
+loss: creating many containers with fresh listeners is GC-bound in oxidom because every wrapper (and its
 listeners) is retained for the env's lifetime (no reclamation, DESIGN §11); one React root per test does not
 hit this.
 

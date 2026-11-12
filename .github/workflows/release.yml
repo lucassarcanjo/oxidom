@@ -1,5 +1,5 @@
-# Builds the addon for every supported platform and publishes `nativedom`, `vitest-environment-nativedom` and `jest-environment-nativedom` to npm.
-# All binaries ship inside `nativedom` (native/rsdom.<triple>.node); lib/native.cjs picks the one for the host.
+# Builds the addon for every supported platform and publishes `oxidom`, `vitest-environment-oxidom` and `jest-environment-oxidom` to npm.
+# All binaries ship inside `oxidom` (native/oxidom.<triple>.node); lib/native.cjs picks the one for the host.
 #
 # Runs on a `v*` tag that matches the package versions, or by hand (Actions > Release > Run workflow), where
 # `dry_run` packs and checks everything without publishing. Safe to rerun: a package whose version is already on
@@ -64,25 +64,25 @@ jobs:
         shell: bash
         env:
           RUSTFLAGS: ${{ contains(matrix.target, 'musl') && '-C target-feature=-crt-static' || '' }}
-        run: npm run build --workspace=nativedom -- --target ${{ matrix.target }} ${{ matrix.flags }}
+        run: npm run build --workspace=oxidom -- --target ${{ matrix.target }} ${{ matrix.flags }}
       - name: Smoke test
         if: matrix.smoke == 'node'
         shell: bash
-        run: node scripts/release-smoke.cjs packages/rsdom
+        run: node scripts/release-smoke.cjs packages/oxidom
       - name: Smoke test (Alpine)
         if: matrix.smoke == 'alpine'
-        run: docker run --rm -v "$PWD:/w" -w /w node:22-alpine node scripts/release-smoke.cjs packages/rsdom
+        run: docker run --rm -v "$PWD:/w" -w /w node:22-alpine node scripts/release-smoke.cjs packages/oxidom
       - uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.target }}
-          path: packages/rsdom/native/rsdom.*.node
+          path: packages/oxidom/native/oxidom.*.node
           if-no-files-found: error
       # build.rs output is the same on every platform; the publish job takes it from one build.
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         with:
           name: generated
-          path: packages/rsdom/lib/generated/
+          path: packages/oxidom/lib/generated/
           if-no-files-found: error
 
   publish:
@@ -103,45 +103,45 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: native-*
-          path: packages/rsdom/native
+          path: packages/oxidom/native
           merge-multiple: true
       - uses: actions/download-artifact@v4
         with:
           name: generated
-          path: packages/rsdom/lib/generated
+          path: packages/oxidom/lib/generated
       - name: Check versions and binaries
         run: |
-          v=$(node -p "require('./packages/rsdom/package.json').version")
-          for p in vitest-environment-rsdom jest-environment-rsdom; do
+          v=$(node -p "require('./packages/oxidom/package.json').version")
+          for p in vitest-environment-oxidom jest-environment-oxidom; do
             e=$(node -p "require('./packages/$p/package.json').version")
-            [ "$v" = "$e" ] || { echo "::error::nativedom is $v but packages/$p is $e"; exit 1; }
+            [ "$v" = "$e" ] || { echo "::error::oxidom is $v but packages/$p is $e"; exit 1; }
           done
           if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$v" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match package version $v"; exit 1
           fi
           for t in linux-x64-gnu linux-arm64-gnu linux-x64-musl linux-arm64-musl darwin-arm64 darwin-x64 win32-x64-msvc; do
-            [ -f "packages/rsdom/native/rsdom.$t.node" ] || { echo "::error::missing rsdom.$t.node"; exit 1; }
+            [ -f "packages/oxidom/native/oxidom.$t.node" ] || { echo "::error::missing oxidom.$t.node"; exit 1; }
           done
-          ls -l packages/rsdom/native
+          ls -l packages/oxidom/native
       - name: Pack
         run: |
           mkdir -p "$RUNNER_TEMP/pack"
-          npm pack --workspace=nativedom --workspace=vitest-environment-nativedom --workspace=jest-environment-nativedom --pack-destination "$RUNNER_TEMP/pack"
+          npm pack --workspace=oxidom --workspace=vitest-environment-oxidom --workspace=jest-environment-oxidom --pack-destination "$RUNNER_TEMP/pack"
       - name: Smoke test the packed package
         run: |
           mkdir -p "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
           npm init -y > /dev/null
-          npm install --no-audit --no-fund "$RUNNER_TEMP"/pack/nativedom-*.tgz
-          node "$GITHUB_WORKSPACE/scripts/release-smoke.cjs" nativedom
+          npm install --no-audit --no-fund "$RUNNER_TEMP"/pack/oxidom-*.tgz
+          node "$GITHUB_WORKSPACE/scripts/release-smoke.cjs" oxidom
       - name: Publish
         if: github.event_name == 'push' || !inputs.dry_run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # nativedom first: both environment packages have it as a peer dependency.
-          for f in nativedom vitest-environment-nativedom jest-environment-nativedom; do
+          # oxidom first: both environment packages have it as a peer dependency.
+          for f in oxidom vitest-environment-oxidom jest-environment-oxidom; do
             tgz=$(ls "$RUNNER_TEMP"/pack/$f-[0-9]*.tgz)
-            v=$(node -p "require('./packages/rsdom/package.json').version")
+            v=$(node -p "require('./packages/oxidom/package.json').version")
             if npm view "$f@$v" version > /dev/null 2>&1; then
               echo "$f@$v is already on npm, skipping"
             else

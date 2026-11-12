@@ -1,7 +1,7 @@
 {
-  "name": "rsdom-compare-surface",
+  "name": "oxidom-compare-surface",
   "private": true,
   "type": "module",
-  "description": "API surface census: jsdom WebIDL vs runtime globals of jsdom / happy-dom / rsdom",
+  "description": "API surface census: jsdom WebIDL vs runtime globals of jsdom / happy-dom / oxidom",
   "dependencies": { "webidl2": "24.5.0" }
 }

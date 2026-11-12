@@ -1,10 +1,10 @@
 # Roadmap items (docs/ROADMAP.md) and the parity-suite tests that measure them. results/summary.md reports each
-# item's gap: the subtests jsdom passes in those files and rsdom does not. `tests` are globs over
+# item's gap: the subtests jsdom passes in those files and oxidom does not. `tests` are globs over
 # "<source>:<test id>" (sources: wpt, tuwpt, legacy, api; ids as in expectations/<source>.yaml). `**` must be a
 # whole path segment: `api:api/**`, not `api:**`. A leading `!` excludes. Scopes may overlap; report.mjs warns
 # about a glob that matches no test. An item without tests has none in the suite's selection (jsdom may still run
 # some in a WPT DIR the selection leaves out, conformance/wpt/select.mjs INCLUDE); its contract tests in
-# packages/rsdom/test carry it. Run one item's scope with `npm run test:parity -- --item <id>`.
+# packages/oxidom/test carry it. Run one item's scope with `npm run test:parity -- --item <id>`.
 
 # ---- Stage 1: close the measured library gaps
 - id: traversal
@@ -40,7 +40,7 @@
 # ---- Stage 2: jsdom-compatible entry points
 - id: jsdom-api
   stage: 2
-  title: JSDOM class and options (jsdom's own API tests, run on rsdom's JSDOM class)
+  title: JSDOM class and options (jsdom's own API tests, run on oxidom's JSDOM class)
   tests: ['api:api/**']
 
 # ---- Stage 3: breadth parity with jsdom

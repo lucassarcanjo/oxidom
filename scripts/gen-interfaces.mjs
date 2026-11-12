@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Regenerates crates/rsdom/data/interfaces.json from the jsdom reference checkout:
+// Regenerates crates/oxidom/data/interfaces.json from the jsdom reference checkout:
 //   - tag -> interface mapping: refs/jsdom/lib/jsdom/living/helpers/create-element.js (INTERFACE_TAG_MAPPING,
 //     UNKNOWN_HTML_ELEMENTS_NAMES, HTML_ELEMENTS_NAMES)
 //   - interface -> parent interface: refs/jsdom/lib/jsdom/living/nodes/<Interface>.webidl ("interface X : Y")
@@ -7,14 +7,14 @@
 //     living/aria/*.webidl, mixins folded into the interfaces that include them (DESIGN §37)
 //
 // The output is committed so the build stays hermetic (refs/ is gitignored; populate it with
-// `scripts/fetch-refs.sh`). build.rs turns it into packages/rsdom/lib/generated/interfaces.cjs.
-// Run: `node scripts/gen-interfaces.mjs` (RSDOM_REFS overrides the refs/ location).
+// `scripts/fetch-refs.sh`). build.rs turns it into packages/oxidom/lib/generated/interfaces.cjs.
+// Run: `node scripts/gen-interfaces.mjs` (OXIDOM_REFS overrides the refs/ location).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const refs = process.env.RSDOM_REFS ?? path.resolve(here, '../refs');
+const refs = process.env.OXIDOM_REFS ?? path.resolve(here, '../refs');
 const living = path.join(refs, 'jsdom/lib/jsdom/living');
 const src = fs.readFileSync(path.join(living, 'helpers/create-element.js'), 'utf8');
 
@@ -117,5 +117,5 @@ const table = Object.entries(reflect)
   .map(([k, list]) => `  ${JSON.stringify(k)}: [\n${list.map((a) => `   ${JSON.stringify(a).replace(/([,:])(?=["{[\d])/g, '$1 ')}`).join(',\n')}\n  ]`)
   .join(',\n');
 const json = `${JSON.stringify(rest, null, 1).slice(0, -2)},\n "reflect": {\n${table}\n }\n}`;
-fs.writeFileSync(path.join(here, '../crates/rsdom/data/interfaces.json'), json + '\n');
+fs.writeFileSync(path.join(here, '../crates/oxidom/data/interfaces.json'), json + '\n');
 console.log(`wrote data/interfaces.json: ${Object.keys(out.html).length} HTML + ${Object.keys(out.svg).length} SVG interfaces`);

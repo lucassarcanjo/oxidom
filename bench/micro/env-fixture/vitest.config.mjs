@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const ENV = {
   jsdom: 'jsdom',
   'happy-dom': 'happy-dom',
-  rsdom: path.resolve(here, '../../../packages/rsdom/lib/vitest-environment.mjs'),
+  oxidom: path.resolve(here, '../../../packages/oxidom/lib/vitest-environment.mjs'),
 };
 const env = ENV[process.env.DOM_ENV ?? 'jsdom'];
 if (!env) throw new Error(`unknown DOM_ENV ${process.env.DOM_ENV}`);

@@ -1,4 +1,4 @@
-# rsdom's expected failures in the parity suite: web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127).
+# oxidom's expected failures in the parity suite: web-platform-tests: the DIRs of jsdom's to-run.yaml relevant to a DOM environment (67 of 127).
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
@@ -943,11 +943,11 @@ domparsing/DOMParser-parseFromString-stylesheets.html:
 domparsing/DOMParser-parseFromString-xml-doctype.html:
   "Doctype parsing of System Id must fail on ommitted value": [fail, "assert_equals: wrong value"]
 domparsing/DOMParser-parseFromString-xml-scripting-support-disabled.html:
-  "parseFromString as XML, svg script, append adoptNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XML, svg script, append cloneNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XML, svg script, append importNode result": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XML, svg script, append importNode result, but with namespace prefix": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
-  "parseFromString as XML, svg script, appendChild": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "parseFromString as XML, svg script, append adoptNode result": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "parseFromString as XML, svg script, append cloneNode result": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "parseFromString as XML, svg script, append importNode result": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "parseFromString as XML, svg script, append importNode result, but with namespace prefix": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "parseFromString as XML, svg script, appendChild": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domparsing/XMLSerializer-serializeToString.html:
   "Check if a prefix bound to an empty namespace URI (\"no namespace\") serialize": [fail, "assert_equals: wrong value"]
   "Check if no special handling for XLink namespace unlike HTML serializer.": [fail, "assert_equals: wrong value"]
@@ -956,14 +956,14 @@ domparsing/createContextualFragment.html:
   "<script>s should be run when appended to the document (but not before)": [fail, "assert_true: wrong value"]
 domparsing/parsed-document-origin.window.html:
   "DOMParser's parseFromString() with text/html": [fail, "assert_equals: wrong value"]
-  "DOMParser's parseFromString() with text/xml": [fail, "rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
+  "DOMParser's parseFromString() with text/xml": [fail, "oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
   "Document.parseHTML()": [fail, "missing method: .parseHTML()"]
   "Document.parseHTMLUnsafe()": [fail, "missing method: .parseHTMLUnsafe()"]
   "createDocument()": [fail, "assert_equals: wrong value"]
   "createHTMLDocument()": [fail, "assert_equals: wrong value"]
 domparsing/style_attribute_html.html:
   "Parsing of invalid style attribute": [fail, "assert_equals: wrong value"]
-domxpath/fn-lang.html: [fail, "harness ERROR: rsdom: DOMParser type … is not supported (XML parsing is out of scope)"]
+domxpath/fn-lang.html: [fail, "harness ERROR: oxidom: DOMParser type … is not supported (XML parsing is out of scope)"]
 domxpath/fn-normalize-space.html: [fail, "missing method: .evaluate()"]
 domxpath/fns-name-related.html:
   "fns-name-related": [fail, "read of undefined (.length)"]

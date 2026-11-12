@@ -3,7 +3,7 @@
 //
 // The page is executed the way a Vitest test file would touch the DOM:
 //   1. the DOM is installed on globalThis by its Vitest environment object (jsdom / happy-dom: vitest's
-//      builtinEnvironments; rsdom: packages/rsdom/lib/vitest-environment.mjs), with the test URL as environment url;
+//      builtinEnvironments; oxidom: packages/oxidom/lib/vitest-environment.mjs), with the test URL as environment url;
 //   2. the page's markup is loaded with `document.documentElement.innerHTML = <inner HTML of the parsed
 //      <html>>` (+ the <html> attributes) — identical for all three DOMs; scripts inserted this way do not run;
 //   3. testharness.js and every classic <script> of the page (inline or src, same-origin files from the WPT
@@ -65,7 +65,7 @@ function analysePage(html, urlPath) {
 }
 
 async function loadEnv(dom) {
-  if (dom === 'rsdom') return (await import(pathToFileURL(path.join(LAB, 'packages/rsdom/lib/vitest-environment.mjs')).href)).default;
+  if (dom === 'oxidom') return (await import(pathToFileURL(path.join(LAB, 'packages/oxidom/lib/vitest-environment.mjs')).href)).default;
   const rt = await import(pathToFileURL(path.join(LAB, 'node_modules/vitest/dist/runtime.js')).href);
   return rt.builtinEnvironments[dom];
 }
@@ -157,13 +157,13 @@ export async function runOne(dom, test) {
   let envRet;
   try {
     const env = await loadEnv(dom);
-    envRet = await env.setup(globalThis, { jsdom: { url }, happyDOM: { url }, nativedom: { url } });
+    envRet = await env.setup(globalThis, { jsdom: { url }, happyDOM: { url }, oxidom: { url } });
   } catch (e) {
     out.harness = { status: 'SETUP_ERROR', message: trunc(e && e.stack) };
     return out;
   }
   const tSetup = performance.now();
-  // An error the DOM already reported to the window is not dispatched there a second time: rsdom's "report an
+  // An error the DOM already reported to the window is not dispatched there a second time: oxidom's "report an
   // exception" fires the window's ErrorEvent and then emits uncaughtException (what Vitest needs to fail a test),
   // which would otherwise reach the window again through reportError (DESIGN §28).
   try {

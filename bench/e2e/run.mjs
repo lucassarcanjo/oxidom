@@ -2,20 +2,20 @@
 // DOM_ENV, each sample a fresh `vitest run` process with bench/e2e/phase-reporter.mjs, and summarises
 // external wall time + per-phase sums + per-file test time (medians and spread).
 //
-//   node bench/e2e/run.mjs [--n=5] [--warmup=1] [--doms=jsdom,happy-dom,rsdom]
+//   node bench/e2e/run.mjs [--n=5] [--warmup=1] [--doms=jsdom,happy-dom,oxidom]
 //                          [--matrix=forks,threads,threads-noiso,serial] [--ablations=forks,serial | --no-ablations]
 //                          [--counters] [--write]
 //
 // Protocol (docs/lab/research/vitest-env.md §9): warm-up run(s) first (Vitest 5's fsModuleCache makes samples
 // warm-cache runs, as developers see them); samples are INTERLEAVED (sample i of every config before sample
 // i+1 of any) to spread machine drift over all configs; --maxWorkers is pinned; config, setup files and
-// transforms are identical for all DOMs, only DOM_ENV (and RSDOM_* for ablations) varies. Configuration is
+// transforms are identical for all DOMs, only DOM_ENV (and OXIDOM_* for ablations) varies. Configuration is
 // passed with CLI flags/env only. A failing run is kept (and flagged), but the "common" test sums only count
 // files that passed in every DOM of that matrix entry: a DOM that fails tests is not "faster".
 //
 // --write: raw samples -> bench/results/raw/e2e-<stamp>.json (gitignored), summary ->
-// bench/results/e2e.json + e2e.md. --counters: one extra rsdom forks run with the counters build
-// (RSDOM_COUNTERS=1), crossings and native time per file -> e2e-counters section.
+// bench/results/e2e.json + e2e.md. --counters: one extra oxidom forks run with the counters build
+// (OXIDOM_COUNTERS=1), crossings and native time per file -> e2e-counters section.
 //
 // Fairness rules (M9 review):
 // - Statistics use only VALID samples (exit 0, reporter output present, 0 failed tests); the excluded count
@@ -28,22 +28,22 @@
 // - Wall is reported next to the critical-path file (the long pole, DataTable.heavy) plus "tests excluding
 //   *.heavy*" and the per-file median ratio, so a single heavy file does not stand for the whole suite.
 // - Peak RSS per sample (getrusage RUSAGE_CHILDREN through a python3 wrapper when available).
-// - Children get a clean environment (every RSDOM_* not set by the config is removed, RSDOM_NATIVE included,
+// - Children get a clean environment (every OXIDOM_* not set by the config is removed, OXIDOM_NATIVE included,
 //   unless --native=<addon>); meta records git rev, dirty flag, addon sha256 + build profile, package
 //   versions and the load average around every sample.
-// - --best adds each DOM's other supported pools (vmThreads for jsdom / happy-dom; rsdom cannot run it) and
+// - --best adds each DOM's other supported pools (vmThreads for jsdom / happy-dom; oxidom cannot run it) and
 //   NODE_COMPILE_CACHE variants of forks, and prints a "best available config per DOM" table.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { provenance, cleanEnv as cleanRsdomEnv, load1, MAX_LOAD } from '../provenance.mjs';
+import { provenance, cleanEnv as cleanOxidomEnv, load1, MAX_LOAD } from '../provenance.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const rsdomRoot = path.resolve(here, '../..');
-const appRoot = path.join(rsdomRoot, 'e2e/react-app');
-const resultsDir = path.join(rsdomRoot, 'bench/results');
+const oxidomRoot = path.resolve(here, '../..');
+const appRoot = path.join(oxidomRoot, 'e2e/react-app');
+const resultsDir = path.join(oxidomRoot, 'bench/results');
 const reporter = path.join(here, 'phase-reporter.mjs');
 const vitestCli = path.join(appRoot, 'node_modules/vitest/vitest.mjs');
 
@@ -55,7 +55,7 @@ const flag = (name) => process.argv.includes(`--${name}`);
 
 const N = Number(arg('n', 5));
 const WARMUP = Number(arg('warmup', 1));
-const DOMS = arg('doms', 'jsdom,happy-dom,rsdom').split(',').filter(Boolean);
+const DOMS = arg('doms', 'jsdom,happy-dom,oxidom').split(',').filter(Boolean);
 const WORKERS = Number(arg('workers', Math.max(1, os.availableParallelism() - 1)));
 
 /** Matrix entries: Vitest CLI flags. */
@@ -71,10 +71,10 @@ const MATRIX = {
 /** Matrix entries that may compete in the "best available config per DOM" table (same worker count). */
 const BEST_CANDIDATES = ['forks', 'threads', 'threads-noiso', 'vmThreads', 'forks-cc'];
 const ABLATIONS = {
-  'RSDOM_SHARED=0': { RSDOM_SHARED: '0' },
-  'RSDOM_NO_MEMO=1': { RSDOM_NO_MEMO: '1' },
-  'RSDOM_NO_PREFILTER=1': { RSDOM_NO_PREFILTER: '1' },
-  'all off': { RSDOM_SHARED: '0', RSDOM_NO_MEMO: '1', RSDOM_NO_PREFILTER: '1' },
+  'OXIDOM_SHARED=0': { OXIDOM_SHARED: '0' },
+  'OXIDOM_NO_MEMO=1': { OXIDOM_NO_MEMO: '1' },
+  'OXIDOM_NO_PREFILTER=1': { OXIDOM_NO_PREFILTER: '1' },
+  'all off': { OXIDOM_SHARED: '0', OXIDOM_NO_MEMO: '1', OXIDOM_NO_PREFILTER: '1' },
 };
 const matrix = arg('matrix', `forks,forks-1,threads,threads-noiso,serial${flag('best') ? ',vmThreads,forks-cc' : ''}`).split(',').filter(Boolean);
 const NATIVE = arg('native', null);
@@ -82,7 +82,7 @@ const ablationMatrix = flag('no-ablations') ? [] : arg('ablations', 'forks,seria
 for (const m of [...matrix, ...ablationMatrix]) if (!MATRIX[m]) throw new Error(`unknown matrix entry ${m}`);
 
 const configs = [];
-const compileCacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsdom-e2e-cc-'));
+const compileCacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'oxidom-e2e-cc-'));
 for (const m of matrix) {
   for (const dom of DOMS) {
     if (MATRIX[m].doms && !MATRIX[m].doms.includes(dom)) continue;
@@ -90,10 +90,10 @@ for (const m of matrix) {
     configs.push({ name: `${dom} | ${m}`, matrix: m, dom, ablation: null, env, args: MATRIX[m].args });
   }
 }
-if (DOMS.includes('rsdom')) {
+if (DOMS.includes('oxidom')) {
   for (const m of ablationMatrix) {
     for (const [ab, env] of Object.entries(ABLATIONS)) {
-      configs.push({ name: `rsdom ${ab} | ${m}`, matrix: m, dom: 'rsdom', ablation: ab, env: { DOM_ENV: 'rsdom', ...env }, args: MATRIX[m].args });
+      configs.push({ name: `oxidom ${ab} | ${m}`, matrix: m, dom: 'oxidom', ablation: ab, env: { DOM_ENV: 'oxidom', ...env }, args: MATRIX[m].args });
     }
   }
 }
@@ -101,11 +101,11 @@ if (DOMS.includes('rsdom')) {
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const rawDir = path.join(resultsDir, 'raw');
 fs.mkdirSync(rawDir, { recursive: true });
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'rsdom-e2e-'));
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'oxidom-e2e-'));
 
 function cleanEnv(extra) {
-  // every RSDOM_* switch (ablations, RSDOM_NATIVE, counters) must only come from the config
-  const env = cleanRsdomEnv({ CI: '1', NO_COLOR: '1', ...(NATIVE ? { RSDOM_NATIVE: path.resolve(NATIVE) } : {}), ...extra });
+  // every OXIDOM_* switch (ablations, OXIDOM_NATIVE, counters) must only come from the config
+  const env = cleanOxidomEnv({ CI: '1', NO_COLOR: '1', ...(NATIVE ? { OXIDOM_NATIVE: path.resolve(NATIVE) } : {}), ...extra });
   if (!('NODE_COMPILE_CACHE' in extra)) delete env.NODE_COMPILE_CACHE;
   return env;
 }
@@ -125,7 +125,7 @@ function runOnce(cfg, tag) {
   const t0 = performance.now();
   const r = spawnSync(HAVE_PY ? 'python3' : cmd[0], HAVE_PY ? ['-c', PY_WRAP, ...cmd] : cmd.slice(1), {
     cwd: appRoot,
-    env: cleanEnv({ ...cfg.env, RSDOM_PHASES_OUT: out }),
+    env: cleanEnv({ ...cfg.env, OXIDOM_PHASES_OUT: out }),
     encoding: 'utf8',
     timeout: 600_000,
     maxBuffer: 64 << 20,
@@ -187,9 +187,9 @@ for (let i = 0; i < WARMUP + N; i++) {
 }
 
 let counters = null;
-if (flag('counters') && DOMS.includes('rsdom')) {
+if (flag('counters') && DOMS.includes('oxidom')) {
   const outFile = path.join(scratch, 'counters.jsonl');
-  const r = runOnce({ env: { DOM_ENV: 'rsdom', RSDOM_COUNTERS: '1', RSDOM_COUNTERS_OUT: outFile }, args: MATRIX.forks.args }, 'counters');
+  const r = runOnce({ env: { DOM_ENV: 'oxidom', OXIDOM_COUNTERS: '1', OXIDOM_COUNTERS_OUT: outFile }, args: MATRIX.forks.args }, 'counters');
   const lines = fs.existsSync(outFile) ? fs.readFileSync(outFile, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
   const perFile = lines.map((l) => ({ file: l.files.map((f) => path.relative(appRoot, f)).join(','), calls: l.counters.calls, ms: +(l.counters.ns / 1e6).toFixed(2) }));
   const fns = {};
@@ -248,12 +248,12 @@ function summarise(cfg, common) {
   return row;
 }
 
-/** Median over common files of (other DOM's median tests time / rsdom's): the "typical file" ratio. */
+/** Median over common files of (other DOM's median tests time / oxidom's): the "typical file" ratio. */
 function perFileRatio(per, other, common) {
   const rs = [];
   for (const [file, v] of Object.entries(per)) {
-    if (!common.has(file) || !v[other] || !v.rsdom || v.rsdom.tests <= 0) continue;
-    rs.push(v[other].tests / v.rsdom.tests);
+    if (!common.has(file) || !v[other] || !v.oxidom || v.oxidom.tests <= 0) continue;
+    rs.push(v[other].tests / v.oxidom.tests);
   }
   return rs.length ? +median(rs).toFixed(2) : null;
 }
@@ -266,7 +266,7 @@ for (const m of [...new Set([...matrix, ...ablationMatrix])]) {
     if (cfg) summary.matrix[m].doms[dom] = summarise(cfg, common);
   }
   for (const ab of Object.keys(ABLATIONS)) {
-    const cfg = raw.configs[`rsdom ${ab} | ${m}`];
+    const cfg = raw.configs[`oxidom ${ab} | ${m}`];
     if (cfg) (summary.ablations[m] ??= {})[ab] = summarise(cfg, common);
   }
   // per-file median test time over valid samples
@@ -286,8 +286,8 @@ for (const m of [...new Set([...matrix, ...ablationMatrix])]) {
     }
   }
   summary.perFile[m] = per;
-  if (DOMS.includes('rsdom')) {
-    summary.matrix[m].perFileMedianRatio = Object.fromEntries(DOMS.filter((d) => d !== 'rsdom').map((d) => [d, perFileRatio(per, d, common)]));
+  if (DOMS.includes('oxidom')) {
+    summary.matrix[m].perFileMedianRatio = Object.fromEntries(DOMS.filter((d) => d !== 'oxidom').map((d) => [d, perFileRatio(per, d, common)]));
   }
 }
 
@@ -308,7 +308,7 @@ for (const dom of DOMS) {
 const L = [];
 const fmtS = (s) => (s ? `${s.median}${s.spread > 0.1 ? ` (${s.min}-${s.max})` : ''}` : 'n/a');
 const pv = raw.meta.provenance;
-L.push('# rsdom end-to-end benchmark (app/ suite)', '');
+L.push('# oxidom end-to-end benchmark (app/ suite)', '');
 L.push(`${raw.meta.date} · Node ${raw.meta.node} · ${raw.meta.cpu} · ${N} samples + ${WARMUP} warm-up per config, interleaved · ms, medians over VALID samples (min-max when spread > 10%)`
   + ` · git ${pv.gitRev?.slice(0, 10)}${pv.gitDirty ? '-dirty' : ''} · addon ${pv.addon.build} ${pv.addon.sha256?.slice(0, 12)}`
   + ` · jsdom ${pv.versions.jsdom} · happy-dom ${pv.versions['happy-dom']} · vitest ${pv.versions['vitest (app)']} · react ${pv.versions.react}`, '');
@@ -320,11 +320,11 @@ L.push('Wall = external `vitest run` process time. Phase columns are SUMS over f
   + '`!` = some sample ran above the load threshold. With `isolate: false` and maxWorkers > 1 the environment phase is re-reported per file (Vitest Pitfall A): compare wall there.', '');
 for (const [m, g] of Object.entries(summary.matrix)) {
   L.push(`## ${m}: ${g.label}`, '');
-  const ratios = g.perFileMedianRatio ? Object.entries(g.perFileMedianRatio).map(([d, x]) => `${d}/rsdom ${x ?? 'n/a'}`).join(', ') : '';
+  const ratios = g.perFileMedianRatio ? Object.entries(g.perFileMedianRatio).map(([d, x]) => `${d}/oxidom ${x ?? 'n/a'}`).join(', ') : '';
   L.push(`common passing files: ${g.commonPassingFiles.length}/11${ratios ? ` · per-file median tests ratio: ${ratios}` : ''}`, '');
   L.push('| DOM | valid | wall | critical file | environment | import | setup | transform | worker | tests | tests (common) | excl. heavy | peak RSS MiB | failed tests / files |');
   L.push('|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|');
-  const rows = [...Object.entries(g.doms).map(([k, v]) => [k, v]), ...Object.entries(summary.ablations[m] ?? {}).map(([k, v]) => [`rsdom ${k}`, v])];
+  const rows = [...Object.entries(g.doms).map(([k, v]) => [k, v]), ...Object.entries(summary.ablations[m] ?? {}).map(([k, v]) => [`oxidom ${k}`, v])];
   for (const [k, r] of rows) {
     const valid = `${r.valid}/${r.runs}${r.invalid ? ' **INVALID**' : ''}${r.loaded ? ' !' : ''}`;
     const crit = r.criticalFile !== null ? `${Math.round(r.criticalFile)} (${path.basename(r.criticalName ?? '')})` : 'n/a';
@@ -334,7 +334,7 @@ for (const [m, g] of Object.entries(summary.matrix)) {
 }
 if (Object.values(summary.best).some(Boolean)) {
   L.push('## Best available config per DOM (wall, same worker count)', '');
-  L.push(`Candidates: ${BEST_CANDIDATES.filter((m) => summary.matrix[m]).join(', ')} (vmThreads: jsdom / happy-dom only; rsdom cannot run it). Quote "rsdom default vs competitor best" from here.`, '');
+  L.push(`Candidates: ${BEST_CANDIDATES.filter((m) => summary.matrix[m]).join(', ')} (vmThreads: jsdom / happy-dom only; oxidom cannot run it). Quote "oxidom default vs competitor best" from here.`, '');
   L.push('| DOM | best entry | wall |', '|---|---|---:|');
   for (const [dom, b] of Object.entries(summary.best)) L.push(`| ${dom} | ${b ? b.matrix : 'n/a'} | ${b ? fmtS(b.wall) : 'n/a'} |`);
   L.push('');

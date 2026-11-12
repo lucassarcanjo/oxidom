@@ -250,17 +250,17 @@ for (const t of tests) {
 }
 fid.disagreementCauses = Object.fromEntries([...disagreeCauses.entries()].sort((a, b) => b[1] - a[1]));
 
-// ---- where happy-dom / rsdom beat jsdom ----
+// ---- where happy-dom / oxidom beat jsdom ----
 const beats = [];
 // (per-area comparison on subtests passed; see BEAT_NOTES in the report section for caveats)
 for (const [area, a] of Object.entries(areas)) {
-  for (const d of ['happy-dom', 'rsdom']) {
+  for (const d of ['happy-dom', 'oxidom']) {
     if (a.pass[d] > a.pass.jsdom) beats.push({ area, dom: d, pass: a.pass[d], jsdom: a.pass.jsdom, subtests: a.subtests });
   }
 }
-const fileBeats = { 'happy-dom': [], rsdom: [] };
+const fileBeats = { 'happy-dom': [], oxidom: [] };
 for (const [id, f] of Object.entries(files)) {
-  for (const d of ['happy-dom', 'rsdom']) {
+  for (const d of ['happy-dom', 'oxidom']) {
     const i = DOMS.indexOf(d);
     let mine = 0;
     let js = 0;
@@ -274,9 +274,9 @@ for (const [id, f] of Object.entries(files)) {
 for (const d of Object.keys(fileBeats)) fileBeats[d].sort((a, b) => (b[d] - b.jsdom) - (a[d] - a.jsdom));
 
 const BEAT_NOTES = {
-  'rsdom dom/abort': "caveat: AbortController/AbortSignal are Node's in the jsdom and rsdom environments (results/globals.json); jsdom loses subtests because its DOMException is not the one Node's AbortSignal uses, rsdom passes because it leaves Node's DOMException in place too — a global-install effect, not rsdom code",
+  'oxidom dom/abort': "caveat: AbortController/AbortSignal are Node's in the jsdom and oxidom environments (results/globals.json); jsdom loses subtests because its DOMException is not the one Node's AbortSignal uses, oxidom passes because it leaves Node's DOMException in place too — a global-install effect, not oxidom code",
   'happy-dom dom/abort': "happy-dom installs its own AbortController/AbortSignal, consistent with its DOMException; jsdom's environment keeps Node's AbortSignal next to jsdom's DOMException (global-install effect)",
-  'rsdom dom/nodes': 'mostly Node-compareDocumentPosition.html (1,444 subtests), where jsdom has a known failure (to-run.yaml: disconnected-node ordering not antisymmetric)',
+  'oxidom dom/nodes': 'mostly Node-compareDocumentPosition.html (1,444 subtests), where jsdom has a known failure (to-run.yaml: disconnected-node ordering not antisymmetric)',
 };
 
 // ---- outputs ----
@@ -296,8 +296,8 @@ const summary = {
   topCauses: Object.fromEntries(DOMS.map((d) => [d, topCauses[d].slice(0, 40)])),
   fidelity: { ...fid, disagreements: fid.disagreements },
   beats: beats.map((b) => ({ ...b, note: BEAT_NOTES[`${b.dom} ${b.area}`] ?? null })),
-  fileScoreBeats: Object.entries(areas).flatMap(([area, a]) => ['happy-dom', 'rsdom'].filter((d) => a.fileScore[d] > a.fileScore.jsdom).map((d) => ({ area, dom: d, fileScore: a.fileScore[d], jsdom: a.fileScore.jsdom }))),
-  fileBeats: { 'happy-dom': fileBeats['happy-dom'].slice(0, 60), rsdom: fileBeats.rsdom.slice(0, 60), counts: { 'happy-dom': fileBeats['happy-dom'].length, rsdom: fileBeats.rsdom.length } },
+  fileScoreBeats: Object.entries(areas).flatMap(([area, a]) => ['happy-dom', 'oxidom'].filter((d) => a.fileScore[d] > a.fileScore.jsdom).map((d) => ({ area, dom: d, fileScore: a.fileScore[d], jsdom: a.fileScore.jsdom }))),
+  fileBeats: { 'happy-dom': fileBeats['happy-dom'].slice(0, 60), oxidom: fileBeats.oxidom.slice(0, 60), counts: { 'happy-dom': fileBeats['happy-dom'].length, oxidom: fileBeats.oxidom.length } },
 };
 try {
   const { appRequire } = await import('./lib.mjs');
@@ -331,9 +331,9 @@ writeJSON(path.join(RESULTS, 'wpt.json'), {
 // ---- summary.md ----
 const L = [];
 const row = (cells) => L.push('| ' + cells.join(' | ') + ' |');
-L.push('# WPT behavioural conformance: jsdom vs happy-dom vs rsdom (global-install mode)', '');
+L.push('# WPT behavioural conformance: jsdom vs happy-dom vs oxidom (global-install mode)', '');
 L.push(`Generated ${summary.generated} by \`node conformance/wpt/aggregate.mjs\` from results/raw/*.jsonl. WPT commit \`${WPT_COMMIT}\` (the one jsdom pins).`);
-L.push(`Versions: jsdom ${summary.versions.jsdom}, happy-dom ${summary.versions['happy-dom']}, vitest ${summary.versions.vitest} (environments), rsdom @ working tree, Node ${summary.versions.node}.`, '');
+L.push(`Versions: jsdom ${summary.versions.jsdom}, happy-dom ${summary.versions['happy-dom']}, vitest ${summary.versions.vitest} (environments), oxidom @ working tree, Node ${summary.versions.node}.`, '');
 L.push(`${tests.length} test files (of ${sel.selectedCount} selected${notRun ? `, ${notRun} not yet run for every DOM` : ''}), ${totals.subtests} subtests (union of subtest names across the three DOMs).`, '');
 L.push('## Overall', '');
 row(['', ...DOMS]);
@@ -365,18 +365,18 @@ for (const [area, a] of Object.entries(areas).sort((x, y) => y[1].subtests - x[1
   row([area, a.files, a.subtests, ...DOMS.map((d) => `${a.pass[d]} (${pct(a.pass[d], a.subtests)}%) / ${a.fileScore[d]}%`)]);
 }
 L.push('');
-L.push('## Where happy-dom or rsdom beat jsdom', '');
+L.push('## Where happy-dom or oxidom beat jsdom', '');
 if (!beats.length) L.push('No area.');
 for (const b of beats.sort((x, y) => (y.pass - y.jsdom) - (x.pass - x.jsdom))) {
   L.push(`- **${b.dom}** in ${b.area}: ${b.pass} vs jsdom ${b.jsdom} of ${b.subtests} subtests (+${b.pass - b.jsdom})${BEAT_NOTES[`${b.dom} ${b.area}`] ? ` — ${BEAT_NOTES[`${b.dom} ${b.area}`]}` : ''}`);
 }
 const fsBeats = [];
 for (const [area, a] of Object.entries(areas)) {
-  for (const d of ['happy-dom', 'rsdom']) if (a.fileScore[d] > a.fileScore.jsdom) fsBeats.push(`**${d}** in ${area}: ${a.fileScore[d]}% vs jsdom ${a.fileScore.jsdom}%`);
+  for (const d of ['happy-dom', 'oxidom']) if (a.fileScore[d] > a.fileScore.jsdom) fsBeats.push(`**${d}** in ${area}: ${a.fileScore[d]}% vs jsdom ${a.fileScore.jsdom}%`);
 }
 L.push('', 'By mean per-file pass rate: ' + (fsBeats.length ? fsBeats.join('; ') : 'none') + '.');
-L.push('', `Files where a DOM passes more subtests than jsdom: happy-dom ${fileBeats['happy-dom'].length}, rsdom ${fileBeats.rsdom.length}. Largest margins:`, '');
-for (const d of ['happy-dom', 'rsdom']) {
+L.push('', `Files where a DOM passes more subtests than jsdom: happy-dom ${fileBeats['happy-dom'].length}, oxidom ${fileBeats.oxidom.length}. Largest margins:`, '');
+for (const d of ['happy-dom', 'oxidom']) {
   L.push(`- ${d}: ` + fileBeats[d].slice(0, 12).map((x) => `${x.id} (${x[d]} vs ${x.jsdom}/${x.subtests})`).join('; '));
 }
 L.push('');

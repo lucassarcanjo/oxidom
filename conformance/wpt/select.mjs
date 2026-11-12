@@ -15,10 +15,10 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
   JSDOM_WPT, WPT_ROOT, WPT_COMMIT, RESULTS, readJSON, writeJSON, readScriptMeta, wrapperPage, resolveSrc,
-  rsdomRequire, appRequire,
+  oxidomRequire, appRequire,
 } from './lib.mjs';
 
-const yaml = rsdomRequire('js-yaml');
+const yaml = oxidomRequire('js-yaml');
 const parse5 = appRequire('parse5');
 
 // ---- 1. DIRs ---------------------------------------------------------------------------------------------

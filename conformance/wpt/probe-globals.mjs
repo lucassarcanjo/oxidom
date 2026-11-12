@@ -18,8 +18,8 @@ if (process.argv[2] === '--child') {
   const kind = process.argv[3];
   const before = {};
   for (const n of NAMES) before[n] = globalThis[n];
-  const env = kind === 'rsdom'
-    ? (await import(pathToFileURL(path.join(LAB, 'packages/rsdom/lib/vitest-environment.mjs')).href)).default
+  const env = kind === 'oxidom'
+    ? (await import(pathToFileURL(path.join(LAB, 'packages/oxidom/lib/vitest-environment.mjs')).href)).default
     : (await import(pathToFileURL(path.join(LAB, 'node_modules/vitest/dist/runtime.js')).href)).builtinEnvironments[kind];
   const r = await env.setup(globalThis, {});
   const out = {};

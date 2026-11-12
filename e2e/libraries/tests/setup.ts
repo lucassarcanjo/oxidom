@@ -1,4 +1,4 @@
-// Shared setup for every DOM (jsdom, happy-dom, rsdom) -- identical for all three.
+// Shared setup for every DOM (jsdom, happy-dom, oxidom) -- identical for all three.
 //
 // 1. jest-dom matchers + RTL cleanup (same as e2e/react-app/src/test/setup.ts).
 // 2. Documented test-setup shims ("polyfills"). Only shims that library docs / the

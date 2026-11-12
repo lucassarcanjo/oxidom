@@ -77,7 +77,7 @@
       "XMLSerializer": "dom",
       "MutationObserver": "dom"
     },
-    "rsdom": {
+    "oxidom": {
       "TextEncoder": "node",
       "TextDecoder": "node",
       "AbortController": "node",

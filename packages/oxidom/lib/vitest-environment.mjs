@@ -1,0 +1,157 @@
+// AREA C (DESIGN §12, ROADMAP M6): the oxidom Vitest environment. Referenced by e2e/react-app/vitest.config.ts
+// (DOM_ENV=oxidom) as a path, so Vite inlines this file: the facade (.cjs) and the addon (.node) are loaded
+// through createRequire (Node's own loader, one CJS instance per worker thread / process), never through a
+// static import. Tests reach oxidom only through the globals installed here.
+//
+// Lifecycle (Vitest 5, docs/lab/research/vitest-env.md §3): `setup()` runs once per worker before Vitest's own
+// globals, safe timers and console exist and before any setup/test file is imported; `teardown()` runs when
+// the worker stops (isolate: true -> once per file; isolate: false -> once per worker).
+//
+// Options: `test.environmentOptions.oxidom = { url, html, shared, memo, prefilter, counters }`. The env vars
+// OXIDOM_SHARED=0 / OXIDOM_NO_MEMO=1 / OXIDOM_NO_PREFILTER=1 / OXIDOM_COUNTERS=1 win over the options (the facade
+// reads them once, when it is first loaded in this worker). `oxidom.html` is body markup.
+//
+// `test.environmentOptions.jsdom` (ROADMAP Stage 2) is read as Vitest's jsdom environment reads it, so a
+// config written for jsdom works unchanged: `url`, `html` (a whole document, default `<!DOCTYPE html>`),
+// `userAgent` (or `resources.userAgent`), `pretendToBeVisual` (default true), `contentType` (HTML only),
+// `console`, `referrer`, `storageQuota`. `cookieJar`, `runScripts`, `includeNodeLocations` and `beforeParse` are
+// ignored: scripts in `html` do not run, where Vitest's jsdom default (`runScripts: 'dangerously'`) runs them.
+// A `oxidom` key wins over the `jsdom` one.
+//
+// As in Vitest's jsdom environment, the window has a virtual console forwarding to the console (jsdom's
+// default whether `console` is set or not): not-implemented window methods (`alert`, `scrollTo`, ...) log
+// "Not implemented: ..." through `console.error`. The global `jsdom` is a `JSDOM` for the window
+// (`jsdom.reconfigure({ url })`, `jsdom.serialize()`).
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+
+/** Maps `options.oxidom` onto the facade's env-var switches unless the env var is already set. */
+function applyOptions(o) {
+  const env = process.env;
+  const set = (k, v) => {
+    if (env[k] === undefined) env[k] = v;
+  };
+  if (o.shared === false) set('OXIDOM_SHARED', '0');
+  if (o.memo === false) set('OXIDOM_NO_MEMO', '1');
+  if (o.prefilter === false) set('OXIDOM_NO_PREFILTER', '1');
+  if (o.counters === true) set('OXIDOM_COUNTERS', '1');
+  if (env.OXIDOM_COUNTERS === '1' && env.OXIDOM_NATIVE === undefined) {
+    // The counters build (`npm run build:counters`) lives next to the default addon.
+    const dir = path.join(path.dirname(require.resolve('./native.cjs')), '..', 'native', 'counters');
+    const file = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.endsWith('.node')) : undefined;
+    if (file === undefined) {
+      throw new Error('oxidom: OXIDOM_COUNTERS=1 needs the counters build; run `npm run build:counters` in packages/oxidom/.');
+    }
+    env.OXIDOM_NATIVE = path.join(dir, file);
+  }
+}
+
+/** Appends this worker's counters as one JSON line to $OXIDOM_COUNTERS_OUT (bench build). */
+function dumpCounters(rt) {
+  const out = process.env.OXIDOM_COUNTERS_OUT;
+  if (!out) return;
+  let files = [];
+  try {
+    files = (globalThis.__vitest_worker__?.ctx?.files ?? []).map((f) => (typeof f === 'string' ? f : f.filepath));
+  } catch {
+    // best effort
+  }
+  const { threadId } = require('node:worker_threads');
+  const line = JSON.stringify({ pid: process.pid, threadId, files, counters: JSON.parse(rt.N.counters()) });
+  fs.appendFileSync(out, line + '\n');
+}
+
+/**
+ * Loads the facade and maps the environment options onto `context.open()` options: `environmentOptions.jsdom`
+ * with the defaults of Vitest's jsdom environment (node_modules/vitest/dist/chunks/index.*.js `jsdom`), then
+ * `environmentOptions.oxidom` over them (`oxidom.html` is body markup).
+ */
+function prepare(options) {
+  const o = options.oxidom ?? {};
+  applyOptions(o);
+  const { rt } = require('./index.cjs'); // installs every area
+  const api = require('./jsdom.cjs');
+  if (process.env.OXIDOM_COUNTERS === '1') rt.N.countersReset();
+  const virtualConsole = options.jsdom?.virtualConsole ?? new api.VirtualConsole().forwardTo(globalThis.console);
+  const open = api.environmentOptions(options.jsdom ?? {}, virtualConsole);
+  if (o.url !== undefined) open.url = o.url;
+  if (o.html !== undefined) {
+    delete open.source;
+    open.html = o.html;
+  }
+  return { rt, api, open, virtualConsole };
+}
+
+/**
+ * Runs the environment document's scripts (DESIGN §45), then installs Vitest's window error routing: Vitest's
+ * jsdom environment builds its JSDOM (which runs `html`'s scripts) before it routes errors, so an error in those
+ * scripts reaches only the virtual console. The document reports "complete" from the start: under jsdom its load
+ * sequence is over before a test file runs.
+ */
+function startScripts(ctx) {
+  require('./scripts.cjs').bind(ctx);
+  ctx.onClose(require('./window.cjs').catchWindowErrors(ctx.window));
+}
+
+export default {
+  name: 'oxidom',
+  viteEnvironment: 'client',
+  prewarmModules: false,
+  setup(global, options = {}) {
+    const { rt, api, open, virtualConsole } = prepare(options);
+    const context = require('./context.cjs');
+
+    // A browsing context on `global` (DESIGN §18). window.cjs records the original descriptor of every global
+    // it defines (only those: reading all of globalThis would trigger Node's lazy getters); the context's
+    // close() puts them back, after cancelling its timers and removing Vitest's error routing.
+    const ctx = context.open({ ...open, global });
+    startScripts(ctx);
+    const hadJsdom = Object.prototype.hasOwnProperty.call(global, 'jsdom');
+    const jsdomBefore = global.jsdom;
+    global.jsdom = api.adopt(ctx, virtualConsole);
+
+    return {
+      teardown() {
+        if (process.env.OXIDOM_COUNTERS === '1') dumpCounters(rt);
+        if (hadJsdom) global.jsdom = jsdomBefore;
+        else delete global.jsdom;
+        ctx.close();
+        // Drops the whole DOM in one call (no per-node finalizers) and leaves a fresh env behind; every
+        // wrapper handed out before is neutered.
+        rt.reset();
+      },
+    };
+  },
+
+  // VM pools (`pool: 'vmThreads'` / `'vmForks'`, DESIGN §33): test files run in a vm context whose global is
+  // the window (lib/vm-window.cjs), one per file. What Vitest's jsdom `setupVM` adds to its window is added too.
+  setupVM(options = {}) {
+    const { rt, api, open, virtualConsole } = prepare(options);
+    const { openVmWindow } = require('./vm-window.cjs');
+    const { vmContext, global, ctx } = openVmWindow(open);
+    startScripts(ctx);
+    global.Buffer = Buffer;
+    global.jsdom = api.adopt(ctx, virtualConsole);
+    for (const k of ['structuredClone', 'BroadcastChannel', 'MessageChannel', 'MessagePort', 'TextEncoder', 'TextDecoder']) {
+      if (globalThis[k] !== undefined && global[k] === undefined) global[k] = globalThis[k];
+    }
+    // Node's: Vitest's jsdom environment overrides jsdom's with these (and wraps Request and URL for jsdom's
+    // Blob, which oxidom's Blob, a Node Blob, does not need)
+    for (const k of ['fetch', 'Request', 'Response', 'Headers', 'AbortController', 'AbortSignal', 'URL', 'URLSearchParams']) {
+      if (globalThis[k] !== undefined) global[k] = globalThis[k];
+    }
+    return {
+      getVmContext() {
+        return vmContext;
+      },
+      teardown() {
+        if (process.env.OXIDOM_COUNTERS === '1') dumpCounters(rt);
+        ctx.close();
+        rt.reset();
+      },
+    };
+  },
+};

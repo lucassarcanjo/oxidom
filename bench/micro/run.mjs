@@ -3,21 +3,21 @@
 // - Every case x DOM runs in PROCS fresh Node processes (--procs=, default 5), INTERLEAVED round-robin across
 //   DOMs (process p of every DOM before process p+1 of any; DOM order rotated per round), so variance
 //   between processes, often larger than within one, is measured instead of hidden.
-// - Inside a process each metric is warmed up, its iteration count calibrated to ~RSDOM_BENCH_TARGET_MS
-//   (default 100 ms) per sample, then the median of RSDOM_BENCH_SAMPLES (default 7) samples is that
+// - Inside a process each metric is warmed up, its iteration count calibrated to ~OXIDOM_BENCH_TARGET_MS
+//   (default 100 ms) per sample, then the median of OXIDOM_BENCH_SAMPLES (default 7) samples is that
 //   process's value. Reported: the median of the process medians, and the min-max range across processes.
-// - "rsdom vs best other" prints a ratio only when the two process ranges do not overlap ("~parity"
+// - "oxidom vs best other" prints a ratio only when the two process ranges do not overlap ("~parity"
 //   otherwise); byte metrics print "x less" / "x more".
-// - The 1-minute load average is recorded around every process; values measured above RSDOM_BENCH_MAX_LOAD
+// - The 1-minute load average is recorded around every process; values measured above OXIDOM_BENCH_MAX_LOAD
 //   are marked with `!`.
-// - Children get a clean environment: RSDOM_NATIVE is removed unless --native=<addon> is given; ablation
+// - Children get a clean environment: OXIDOM_NATIVE is removed unless --native=<addon> is given; ablation
 //   switches pass through. Provenance (git rev, dirty flag, addon sha256 + build profile, package versions)
 //   goes into meta; --merge refuses to splice results of a different rev / addon.
 // - `process: true` cases (env, env-vitest) take one sample per process: 1 discarded warm-up process, then
 //   max(SAMPLES, PROCS) processes per DOM, interleaved the same way.
 //
-//   node --expose-gc bench/micro/run.mjs [--cases=mutate,attr] [--doms=jsdom,rsdom] [--procs=5] [--write]
-//   RSDOM_SHARED=0 | RSDOM_NO_MEMO=1 | RSDOM_NO_PREFILTER=1 node bench/micro/run.mjs --write   (ablations)
+//   node --expose-gc bench/micro/run.mjs [--cases=mutate,attr] [--doms=jsdom,oxidom] [--procs=5] [--write]
+//   OXIDOM_SHARED=0 | OXIDOM_NO_MEMO=1 | OXIDOM_NO_PREFILTER=1 node bench/micro/run.mjs --write   (ablations)
 //
 // --merge (with --write): re-run only --cases and splice them into the stored results (same build only).
 // --write stores bench/results/micro[-<ablation>].json (every sample) and .md (table). Cases whose API is
@@ -27,11 +27,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SAMPLES, TARGET_NS, median, spread, NA, here, rsdomRoot } from './lib.mjs';
+import { SAMPLES, TARGET_NS, median, spread, NA, here, oxidomRoot } from './lib.mjs';
 import { provenance, mergeConflict, cleanEnv, load1, MAX_LOAD } from '../provenance.mjs';
 
 const self = fileURLToPath(import.meta.url);
-const ALL_DOMS = ['jsdom', 'happy-dom', 'rsdom'];
+const ALL_DOMS = ['jsdom', 'happy-dom', 'oxidom'];
 
 function arg(name, def) {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
@@ -87,12 +87,12 @@ async function child(caseName, kind) {
 }
 
 const NATIVE = arg('native', null);
-/** Ablation switches and harness knobs that may reach the children; everything else RSDOM_* is dropped. */
-const KEEP = ['RSDOM_SHARED', 'RSDOM_NO_MEMO', 'RSDOM_NO_PREFILTER', 'RSDOM_BENCH_SAMPLES', 'RSDOM_BENCH_TARGET_MS'];
+/** Ablation switches and harness knobs that may reach the children; everything else OXIDOM_* is dropped. */
+const KEEP = ['OXIDOM_SHARED', 'OXIDOM_NO_MEMO', 'OXIDOM_NO_PREFILTER', 'OXIDOM_BENCH_SAMPLES', 'OXIDOM_BENCH_TARGET_MS'];
 
 function spawnCase(caseName, kind, gc) {
   const args = [...(gc ? ['--expose-gc'] : []), self, '--child', caseName, kind];
-  const env = cleanEnv(NATIVE ? { RSDOM_NATIVE: path.resolve(NATIVE) } : {}, KEEP);
+  const env = cleanEnv(NATIVE ? { OXIDOM_NATIVE: path.resolve(NATIVE) } : {}, KEEP);
   const loadBefore = load1();
   const r = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: 900_000, env, maxBuffer: 64 << 20 });
   const load = [loadBefore, load1()];
@@ -146,14 +146,14 @@ function fmt(m) {
 }
 
 /**
- * rsdom vs the best other DOM: a ratio only when the process ranges do not overlap, else "~parity".
+ * oxidom vs the best other DOM: a ratio only when the process ranges do not overlap, else "~parity".
  * Byte units compare as "x less" / "x more"; units ending in `-nc` (not comparable across DOMs) print no ratio.
  */
 function ratio(results, name, doms) {
-  const r = results.rsdom?.[name];
+  const r = results.oxidom?.[name];
   if (r?.unit?.endsWith('-nc')) return 'not comparable';
   if (!r || r.na !== undefined) return '';
-  const others = doms.filter((k) => k !== 'rsdom').map((k) => results[k]?.[name]).filter((m) => m && m.na === undefined);
+  const others = doms.filter((k) => k !== 'oxidom').map((k) => results[k]?.[name]).filter((m) => m && m.na === undefined);
   if (others.length === 0) return '';
   const best = others.reduce((a, b) => (b.value < a.value ? b : a));
   if (r.value <= 0 || best.value <= 0) return '';
@@ -171,9 +171,9 @@ async function parent() {
   const names = arg('cases', Object.keys(cases).join(',')).split(',').filter(Boolean);
   const doms = arg('doms', ALL_DOMS.join(',')).split(',').filter(Boolean);
   for (const n of names) if (!cases[n]) throw new Error(`unknown case ${n}; known: ${Object.keys(cases).join(', ')}`);
-  const suffix = process.env.RSDOM_SHARED === '0' ? '-fallback'
-    : process.env.RSDOM_NO_MEMO === '1' && process.env.RSDOM_NO_PREFILTER === '1' ? '-nomemo-noprefilter'
-      : process.env.RSDOM_NO_MEMO === '1' ? '-nomemo' : process.env.RSDOM_NO_PREFILTER === '1' ? '-noprefilter' : '';
+  const suffix = process.env.OXIDOM_SHARED === '0' ? '-fallback'
+    : process.env.OXIDOM_NO_MEMO === '1' && process.env.OXIDOM_NO_PREFILTER === '1' ? '-nomemo-noprefilter'
+      : process.env.OXIDOM_NO_MEMO === '1' ? '-nomemo' : process.env.OXIDOM_NO_PREFILTER === '1' ? '-noprefilter' : '';
   const PROCS = Math.max(1, Number(arg('procs', 5)));
   const out = {
     meta: {
@@ -214,7 +214,7 @@ async function parent() {
   }
 
   // --merge: re-run some cases and splice them into the stored results (other cases keep their numbers).
-  const jsonPath = path.join(rsdomRoot, 'bench/results', `micro${suffix}.json`);
+  const jsonPath = path.join(oxidomRoot, 'bench/results', `micro${suffix}.json`);
   if (process.argv.includes('--merge') && fs.existsSync(jsonPath)) {
     const old = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     const why = mergeConflict(old.meta.provenance, out.meta.provenance);
@@ -231,14 +231,14 @@ async function parent() {
   doms.splice(0, doms.length, ...ALL_DOMS.filter((d) => doms2.includes(d)));
 
   const lines = [];
-  lines.push(`# rsdom micro benchmarks${suffix ? ` (${suffix.slice(1)})` : ''}`, '');
+  lines.push(`# oxidom micro benchmarks${suffix ? ` (${suffix.slice(1)})` : ''}`, '');
   const pv = out.meta.provenance;
   lines.push(`${out.meta.date} · Node ${out.meta.node} · ${out.meta.cpu} · ${PROCS} processes per case and DOM (interleaved), median of ${SAMPLES} samples of ~${TARGET_NS / 1e6} ms each per process`
     + ` · git ${pv.gitRev?.slice(0, 10)}${pv.gitDirty ? '-dirty' : ''} · addon ${pv.addon.build} ${pv.addon.sha256?.slice(0, 12)}`
     + ` · jsdom ${pv.versions.jsdom} · happy-dom ${pv.versions['happy-dom']} · vitest ${pv.versions.vitest}`
     + `${Object.keys(out.meta.env).length ? ` · ${Object.entries(out.meta.env).map(([k, v]) => `${k}=${v}`).join(' ')}` : ''}`
     + `${out.meta.merged ? ` · ${out.meta.merged}` : ''}`, '');
-  lines.push(`| case (DESIGN §13 row) | metric | unit | ${doms.join(' | ')} | rsdom vs best other |`);
+  lines.push(`| case (DESIGN §13 row) | metric | unit | ${doms.join(' | ')} | oxidom vs best other |`);
   lines.push(`|---|---|---|${doms.map(() => '---:').join('|')}|---|`);
   const nas = [];
   for (const [name, { row, results }] of Object.entries(out.cases)) {
@@ -255,13 +255,13 @@ async function parent() {
   }
   lines.push('', 'Value = median over processes of each process\'s median; (a-b) = min-max across processes when wider than 10%; '
     + '`!` = at least one process ran above the load threshold (re-run on an idle machine). A ratio is printed only when the process '
-    + 'ranges of rsdom and the best other DOM do not overlap. rsdom never reclaims nodes inside an env: mutate / deep / parse rows '
+    + 'ranges of oxidom and the best other DOM do not overlap. oxidom never reclaims nodes inside an env: mutate / deep / parse rows '
     + 'exclude the freeing work GC-based DOMs pay; see the mem `churn` row for the memory side of that trade-off.');
   if (nas.length) lines.push('', '**n/a reasons**', '', ...nas);
   const md = lines.join('\n') + '\n';
   process.stdout.write(md);
   if (process.argv.includes('--write')) {
-    const dir = path.join(rsdomRoot, 'bench/results');
+    const dir = path.join(oxidomRoot, 'bench/results');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, `micro${suffix}.json`), JSON.stringify(out, null, 1) + '\n');
     fs.writeFileSync(path.join(dir, `micro${suffix}.md`), md);

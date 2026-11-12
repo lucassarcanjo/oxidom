@@ -1,4 +1,4 @@
-# rsdom's expected failures in the parity suite: jsdom's API tests (test/api).
+# oxidom's expected failures in the parity suite: jsdom's API tests (test/api).
 # Written by `npm run test:parity -- --update`; edit reasons by hand freely (an update keeps the reason of an
 # entry whose status does not change). Format and workflow: conformance/parity/README.md.
 
@@ -9,7 +9,7 @@ api/cookies.js:
   "Cookie processing > document.cookie > reflects back what is set to it": [fail, "Expected values to be strictly deep-equal: + actual - expected [ …, …, + …, + …, + …, + …,…"]
   "Cookie processing > sent with requests > should gather cookies from redirects (GH-1089)": [fail, "Expected values to be strictly deep-equal: + actual - expected + [] - [ - …, - …, - … - ]"]
   "Cookie processing > sent with requests > should send the Cookies header with a script request": [fail, "TIMEOUT: Timeout of …ms exceeded"]
-  "Cookie processing > sent with requests > should send the Cookies header with an XHR request": [fail, "rsdom: no cookie jar, so the cookies of the fromURL() page load are not kept"]
+  "Cookie processing > sent with requests > should send the Cookies header with an XHR request": [fail, "oxidom: no cookie jar, so the cookies of the fromURL() page load are not kept"]
   "Cookie processing > sent with requests > should send the Cookies header with iframes": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "Cookie processing > should share cookies when a cookie jar is shared": [fail, "Expected values to be strictly deep-equal: + actual - expected [ + … - …, - …, - …, - …, -…"]
 api/css-parsing-errors.js:
@@ -20,7 +20,7 @@ api/css-parsing-errors.js:
   "CSS parsing errors > should handle nested font feature values (GH-1374) in external stylesheets without CSS parsing errors": [fail, "Cannot destructure property … of … as it is undefined."]
   "CSS parsing errors > should handle nested page-margin rules (GH-1374) in external stylesheets without CSS parsing errors": [fail, "Cannot destructure property … of … as it is undefined."]
   "CSS parsing errors > should handle spaces in font-family names (GH-2123) in external stylesheets without CSS parsing errors": [fail, "Cannot destructure property … of … as it is undefined."]
-api/encoding.js: [fail, "rsdom: XML documents are not supported (contentType …)", {pass: 64}]
+api/encoding.js: [fail, "oxidom: XML documents are not supported (contentType …)", {pass: 64}]
 api/file-url-functionality.js:
   "Test cases for the interaction with file: URLs > loading file: URL resources > should load scripts from file: URLs from about:blank": [fail, "TIMEOUT: Timeout of …ms exceeded"]
   "Test cases for the interaction with file: URLs > loading file: URL resources > should load scripts via relative URL from file: URLs, despite hrefless <base>": [fail, "TIMEOUT: Timeout of …ms exceeded"]
@@ -73,7 +73,7 @@ api/options.js:
   "API: constructor options > storageQuota > should enforce the custom quota for localStorage in frames at depth 2": [fail, "read of undefined (.document)"]
   "API: constructor options > storageQuota > should enforce the custom quota for sessionStorage in frames at depth 1": [fail, "read of undefined (.sessionStorage)"]
   "API: constructor options > storageQuota > should enforce the custom quota for sessionStorage in frames at depth 2": [fail, "read of undefined (.document)"]
-api/resources-dispatcher.js: [skip, "unit test of jsdom's JSDOMDispatcher: the worker redirects jsdom's lib/** to node_modules/jsdom for both DOMs, so it never runs rsdom"]
+api/resources-dispatcher.js: [skip, "unit test of jsdom's JSDOMDispatcher: the worker redirects jsdom's lib/** to node_modules/jsdom for both DOMs, so it never runs oxidom"]
 api/resources-http2.js:
   "API: HTTP/2 resource loading > should load relative scripts and stylesheets from an HTTP/2-only server": [fail, "TIMEOUT: Timeout of …ms exceeded"]
 api/resources-interceptors.js: [fail, "not a function: requestInterceptor"]

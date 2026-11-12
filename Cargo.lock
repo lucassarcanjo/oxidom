@@ -366,6 +366,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxidom"
+version = "0.1.0"
+dependencies = [
+ "compact_str",
+ "cssparser",
+ "html5ever",
+ "libc",
+ "markup5ever",
+ "memchr",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "precomputed-hash",
+ "proptest",
+ "rustc-hash",
+ "selectors",
+ "smallvec",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -553,26 +573,6 @@ name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
-
-[[package]]
-name = "rsdom"
-version = "0.1.0"
-dependencies = [
- "compact_str",
- "cssparser",
- "html5ever",
- "libc",
- "markup5ever",
- "memchr",
- "napi",
- "napi-build",
- "napi-derive",
- "precomputed-hash",
- "proptest",
- "rustc-hash",
- "selectors",
- "smallvec",
-]
 
 [[package]]
 name = "rustc-hash"

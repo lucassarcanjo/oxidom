@@ -1,7 +1,7 @@
-// M1/M2 microbenchmarks, one fresh Node process per DOM (jsdom 30.1.3, happy-dom 21.0.3, rsdom).
+// M1/M2 microbenchmarks, one fresh Node process per DOM (jsdom 30.1.3, happy-dom 21.0.3, oxidom).
 // Reads interleave mutations so no DOM can serve them from a whole-result cache.
 //   node bench/micro/m1m2.mjs [--write]            (needs a release build: npm run build)
-//   RSDOM_SHARED=0 node bench/micro/m1m2.mjs       (rsdom crossing-getter fallback ablation)
+//   OXIDOM_SHARED=0 node bench/micro/m1m2.mjs       (oxidom crossing-getter fallback ablation)
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -32,7 +32,7 @@ function bench(iters, fn) {
 }
 
 function runChild(kind) {
-  const { makeWindow } = require('../../packages/rsdom/test/contract/adapter.cjs');
+  const { makeWindow } = require('../../packages/oxidom/test/contract/adapter.cjs');
   const w = makeWindow(kind);
   const d = w.document;
   const body = d.body;
@@ -167,25 +167,25 @@ function runChild(kind) {
 if (process.argv[2] === '--child') {
   runChild(process.argv[3]);
 } else {
-  const kinds = ['jsdom', 'happy-dom', 'rsdom'];
+  const kinds = ['jsdom', 'happy-dom', 'oxidom'];
   const results = {};
   for (const k of kinds) {
     results[k] = JSON.parse(execFileSync(process.execPath, [self, '--child', k], { maxBuffer: 1 << 24 }).toString());
   }
-  const rows = Object.keys(results.rsdom);
+  const rows = Object.keys(results.oxidom);
   const fmt = (v) => (v == null || Number.isNaN(v) ? 'n/a' : v >= 100 ? v.toFixed(0) : v.toFixed(1));
   const lines = [
-    `# rsdom M1/M2 micro (${new Date().toISOString()})`,
-    `# Node ${process.version}, ${os.cpus()[0].model} x${os.cpus().length}; RSDOM_SHARED=${process.env.RSDOM_SHARED ?? '1'}; median of 7 runs, one process per DOM`,
-    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'rsdom'.padStart(10)}`,
+    `# oxidom M1/M2 micro (${new Date().toISOString()})`,
+    `# Node ${process.version}, ${os.cpus()[0].model} x${os.cpus().length}; OXIDOM_SHARED=${process.env.OXIDOM_SHARED ?? '1'}; median of 7 runs, one process per DOM`,
+    `${'operation'.padEnd(72)}${'jsdom'.padStart(10)}${'happy-dom'.padStart(11)}${'oxidom'.padStart(10)}`,
   ];
   for (const r of rows) {
-    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.rsdom[r]).padStart(10)}`);
+    lines.push(`${r.padEnd(72)}${fmt(results.jsdom[r]).padStart(10)}${fmt(results['happy-dom'][r]).padStart(11)}${fmt(results.oxidom[r]).padStart(10)}`);
   }
   const text = lines.join('\n') + '\n';
   process.stdout.write(text);
   if (process.argv.includes('--write')) {
-    const name = process.env.RSDOM_SHARED === '0' ? 'm1m2-fallback.txt' : 'm1m2.txt';
+    const name = process.env.OXIDOM_SHARED === '0' ? 'm1m2-fallback.txt' : 'm1m2.txt';
     fs.writeFileSync(path.join(here, name), text);
   }
 }

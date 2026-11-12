@@ -1,0 +1,31 @@
+{
+  "name": "jest-environment-oxidom",
+  "version": "0.1.0",
+  "description": "Jest environment for oxidom: `testEnvironment: 'oxidom'`",
+  "keywords": ["jest", "jest-environment", "oxidom", "dom", "jsdom"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucassarcanjo/oxidom.git",
+    "directory": "packages/jest-environment-oxidom"
+  },
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts"],
+  "dependencies": {
+    "@jest/environment": "^30.0.0",
+    "@jest/fake-timers": "^30.0.0",
+    "@jest/types": "^30.0.0",
+    "jest-mock": "^30.0.0",
+    "jest-util": "^30.0.0"
+  },
+  "peerDependencies": {
+    "oxidom": "0.1.0"
+  }
+}

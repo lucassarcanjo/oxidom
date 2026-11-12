@@ -42,11 +42,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Contract + native suites (jsdom / happy-dom / rsdom)
+      - name: Contract + native suites (jsdom / happy-dom / oxidom)
         run: npm run test:js
       - name: Same suites through the crossing-getter fallback
         run: npm run test:fallback
-      - name: React app suite on rsdom
+      - name: React app suite on oxidom
         run: npm run test:e2e
 
   parity:
@@ -70,7 +70,7 @@ jobs:
       - run: npm run build
       - name: Scoreboard matches the committed expectations
         run: node conformance/parity/report.mjs > /dev/null && git diff --exit-code conformance/parity/results/summary.md
-      - name: jsdom's test suite on rsdom, against conformance/parity/expectations
+      - name: jsdom's test suite on oxidom, against conformance/parity/expectations
         run: npm run test:parity
       - name: Publish the scoreboard
         if: always()

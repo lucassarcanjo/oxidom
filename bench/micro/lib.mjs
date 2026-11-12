@@ -2,7 +2,7 @@
 //
 // DOM adapter: `windowFor(kind)` creates a window WITHOUT globals (test/contract/adapter.cjs, the same
 // construction the contract suite uses); `installGlobalEnv(kind)` installs the DOM on globalThis exactly like
-// the Vitest environments do (jsdom / happy-dom: Vitest's builtin environments; rsdom: packages/rsdom/lib/vitest-environment.mjs),
+// the Vitest environments do (jsdom / happy-dom: Vitest's builtin environments; oxidom: packages/oxidom/lib/vitest-environment.mjs),
 // for benches that run library code reading globals (React, Testing Library) and for the env-setup bench.
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -11,12 +11,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const here = path.dirname(fileURLToPath(import.meta.url));
 /** Repository root. */
-export const rsdomRoot = path.resolve(here, '../..');
-export const appRoot = path.join(rsdomRoot, 'e2e/react-app');
+export const oxidomRoot = path.resolve(here, '../..');
+export const appRoot = path.join(oxidomRoot, 'e2e/react-app');
 const require = createRequire(import.meta.url);
 
-/** Samples per measurement (median reported); RSDOM_BENCH_SAMPLES overrides (>= 7 for reported numbers). */
-export const SAMPLES = Math.max(1, Number(process.env.RSDOM_BENCH_SAMPLES ?? 7));
+/** Samples per measurement (median reported); OXIDOM_BENCH_SAMPLES overrides (>= 7 for reported numbers). */
+export const SAMPLES = Math.max(1, Number(process.env.OXIDOM_BENCH_SAMPLES ?? 7));
 
 export function median(xs) {
   const s = [...xs].sort((a, b) => a - b);
@@ -31,13 +31,13 @@ export function spread(xs) {
 }
 
 /**
- * Target duration of one timed sample (RSDOM_BENCH_TARGET_MS, default 100 ms). Iteration counts are
+ * Target duration of one timed sample (OXIDOM_BENCH_TARGET_MS, default 100 ms). Iteration counts are
  * calibrated per DOM from the second warm-up call (tinybench / mitata style) so a sample is long enough
  * for timer, GC and table-growth noise to average out on the fast DOM and short enough on the slow one:
- * a fixed count made rsdom's samples ~12 ms and jsdom's ~2.6 s for the same row (M9 review).
+ * a fixed count made oxidom's samples ~12 ms and jsdom's ~2.6 s for the same row (M9 review).
  */
-export const TARGET_NS = Number(process.env.RSDOM_BENCH_TARGET_MS ?? 100) * 1e6;
-/** Upper bound on scaling the nominal count up (bounds memory: rsdom does not reclaim nodes in an env). */
+export const TARGET_NS = Number(process.env.OXIDOM_BENCH_TARGET_MS ?? 100) * 1e6;
+/** Upper bound on scaling the nominal count up (bounds memory: oxidom does not reclaim nodes in an env). */
 const MAX_SCALE = 20;
 
 function calibrated(iters, warm, warmNs) {
@@ -82,7 +82,7 @@ export async function benchAsync(iters, fn) {
 
 /** A window without globals (same construction as the contract suite). */
 export function windowFor(kind) {
-  const { makeWindow } = require('../../packages/rsdom/test/contract/adapter.cjs');
+  const { makeWindow } = require('../../packages/oxidom/test/contract/adapter.cjs');
   return makeWindow(kind);
 }
 
@@ -93,16 +93,16 @@ export function windowFor(kind) {
  *   any environment; it used to be timed for jsdom / happy-dom only);
  * - Node's lazy web globals (undici: FormData, fetch, ...) are NOT preloaded: in a real worker the first
  *   FormData access happens inside every environment's setup(), so it is part of each DOM's cost.
- * `importMs` is the environment module import (rsdom: packages/rsdom/lib/vitest-environment.mjs + the facade + the addon;
+ * `importMs` is the environment module import (oxidom: packages/oxidom/lib/vitest-environment.mjs + the facade + the addon;
  * jsdom / happy-dom: nothing, their builtin environments import the package inside setup()), so only the
  * total is comparable across DOMs. The authoritative number is the `env-vitest` case (Vitest's own phase).
  */
 export async function installGlobalEnv(kind) {
-  const rt = await import(pathToFileURL(path.join(rsdomRoot, 'node_modules/vitest/dist/runtime.js')).href);
+  const rt = await import(pathToFileURL(path.join(oxidomRoot, 'node_modules/vitest/dist/runtime.js')).href);
   const t0 = performance.now();
   let env;
-  if (kind === 'rsdom') {
-    env = (await import(pathToFileURL(path.join(rsdomRoot, 'packages/rsdom/lib/vitest-environment.mjs')).href)).default;
+  if (kind === 'oxidom') {
+    env = (await import(pathToFileURL(path.join(oxidomRoot, 'packages/oxidom/lib/vitest-environment.mjs')).href)).default;
   } else {
     env = rt.builtinEnvironments[kind];
   }
@@ -127,7 +127,7 @@ export function need(cond, why) {
 
 /** The aria-query role selectors DTL generates (data/role-selectors.txt). */
 export function roleSelectors() {
-  return fs.readFileSync(path.join(rsdomRoot, 'crates/rsdom/data/role-selectors.txt'), 'utf8')
+  return fs.readFileSync(path.join(oxidomRoot, 'crates/oxidom/data/role-selectors.txt'), 'utf8')
     .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 }
 

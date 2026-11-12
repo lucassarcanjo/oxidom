@@ -1,13 +1,13 @@
 # What Testing Library needs from a DOM, and where its time goes
 
-Research notes for **rsdom**, a DOM written in Rust and exposed to Node through napi-rs, used as a Vitest
+Research notes for **oxidom**, a DOM written in Rust and exposed to Node through napi-rs, used as a Vitest
 environment. The question these notes answer: which DOM APIs do `@testing-library/dom` (DTL),
 `@testing-library/react` (RTL), `dom-accessibility-api`, `@testing-library/jest-dom` and (partly)
 `@testing-library/user-event` call, how they call them, and which calls dominate test time.
 
 All paths are relative to `refs` unless they start with `e2e/react-app/` (the benchmark
-app at `rsdom-lab/app`) or `trace/`, which is
-`rsdom-lab/docs/research/testing-library-trace/` (scripts and raw outputs for every number here).
+app at `oxidom-lab/app`) or `trace/`, which is
+`oxidom-lab/docs/research/testing-library-trace/` (scripts and raw outputs for every number here).
 
 ---
 
@@ -228,7 +228,7 @@ plus stylesheets. It walks the whole ancestor chain on a miss
 (`happy-dom/packages/happy-dom/src/css/declaration/computed-style/CSSComputedStyle.ts:58-120`) and caches the
 result per element with `affectsCache` invalidation lists.
 
-**Implication for rsdom.** A computed-style path that answers `display`, `visibility`, `opacity` and
+**Implication for oxidom.** A computed-style path that answers `display`, `visibility`, `opacity` and
 `pointer-events` from:
 
 - a static per-tag UA table,
@@ -287,7 +287,7 @@ Takeaways:
     `getComputedStyle`.
   - In Vitest, `populateGlobal` redefines `document.defaultView` to return **`globalThis`**
     (`vitest/packages/vitest/src/integrations/env/utils.ts:101-108`). So those globals must be installed on
-    `globalThis` by the rsdom environment, and they are looked up **dynamically** on every call
+    `globalThis` by the oxidom environment, and they are looked up **dynamically** on every call
     (`window[EventType]`, `window.getComputedStyle`).
 - `getDocument()` returns `window.document`, from the global `window` (`helpers.ts:21-26`).
 
@@ -514,7 +514,7 @@ DOM **activation behaviour** that tests depend on through `fireEvent.click` (Rea
 `fireEvent.submit(form)` only dispatches a plain `submit` Event, and nothing else happens. A submit-button
 click goes through `form._doRequestSubmit` → `requestSubmit`, which fires a cancelable `SubmitEvent` with
 `submitter`. If it is not cancelled, jsdom reports "not implemented: HTMLFormElement.prototype.requestSubmit" to
-the virtual console (`jsdom/lib/jsdom/living/nodes/HTMLFormElement-impl.js:75-111`). rsdom can fire the
+the virtual console (`jsdom/lib/jsdom/living/nodes/HTMLFormElement-impl.js:75-111`). oxidom can fire the
 `SubmitEvent` and then no-op.
 
 ### 3.7 `waitFor`, `findBy*`, `waitForElementToBeRemoved` (`wait-for.js`, `wait-for-element-to-be-removed.js`)
@@ -535,7 +535,7 @@ the virtual console (`jsdom/lib/jsdom/living/nodes/HTMLFormElement-impl.js:75-11
   - Without MutationObserver, `waitFor` still works through the 50 ms interval, but every async test waits up
     to 50 ms longer per `waitFor`. So it is effectively P0 for speed.
 - RTL's `asyncWrapper` (`react-testing-library/src/pure.js:39-60`) sets `IS_REACT_ACT_ENVIRONMENT=false`
-  during `waitFor`, then drains with `await new Promise(r => setTimeout(r, 0))`. Timers are Node's, so rsdom
+  during `waitFor`, then drains with `await new Promise(r => setTimeout(r, 0))`. Timers are Node's, so oxidom
   needs none.
 - `waitForElementToBeRemoved` walks `parentElement` to the top ancestor, then uses `parent.contains(element)`
   (`wait-for-element-to-be-removed.js:19-27`).
@@ -564,7 +564,7 @@ the virtual console (`jsdom/lib/jsdom/living/nodes/HTMLFormElement-impl.js:75-11
   `document.body.removeChild(container)` (`pure.js:317-328`).
 - `asFragment()`: `if (typeof document.createRange === 'function')` →
   `document.createRange().createContextualFragment(container.innerHTML)`, otherwise
-  `<template>.innerHTML` → `.content` (`pure.js:222-232`). **If rsdom exposes `createRange` (user-event needs
+  `<template>.innerHTML` → `.content` (`pure.js:222-232`). **If oxidom exposes `createRange` (user-event needs
   it), `Range.prototype.createContextualFragment` must exist too.**
 - `act` is React's `act`. RTL toggles `globalThis.IS_REACT_ACT_ENVIRONMENT` (`act-compat.js:28-34`).
   `configure({eventWrapper, asyncWrapper, unstable_advanceTimersWrapper})` routes DTL events and async
@@ -669,7 +669,7 @@ style. Its computed values resolve to `rgb(255, 0, 0)` and `700`, while `copy.st
 happy-dom passes these, because its computed value is the specified value. jsdom passes hex↔rgb because both
 sides normalize hex to `rgb()`.
 
-Recommendation for rsdom: **use one serializer for `element.style` and for computed values**, and keep
+Recommendation for oxidom: **use one serializer for `element.style` and for computed values**, and keep
 computed values close to the specified values. For colors, either normalize everywhere or nowhere. That makes
 `toHaveStyle` round-trips pass and avoids jsdom's false negatives.
 
@@ -776,7 +776,7 @@ suite CPU in total.
   serialization, custom properties (`--foo`), and React's numeric-to-`px` values. Use **the same value
   serialization as `element.style`** (§6).
 - Simple `<style>` rules: both jsdom and happy-dom apply `.hide { display:none }` and `.card > p { … }`. P1 for
-  rsdom, because CSS-in-JS and test-injected styles exist but React component tests usually rely on inline
+  oxidom, because CSS-in-JS and test-injected styles exist but React component tests usually rely on inline
   styles or none.
 
 **Shape of the return value:**
@@ -831,7 +831,7 @@ does (`happy-dom/packages/happy-dom/src/window/BrowserWindow.ts:2255-2265`).
 - For `querySelectorAll`, do one pre-order traversal of the subtree with a match per element, which keeps
   document order without a sort.
 - Optionally fast-path id-only and attribute-presence-only selectors through indexes.
-- The Servo `selectors` crate can do this if rsdom implements its `Element` trait; a small hand-written matcher
+- The Servo `selectors` crate can do this if oxidom implements its `Element` trait; a small hand-written matcher
   covering the list above is also realistic.
 
 ---
@@ -882,9 +882,9 @@ The section header is plain, but these are invariants all the above code silentl
 
 ---
 
-## 11. Hot paths ranked, with rsdom implications
+## 11. Hot paths ranked, with oxidom implications
 
-| # | Hot path | Evidence | What rsdom should do |
+| # | Hot path | Evidence | What oxidom should do |
 |---|---|---|---|
 | 1 | `getComputedStyle` (DTL `isInaccessible`, dom-a11y `isHidden` and separators) | ~5.9 s (17%) of jsdom suite CPU; ~380 µs cold per element in jsdom, ~200 µs in happy-dom | Rust-side style resolution of a few properties from a per-tag UA table, attribute rules, inline style and (rare) author rules, cached by `(node, style_epoch)`. A small JS facade object, cached per element and epoch, with lazy getters. Inherited props (`visibility`, `pointer-events`) by walking the parent chain in Rust |
 | 2 | `matches()` with the 113 aria-query selectors (ByRole, toHaveRole) | 272,706 calls by DTL in the suite; ~2.5 µs each in jsdom | Parsed-selector cache, JS-side string→id interning, right-to-left matching with a tag pre-check. Target ≤100 ns per call including napi |
@@ -901,7 +901,7 @@ Environment overheads that are outside Testing Library but visible in the same p
   file in wall time.
 - It spends ~3 s compiling modules (`wrapSafe`).
 
-rsdom's environment setup should be cheap: lazy class installation, and a native addon loaded once per worker.
+oxidom's environment setup should be cheap: lazy class installation, and a native addon loaded once per worker.
 This can matter as much as query speed for suites made of many small files.
 
 ---
@@ -998,7 +998,7 @@ This can matter as much as query speed for suites made of many small files.
 
 ## 14. Open questions and next steps
 
-- Measure rsdom against §2.3 and §2.4, using the **same scripts**: `trace/microbench.cjs` and the cold-style
+- Measure oxidom against §2.3 and §2.4, using the **same scripts**: `trace/microbench.cjs` and the cold-style
   benchmarks. Add a "mutation between queries" variant so happy-dom's memoization does not flatter it.
 - Decide the color and shorthand serialization policy (jsdom-like `rgb()` versus specified values) and
   document the parity consequences.

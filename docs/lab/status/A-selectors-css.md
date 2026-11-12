@@ -1,8 +1,8 @@
 # Area A status: selectors and CSS
 
 Branch `feat/area-a-selectors-css`. Covers ROADMAP M3 (P0 and P1), `element.style` from M5, and
-`getComputedStyle` from M6. Ownership follows rsdom/CONTRIBUTING.md: `src/select/**`, `src/style/**`,
-`packages/rsdom/lib/select.cjs` and `packages/rsdom/lib/style.cjs`, the area's tests and benches, and
+`getComputedStyle` from M6. Ownership follows oxidom/CONTRIBUTING.md: `src/select/**`, `src/style/**`,
+`packages/oxidom/lib/select.cjs` and `packages/oxidom/lib/style.cjs`, the area's tests and benches, and
 `data/atoms/41-style.txt`.
 
 One file outside that list changed: `Cargo.toml` gained `precomputed-hash = "=0.1.1"`. The `selectors`
@@ -42,7 +42,7 @@ crate needs it for the `SelectorImpl` atom hashes.
   - The qSA/qs LRU memo holds 64 entries. It is validated by `EP[TREE]` and `EP[ATTR]`, plus `EP[TEXT]`
     for `:empty`/`:has`, and `EP[FORM]`/`EP[REC]` for state pseudo-classes. Every hit returns a fresh
     NodeList.
-  - Ablations: `RSDOM_NO_MEMO=1` and `RSDOM_NO_PREFILTER=1`.
+  - Ablations: `OXIDOM_NO_MEMO=1` and `OXIDOM_NO_PREFILTER=1`.
 - Matching reuses one `SelectorCaches` for selector lists that contain no `:nth-*()` or `:has()`. Lists
   with them get fresh caches on each call.
 
@@ -100,10 +100,10 @@ crate needs it for the `SelectorImpl` atom hashes.
   selectors (`data/role-selectors.txt`: 108 distinct selectors from the aria-query 5.3.0 trace) and
   `getImplicitAriaRoles` against jsdom over a generated fixture. The results are
   identical with the prefilter and the memo on or off (`test/native/select.test.mjs`). The whole suite
-  is green with `RSDOM_NO_MEMO=1 RSDOM_NO_PREFILTER=1`.
+  is green with `OXIDOM_NO_MEMO=1 OXIDOM_NO_PREFILTER=1`.
 - **M3, perf.** Cold qSA on the 2702-element table takes 44-63 µs. A prefiltered `matches` miss takes
   7.8 ns.
-- **M6, accessible name.** It is "Saved", checked through dom-accessibility-api on rsdom with
+- **M6, accessible name.** It is "Saved", checked through dom-accessibility-api on oxidom with
   `rt.getComputedStyle`.
 - **M6, jest-dom.** `toHaveStyle('color: red')` and `toHaveStyle({fontWeight: 'bold'})` pass through
   the app's jest-dom matchers. They fail on jsdom 30, as the test documents.
@@ -122,8 +122,8 @@ crate needs it for the `SelectorImpl` atom hashes.
     `400`, `16px` and the like.
 - **`getElementsByName` returns a static NodeList.** Nothing in the target stack holds it live.
 - **Computed declaration `length`** counts longhands only.
-- **jsdom quirks that rsdom does not copy** (pinned in `test/contract/select.test.mjs`):
-  - `ul.querySelectorAll('nav li > a')` returns `[]` in jsdom. rsdom follows the spec.
+- **jsdom quirks that oxidom does not copy** (pinned in `test/contract/select.test.mjs`):
+  - `ul.querySelectorAll('nav li > a')` returns `[]` in jsdom. oxidom follows the spec.
   - jsdom's stale `:empty` cache.
   - `matches()` accepting namespace prefixes.
 - **happy-dom divergences** are pinned to jsdom with comments, per CONTRIBUTING.
@@ -147,7 +147,7 @@ crate needs it for the `SelectorImpl` atom hashes.
 `node bench/micro/select-style.mjs --write` writes `bench/micro/select-style.txt`. The ablation
 run writes `select-style-ablation.txt`.
 
-| operation | jsdom | happy-dom | rsdom |
+| operation | jsdom | happy-dom | oxidom |
 |---|---:|---:|---:|
 | matches(), 108 DTL role selectors × every element (ns/call) | 5082 | 405 | 28.6 |
 | matches() prefilter miss (ns) | 2256 | 135 | 7.8 |

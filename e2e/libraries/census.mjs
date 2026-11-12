@@ -96,12 +96,12 @@ for (const [lib, roots] of Object.entries(LIBS)) {
 
 // Native availability per DOM (probe run with LIBS_POLYFILLS=0)
 const avail = {}
-for (const dom of ['jsdom', 'happy-dom', 'rsdom']) {
+for (const dom of ['jsdom', 'happy-dom', 'oxidom']) {
   const f = path.join(here, `results/raw/probe-${dom}-nopolyfills.json`)
   avail[dom] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).apis : {}
 }
 const facts = {}
-for (const dom of ['jsdom', 'happy-dom', 'rsdom']) {
+for (const dom of ['jsdom', 'happy-dom', 'oxidom']) {
   const f = path.join(here, `results/raw/diag-facts-${dom}.json`)
   if (fs.existsSync(f)) facts[dom] = JSON.parse(fs.readFileSync(f, 'utf8')).facts
 }
@@ -112,14 +112,14 @@ const apis = APIS.map((a) => ({
   area: a.area,
   pattern: a.re.source + (a.andRe ? `  AND (same file) ${a.andRe.source}` : ''),
   usedBy: Object.keys(libs).filter((l) => libs[l].apis[a.id]),
-  available: { jsdom: avail.jsdom[a.id] ?? null, 'happy-dom': avail['happy-dom'][a.id] ?? null, rsdom: avail.rsdom[a.id] ?? null },
+  available: { jsdom: avail.jsdom[a.id] ?? null, 'happy-dom': avail['happy-dom'][a.id] ?? null, oxidom: avail.oxidom[a.id] ?? null },
 }))
 // Static risk: libraries that reference an API a DOM lacks natively.
 const risk = {}
-for (const dom of ['jsdom', 'happy-dom', 'rsdom']) {
+for (const dom of ['jsdom', 'happy-dom', 'oxidom']) {
   risk[dom] = apis.filter((a) => a.available[dom] === false && a.usedBy.length).map((a) => ({ api: a.id, libs: a.usedBy.length, usedBy: a.usedBy }))
     .sort((x, y) => y.libs - x.libs)
 }
 const out = { generated: new Date().toISOString(), note: 'static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims', libs, apis, missingApisReferenced: risk }
 fs.writeFileSync(path.join(here, 'results/census.json'), JSON.stringify(out, null, 2))
-for (const a of apis) console.log(a.id.padEnd(42), String(a.usedBy.length).padStart(2), ['jsdom', 'happy-dom', 'rsdom'].map((d) => (a.available[d] ? 'Y' : '-')).join(' '))
+for (const a of apis) console.log(a.id.padEnd(42), String(a.usedBy.length).padStart(2), ['jsdom', 'happy-dom', 'oxidom'].map((d) => (a.available[d] ? 'Y' : '-')).join(' '))

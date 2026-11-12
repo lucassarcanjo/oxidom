@@ -1,12 +1,12 @@
-# Contributing to rsdom
+# Contributing to oxidom
 
-rsdom is a DOM whose tree lives in Rust (an arena per napi_env) and is exposed to Node through raw
+oxidom is a DOM whose tree lives in Rust (an arena per napi_env) and is exposed to Node through raw
 Node-API callbacks plus a read-only zero-copy node table. The goal is a drop-in replacement for jsdom in test
 environments. The architecture is [`docs/DESIGN.md`](docs/DESIGN.md); what comes next is
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-**Paths in this file:** Rust paths (`src/`, `tests/`, `data/`, `build.rs`) are relative to `crates/rsdom/`; JS paths
-(`lib/`, `test/`) are relative to `packages/rsdom/`. Everything else is relative to the repository root.
+**Paths in this file:** Rust paths (`src/`, `tests/`, `data/`, `build.rs`) are relative to `crates/oxidom/`; JS paths
+(`lib/`, `test/`) are relative to `packages/oxidom/`. Everything else is relative to the repository root.
 
 ## 1. Setup, build, test
 
@@ -14,14 +14,14 @@ Requirements: Rust (stable, edition 2024, `rust-version` 1.85+) and Node.js 22+.
 
 ```bash
 npm ci                    # installs every workspace (packages/*, e2e/react-app) into the root node_modules
-npm run build             # release addon -> packages/rsdom/native/rsdom.<triple>.node (~45 s cold, fat LTO)
+npm run build             # release addon -> packages/oxidom/native/oxidom.<triple>.node (~45 s cold, fat LTO)
 npm run build:debug       # debug addon (overflow checks + re-entrancy guard); same output path
 npm run test:rust         # cargo test: Rust unit tests + proptest differential test (10k sequences)
-npm run test:js           # vitest: test/contract (jsdom / happy-dom / rsdom parity) + test/native (rsdom only)
-npm run test:fallback     # the same suite with RSDOM_SHARED=0 (crossing-getter fallback); must stay green
-npm run test:e2e          # e2e/react-app: 90 React + Testing Library tests under `environment: 'nativedom'`
+npm run test:js           # vitest: test/contract (jsdom / happy-dom / oxidom parity) + test/native (oxidom only)
+npm run test:fallback     # the same suite with OXIDOM_SHARED=0 (crossing-getter fallback); must stay green
+npm run test:e2e          # e2e/react-app: 90 React + Testing Library tests under `environment: 'oxidom'`
 npm test                  # all of the above except the fallback run
-npm run test:parity       # jsdom's own test suite on rsdom, against conformance/parity/expectations (~4 min;
+npm run test:parity       # jsdom's own test suite on oxidom, against conformance/parity/expectations (~4 min;
                           # needs scripts/fetch-refs.sh --wpt)
 npm run lint              # cargo clippy --all-targets -D warnings && cargo fmt --check
 npm run check             # lint, npm test, test:fallback, test:parity, scoreboard freshness: run it before merging
@@ -33,9 +33,9 @@ npm run bench:m0          # M0 gates; bench/README.md lists every harness
   same checks for when Actions is turned back on. It also checks that `conformance/parity/results/summary.md` is
   current: `--update` regenerates it, but after editing `conformance/parity/expectations/` by hand, run
   `node conformance/parity/report.mjs` and commit the result.
-- The facade loads whatever addon is in `packages/rsdom/native/` (last build wins). `RSDOM_NATIVE=/abs/path.node`
+- The facade loads whatever addon is in `packages/oxidom/native/` (last build wins). `OXIDOM_NATIVE=/abs/path.node`
   overrides.
-- `RSDOM_CONTRACT_DOMS=rsdom,jsdom npm run test:js` restricts the DOMs; `PROPTEST_CASES=100000 cargo test --release
+- `OXIDOM_CONTRACT_DOMS=oxidom,jsdom npm run test:js` restricts the DOMs; `PROPTEST_CASES=100000 cargo test --release
   --test prop_tree` for the long fuzz run.
 - `e2e/react-app` also runs on the other DOMs: `npm run test:jsdom -w e2e/react-app` (or `test:happy-dom`).
 - `e2e/libraries` (real-library smoke tests) has its own dependencies: `e2e/libraries/run.sh`.
@@ -49,7 +49,7 @@ npm run bench:m0          # M0 gates; bench/README.md lists every harness
 
 ## 2. Code map
 
-The lab built rsdom in three parallel areas; code comments still say "area A/B/C", and their resource
+The lab built oxidom in three parallel areas; code comments still say "area A/B/C", and their resource
 allocations below still hold.
 
 | path | area | notes |
@@ -124,7 +124,7 @@ Rules (the macro enforces most of them; build.rs parses the header):
   `rt.mutated()` and use `check`/`checkId` for errors.
 - `unsafe` stays in `ffi.rs` / `table.rs` / `env.rs` (the FFI and shared-memory edge), each block with a
   `// SAFETY:` comment (clippy `undocumented_unsafe_blocks` is on). Area code should need none.
-- A panic in a native becomes `Error('rsdom internal: ...')` in JS; debug builds also assert no re-entrancy.
+- A panic in a native becomes `Error('oxidom internal: ...')` in JS; debug builds also assert no re-entrancy.
 
 ## 4. Rust state and hook points (no tree.rs edits needed)
 
@@ -226,21 +226,21 @@ select -> style -> forms -> events -> mo -> window -> xhr -> observers -> shadow
 
 ## 6. Tests
 
-- Contract tests (`test/contract/*.test.mjs`) run every assertion on jsdom, happy-dom and rsdom through
+- Contract tests (`test/contract/*.test.mjs`) run every assertion on jsdom, happy-dom and oxidom through
   `makeWindow(kind)` (`test/contract/adapter.cjs`); `createWindow()` does not install globals.
 - jsdom is the oracle. Where happy-dom diverges, pin the assertion:
   `if (kind !== 'happy-dom') expect(...) // PINNED to jsdom: <reason>`.
-- rsdom-only checks (protocols, wrappers, epochs) go to `test/native/`. `test/native/workers.test.mjs` also
+- oxidom-only checks (protocols, wrappers, epochs) go to `test/native/`. `test/native/workers.test.mjs` also
   runs `test/fixtures/pool-threads` (Vitest `pool: 'threads'`, one fresh worker thread per file) in a child
   process: loading the addon on a new thread after another exited must keep working.
-- The parity suite (`conformance/parity`, `npm run test:parity`) runs jsdom's own test suite against rsdom: WPT
+- The parity suite (`conformance/parity`, `npm run test:parity`) runs jsdom's own test suite against oxidom: WPT
   files from the 67 of jsdom's 127 `to-run.yaml` DIRs relevant to a DOM environment (`INCLUDE` in
   `conformance/wpt/select.mjs`), jsdom's to-upstream WPT tests, its legacy mocha tests and its API tests, about
-  2,600 files. `conformance/parity/expectations/*.yaml` lists what rsdom fails; anything else must pass, and a run
+  2,600 files. `conformance/parity/expectations/*.yaml` lists what oxidom fails; anything else must pass, and a run
   also fails when a listed failure starts passing, so progress gets locked in. `--update` rewrites the
   expectations for the files that ran; commit that diff with the change that caused it. Nothing runs the suite
   automatically (§1): run it before merging. Its README has the workflow.
-- Everything must pass with `RSDOM_SHARED=0` too. Rust logic gets unit tests next to the code; tree-shaped
+- Everything must pass with `OXIDOM_SHARED=0` too. Rust logic gets unit tests next to the code; tree-shaped
   invariants can extend `tests/prop_tree.rs`.
 - Known, asserted divergences: MathML elements are `MathMLElement` (spec) where jsdom/happy-dom use `Element`;
   html5ever implements the 2025 customizable-`<select>` parser rules (see `DIVERGENCES` in
@@ -302,7 +302,7 @@ Recorded after the foundation review (DESIGN §15.1); asserted where testable
    its entries in `conformance/parity/expectations/` are the failing upstream tests you are about to fix. An item
    with `tests: []` has no tests in the suite's selection (`--item` reports `no test matches`); its contract tests
    carry it.
-2. Write the contract test first (`test/contract/`): every assertion runs on jsdom, happy-dom and rsdom, and jsdom is
+2. Write the contract test first (`test/contract/`): every assertion runs on jsdom, happy-dom and oxidom, and jsdom is
    the oracle. A case where jsdom itself is wrong against the spec gets a comment and an explicit divergence.
 3. Decide where the state lives. State that must survive or react to tree mutations goes to Rust (a new
    module with its own `natives!` block, hooks from §4); pure API surface over existing state stays in the facade

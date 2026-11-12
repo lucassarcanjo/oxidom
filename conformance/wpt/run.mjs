@@ -7,7 +7,7 @@
 // process would throw "Identifier has already been declared". Vitest (isolate: true) likewise gives each test
 // file a fresh worker. A crashed / hung child is recorded as CRASH / KILLED for that DOM only.
 //
-// Usage: node conformance/wpt/run.mjs [--doms jsdom,happy-dom,rsdom] [--filter <regex>] [--limit N]
+// Usage: node conformance/wpt/run.mjs [--doms jsdom,happy-dom,oxidom] [--filter <regex>] [--limit N]
 //                                 [--concurrency 2] [--fresh]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,7 +60,7 @@ const jobs = [];
 for (const t of tests) for (const d of doms) if (!done.get(d).has(t.id)) jobs.push({ dom: d, test: t });
 console.log(`${tests.length} files x ${doms.length} DOMs: ${jobs.length} jobs to run (${concurrency} at a time)`);
 
-const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'rsdom-wpt-compile-cache');
+const compileCache = process.env.NODE_COMPILE_CACHE ?? path.join(os.tmpdir(), 'oxidom-wpt-compile-cache');
 const out = Object.fromEntries(doms.map((d) => [d, fs.openSync(path.join(rawDir, `${d}.jsonl`), 'a')]));
 
 function runJob({ dom, test }) {

@@ -16,7 +16,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 if (process.argv[2] === '--rss-child') {
   // Fresh process: RSS delta of loading the addon + init (table reservation must stay uncommitted).
   const before = process.memoryUsage().rss;
-  const N = require('../../packages/rsdom/lib/native.cjs');
+  const N = require('../../packages/oxidom/lib/native.cjs');
   const afterLoad = process.memoryUsage().rss;
   N.init(new ArrayBuffer(64), new ArrayBuffer(1 << 16, { maxByteLength: 1 << 28 }), 0, true);
   const afterInit = process.memoryUsage().rss;
@@ -24,8 +24,8 @@ if (process.argv[2] === '--rss-child') {
   process.exit(0);
 }
 
-const rt = require('../../packages/rsdom/lib/runtime.cjs');
-require('../../packages/rsdom/lib/index.cjs');
+const rt = require('../../packages/oxidom/lib/runtime.cjs');
+require('../../packages/oxidom/lib/index.cjs');
 const { N } = rt;
 
 let sink = 0;
@@ -140,7 +140,7 @@ const gates = [
 ];
 const lines = [];
 const env = `Node ${process.version}, ${os.cpus()[0].model} x${os.cpus().length}, ${os.platform()} ${os.release()}, shared=${rt.shared}`;
-lines.push(`# rsdom M0 gates (${new Date().toISOString()})`, `# ${env}`, '# ns/op: best / median of 7 runs');
+lines.push(`# oxidom M0 gates (${new Date().toISOString()})`, `# ${env}`, '# ns/op: best / median of 7 runs');
 for (const r of [echo, getAttr, hasAttr, setAttr, walk, walkW]) {
   const gate = gates.find(([g]) => g === r);
   const verdict = gate ? (r.median <= gate[1] ? `PASS (gate <= ${gate[1]})` : `MISS (gate <= ${gate[1]})`) : '(info)';

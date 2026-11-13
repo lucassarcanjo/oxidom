@@ -5,16 +5,15 @@ change for each runner, what carries over unchanged, and every known way oxidom 
 30.1.3, which is the oracle oxidom is measured against.
 
 Most suites need only the configuration change. Read [the divergences](#known-divergences) if a test fails after
-the switch, or before you switch if your suite relies on iframes or on loading `<script src>`, which oxidom
-does not support yet.
+the switch, or before you switch if your suite relies on loading `<script src>` or
+`<iframe src>`, which oxidom does not support yet.
 
-Where things stand (2026-10-22): oxidom passes 97.4% of the subtests jsdom passes in jsdom's own test suite
-([scoreboard](../conformance/parity/results/summary.md)), 19 of 20 real libraries against jsdom's 18
-([libraries](../e2e/libraries/results/summary.md); lit is the one that fails, for lack of custom elements), and the
-React 19 + Testing Library app suite at 90 of 90.
+Where things stand (2026-11-13): oxidom passes 99.6% of the subtests jsdom passes in jsdom's own test suite
+([scoreboard](../conformance/parity/results/summary.md)), 20 of 20 real libraries against jsdom's 18
+([libraries](../e2e/libraries/results/summary.md)), and the React 19 + Testing Library app suite at 90 of 90.
 
-None of the packages is on npm yet: install `oxidom` and the environment packages from this repository
-(`packages/oxidom`, `packages/vitest-environment-oxidom`, `packages/jest-environment-oxidom`; README "Usage").
+Install `oxidom` and the environment package for your runner from npm (`vitest-environment-oxidom` or
+`jest-environment-oxidom`; README "Usage").
 
 ## Contents
 
@@ -125,7 +124,7 @@ missing" now gets oxidom's version instead:
 | `scrollIntoView`, element `scrollTo` / `scrollBy`, pointer capture | absent | present (no-ops or stored) | nothing |
 | `<dialog>` `showModal` / `close` | absent | present | nothing |
 | `InputEvent#getTargetRanges` | absent | present | nothing; editors take their `beforeinput` path |
-| `customElements`, canvas `getContext` | present | absent | keep a polyfill, or wait for the roadmap items |
+| canvas `getContext` | present | absent | keep a polyfill |
 
 Shims that assign unconditionally (`window.ResizeObserver = MockResizeObserver`) keep working: oxidom's built-ins
 are ordinary writable properties.
@@ -192,8 +191,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[design] Jest globals.** Members a jsdom window has are copied from Node (`URL`, `TextEncoder`,
   `AbortController`, `atob`, `performance`, `crypto`, ...); `fetch` and `structuredClone` stay undefined, as
   under jest-environment-jsdom. DESIGN §32.
-- **[gap] Missing Window members:** `ElementInternals` and `customElements` (`custom-elements`, Stage 4),
-  `webkitURL`, the SVG value types (`SVGRect`, `SVGNumber`, `SVGStringList`, `SVGAnimated*`,
+- **[gap] Missing Window members:** `webkitURL`, the SVG value types (`SVGRect`, `SVGNumber`, `SVGStringList`, `SVGAnimated*`,
   `SVGPreserveAspectRatio`). `postMessage` delivers to the same window, like jsdom's, without `origin` or `source`. `status`,
   `length`, `external` and the bars are data properties (jsdom: replaceable accessors), so `status = 5` reads back `5`.
 - **[gap] Named properties of collections** (`form.elements.email`, `document.forms.login`, `el.attributes.id`)
@@ -206,7 +204,7 @@ roadmap items with a row on the [scoreboard](../conformance/parity/results/summa
 - **[gap] Media events of elements in a windowless document** (`createHTMLDocument()`, `DOMParser`): the
   `volumechange` / `ratechange` task is queued on the current window, not the creating one, so it still fires
   after the creating window closed if another is current, and is dropped when no window is open. DESIGN §41.
-- **[gap] Missing interfaces:** `customElements` (`custom-elements`, Stage 4), canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
+- **[gap] Missing interfaces:** canvas `getContext` (jsdom has it and returns `null`; not planned), most SVG DOM types.
 - **[gap] XPath iterators and shadow trees:** a change inside a connected shadow tree sets
   `invalidIteratorState` on a document's XPath iterators; jsdom ignores shadow-tree changes there. DESIGN §39.
 - **[gap] Brand checks are skipped on hot paths.** `Object.getOwnPropertyDescriptor(Node.prototype,
@@ -282,11 +280,7 @@ share one realm, so they do not apply there.
 
 ### Forms
 
-- **[gap] `ElementInternals`** is missing. `stepUp()` / `stepDown()`, `valueAsNumber`, `valueAsDate`, `<meter>`
-  and `<progress>` work like jsdom (DESIGN §36). `forms`.
-- **[gap] `document.forms.<name>`** and other named access on HTMLCollection is undefined; use
-  `namedItem(name)`. `core`.
-- **[gap] `document.open()`, `write()` and `close()` are missing.** `core`.
+- **[gap] `document.close()` is missing**; `document.open()` and `write()` are there. `core`.
 - **[gap] `:invalid` / `:valid` ignore `pattern`:** `validity.patternMismatch` is right, but
   `matches(':invalid')` is false for a pattern mismatch. `forms`.
 - **[gap] `control.labels` and `document.getElementsByName()` return static NodeLists**, a new one on each

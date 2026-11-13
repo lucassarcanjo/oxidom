@@ -1,6 +1,6 @@
 # Real-world library compatibility: jsdom vs happy-dom vs oxidom
 
-Generated 2026-10-20T19:31:36.794Z by `e2e/libraries/aggregate.mjs`. Versions: node v22.22.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, oxidom working tree, packages/oxidom/native/oxidom.linux-x64-gnu.node.
+Generated 2026-11-13T00:40:04.114Z by `e2e/libraries/aggregate.mjs`. Versions: node v24.18.0, vitest 5.0.5, jsdom 30.1.3, happy-dom 21.0.3, react 19.3.1, @testing-library/react 16.3.3, @testing-library/user-event 14.6.8, @testing-library/jest-dom 7.0.1, oxidom working tree, packages/oxidom/native/oxidom.linux-x64-gnu.node.
 
 Each library gets 1 to 3 smoke tests written like app tests: render, then interact with user-event, then assert with jest-dom. The same files run under each DOM, and only `DOM_ENV` changes. The primary run applies the documented test-setup shims (see below). A second run applies no shims.
 
@@ -10,10 +10,10 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 |---|---|---|---|---|---|
 | polyfills-jsdom | 41 | 39 | 0 | 2 | 18/20 |
 | polyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| polyfills-oxidom | 41 | 39 | 0 | 2 | 19/20 |
+| polyfills-oxidom | 41 | 41 | 0 | 0 | 20/20 |
 | nopolyfills-jsdom | 41 | 36 | 2 | 3 | 16/20 |
 | nopolyfills-happy-dom | 41 | 38 | 1 | 2 | 17/20 |
-| nopolyfills-oxidom | 41 | 39 | 0 | 2 | 19/20 |
+| nopolyfills-oxidom | 41 | 41 | 0 | 0 | 20/20 |
 
 `error*` means every assertion passed but Vitest reported an unhandled error or rejection from that library's test. Vitest then exits 1, so CI goes red.
 
@@ -27,7 +27,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 | framer-motion | framer-motion@14.3.0 | 2 | pass 2/2 | error* 2/2 | pass 2/2 | pass / error* / pass |
 | @headlessui/react | @headlessui/react@2.2.10 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | error* / pass / pass |
 | lexical | lexical@0.52.0<br>@lexical/react@0.52.0 | 2 | **FAIL** 1/2 | **FAIL** 1/2 | pass 2/2 | **FAIL** / **FAIL** / pass |
-| lit | lit@3.3.3 | 2 | pass 2/2 | pass 2/2 | **FAIL** 0/2 | pass / pass / **FAIL** |
+| lit | lit@3.3.3 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | @mui/material | @mui/material@9.5.0<br>@emotion/react@11.14.0<br>@emotion/styled@11.14.1 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
 | axios | axios@1.20.0 | 2 | pass 2/2 | pass 2/2 | pass 2/2 | pass / pass / pass |
 | msw | msw@3.0.3 | 3 | pass 3/3 | pass 3/3 | pass 3/3 | pass / pass / pass |
@@ -56,7 +56,7 @@ Each library gets 1 to 3 smoke tests written like app tests: render, then intera
 
 ### oxidom has no customElements: lit falls back to @lit-labs/ssr-dom-shim, whose registry never upgrades elements
 
-- **DOM(s):** oxidom. **Category:** missing-api. **Libraries hit:** lit
+- **DOM(s):** oxidom. **Category:** missing-api. **Libraries hit:** (diagnostics only)
 - **Evidence:** Since TreeWalker landed (2026-10-19) lit imports, then @lit/reactive-element/node/reactive-element.js runs `globalThis.customElements ??= <ssr-dom-shim registry>`: define() succeeds but parsed <counter-button> is never upgraded (not an instance of the class), so it never renders into a shadow root. Probe: typeof customElements === "undefined" only in oxidom (diag-facts). attachShadow exists since 2026-10-20 (ROADMAP Stage 1 ShadowRoot); custom elements are Stage 4.
 
 ### document.elementFromPoint missing; ProseMirror mousedown handler (posAtCoords) throws on every click into the editor
@@ -142,11 +142,11 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | checkVisibility | geometry | 8 | **no** | yes | yes |
 | createTreeWalker | traversal | 7 | yes | yes | yes |
 | NodeFilter | traversal | 7 | yes | yes | yes |
-| assignedNodes/assignedElements | shadow-dom | 6 | yes | yes | **no** |
+| assignedNodes/assignedElements | shadow-dom | 6 | yes | yes | yes |
 | CompositionEvent | events | 6 | yes | yes | yes |
 | matchMedia | observers | 5 | **no** | yes | yes |
 | PointerEvent | events | 5 | yes | yes | yes |
-| CSSStyleSheet#insertRule | css | 5 | yes | yes | **no** |
+| CSSStyleSheet#insertRule | css | 5 | yes | yes | yes |
 | createRange | editing | 4 | yes | yes | yes |
 | Selection collapse()/setBaseAndExtent() creates a Range | editing | 4 | yes | yes | yes |
 | InputEvent#getTargetRanges | editing | 4 | **no** | **no** | yes |
@@ -164,7 +164,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 | Range#getClientRects | geometry | 2 | **no** | yes | yes |
 | XMLHttpRequest | network | 2 | yes | yes | yes |
 | attachShadow | shadow-dom | 1 | yes | yes | yes |
-| customElements | shadow-dom | 1 | yes | yes | **no** |
+| customElements | shadow-dom | 1 | yes | yes | yes |
 | elementsFromPoint | geometry | 1 | **no** | **no** | yes |
 | Element#animate (WAAPI) | animation | 1 | **no** | yes | **no** |
 | history.pushState | html | 1 | yes | yes | yes |
@@ -177,7 +177,7 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 
 - **jsdom** (21 APIs): IntersectionObserver (11), scrollIntoView (10), visualViewport (10), ResizeObserver (10), inert (10), isContentEditable (8), Element#scrollTo (8), checkVisibility (8), matchMedia (5), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), Range#getBoundingClientRect (4), elementFromPoint (4), setPointerCapture/hasPointerCapture (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Range#getClientRects (2), elementsFromPoint (1), Element#animate (WAAPI) (1)
 - **happy-dom** (5 APIs): visualViewport (10), InputEvent#getTargetRanges (4), caretRangeFromPoint/caretPositionFromPoint (4), execCommand (2), elementsFromPoint (1)
-- **oxidom** (11 APIs): visualViewport (10), inert (10), assignedNodes/assignedElements (6), CSSStyleSheet#insertRule (5), caretRangeFromPoint/caretPositionFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), customElements (1), Element#animate (WAAPI) (1)
+- **oxidom** (8 APIs): visualViewport (10), inert (10), caretRangeFromPoint/caretPositionFromPoint (4), DataTransfer (4), getAnimations (3), adoptedStyleSheets (3), execCommand (2), Element#animate (WAAPI) (1)
 
 ## Caveats
 
@@ -185,4 +185,4 @@ Method: regex search of the shipped `.js`/`.mjs`/`.cjs` of each library plus its
 - Static census hits come from identifier presence. Many are feature-detected or sit on code paths the tests never reach. Use them as a risk indicator. They do not predict failures.
 - Typing into contenteditable editors (Lexical, tiptap) also depends on how @testing-library/user-event simulates input. The Lexical typing failure on jsdom and happy-dom is partly a tooling limit. The counterfactual shows that the missing `getTargetRanges` is enough to explain it.
 - Unhandled errors are attributed to a test with Vitest's "last test to run" heuristic.
-- On oxidom, 2 tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.
+- On oxidom, 0 tests stop at the first missing API. Gaps further along those scenarios are therefore not observed.

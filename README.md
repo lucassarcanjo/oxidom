@@ -12,7 +12,7 @@ export default defineConfig({
 })
 ```
 
-> **Status: preview.** oxidom runs an unmodified React 19 + Testing Library suite and passes 97.5% of what jsdom
+> **Status: preview.** oxidom runs an unmodified React 19 + Testing Library suite and passes 99.6% of what jsdom
 > passes in jsdom's own test suite. See [what works](#compatibility), the [migration guide](docs/MIGRATING.md) and
 > the [roadmap](docs/ROADMAP.md).
 
@@ -41,8 +41,8 @@ Measured against jsdom 30.1.3:
 
 | measure | oxidom |
 |---|---|
-| subtests of jsdom's own test suite that pass on jsdom and also on oxidom | 97.5% (163,519 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-10-22) |
-| real libraries passing | 19 of 20, jsdom 18 of 20 (2026-10-20, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
+| subtests of jsdom's own test suite that pass on jsdom and also on oxidom | 99.6% (166,972 of 167,724; [scoreboard](conformance/parity/results/summary.md), 2026-11-13) |
+| real libraries passing | 20 of 20, jsdom 18 of 20 (2026-11-13, [`e2e/libraries`](e2e/libraries/results/summary.md)) |
 | React 19 + Testing Library app suite | 90 of 90 tests |
 
 The parity suite ([`conformance/parity`](conformance/parity/README.md)) runs **jsdom's own test suite** against
@@ -50,8 +50,6 @@ oxidom: web-platform-tests from the 67 of jsdom's 127 WPT directories that a DOM
 to-upstream tests, its legacy mocha tests and its API tests; the scoreboard breaks it down by roadmap item. The
 lab-phase baseline (API surface, WPT, 2026-10-17) is in [`docs/PARITY.md`](docs/PARITY.md).
 
-The remaining library failure comes from a missing API: custom elements (lit), which are
-[Stage 4 of the roadmap](docs/ROADMAP.md#stage-4-architectural-work).
 Not supported today: loading `<script src>` and `<iframe src>`, layout, synchronous XMLHttpRequest. Every known difference from
 jsdom is listed in the [migration guide](docs/MIGRATING.md#known-divergences).
 
@@ -72,7 +70,7 @@ not-implemented window methods log "Not implemented: ..." through `console.error
 the same, and so do fake timers. Scripts and inline `on*` attribute handlers do not run (jest-environment-jsdom
 runs them). Arrays, typed arrays, promises and errors that oxidom itself creates come from Node's realm, not the test
 file's, so `instanceof Array` or `toThrow(TypeError)` on them does not hold; `DOMException` and abort reasons are
-not `instanceof Error`. `customElements` is not there yet.
+not `instanceof Error`.
 
 **TypeScript.** The packages ship their declarations; `oxidom`'s `JSDOM` API is typed as @types/jsdom types
 jsdom's. For the Vitest `jsdom` global, use `types: ["oxidom/vitest-globals"]` where you had `vitest/jsdom`.
@@ -131,8 +129,7 @@ npm run check          # lint, npm test, the fallback-mode suites and test:parit
 npm run bench:micro    # see bench/README.md
 ```
 
-GitHub Actions is disabled for this repository, so nothing runs these checks automatically;
-`.github/workflows/ci.yml` keeps the definition for when it is turned back on.
+CI (`.github/workflows/ci.yml`) runs the Rust, JS and parity suites on every pull request, on Linux.
 
 Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): build and test commands, how to add a native function, the
 facade conventions and the invariants that keep oxidom fast.

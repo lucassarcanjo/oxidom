@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-20T19:31:36.706Z",
+  "generated": "2026-11-13T00:40:04.057Z",
   "note": "static identifier presence in shipped JS (dependency closure); availability = native, measured inside each Vitest environment with no shims",
   "libs": {
     "@radix-ui/react-dialog": {
@@ -753,10 +753,9 @@
         "resolve-from@4.0.0",
         "source-map@0.5.7",
         "stylis@4.2.0",
-        "supports-preserve-symlinks-flag@1.0.0",
-        "yaml@2.9.1"
+        "supports-preserve-symlinks-flag@1.0.0"
       ],
-      "files": 3013,
+      "files": 2862,
       "apis": {
         "ShadowRoot (global)": [
           "@emotion/sheet",
@@ -1111,10 +1110,9 @@
         "source-map@0.5.7",
         "stylis@4.2.0",
         "supports-preserve-symlinks-flag@1.0.0",
-        "use-isomorphic-layout-effect@1.2.1",
-        "yaml@2.9.1"
+        "use-isomorphic-layout-effect@1.2.1"
       ],
-      "files": 1083,
+      "files": 932,
       "apis": {
         "ShadowRoot (global)": [
           "@emotion/sheet",
@@ -1950,7 +1948,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "oxidom": false
+        "oxidom": true
       }
     },
     {
@@ -1989,7 +1987,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "oxidom": false
+        "oxidom": true
       }
     },
     {
@@ -2652,7 +2650,7 @@
       "available": {
         "jsdom": true,
         "happy-dom": true,
-        "oxidom": false
+        "oxidom": true
       }
     },
     {
@@ -3070,29 +3068,6 @@
         ]
       },
       {
-        "api": "assignedNodes/assignedElements",
-        "libs": 6,
-        "usedBy": [
-          "@headlessui/react",
-          "react-aria-components",
-          "focus-trap + tabbable",
-          "@floating-ui/react",
-          "lexical",
-          "lit"
-        ]
-      },
-      {
-        "api": "CSSStyleSheet#insertRule",
-        "libs": 5,
-        "usedBy": [
-          "@mui/material",
-          "react-select",
-          "framer-motion",
-          "lexical",
-          "lit"
-        ]
-      },
-      {
         "api": "caretRangeFromPoint/caretPositionFromPoint",
         "libs": 4,
         "usedBy": [
@@ -3136,13 +3111,6 @@
         "usedBy": [
           "@tiptap/react",
           "lexical"
-        ]
-      },
-      {
-        "api": "customElements",
-        "libs": 1,
-        "usedBy": [
-          "lit"
         ]
       },
       {

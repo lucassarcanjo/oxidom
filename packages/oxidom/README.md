@@ -3,9 +3,9 @@
 A DOM for Node.js test environments, implemented in Rust. It's meant as a drop-in replacement for jsdom: change one
 word of configuration and run the same tests, faster.
 
-> **Preview.** oxidom runs an unmodified React 19 + Testing Library suite and passes 97.5% of what jsdom passes in
-> jsdom's own test suite. Custom elements, `<script src>` / `<iframe src>` loading, layout and synchronous
-> XMLHttpRequest aren't supported yet.
+> **Preview.** oxidom runs an unmodified React 19 + Testing Library suite and passes 99.6% of what jsdom passes in
+> jsdom's own test suite. `<script src>` / `<iframe src>` loading, layout and synchronous XMLHttpRequest
+> aren't supported yet.
 
 Prebuilt binaries ship for Linux x64/arm64 (glibc and musl), macOS x64/arm64 and Windows x64. Node.js 22+.
 

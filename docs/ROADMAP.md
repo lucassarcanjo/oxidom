@@ -33,20 +33,20 @@ gap. Each item below names its scope in the suite in backticks (`conformance/par
 
 - [x] Monorepo layout: `crates/oxidom` (Rust), `packages/oxidom` (npm), e2e suites, benchmarks, conformance harnesses.
 - [x] `vitest-environment-oxidom` package so `environment: 'oxidom'` resolves like `'jsdom'`.
-- [ ] CI running on every PR. `.github/workflows/ci.yml` defines the jobs (lint, Rust tests, contract suite also in
-      fallback mode, React app suite and the parity suite, on Linux), but GitHub Actions is disabled for this
-      repository; until it runs, `npm run check` runs the same checks locally before merging.
+- [x] CI running on every PR: `.github/workflows/ci.yml` (lint, Rust tests, contract suite also in fallback mode, React
+      app suite and the parity suite, on Linux); `main` requires it to pass.
 - [x] Parity suite: jsdom's own test suite, gated by checked-in expectations (regressions and unlocked progress both
       fail), with a committed scoreboard (`conformance/parity`).
 - [ ] CI matrix: macOS and Windows builds of the addon and the test suites.
-- [ ] Prebuilt binaries for linux x64/arm64 (gnu and musl), darwin x64/arm64 and win32 x64: `.github/workflows/release.yml`
-      builds them all into the `oxidom` package (dry run passed 2026-10-26). Split them into `@oxidom/<triple>` `optionalDependencies`
+- [x] Prebuilt binaries for linux x64/arm64 (gnu and musl), darwin x64/arm64 and win32 x64: `.github/workflows/release.yml`
+      builds them all into the `oxidom` package (shipped in 0.1.0). Split them into `@oxidom/<triple>` `optionalDependencies`
       if the download size becomes a problem.
-- [ ] Publish a first preview under the npm names `oxidom`, `vitest-environment-oxidom`, `jest-environment-oxidom` and
-      `@oxidom/*`. Earlier names were taken or refused: an unrelated project owns `vitest-environment-rsdom` and
+- [x] Publish a first preview (0.1.0, 2026-11-13) under the npm names `oxidom`, `vitest-environment-oxidom`, `jest-environment-oxidom`.
+      Earlier names were taken or refused: an unrelated project owns `vitest-environment-rsdom` and
       `@rsdom/*`, and npm rejects `jetdom` (too similar to `jsdom` and `jest-dom`) and `nativedom` (too similar to
       `native-dom`).
-- [ ] Versioning and changelog (one version for all packages; changesets or a release script).
+- [ ] Versioning and changelog (one version for all packages; changesets or a release script). `CHANGELOG.md` is kept by
+      hand until then.
 - [ ] Performance regression guard: a reduced `bench:micro` and `bench:e2e` run on a fixed runner, compared with
       `bench/results/`.
 - [ ] Scheduled runs of the three-DOM measurements (`conformance/wpt`, `conformance/api-surface`, `e2e/libraries`)

@@ -6,7 +6,8 @@
 # npm is skipped, so a run that failed halfway finishes the rest.
 #
 # npm auth: trusted publishing (OIDC, `id-token: write`) once it is configured for each package on npmjs.com,
-# otherwise the NPM_TOKEN secret. The repository is private, so npm generates no provenance either way.
+# otherwise the NPM_TOKEN secret. With trusted publishing npm attaches provenance to each version (the repository is public).
+# New packages and token publishes may land as staged versions that a maintainer approves on npmjs.com with 2FA.
 name: Release
 
 on:

@@ -2,12 +2,13 @@
 # All binaries ship inside `oxidom` (native/oxidom.<triple>.node); lib/native.cjs picks the one for the host.
 #
 # Runs on a `v*` tag that matches the package versions, or by hand (Actions > Release > Run workflow), where
-# `dry_run` packs and checks everything without publishing. Safe to rerun: a package whose version is already on
-# npm is skipped, so a run that failed halfway finishes the rest.
+# `dry_run` packs and checks everything without publishing. Safe to rerun: a package whose version is already
+# published or staged is skipped, so a run that failed halfway finishes the rest.
 #
-# npm auth: trusted publishing (OIDC, `id-token: write`) once it is configured for each package on npmjs.com,
-# otherwise the NPM_TOKEN secret. With trusted publishing npm attaches provenance to each version (the repository is public).
-# New packages and token publishes may land as staged versions that a maintainer approves on npmjs.com with 2FA.
+# npm auth: trusted publishing (OIDC, `id-token: write`), configured on npmjs.com for each package to allow
+# `npm stage publish` only. The workflow stages the three versions; nothing is public until a maintainer approves
+# each one with 2FA (npmjs.com > Staged Packages, or `npm stage list` then `npm stage approve <id>`).
+# npm attaches provenance to each version.
 name: Release
 
 on:
@@ -136,16 +137,23 @@ jobs:
           node "$GITHUB_WORKSPACE/scripts/release-smoke.cjs" oxidom
       - name: Publish
         if: github.event_name == 'push' || !inputs.dry_run
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # oxidom first: both environment packages have it as a peer dependency.
+          # oxidom first: both environment packages have it as a peer dependency. Staged versions are not visible to
+          # `npm view`, so a rerun meets them as a version conflict, which counts as already done.
+          v=$(node -p "require('./packages/oxidom/package.json').version")
           for f in oxidom vitest-environment-oxidom jest-environment-oxidom; do
             tgz=$(ls "$RUNNER_TEMP"/pack/$f-[0-9]*.tgz)
-            v=$(node -p "require('./packages/oxidom/package.json').version")
             if npm view "$f@$v" version > /dev/null 2>&1; then
               echo "$f@$v is already on npm, skipping"
+            elif ! out=$(npm stage publish "$tgz" --access public 2>&1); then
+              echo "$out"
+              if echo "$out" | grep -q -i -E "E409|cannot publish over|already (exists|staged)"; then
+                echo "::warning::$f@$v is already staged, skipping"
+              else
+                exit 1
+              fi
             else
-              npm publish "$tgz" --access public
+              echo "$out"
+              echo "::notice::$f@$v staged: approve it on npmjs.com (Staged Packages) to publish it"
             fi
           done

@@ -28,9 +28,8 @@ npm run check             # lint, npm test, test:fallback, test:parity, scoreboa
 npm run bench:m0          # M0 gates; bench/README.md lists every harness
 ```
 
-- GitHub Actions is disabled for this repository, so nothing runs these checks automatically. Before merging, run
-  `npm run check` (after `npm run build` and `scripts/fetch-refs.sh --wpt`). `.github/workflows/ci.yml` defines the
-  same checks for when Actions is turned back on. It also checks that `conformance/parity/results/summary.md` is
+- CI (`.github/workflows/ci.yml`) runs these checks on every PR and push to main, on Linux, and `main` requires
+  them to pass. Run `npm run check` locally first (after `npm run build` and `scripts/fetch-refs.sh --wpt`). It also checks that `conformance/parity/results/summary.md` is
   current: `--update` regenerates it, but after editing `conformance/parity/expectations/` by hand, run
   `node conformance/parity/report.mjs` and commit the result.
 - The facade loads whatever addon is in `packages/oxidom/native/` (last build wins). `OXIDOM_NATIVE=/abs/path.node`

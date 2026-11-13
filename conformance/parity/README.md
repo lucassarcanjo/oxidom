@@ -1,9 +1,8 @@
 # conformance/parity: jsdom's test suite as oxidom's gate
 
 oxidom aims to be a drop-in replacement for jsdom, and jsdom is the behavioural oracle (CONTRIBUTING §6). This
-directory runs **jsdom's own test suite** against oxidom and gates changes on it. GitHub Actions is disabled for
-this repository, so nothing runs it automatically: run it before merging (`npm run check` runs it with the other
-checks).
+directory runs **jsdom's own test suite** against oxidom and gates changes on it. CI runs it on every
+PR and `main` requires it to pass; locally, `npm run check` runs it with the other checks.
 
 | source | what | files |
 | --- | --- | ---: |

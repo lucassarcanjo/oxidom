@@ -44,7 +44,7 @@ These files are touched by every thread. Keep each edit small and append-only wh
 
 ## Getting into main
 
-GitHub Actions is disabled; the local gate is the only gate. One PR per item (or per sub-item for quick-wins).
+CI runs on every PR and `main` requires it to pass; run the local gate before pushing anyway. One PR per item (or per sub-item for quick-wins).
 
 1. `git fetch origin main && git merge origin/main` (no rebase or force push on a pushed branch).
 2. Generated files in conflict: take main's version (`git checkout --theirs <file>`), finish the merge, rebuild
